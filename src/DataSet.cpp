@@ -5,22 +5,25 @@
 
 #include <cassert>
 #include <set>
+#include <thread>
+#include <functional>
 
 using namespace BlueMarble;
 
-Id BlueMarble::DataSet::generateId(FeaturePtr feature)
+Id BlueMarble::DataSet::generateId()
 {
-    return Id(m_dataSetId, FeatureId(feature.get()));
+    static std::atomic<FeatureId> globalFeatureIdCounter = 0;
+    globalFeatureIdCounter++;
+    return Id(m_dataSetId, globalFeatureIdCounter);
 }
 
 FeaturePtr BlueMarble::DataSet::createFeature(GeometryPtr geometry)
 {
     auto feature = std::make_shared<Feature>
     (
-        Id(0,0), // dummy
+        generateId(),
         geometry
     );
-    feature->id() = generateId(feature);
 
     return feature;
 }
@@ -52,20 +55,36 @@ ImageDataSet::ImageDataSet(const std::string &filePath)
 }
 
 
-void ImageDataSet::init()
+void ImageDataSet::init(DataSetInitializationType initType)
 {
-    assert(m_filePath.size() > 0);
-    m_raster = Raster(m_filePath);
-    m_rasterPrev = m_raster;
-    generateOverViews();
-    m_isInitialized = true;
+    assert(!m_filePath.empty());
+
+    auto initWork = [this]()
+    {
+        m_raster = Raster(m_filePath);
+        m_rasterPrev = m_raster;
+        generateOverViews();
+        m_isInitialized = true;
+        std::cout << "ImageDataSet: Data loaded!\n";
+    };
+
+    if (initType == DataSetInitializationType::RightHereRightNow)
+    {
+        initWork();
+    }
+    else
+    {
+        std::thread readThread(initWork);
+        readThread.detach();
+    }
+    
 }
 
-void BlueMarble::ImageDataSet::onUpdateRequest(Map &map, const Rectangle& /*updateArea*/, FeatureHandler* handler)
+void BlueMarble::ImageDataSet::onUpdateRequest(Map &map, const Rectangle& updateArea, FeatureHandler* handler)
 {
     if (!m_isInitialized)
     {
-        init();
+        return;
     }
     // first get the overview with specific inverted scale
     // TODO: Shouldn't be divided by two. Temporary fix. Fix together with intepolation and limit in generateOverviews
@@ -87,7 +106,7 @@ void BlueMarble::ImageDataSet::onUpdateRequest(Map &map, const Rectangle& /*upda
     double invScaleY = (double)m_raster.height() / backgroundRaster.height();
 
     // Crop image
-    auto bounds = map.area();
+    auto bounds = updateArea;//map.area(); // TODO: testing, remove!!!!
     int x0 = std::max(0.0, bounds.xMin() / invScaleX);
     int y0 = std::max(0.0, bounds.yMin() / invScaleY);
     int x1 = std::min(backgroundRaster.width()-1.0, bounds.xMax() / invScaleX);
@@ -108,14 +127,24 @@ void BlueMarble::ImageDataSet::onUpdateRequest(Map &map, const Rectangle& /*upda
 
     // Compute the position to center the image
     auto displayCenter = map.screenCenter();
+    
     auto offset = Point(-map.center().x()*map.scale() + displayCenter.x(),
                         -map.center().y()*map.scale() + displayCenter.y());
 
     // Account for pixel truncation in offset
+    //auto offset2 = map.mapToScreen(bounds).minCorner(); // TODO remove if not working
     if (offset.x() < 0)
-            offset = Point((std::round(x0)*invScaleX - bounds.xMin())*map.scale(), offset.y());
+    {
+        offset = Point((std::round(x0)*invScaleX - bounds.xMin())*map.scale(), offset.y());
+        //offset = Point(offset.x()+offset2.x(), offset.y());
+    }
+
     if (offset.y() < 0)
-            offset = Point(offset.x(), (std::round(y0)*invScaleY - bounds.yMin())*map.scale());
+    {
+        offset = Point(offset.x(), (std::round(y0)*invScaleY - bounds.yMin())*map.scale());
+        //offset = Point(offset.x(), offset.y()+offset2.y());
+    }
+
     offset = offset.round();
 
 
@@ -302,57 +331,81 @@ void ImageDataSet::generateOverViews()
 AbstractFileDataSet::AbstractFileDataSet(const std::string& filePath)
     : DataSet() 
     , m_filePath(filePath)
+    , m_featureTree(Rectangle(-180.0, -90.0, 180.0, 90.0), 0.05)
+    , m_isInitialized(false)
+    , m_progress(0)
 {
+}
+
+void AbstractFileDataSet::init(DataSetInitializationType initType)
+{
+    auto initWork = [this]()
+    {
+        this->read(m_filePath);
+        for (auto f : m_features)
+        {
+            m_featureTree.insertFeature(f);
+        }
+        m_isInitialized = true;
+        std::cout << "Data loaded!\n";
+    };
+
+    if (initType == DataSetInitializationType::RightHereRightNow)
+    {
+        initWork();
+    }
+    else
+    {
+        std::thread readThread(initWork);
+        readThread.detach();
+    }
+}
+
+double BlueMarble::AbstractFileDataSet::progress()
+{
+    return (m_isInitialized) ? 1.0 : (double)m_progress;
 }
 
 void AbstractFileDataSet::onUpdateRequest(Map& map, const Rectangle& updateArea, FeatureHandler* handler)
 {
-    std::vector<FeaturePtr> filteredFeatures;    
-    for (auto f : m_features)
+    if (!m_isInitialized)
     {
-        switch (f->geometryType())
-        {
-        case GeometryType::Point:
-        {
-            auto& point = f->geometryAsPoint()->point();
-        
-            // Filter within bounds
-            if (!updateArea.isInside(map.lngLatToMap(point)))
-                continue;
-
-            filteredFeatures.push_back(f);
-            break;
-        }
-
-        case GeometryType::Line:
-        {
-            auto bounds = map.lngLatToMap(f->bounds());
-            if (!bounds.overlap(updateArea))
-                continue;
-
-            filteredFeatures.push_back(f);
-            break;
-        }    
-        
-        case GeometryType::Polygon:
-        {
-            auto bounds = map.lngLatToMap(f->bounds());
-            if (!bounds.overlap(updateArea))
-                continue;
-
-            filteredFeatures.push_back(f);
-            break;
-        }
-
-        default:
-            std::cout << "AbstractFileDataSet::onUpdateRequest() Unhandled feature type: " << (int)f->geometryType() << "\n";
-            break;
-        }
-
+        return;
     }
+    // Testing QuadTree
+    FeatureCollection filteredFeatures;
+    auto lngLat = map.mapToLngLat(updateArea);
+    // std::cout << lngLat.toString() << "\n";
+    m_featureTree.getFeaturesInside(lngLat, filteredFeatures);
+    // std::cout << "Filtered: " << filteredFeatures.size() << "\n";
 
-    handler->onFeatureInput(map, filteredFeatures);
-    // std::vector<FeaturePtr> screenFeatures;    
+    //
+    // auto node = m_featureTree.root();
+
+    // auto points = node->bounds().corners();
+    // points.push_back(points[0]);
+    // points = map.lngLatToScreen(points);
+    // map.drawable().drawLine(points, Color::red());
+    // auto center = node->bounds().center();
+    // center = map.lngLatToScreen(center);
+    // map.drawable().drawText(center.x(), center.y(), "Root node", Color::green());
+
+    // int i=0;
+    // for (auto c : node->children())
+    // {
+    //     auto points = c->bounds().corners();
+    //     points.push_back(points[0]);
+    //     points = map.lngLatToScreen(points);
+    //     map.drawable().drawLine(points, Color::red(0.5));
+    //     auto center = c->bounds().center();
+    //     center = map.lngLatToScreen(center);
+    //     map.drawable().drawText(center.x(), center.y(), "Node: " + std::to_string(i), Color::green());
+    //     i++;
+    // }
+    
+    handler->onFeatureInput(map, filteredFeatures.getVector());
+
+    // std::vector<FeaturePtr> filteredFeatures;    
     // for (auto f : m_features)
     // {
     //     switch (f->geometryType())
@@ -365,46 +418,43 @@ void AbstractFileDataSet::onUpdateRequest(Map& map, const Rectangle& updateArea,
     //         if (!updateArea.isInside(map.lngLatToMap(point)))
     //             continue;
 
-    //         auto screenPoint = map.lngLatToScreen(point).round();
-    //         auto newF = std::make_shared<Feature>
-    //         (
-    //             Id(0, (uint64_t)f.get()), // FIXME: uggly fix for handling hover/select
-    //             std::make_shared<PointGeometry>(screenPoint)
-    //         );
-    //         newF->attributes() = f->attributes();
-    //         screenFeatures.push_back(newF);
+    //         filteredFeatures.push_back(f);
     //         break;
     //     }
-            
+
+    //     case GeometryType::Line:
+    //     {
+    //         auto bounds = map.lngLatToMap(f->bounds());
+    //         if (!bounds.overlap(updateArea))
+    //             continue;
+
+    //         filteredFeatures.push_back(f);
+    //         break;
+    //     }    
+        
     //     case GeometryType::Polygon:
     //     {
     //         auto bounds = map.lngLatToMap(f->bounds());
     //         if (!bounds.overlap(updateArea))
     //             continue;
 
-    //         auto& points = f->geometryAsPolygon()->points();
-    //         auto screenPoints = map.lngLatToScreen(points);
-    //         auto newF = std::make_shared<Feature>
-    //         (
-    //             Id(0, (uint64_t)f.get()), // FIXME: uggly fix for handling hover/select
-    //             std::make_shared<PolygonGeometry>(screenPoints)
-    //         );
-    //         newF->attributes() = f->attributes();
-    //         screenFeatures.push_back(newF);
+    //         filteredFeatures.push_back(f);
     //         break;
     //     }
 
     //     default:
+    //         std::cout << "AbstractFileDataSet::onUpdateRequest() Unhandled feature type: " << (int)f->geometryType() << "\n";
     //         break;
     //     }
 
     // }
 
-    // handler->onFeatureInput(map, screenFeatures);
+    //handler->onFeatureInput(map, filteredFeatures);
 }
 
 void BlueMarble::AbstractFileDataSet::onGetFeaturesRequest(const Attributes &attributes, std::vector<FeaturePtr>& features)
 {
+    std::cout << "AbstractFileDataSet::onGetFeaturesRequest\n";
     if (attributes.size() == 0)
     {
         for (auto f : m_features)
@@ -453,9 +503,6 @@ FeaturePtr AbstractFileDataSet::onGetFeatureRequest(const Id &id)
     return nullptr;
 }
 
-void BlueMarble::AbstractFileDataSet::generateOverViews()
-{
-}
 
 CsvFileDataSet::CsvFileDataSet(const std::string& filePath)
     : AbstractFileDataSet(filePath)
@@ -510,6 +557,7 @@ void CsvFileDataSet::read(const std::string& filePath)
 
 
     // All below is temporary
+    // Testing generating counties with convex hull
 
     // Set NAME attribute from "Locality"
     for (auto f : m_features)
@@ -517,34 +565,34 @@ void CsvFileDataSet::read(const std::string& filePath)
         f->attributes().set("NAME", f->attributes().get<std::string>("Locality"));
     }
 
-    // Create polygon features for cities within same county
-    std::set<std::string> uniqueCounties;
-    std::map<std::string, std::vector<Point>> countyPoints;
-    for (auto f : m_features)
-    {
-        std::string countyName = f->attributes().get<std::string>("County");
-        uniqueCounties.insert(countyName);
-        countyPoints[countyName].push_back(f->geometryAsPoint()->point());
-    }
+    // // Create polygon features for cities within same county
+    // std::set<std::string> uniqueCounties;
+    // std::map<std::string, std::vector<Point>> countyPoints;
+    // for (auto f : m_features)
+    // {
+    //     std::string countyName = f->attributes().get<std::string>("County");
+    //     uniqueCounties.insert(countyName);
+    //     countyPoints[countyName].push_back(f->geometryAsPoint()->point());
+    // }
 
-    for (auto& county : countyPoints)
-    {
-        auto name = county.first;
-        auto& points = county.second;
-        if (points.size() < 3)
-            continue;
+    // for (auto& county : countyPoints)
+    // {
+    //     auto name = county.first;
+    //     auto& points = county.second;
+    //     if (points.size() < 3)
+    //         continue;
         
-        points = Utils::convexHull2D(points);
-        if (points.size() < 3)
-        {
-            std::cout << "Not enough points!!! " << std::to_string(points.size()) << "\n";
-            continue;
-        }   
+    //     points = Utils::convexHull2D(points);
+    //     if (points.size() < 3)
+    //     {
+    //         std::cout << "Not enough points!!! " << std::to_string(points.size()) << "\n";
+    //         continue;
+    //     }   
 
-        auto countyPolygon = createFeature(std::make_shared<PolygonGeometry>(points));
-        countyPolygon->attributes().set("NAME", name);
-        m_features.insert(m_features.begin(), countyPolygon);
-    }
+    //     auto countyPolygon = createFeature(std::make_shared<PolygonGeometry>(points));
+    //     countyPolygon->attributes().set("NAME", name);
+    //     m_features.insert(m_features.begin(), countyPolygon);
+    // }
 }
 
 
@@ -623,7 +671,9 @@ void GeoJsonFileDataSet::handleJsonData(JsonValue *jsonValue)
 void GeoJsonFileDataSet::handleFeatureCollection(JsonValue *jsonValue)
 {
     auto featureList = jsonValue->get<JsonList>();
+    m_features.reserve(featureList.size());
 
+    int i = 0;
     for (auto f : featureList)
     {
         FeaturePtr feature(nullptr);
@@ -640,6 +690,7 @@ void GeoJsonFileDataSet::handleFeatureCollection(JsonValue *jsonValue)
             std::cerr << info;
             std::cerr << "Error when handling feature:\n";
             std::cerr << e.what() << '\n';
+            return;
         }
 
         if (feature)
@@ -648,21 +699,25 @@ void GeoJsonFileDataSet::handleFeatureCollection(JsonValue *jsonValue)
             {
                 // Special handling for multi-geometries (convert into normal geometries)
                 // std::cout << "MultiPolygon size: " << multiPolygon->polygons().size() << "\n";
+                //feature->attributes().set("SOURCE_GEOMETRY", "Multipolygon" + std::to_string(multiPolygon->polygons().size()));
+                auto commonId = feature->id();
                 for (auto polygon : multiPolygon->polygons())
                 {
                     auto polFeature = createFeature(std::make_shared<PolygonGeometry>(polygon));
                      // FIXME: temporary fix to make selection of one polygon select all polygons within a multipolygon
-                    polFeature->id() = Id(polFeature->id().dataSetId(), FeatureId(feature.get()));
-                    polFeature->attributes() = feature->attributes();
+                    polFeature->id(commonId); // Use same id
+                    auto attrIbutesCopy = feature->attributes();
+                    polFeature->attributes() = attrIbutesCopy;
                     m_features.push_back(polFeature);
                 }
             }
             else
             {
-                // Standard single geometries
                 m_features.push_back(feature);
             }
         }
+        i++;
+        m_progress = (double)i/featureList.size();
     }
 }
 
@@ -674,7 +729,8 @@ FeaturePtr GeoJsonFileDataSet::handleFeature(JsonValue *jsonValue)
     auto type = jsonData["type"]->get<std::string>();
     assert(type == "Feature");
 
-    if (auto geometry = handleGeometry(jsonData["geometry"]))
+    auto geometry = handleGeometry(jsonData["geometry"]);
+    if (geometry)
     {
         auto feature = createFeature(geometry);
         feature->attributes() = handleProperties(jsonData["properties"]);
@@ -747,7 +803,7 @@ Attributes GeoJsonFileDataSet::handleProperties(JsonValue *jsonValue)
     for (auto& pair : jsonData)
     {
         auto value = pair.second;
-        auto x = Attributes::AttributeValue();
+        auto x = AttributeValue();
         if (value->isType<int>())
         {
             x = value->get<int>();
@@ -785,9 +841,29 @@ Attributes GeoJsonFileDataSet::handleProperties(JsonValue *jsonValue)
         attr.set("COLOR_B", 50*c9);
         attr.set("COLOR_A", 0.25);
     }
-    else if((jsonData.find("namn1") != jsonData.end()))
+    else if(jsonData.find("namn1") != jsonData.end())
     {
         attr.set("NAME", jsonData["namn1"]->get<std::string>());
+    }
+    else if(jsonData.find("landskap") != jsonData.end())
+    {
+        attr.set("NAME", jsonData["landskap"]->get<std::string>());
+        auto c1 = jsonData["landsdelskod"]->get<int>();
+        auto c2 = jsonData["landskapskod"]->get<int>();
+        auto c3 = 1;
+        if (c2 > 15)
+        {
+            c3 = c2-15;
+            c2 = 15;   
+        }
+        attr.set("COLOR_R", 20*c3);
+        attr.set("COLOR_G", 10*c2);
+        attr.set("COLOR_B", 50*c1);
+        attr.set("COLOR_A", 0.25);
+    }
+    else if (jsonData.find("CONTINENT") != jsonData.end())
+    {
+        attr.set("NAME", jsonData["CONTINENT"]->get<std::string>());
     }
 
 
@@ -826,15 +902,14 @@ GeometryPtr GeoJsonFileDataSet::handlePolygon(JsonValue* coorcinates)
         auto points = extractPoints(ring);
         assert(points.size() > 3);          // An extra point exist in points where the last is the same as the first
         points.erase(points.end()-1);       // Remove the last point, we don't use it in our representation (redundant)
+
+        auto r = std::vector<Point>();
         for (auto& p : points)
-            polygon->points().push_back(p);
-        
-        // TODO: add implementation for handling all rings
-        if (ringList.size() > 1)
         {
-            std::cout << "GeoJsonFileDataSet::handlePolygon() Warning!: ignored " << ringList.size() - 1 << " rings when reading polygon (not implemented).\n";
+            r.push_back(p);
         }
-        break;
+
+        polygon->rings().push_back(r);
     }
 
     return polygon;
@@ -896,4 +971,39 @@ double GeoJsonFileDataSet::extractCoordinate(JsonValue* coordinate)
 
     std::cout << "Failed to retrieve coordinate position: " << coordinate->typeAsString() << "\n";
     return 0;
+}
+
+
+MemoryDataSet::MemoryDataSet()
+    : DataSet()
+{
+}
+
+
+void MemoryDataSet::init(DataSetInitializationType initType)
+{
+}
+
+
+void MemoryDataSet::addFeature(FeaturePtr feature)
+{
+    m_features.add(feature);
+}
+
+
+void MemoryDataSet::removeFeature(const Id &id)
+{
+    m_features.remove(id);
+}
+
+void MemoryDataSet::onUpdateRequest(Map &map, const Rectangle &updateArea, FeatureHandler *handler)
+{
+    std::vector<FeaturePtr> features;
+    for (auto f : m_features)
+    {
+        if (f->isInside(map.mapToLngLat(updateArea)))
+            features.push_back(f);
+    }
+
+    handler->onFeatureInput(map, features);
 }

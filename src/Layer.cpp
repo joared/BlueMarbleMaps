@@ -4,11 +4,15 @@
 
 using namespace BlueMarble;
 
-Layer::Layer()
+Layer::Layer(bool createdefaultVisualizers)
     : m_enabled(true)
+    , m_enabledDuringQuickUpdates(true)
     , m_maxScale(std::numeric_limits<double>::infinity())
     , m_minScale(0)
 {
+    // TODO: remove, this is a temporary solution
+    if (createdefaultVisualizers)
+        createDefaultVisualizers();
 }
 
 
@@ -32,18 +36,20 @@ void Layer::onUpdateRequest(Map &map, const Rectangle &updateArea, FeatureHandle
         return;
     if (map.scale() < minScale())
         return;
+    if (map.quickUpdateEnabled() && !enabledDuringQuickUpdates())
+        return;
 
     sendUpdateRequest(map, updateArea);
 }
 
-void BlueMarble::Layer::onGetFeaturesRequest(const Attributes &attributes, std::vector<FeaturePtr>& features)
+void Layer::onGetFeaturesRequest(const Attributes &attributes, std::vector<FeaturePtr>& features)
 {
     if (!enabled())
         return;
     sendGetFeaturesRequest(attributes, features);
 }
 
-FeaturePtr BlueMarble::Layer::onGetFeatureRequest(const Id &id)
+FeaturePtr Layer::onGetFeatureRequest(const Id &id)
 {
     std::cout << "Layer::onGetFeatureRequest\n";
     if (!enabled())
@@ -52,7 +58,8 @@ FeaturePtr BlueMarble::Layer::onGetFeatureRequest(const Id &id)
     return sendGetFeatureRequest(id);
 }
 
-void Layer::onFeatureInput(Map &map, const std::vector<FeaturePtr> &features)
+
+void Layer::onFeatureInput(Map& map, const std::vector<FeaturePtr>& features)
 {
     auto screenFeatures = std::vector<FeaturePtr>();
     toScreen(map, features, screenFeatures);
@@ -62,244 +69,33 @@ void Layer::onFeatureInput(Map &map, const std::vector<FeaturePtr> &features)
     for (size_t i(0); i<screenFeatures.size(); i++)
     {
         auto f = screenFeatures[i];
-        switch (f->geometryType())
+        auto sourceFeature = features[i];
+
+        // Always apply standard visualization for now
+        for (auto vis : m_visualizers)
+            vis->attachFeature(f, sourceFeature, map.updateAttributes());
+
+        if (map.isSelected(sourceFeature))
         {
-        case GeometryType::Point:
-        //     renderPoint(map, f);
-            continue;
-            break;
-        case GeometryType::Line:
-            renderLine(map, f);
-            break;
-        case GeometryType::Polygon:
-            renderPolygon(map, f);
-            break;
-        // FIXME: should this be done or should we handle multipolygons as single polygons?
-        // Presentation objects have to be handle multipolygons as well in that case
-        // case GeometryType::MultiPolygon: 
-        //     renderMultiPolygon(map, f);
-        //     break;
-        case GeometryType::Raster:
-            renderRaster(map, f);
-            break;
-        default:
-            std::cout << "Layer::onFeatureInput: Unknown GeometryType: " << (int)f->geometryType() << "\n";
+            for (auto sVis : m_selectionVisualizers)
+                sVis->attachFeature(f, sourceFeature, map.updateAttributes());
         }
-
-        // TODO: temporary. Add features as presentation objects somewhere else?
-        map.presentationObjects().emplace_back(PresentationObject(f, features[i]));
-    }
-
-    // label organization (points)
-    std::vector<FeaturePtr> points;
-    std::vector<FeaturePtr> screenPoints;
-    for (size_t j(0); j<features.size(); j++)
-    {
-        auto f = features[j];
-        if (f->geometryType() == GeometryType::Point)
+        else if (map.isHovered(sourceFeature))
         {
-            points.push_back(f);
-            screenPoints.push_back(screenFeatures[j]);
-        }
-    }   
-
-    double MIN_DISTANCE = 75;
-    for (int i = 0; i<(int)screenPoints.size(); i++)
-    {
-        auto& p1 = screenPoints[i]->geometryAsPoint()->point();
-
-        bool render = true;
-        for (int j=i+1; j<(int)screenPoints.size(); j++)
-        {
-            auto& p2 = screenPoints[j]->geometryAsPoint()->point();
-            if ((p1-p2).length() < MIN_DISTANCE)
-            {
-                render = false;
-                break;
-            }
-        }
-
-        if (render)
-        {
-            // TODO: temporary. Add features as presentation objects somewhere else?
-            map.presentationObjects().emplace_back(PresentationObject(screenPoints[i], points[i]));
-            renderPoint(map, screenPoints[i]);
-        }
-    }
-}
-
-
-void Layer::renderPoint(Map &map, FeaturePtr feature)
-{
-    auto geometry = feature->geometryAsPoint();
-    auto& point = geometry->point();
-    int radius = 6;
-
-    if (feature->attributes().contains("NAME"))
-    {
-        auto& text = feature->attributes().get<std::string>("NAME");
-        map.drawable().drawText(point.x()-radius*4, point.y()-radius*4, text, Color::white(), 16, Color::black(0.6));
-    }
-
-    auto backColor = Color(255,255,255,0.5);
-    if (map.isSelected(feature))
-    {
-        radius *= 1.3;
-        backColor = Color(255,255,0,0.75);
-    }
-    else if (map.isHovered(feature))
-    {
-        radius *= 1.3;
-        backColor = Color(255,150,0,0.5);
-    }
-    map.drawable().drawCircle(point.x(), point.y(), radius, backColor);
-    map.drawable().drawCircle(point.x(), point.y(), radius-3, Color(0,0,0));
-
-}
-
-
-void Layer::renderLine(Map &map, FeaturePtr feature)
-{
-    auto geometry = feature->geometryAsLine();
-    auto input = geometry->points();
-    geometry->points().clear();
-    Utils::simplifyPoints(input, geometry->points(), 10.0);
-    if (geometry->points().size() < 2)
-        return;
-
-    bool drawText = false;
-    bool drawNodes = false;
-    int r=0, g=0, b=255;
-    double a=0.25;
-    double lineWidth = 1;
-    if (map.isSelected(feature))
-    {
-        r = 255;
-        g = 255;
-        b = 0;
-        a = 0.5;
-        lineWidth = 5;
-        drawText = true;
-        drawNodes = true;
-    }
-    else if (map.isHovered(feature))
-    {
-        // std::cout << "Found hovered polygon! Changing visualization\n";
-        a = 0.5;
-        lineWidth = 5;
-        drawText = true;
-    }
-
-    if (drawText && feature->attributes().contains("NAME"))
-    {
-        auto& text = feature->attributes().get<std::string>("NAME");
-        auto center = geometry->center();
-        map.drawable().drawText(center.x()-20, center.y()-10, text, Color::black(), 16);
-    }
-
-    map.drawable().drawLine(geometry->points(), Color(r,g,b,a), lineWidth);
-}
-
-
-void Layer::renderPolygon(Map &map, FeaturePtr feature)
-{
-    auto geometry = feature->geometryAsPolygon();
-    // FIXME: testing simplify points
-    // auto input = geometry->points();
-    // geometry->points().clear();
-    // Utils::simplifyPoints(input, geometry->points(), 10.0);
-    if (geometry->points().size() < 3)
-        return;
-
-    int r=0, g=0, b=255;
-    double a=0.25;
-
-    if (feature->attributes().contains("COLOR_R"))
-    {
-        r = feature->attributes().get<int>("COLOR_R");
-    }
-    if (feature->attributes().contains("COLOR_G"))
-    {
-        g = feature->attributes().get<int>("COLOR_G");
-    }
-    if (feature->attributes().contains("COLOR_B"))
-    {
-        b = feature->attributes().get<int>("COLOR_B");
-    }
-    if (feature->attributes().contains("COLOR_A"))
-    {
-        a = feature->attributes().get<double>("COLOR_A");
-    }
-
-    // TODO: remove this is temporary for handling selected/hovered features
-    bool drawText = false;
-    bool drawNodes = false;
-    if (map.isSelected(feature))
-    {
-        r = 255;
-        g = 255;
-        b = 0;
-        a = 0.5;
-        drawText = true;
-        drawNodes = true;
-    }
-    else if (map.isHovered(feature))
-    {
-        // std::cout << "Found hovered polygon! Changing visualization\n";
-        a = 0.5;
-        drawText = true;
-    }
-
-    // Draw the polygon
-    map.drawable().drawPolygon(geometry->points(), Color(r,g,b,a));
-
-    // Draw bounding line
-    auto line = geometry->points();
-    line.push_back(geometry->points()[0]); // Add the first point to make a close loop
-    double lineWidth = std::max(std::min(map.scale()*3.0, 3.0), 1.0);
-    map.drawable().drawLine(line, Color::white(), lineWidth);
-
-    // Draw nodes
-    if (drawNodes)
-    {
-        for (auto& p : geometry->points())
-        {
-            map.drawable().drawCircle(p.x(), p.y(), 2, Color::red(a));
+            for (auto hVis : m_hoverVisualizers)
+                hVis->attachFeature(f, sourceFeature, map.updateAttributes());
         }
     }
 
-    if ((map.scale() > 1.5 || drawText) && feature->attributes().contains("NAME"))
-    {
-        auto& text = feature->attributes().get<std::string>("NAME");
-        auto center = geometry->center();
-        map.drawable().drawText(center.x()-20, center.y()-10, text, Color::black(), 22);
-    }
+    // TODO: Selection and hover visualizer should render after other layers normal visualizers
+    for (auto vis : m_visualizers)
+        vis->render(map.drawable(), map.updateAttributes(), map.presentationObjects());
+    for (auto hVis : m_hoverVisualizers)
+        hVis->render(map.drawable(), map.updateAttributes(), map.presentationObjects());
+    for (auto sVis : m_selectionVisualizers)
+        sVis->render(map.drawable(), map.updateAttributes(), map.presentationObjects());
 }
 
-
-void Layer::renderMultiPolygon(Map& map, FeaturePtr feature)
-{
-    // FIXME: uggly fix for rendering multipolygons as separate polygons
-    for (auto& p : feature->geometryAsMultiPolygon()->polygons())
-    {
-        auto f = std::make_shared<Feature>
-        (
-            feature->id(),
-            std::make_shared<PolygonGeometry>(p)
-        );
-        f->attributes() = feature->attributes();
-        renderPoint(map, f);
-    }
-}
-
-
-void Layer::renderRaster(Map &map, FeaturePtr feature)
-{
-    auto geometry = feature->geometryAsRaster();
-    auto& newImage = geometry->raster();
-    auto& offset = geometry->offset();
-    map.drawable().drawRaster(offset.x(), offset.y(), newImage, 1.0);
-}
 
 void Layer::toScreen(Map& map, const std::vector<FeaturePtr>& features, std::vector<FeaturePtr>& screenFeatures)
 {
@@ -324,7 +120,6 @@ void Layer::toScreen(Map& map, const std::vector<FeaturePtr>& features, std::vec
 
         case GeometryType::Line:
         {
-
             auto& points = f->geometryAsLine()->points();
             auto screenPoints = map.lngLatToScreen(points);
             auto newF = std::make_shared<Feature>
@@ -340,12 +135,16 @@ void Layer::toScreen(Map& map, const std::vector<FeaturePtr>& features, std::vec
         case GeometryType::Polygon:
         {
 
-            auto& points = f->geometryAsPolygon()->points();
-            auto screenPoints = map.lngLatToScreen(points);
+            auto screenRings = std::vector<std::vector<Point>>();
+            for (auto& innerRing : f->geometryAsPolygon()->rings())
+            {
+                screenRings.push_back(map.lngLatToScreen(innerRing));
+            }
+
             auto newF = std::make_shared<Feature>
             (
                 f->id(),
-                std::make_shared<PolygonGeometry>(screenPoints)
+                std::make_shared<PolygonGeometry>(screenRings)
             );
             newF->attributes() = f->attributes();
             screenFeatures.push_back(newF);
@@ -354,27 +153,259 @@ void Layer::toScreen(Map& map, const std::vector<FeaturePtr>& features, std::vec
 
         case GeometryType::MultiPolygon:
         {
-            auto geometry = std::make_shared<MultiPolygonGeometry>();
-            auto newF = std::make_shared<Feature>
-            (
-                f->id(),
-                geometry
-            );
-            newF->attributes() = f->attributes();
-            auto& polygons = f->geometryAsMultiPolygon()->polygons();
-            for (auto& p : polygons)
-            {
-                auto polGeo = PolygonGeometry(map.lngLatToScreen(p.points()));
-                geometry->polygons().push_back(polGeo);
-            }
+            // auto geometry = std::make_shared<MultiPolygonGeometry>();
+            // auto newF = std::make_shared<Feature>
+            // (
+            //     f->id(),
+            //     geometry
+            // );
+            // newF->attributes() = f->attributes();
+            // auto& polygons = f->geometryAsMultiPolygon()->polygons();
+            // for (auto p : polygons)
+            // {
+            //     auto polGeo = PolygonGeometry(map.lngLatToScreen(p.points()));
+            //     geometry->polygons().push_back(polGeo);
+            // }
             
-            screenFeatures.push_back(newF);
+            // screenFeatures.push_back(newF);
+            std::cout << "WARNING: Layer::toScreen() MultiPolygon not supported.\n";
             break;
         }
 
-        default:
-            // std::cout << "Layer::toScreen() Unhandled geometry type: " << (int)f->geometryType() << "\n";
+        case GeometryType::Raster:
             screenFeatures.push_back(f);
+            break;
+        default:
+            std::cout << "Layer::toScreen() Unhandled geometry type: " << (int)f->geometryType() << "\n";
         }
     }
+}
+
+
+void Layer::createDefaultVisualizers()
+{
+    auto animatedDouble = [](FeaturePtr feature, Attributes& updateAttributes) 
+    { 
+        // // FIXME: What is bad about this is that other animated evaluations needs to store the features also.
+        // // Better to use a global manager/feature state factory
+        static std::map<Id, int> featureStartTimes;
+        static Id prevId = Id(0,0); // TEMP fix
+        static int prevTimeStamp = 0; // = updateAttributes.get<int>(UpdateAttributeKeys::UpdateTimeMs);
+        static std::map<Id, int>  prevHandledFeatures;
+        // static double progress;
+
+        constexpr int duration = 150;
+
+
+        int timeStamp = updateAttributes.get<int>(UpdateAttributeKeys::UpdateTimeMs);
+        
+        if (timeStamp != prevTimeStamp)
+        {
+            if (featureStartTimes.empty())
+                std::cout << "New update with empty ids!\n";
+            else
+            {
+                prevHandledFeatures = featureStartTimes;
+                featureStartTimes.clear();
+                prevTimeStamp = timeStamp;
+            }
+        }
+        
+        auto it2 = featureStartTimes.find(feature->id());
+        auto it = prevHandledFeatures.find(feature->id());
+        if (it == prevHandledFeatures.end() && it2 == featureStartTimes.end())
+        {
+            featureStartTimes[feature->id()] = timeStamp;
+            // We need updates
+            updateAttributes.set(UpdateAttributeKeys::UpdateRequired, true);
+            
+            std::cout << "Animation started for: " << "(" << feature->id().dataSetId() << ", " << feature->id().featureId() << "\n";
+
+            return 0.0;
+        }
+
+        // Feature is being animated!
+        int startTime = it->second;
+
+        int elapsed = timeStamp - startTime;
+        //std::cout << "Elapsed: " << elapsed << "\n";
+
+        if (elapsed > duration)
+        {
+            
+            std::cout << "Animation finished for: " << "(" << feature->id().dataSetId() << ", " << feature->id().featureId() << "\n";
+            
+            return 1.0;
+        }
+
+        updateAttributes.set(UpdateAttributeKeys::UpdateRequired, true);
+        
+        double progress = (double)elapsed/(double)duration;
+        //std::cout << "Animation progress: " << progress << "\n";
+
+        
+        
+        return progress;
+    };
+
+    // Standard visualizers
+    ColorEvaluation colorEval = [](FeaturePtr f, auto)
+    {
+        int r=0, g=0, b=255;
+        double a=0.1;
+
+        if (f->attributes().contains("COLOR_R"))
+        {
+            r = f->attributes().get<int>("COLOR_R");
+        }
+        if (f->attributes().contains("COLOR_G"))
+        {
+            g = f->attributes().get<int>("COLOR_G");
+        }
+        if (f->attributes().contains("COLOR_B"))
+        {
+            b = f->attributes().get<int>("COLOR_B");
+        }
+        if (f->attributes().contains("COLOR_A"))
+        {
+            a = f->attributes().get<double>("COLOR_A");
+        }
+
+        return Color(r,g,b,a);
+    };
+
+    ColorEvaluation colorEvalHover = [=](auto f, auto updateAttributes)
+    {
+        auto color = colorEval(f, updateAttributes);
+        double alpha = 0.5*animatedDouble(f, updateAttributes);
+        return Color(color.r(), color.g(), color.b(), alpha);
+    };
+
+    ColorEvaluation colorEvalSelect = [](auto, auto)
+    {
+        return Color(255, 255, 0, 0.5);
+    };
+
+    // Point visualizers
+    auto pointVis = std::make_shared<SymbolVisualizer>();
+    pointVis->condition([](FeaturePtr f, auto) { return f->geometryType() == GeometryType::Point; });
+    pointVis->isLabelOrganized(true);
+    
+    // Line visualizer
+    auto lineVis = std::make_shared<LineVisualizer>();
+    lineVis->color([](auto, auto) { return Color(50,50,50,0.5); });
+    lineVis->width([](auto, auto) { return 1; });
+
+    // Polygon visualizer
+    auto polVis = std::make_shared<PolygonVisualizer>();
+    polVis->color(colorEval);
+
+    // Raster visualizer
+    auto rasterVis = std::make_shared<RasterVisualizer>();
+
+    // Text visualizer
+    auto textVis = std::make_shared<TextVisualizer>();
+    textVis->atCenter(true);
+    textVis->isLabelOrganized(true);
+    textVis->text(
+        [](FeaturePtr f, auto) 
+        { 
+            if(f->attributes().contains("NAME"))
+                return f->attributes().get<std::string>("NAME");
+            else if(f->attributes().contains("name"))
+                return f->attributes().get<std::string>("name");
+            else if(f->attributes().contains("CONTINENT"))
+                return f->attributes().get<std::string>("CONTINENT");
+            return std::string();
+        }
+    );
+    // textVis->color([](FeaturePtr, Attributes& updateAttributes) { 
+    //     // TODO: add animation
+    //     static bool reStart = false;
+    //     static bool prevState = false;
+    //     static int startTime = updateAttributes.get<int>("_timeMs");
+    //     static bool update = false;
+    //     static double alpha = 1.0;
+
+    //     constexpr int duration = 500;
+
+    //     bool currState = updateAttributes.get<bool>("_hover");
+    //     if (currState == prevState)
+    //         reStart = false;
+    //     else
+    //     {
+    //         reStart = currState == true;
+    //         prevState = currState;
+    //     }
+
+    //     if (reStart)
+    //     {
+    //         std::cout << "Animation started!\n";
+    //         update = true;
+    //         startTime = updateAttributes.get<int>("_timeMs");
+    //     }
+
+    //     if (update)
+    //     {
+    //         int elapsed = updateAttributes.get<int>("_timeMs")- startTime;
+    //         if (elapsed > duration)
+    //         {
+    //             std::cout << "Animation finished!\n";
+    //             alpha = 1.0;
+    //             update = false;
+    //         }
+    //         else
+    //         {
+    //             alpha = (double)elapsed/(double)duration;
+    //         }
+    //         updateAttributes.set("updateRequired_", true);
+    //     }
+            
+    //     return Color::black(alpha);
+    // });
+
+    m_visualizers.push_back(polVis);
+    m_visualizers.push_back(pointVis);
+    m_visualizers.push_back(lineVis);
+    m_visualizers.push_back(rasterVis);
+    m_visualizers.push_back(textVis);
+
+    // Line visualizer
+    auto lineVisHover = std::make_shared<LineVisualizer>();
+    lineVisHover->color([](auto, auto) { return Color::white(); });
+    lineVisHover->width([](auto, auto) { return 3.0; });
+
+    auto pointVisHover = std::make_shared<SymbolVisualizer>();
+    auto polVisHover = std::make_shared<PolygonVisualizer>();
+    polVisHover->color(colorEvalHover);
+    polVisHover->size([=](FeaturePtr f, Attributes& u) { return 1.0*animatedDouble(f,u); }); // This will ensure small polygons are visible
+    // FIXME: messing with size might not be a good idea. See PolygonVisualizer::renderFeature()
+    //polVisHover->size([](auto) { return 1.2; }); // This will ensure small polygons are visible
+    auto rasterVisHover = std::make_shared<RasterVisualizer>();
+
+
+    auto textVisHover = std::make_shared<TextVisualizer>(*textVis);
+    // textVisHover->color([](FeaturePtr, Attributes& updateAttributes) { 
+    textVisHover->color([=](FeaturePtr feature, Attributes& updateAttributes) { 
+            return Color::white(animatedDouble(feature, updateAttributes));
+        });
+    //textVisHover->backgroundColor([](auto) { return Color::black(0.5); });
+    textVisHover->offsetX( [](auto, auto) {return -3.0; });
+    textVisHover->offsetY( [](auto, auto) {return -3.0; });
+
+    // m_hoverVisualizers.push_back(pointVis);
+    
+    m_hoverVisualizers.push_back(polVisHover);
+    m_hoverVisualizers.push_back(lineVisHover);
+    // m_hoverVisualizers.push_back(rasterVis);
+    m_hoverVisualizers.push_back(textVisHover);
+
+    
+    auto polVisSelect = std::make_shared<PolygonVisualizer>();
+    polVisSelect->color(colorEvalSelect);
+    
+    auto textVisSelect = std::make_shared<TextVisualizer>(*textVisHover);
+
+    m_selectionVisualizers.push_back(polVisSelect);
+    m_selectionVisualizers.push_back(textVisSelect);
 }

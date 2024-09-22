@@ -2,7 +2,6 @@
 #define BLUEMARBLE_PRESENTATIONOBJECT
 
 #include "Feature.h"
-#include "Visualizer.h"
 
 namespace BlueMarble
 {
@@ -22,25 +21,27 @@ namespace BlueMarble
     //     Raster
     // };
 
+    class Visualizer; // Forward declaration
+
     class PresentationObject
     {
         public:
-            PresentationObject(FeaturePtr feature, FeaturePtr sourceFeature);
+            PresentationObject(FeaturePtr feature, FeaturePtr sourceFeature, Visualizer* visualizer);
             bool hitTest(int x, int y, double pointerRadius);
             bool hitTest(const Rectangle& bounds);
             FeaturePtr feature() { return m_feature; }
             FeaturePtr sourceFeature() { return m_sourceFeature; }
-            Visualizer& visualizer() { return m_visualizer; };
+            Visualizer* visualizer() { return m_visualizer; };
         private:
             FeaturePtr              m_feature;
             FeaturePtr              m_sourceFeature;
-            Visualizer              m_visualizer;
+            Visualizer*             m_visualizer;
     };
 
-    bool hitTestPoint(int x, int y, double pointerRadius, const Point& point);
-    bool hitTestLine(int x, int y, double pointerRadius, const std::vector<Point>& line);
-    bool hitTestPolygon(int x, int y, double pointerRadius, const std::vector<Point>& polygon);
-    bool hitTestRaster(int x, int y, double pointerRadius, const Raster& raster);
+    bool hitTestPoint(int x, int y, double pointerRadius, PointGeometryPtr geometry);
+    bool hitTestLine(int x, int y, double pointerRadius, LineGeometryPtr geometry);
+    bool hitTestPolygon(int x, int y, double pointerRadius, PolygonGeometryPtr geometry);
+    bool hitTestRaster(int x, int y, double pointerRadius, RasterGeometryPtr geometry);
 
 }
 

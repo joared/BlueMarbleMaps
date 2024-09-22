@@ -51,6 +51,19 @@ namespace BlueMarble
             return area * 0.5;
         }
 
+        inline Point averageCenter(const std::vector<Point>& points)
+        {
+            assert(!points.empty());
+
+            double sumX = 0, sumY = 0;
+            for (auto& p : points) 
+            {
+                sumX += p.x();
+                sumY += p.y();
+            }
+            return { sumX / points.size(), sumY / points.size() };
+        }
+
         inline Point centroid(const std::vector<Point>& points)
         {
             assert(points.size() > 1);
@@ -177,7 +190,22 @@ namespace BlueMarble
                 
 
             return convexHullPoints;
-        } 
+        }
+
+        inline void movePoints(std::vector<Point>& points, const Point& delta)
+        {
+            for (auto& p: points)
+            {
+                p += delta;
+            }
+        }
+
+        inline void movePointsTo(std::vector<Point>& points, const Point& point)
+        {
+            auto avgCenter = averageCenter(points);
+            auto delta = point - avgCenter;
+            movePoints(points, delta);
+        }
 
         // Checking if a point is inside a polygon: https://www.geeksforgeeks.org/how-to-check-if-a-given-point-lies-inside-a-polygon/
         inline bool pointInsidePolygon(const Point& point, const std::vector<Point>& polygon)
@@ -257,6 +285,75 @@ namespace BlueMarble
             }
             
             return (point-nearestPoint).length();
+        }
+
+
+        inline std::vector<Point> scalePoints(const std::vector<Point>& input, double scale, Point fixPoint=Point::undefined())
+        {
+            std::vector<Point> scaledPoints;
+
+            if (fixPoint.isUndefined())
+            {
+                fixPoint = centroid(input);
+            }
+
+            for (auto& p: input)
+            {
+                auto vec = p-fixPoint;
+                auto newP = fixPoint + vec * scale;
+                scaledPoints.push_back(newP);
+            }
+
+            // if (keepCentering)
+            // {
+            //     auto center = centroid(input);
+            //     auto centerAfter = centroid(scaledPoints);
+            //     auto delta = center - centerAfter;
+            //     movePoints(output, delta);
+            //     std::cout << "Centroid diff: " << delta.length() << "\n"; // Should be zero?
+            // }
+
+            return scaledPoints;
+        }
+
+
+        // Function to calculate the normal of a vector (p2 - p1)
+        inline Point calculateNormal(const Point& p1, const Point& p2) 
+        {
+            double dx = p2.x() - p1.x();
+            double dy = p2.y() - p1.y();
+            Point normal(dy, -dx);
+
+            return normal.norm();
+        }
+
+        // Function to extend the polygon
+        inline std::vector<Point> extendPolygon(const std::vector<Point>& polygon, double distance) 
+        {
+            std::vector<Point> extendedPolygon;
+            int n = polygon.size();
+
+            for (int i = 0; i < n; i++) {
+                const Point& prev = polygon[(i - 1 + n) % n];
+                const Point& curr = polygon[i];
+                const Point& next = polygon[(i + 1) % n];
+
+                // Calculate normals for adjacent edges
+                Point normalPrev = calculateNormal(prev, curr);
+                Point normalNext = calculateNormal(curr, next);
+
+                // Average the normals
+                Point averageNormal = { (normalPrev.x() + normalNext.x()) / 2, (normalPrev.y() + normalNext.y()) / 2 };
+                
+                // Normalize the average normal vector
+                averageNormal = averageNormal.norm();
+
+                // Move the current vertex along the average normal by the specified distance
+                Point newPoint = { curr.x() + averageNormal.x() * distance, curr.y() + averageNormal.y() * distance };
+                extendedPolygon.push_back(newPoint);
+            }
+
+            return extendedPolygon;
         }
 
         // Some sort of custom implementation of vertex clustering

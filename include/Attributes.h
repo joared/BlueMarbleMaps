@@ -4,17 +4,58 @@
 #include <string>
 #include <map>
 #include <variant>
+#include <memory>
 
 namespace BlueMarble
 {
+    namespace UpdateAttributeKeys
+    {
+        const std::string UpdateTimeMs = std::string("__timeMs");
+        const std::string QuickUpdate = std::string("__quickUpdate");
+        const std::string SelectionUpdate = std::string("__selection");
+        const std::string HoverUpdate = std::string("__hover");
+        const std::string UpdateRequired = std::string("updateRequired__");
+    };
+
+    namespace FeatureAttributeKeys
+    {
+        const std::string StartAnimationTimeMs = std::string("__animationTimeMs");
+    };
 
     // TODO: make attributes an std::map and use class for AttributeValue with get/set?
     // "contatins" method is convenient, maybe Attributes both should its own class still
+    // TODO: big issue when introducing bool, where "hello" in "set" can be interpreted as bool in the template argument deduction
+    using AttributeValue = std::variant<int, double, std::string, bool>;
+    enum class AttributeValyeType
+    {
+        Integer,
+        Double,
+        String,
+        Boolean
+    };
+
+    inline std::string attributeToString(const AttributeValue& attr)
+    {
+        switch (attr.index())
+        {
+        case 0:
+            return std::to_string(std::get<int>(attr));
+        case 1:
+            return std::to_string(std::get<double>(attr));
+        case 2:
+            return std::get<std::string>(attr);
+        case 3:
+            return std::get<bool>(attr) ? "true" : "false";
+        default:
+            std::cout << "attributeToString() Unhandled index: " << attr.index() << "\n";
+            return "Invalid attribute index: " + std::to_string(attr.index());
+        }
+    }
+
+    
     class Attributes
     {
         public:
-            using AttributeValue = std::variant<int, double, std::string>;
-
             inline Attributes()
                 : m_attributes()
             {}
@@ -31,6 +72,23 @@ namespace BlueMarble
                 throw std::runtime_error("Key '" + key + "' not found");
             }
 
+            template <typename T>
+            inline const T& tryGet(const std::string& key) const {
+                try
+                {
+                    return get<T>(key);
+                }
+                catch(const std::exception& e)
+                {
+                    std::cerr << e.what() << '\n';
+                    auto it = m_attributes.find(key);
+                    auto value = it->second;
+                    std::cout << "Tried to get index: " << value.index() << "\n";
+                    throw e;
+                }
+                
+            }
+
             inline const AttributeValue& val(const std::string& key) { return m_attributes[key]; }
 
             inline bool contains(const std::string& key) const { return m_attributes.find(key) != m_attributes.end(); }
@@ -44,6 +102,7 @@ namespace BlueMarble
         private:
             std::map<std::string, AttributeValue>   m_attributes;
     };
+    typedef std::shared_ptr<Attributes> AttributesPtr;
 
 }
 

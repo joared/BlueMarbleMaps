@@ -36,6 +36,7 @@ namespace BlueMarble
             int height() const;
             void resize(int x, int y, ResizeInterpolation interpolation = ResizeInterpolation::NearestNeighbor);
             void fill(int val);
+            void blur(double sigmaX, double sigmaY, double sigmaZ, bool isGaussian=false);
             Raster getCrop(int x0, int y0, int x1, int y1);
             void* data() const; // Specific implementation for used framework (e.g. CImg)
         private:

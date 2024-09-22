@@ -5,12 +5,35 @@ using namespace BlueMarble;
 Feature::Feature(const Id& id, GeometryPtr geometry)
     : m_id(id)
     , m_geometry(geometry)
+    , m_attributes()
 {
+}
+
+BlueMarble::Feature::Feature(const Id &id, GeometryPtr geometry, const Attributes &attributes)
+    : m_id(id)
+    , m_geometry(geometry)
+    , m_attributes(attributes)
+{
+}
+
+FeaturePtr BlueMarble::Feature::clone()
+{
+    return std::make_shared<Feature>(id(), m_geometry->clone(), attributes());
 }
 
 Id Feature::id() const
 {
     return m_id;
+}
+
+void BlueMarble::Feature::move(const Point &delta)
+{
+    m_geometry->move(delta);
+}
+
+void BlueMarble::Feature::moveTo(const Point &point)
+{
+    m_geometry->moveTo(point);
 }
 
 Rectangle Feature::bounds() const
@@ -23,9 +46,14 @@ Point Feature::center() const
     return m_geometry->center();
 }
 
-bool BlueMarble::Feature::isInside(const Rectangle& bounds) const
+bool Feature::isInside(const Rectangle& bounds) const
 {
     return m_geometry->isInside(bounds);
+}
+
+bool Feature::isStrictlyInside(const Rectangle &bounds) const
+{
+    return m_geometry->isStrictlyInside(bounds);
 }
 
 GeometryType Feature::geometryType() const
@@ -81,4 +109,21 @@ RasterGeometryPtr Feature::geometryAsRaster()
 Attributes& Feature::attributes()
 {
     return m_attributes;
+}
+
+std::string BlueMarble::Feature::prettyString()
+{
+    std::string s = "Feature (" + std::to_string(m_id.dataSetId()) + ", " + std::to_string(m_id.featureId()) + "):\n";
+    s += "\tGeometry: " + typeToString(m_geometry->type());
+    s += "\n";
+    s += "\tAttributes:\n";
+    
+    for (auto attr : m_attributes)
+    {
+        s += "\t\t" + attr.first;
+        s += " : " + attributeToString(attr.second);
+        s += "\n";
+    }
+
+    return s;
 }

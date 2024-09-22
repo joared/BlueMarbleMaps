@@ -60,7 +60,8 @@ namespace BlueMarble
 		Enter,
 		Space,
 		BackSpace,
-		One,Two,Three,Four,Five,Six,Seven,Eight,Nine
+		One,Two,Three,Four,Five,Six,Seven,Eight,Nine,
+		Add, Subtract
     };
 
 	// Helper function to determine if a key is a number

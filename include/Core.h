@@ -6,6 +6,7 @@
 #include <vector>
 #include <cassert>
 #include <limits>
+#include <string>
 
 namespace BlueMarble
 {
@@ -16,7 +17,7 @@ namespace BlueMarble
         public:
             inline static Point undefined() { Point p; p.m_isUndefined = true; return p; }
             inline Point(double x=0, double y=0) : m_x(x), m_y(y), m_isUndefined(false) {}
-            inline bool isUndefined() { return m_isUndefined; }
+            inline bool isUndefined() const { return m_isUndefined; }
             inline  double x() const { return m_x; }
             inline  double y() const { return m_y; }
 
@@ -167,6 +168,7 @@ namespace BlueMarble
                 return m_xMin <= point.x() && m_yMin <= point.y() && m_xMax >= point.x() && m_yMax >= point.y();
             }
 
+            // TODO: rename to anyInside/anyPointsInside?
             inline bool isInside(const std::vector<Point>& points) const
             {
                 for (auto& p : points)
@@ -178,8 +180,27 @@ namespace BlueMarble
                 return false;
             }
 
+
+            // Checks whether other rectangle is inside this
+            inline bool isInside(const Rectangle& other) const
+            {
+                return m_xMin <= other.xMin() && m_yMin <= other.yMin() && m_xMax >= other.xMax() && m_yMax >= other.yMax();
+            }
+
+
+            inline bool allInside(const std::vector<Point>& points) const
+            {
+                for (auto& p : points)
+                {
+                    if(!isInside(p))
+                        return false;
+                }
+
+                return true;
+            }
+
             // Checks whether the rectangles overlap: https://www.geeksforgeeks.org/find-two-rectangles-overlap/
-            inline bool overlap(const Rectangle& other)
+            inline bool overlap(const Rectangle& other) const
             {
                 auto l1 = Point(m_xMin, m_yMax);
                 auto r1 = Point(m_xMax, m_yMin);
@@ -265,6 +286,11 @@ namespace BlueMarble
             }
             inline double width() const { return m_xMax-m_xMin; }
             inline double height() const { return m_yMax-m_yMin; }
+
+            inline std::string toString()
+            {
+                return "Rectangle(" + std::to_string(m_xMin) + ", " + std::to_string(m_yMin) + ", " + std::to_string(m_xMax) + ", " + std::to_string(m_yMax) + ")";
+            }
 
         private:
             double m_xMin;

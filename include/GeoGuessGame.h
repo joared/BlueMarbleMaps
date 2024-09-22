@@ -94,6 +94,8 @@ class GeoGuesGame
             }
             m_current = randomize();
             m_startTimeMs = getTimeStampMs();
+            m_map.zoomToArea(m_bounds, true);
+            m_map.update(true);
         }
 
         void stop()
@@ -135,7 +137,11 @@ class GeoGuesGame
         {
             auto features = m_map.featuresAt(X, Y, 10.0);
             if (features.empty())
+            {
+                m_map.deSelectAll();
+                m_map.update(true);
                 return true;
+            }
             
             auto f = features[0];
 
@@ -150,7 +156,11 @@ class GeoGuesGame
                         m_map.select(f, SelectMode::Add);
                     }
                     auto bounds = m_map.lngLatToMap(featColl.bounds());
-                    m_map.zoomToArea(bounds, true);
+                    m_map.doCommand([this, bounds]() 
+                    {
+                        this->m_map.zoomToArea(bounds, true);
+                    }
+                    );
                 }
                 else
                 {

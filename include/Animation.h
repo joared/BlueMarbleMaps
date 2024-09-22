@@ -6,12 +6,42 @@
 
 namespace BlueMarble
 {
+
+    enum class EasingFunctionType
+    {
+        Linear,
+        EaseOut
+    };
+
+    class AbstractAnimation
+    {
+        public:
+            AbstractAnimation(double duration, EasingFunctionType easingFunc=EasingFunctionType::Linear);
+            bool isFinished() const;
+            bool update(double elapsed);
+            bool updateDelta(double deltaTime);
+            void restart();
+
+            double duration() const { return m_duration; };
+            double elapsed() const { return m_elapsed; };
+            double progress() const { return m_elapsed/m_duration; };
+        protected:
+            virtual void onStarted() = 0;
+            virtual void onUpdated(double progress) = 0;
+            virtual void onFinished() = 0;
+        private:
+            double             m_duration;
+            double             m_elapsed;
+    };
+    typedef std::shared_ptr<AbstractAnimation> AbstractAnimationPtr;
+
     class Map; // Forward declaration
 
     struct InertiaOptions
     {
         double alpha = 0.001;
         double linearity = 0.2;
+        double maxSpeed = 1000000;
     };
 
     class Animation; // Forward declaration
@@ -42,6 +72,34 @@ namespace BlueMarble
             bool m_isInertial;
             const InertiaOptions& m_options;
     };
+
+
+
+    class AnimationController
+    {
+        public:
+            AnimationController();
+            bool update(int timeStamp);
+            void addAnimation(AbstractAnimationPtr animation);
+            void addPersistentAnimation(AbstractAnimationPtr animation);
+            //AbstractAnimationPtr getAnimation(const Id& id);
+        private:
+            bool updateAnimations();
+            //std::map<const T& key, AbstractAnimation> m_animations;
+            std::vector<AbstractAnimationPtr> m_animations;
+            std::vector<AbstractAnimationPtr> m_persistentAnimations;
+            //std::map<Id, AbstractAnimationPtr> m_identitfiedAnimations;
+    };
+
+
+    /*
+    AnimatedDoubleAttributeVariable myAttributeAnimation;           // keep around
+
+    auto progressAnimation = animationController->getAnimation(id); // Get top animation for feature id
+    auto linear progress = progressAnimation.getValue();            // Get progress for top animation (should have infinite duration?)
+    myAnimation.updateProgress(progress);                           // Update own local animation using progress (own easing and parameters)
+    double myDouble = myAnimation.tryGetValue(attributes);
+    */
 
 }
 #endif /* ANIMATION */

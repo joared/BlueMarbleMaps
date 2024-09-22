@@ -43,6 +43,10 @@ set(SOURCES
     ${SRC_DIR}/File.cpp
     ${SRC_DIR}/PresentationObject.cpp
     ${SRC_DIR}/Visualizer.cpp
+    ${SRC_DIR}/Algorithm.cpp
+    ${SRC_DIR}/Thread.cpp
+    ${SRC_DIR}/EngineObject.cpp
+    ${SRC_DIR}/LabelOrganizer.cpp
 )
 
 # Add the executable

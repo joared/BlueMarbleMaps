@@ -9,6 +9,7 @@ namespace BlueMarble
         public:
             Impl(int width, int height)
                 : m_raster(width, height)
+                , m_backGroundColor(Color::blue(0.5))
             {
 
             }
@@ -26,6 +27,16 @@ namespace BlueMarble
             int height() const
             {
                 return m_raster.height();
+            }
+
+            const Color& backgroundColor() const
+            {
+                return m_backGroundColor;
+            }
+
+            void backgroundColor(const Color& color)
+            {
+                m_backGroundColor = color;
             }
 
             void fill(int val)
@@ -133,7 +144,7 @@ namespace BlueMarble
                 }
             }
 
-            const Raster& getRaster() const
+            Raster& getRaster()
             {
                 return m_raster;
             }
@@ -144,6 +155,7 @@ namespace BlueMarble
                 return *static_cast<cimg_library::CImg<unsigned char>*>(raster.data());
             }
             Raster m_raster;
+            Color  m_backGroundColor;
 
     };
 }

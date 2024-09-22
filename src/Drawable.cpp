@@ -1,9 +1,10 @@
 #include "Drawable.h"
-#include "CImgDrawableImpl.cpp" // TODO: add macro ifdef
+#include "CImgDrawableImpl.cpp" // TODO: rename to generic "DrawableImpl.cpp" to prevent need of ifdef
 
 
 namespace BlueMarble
 {
+    // TODO: add declaration of Impl
     // class Drawable::Impl
     // {
     //     public:
@@ -39,6 +40,16 @@ namespace BlueMarble
     int Drawable::height() const
     {
         return m_impl->height();
+    }
+
+    const Color& Drawable::backgroundColor()
+    {
+        m_impl->backgroundColor();
+    }
+
+    void Drawable::backgroundColor(const Color &color)
+    {
+        m_impl->backgroundColor(color);
     }
 
     void Drawable::fill(int val)
@@ -81,7 +92,7 @@ namespace BlueMarble
         m_impl->drawText(x, y, text, color, fontSize, backgroundColor);
     }
 
-    const Raster& Drawable::getRaster() const
+    Raster& Drawable::getRaster()
     {
         return m_impl->getRaster();
     }

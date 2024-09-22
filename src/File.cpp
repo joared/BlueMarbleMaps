@@ -227,9 +227,23 @@ JsonValue* JSONFile::parseJson(const std::string &text, int &idx, int level)
     do
     {
         parseWhiteSpace(text, idx);
-        const auto [key, value] = retrieveKeyValuePair(text, idx, level);
-        jsonData[key] = value;
-        parseWhiteSpace(text, idx);
+        try
+        {
+            const auto [key, value] = retrieveKeyValuePair(text, idx, level);
+            jsonData[key] = value;
+            parseWhiteSpace(text, idx);
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+            while (text[idx] != '}')
+            {
+                idx++;
+            }
+            idx++;
+            return new JsonValue(jsonData);
+        }
+        
     } 
     while (text[idx] != '}');
     
@@ -410,7 +424,7 @@ void BlueMarble::JSONFile::expect(const char &c, const std::string &text, int &i
 {
     if (c != text[idx])
     {
-        std::cout << text.substr(0, idx+1) << "<---\n";
+        //std::cout << text.substr(idx-20, idx+1) << "<---\n";
         std::cout << "Expected '" << c << "' but got '" << text[idx] << "'\n";
 
         throw std::exception();

@@ -17,27 +17,31 @@ Map::Map(cimg_library::CImgDisplay& disp)
     , m_center(lngLatToMap(Point(0, 0)))
     , m_scale((double)m_disp.width() / m_backgroundRaster.width())
     , m_rotation(0.0)
-    , m_constraints(500.0, 0.0001, Rectangle(0, 0, m_backgroundRaster.width()-1, m_backgroundRaster.height()-1))
+    , m_constraints(5000.0, 0.0001, Rectangle(0, 0, m_backgroundRaster.width()-1, m_backgroundRaster.height()-1))
     , m_updateRequired(true)
     , m_updateEnabled(true)
     , m_mapEventHandler(nullptr)
     , m_animation(nullptr)
     , m_animationStartTimeStamp(0)
+    , m_updateAttributes()
     , m_centerChanged(false)
     , m_scaleChanged(false)
     , m_rotationChanged(false)
     , m_presentationObjects()
     , m_selectedFeatures()
     , m_hoveredFeatures()
+    , m_commmand(nullptr)
     
 {   
+    m_scale = m_scale > (double)m_disp.height() / m_backgroundRaster.height() ? m_scale : (double)m_disp.height() / m_backgroundRaster.height();
     m_presentationObjects.reserve(10000); // Reserve a good amount for efficiency
     resetUpdateFlags();
     m_constraints.bounds().scale(3.0);
 
-    std::cout << "Display: " << m_disp.width() << ", " << m_disp.height() << "\n";
+    updateUpdateAttributes();
 
-    std::cout << "LngLat(0,0): " << m_center.x() << ", " << m_center.y() << "\n";
+    // std::cout << "Display: " << m_disp.width() << ", " << m_disp.height() << "\n";
+    // std::cout << "LngLat(0,0): " << m_center.x() << ", " << m_center.y() << "\n";
 
     // Draw some info when starting up
     std::string info = "BlueMarbleMaps";
@@ -48,8 +52,6 @@ Map::Map(cimg_library::CImgDisplay& disp)
     const auto& drawImg = *(cimg_library::CImg<unsigned char>*)m_drawable.getRaster().data();
     m_disp.display(drawImg);
     m_drawable.fill(0);
-
-    
 }
 
 bool Map::update(bool forceUpdate)
@@ -58,6 +60,7 @@ bool Map::update(bool forceUpdate)
     {
         return false;
     }
+    updateUpdateAttributes(); // Set update attributes that contains useful information about the update
 
     if (m_mapEventHandler)
         m_mapEventHandler->OnUpdating(*this);
@@ -71,11 +74,7 @@ bool Map::update(bool forceUpdate)
     // Constrain map pose
     m_constraints.constrainMap(*this);
 
-    //render();
     beforeRender();
-    // Draw map constraints before image
-    // auto constrainBounds = mapToScreen(m_constraints.bounds());
-    // m_drawable.drawRect(constrainBounds, Color{0, 155, 255});
 
     // Let layers do their work
     renderLayers();
@@ -90,9 +89,9 @@ bool Map::update(bool forceUpdate)
         m_mapEventHandler->OnUpdated(*this);
 
     //std::cout << "Updated\n";
-    m_updateRequired = false;
+    m_updateRequired = m_updateAttributes.get<bool>(UpdateAttributeKeys::UpdateRequired); // Someone in the operator chain needs more updates (e.g. Visualization evaluations)
     resetUpdateFlags();
-    if (m_animation)
+    if (m_animation || m_updateRequired)
         return true;
 
     return false;
@@ -149,7 +148,7 @@ void Map::render()
     m_drawable.fill(0);
 }
 
-void BlueMarble::Map::renderLayers()
+void Map::renderLayers()
 {
     m_presentationObjects.clear(); // Clear presentation objects, layers will add new
     auto updateArea = area();
@@ -226,7 +225,6 @@ Rectangle BlueMarble::Map::area() const
 
 void BlueMarble::Map::panBy(const Point& deltaScreen, bool animate)
 {
-    stopAnimation();
     //center(m_center + Point(deltaScreen.x(), deltaScreen.y())*(1/m_scale));
     // TODO: add this back when fixed, or?
     auto centerScreen = screenCenter();
@@ -246,7 +244,7 @@ void BlueMarble::Map::panBy(const Point& deltaScreen, bool animate)
 
 void BlueMarble::Map::zoomOn(const Point& mapPoint, double zoomFactor, bool animate)
 {
-    std::cout << "zoomOn\n";
+    // std::cout << "zoomOn\n";
     if (animate && m_animation)
     {
         zoomFactor = m_animation->toScale()/scale() * zoomFactor;
@@ -281,6 +279,30 @@ void BlueMarble::Map::zoomToArea(const Rectangle& bounds, bool animate)
 
     double toScale = scale() * width() / bounds.width();
     if (width() / height() > bounds.width() / bounds.height())
+        toScale = scale() * height() / bounds.height();
+
+    toScale = m_constraints.constrainValue(toScale, 
+                                           m_constraints.minScale(), 
+                                           m_constraints.maxScale());
+
+    if (animate)
+    {
+        auto animation = Animation::Create(*this, center(), to, scale(), toScale, 1000, false);
+        startAnimation(animation);
+    }
+    else
+    {
+        center(to);
+        scale(toScale);
+    }
+}
+
+void BlueMarble::Map::zoomToMinArea(const Rectangle &bounds, bool animate)
+{
+    auto to = bounds.center();
+
+    double toScale = scale() * width() / bounds.width();
+    if (width() / height() < bounds.width() / bounds.height())
         toScale = scale() * height() / bounds.height();
 
     toScale = m_constraints.constrainValue(toScale, 
@@ -368,19 +390,24 @@ Point Map::screenCenter() const
 
 void BlueMarble::Map::startAnimation(AnimationPtr animation)
 {
+    if (m_animation)
+        stopAnimation();
     m_animation = animation;
     m_animationStartTimeStamp = getTimeStampMs();
+    quickUpdateEnabled(true); // For now, consider animations as quick updates
 }
 
 void BlueMarble::Map::stopAnimation()
 {
     m_animation = nullptr;
+    quickUpdateEnabled(false);
 }
 
 void BlueMarble::Map::addLayer(Layer *layer)
 {
     assert(layer != nullptr);
     m_layers.push_back(layer);
+    addChild(layer);
 }
 
 std::vector<Layer *> &BlueMarble::Map::layers()
@@ -500,6 +527,7 @@ void Map::select(FeaturePtr feature, SelectMode mode)
     {
         m_selectedFeatures.push_back(feature->id());
         // std::cout << "Selected feature, Id: " << "Id(" << feature->id().dataSetId() << ", " << feature->id().featureId() << ")\n";
+        std::cout << feature->prettyString();
     }
 }
 
@@ -534,7 +562,8 @@ bool BlueMarble::Map::isSelected(FeaturePtr feature)
 void Map::hover(const Id& id)
 {
     m_hoveredFeatures.clear();
-    m_hoveredFeatures.push_back(id);
+    if (id != Id(0,0))
+        m_hoveredFeatures.push_back(id);
 }
 
 void BlueMarble::Map::hover(FeaturePtr feature)
@@ -584,6 +613,25 @@ BlueMarble::Drawable& Map::drawable()
     return m_drawable;
 }
 
+void Map::updateUpdateAttributes()
+{
+    m_updateAttributes.set(UpdateAttributeKeys::UpdateTimeMs, getTimeStampMs());
+    m_updateAttributes.set(UpdateAttributeKeys::QuickUpdate, false);
+    m_updateAttributes.set(UpdateAttributeKeys::SelectionUpdate, false);
+    m_updateAttributes.set(UpdateAttributeKeys::HoverUpdate, false);
+    if (!m_selectedFeatures.empty())
+        m_updateAttributes.set(UpdateAttributeKeys::SelectionUpdate, true);
+    if (!m_hoveredFeatures.empty())
+    {
+        m_updateAttributes.set(UpdateAttributeKeys::HoverUpdate, true);
+    }
+
+    // For others in the operator chain to set (or elsewhere).
+    // These are reset in the beginning of each update
+    m_updateAttributes.set(UpdateAttributeKeys::UpdateRequired, false);
+    
+}
+
 void Map::beforeRender()
 {
 
@@ -595,7 +643,7 @@ void Map::afterRender()
     const auto& drawImg = *(cimg_library::CImg<unsigned char>*)m_drawable.getRaster().data();
     m_disp.display(drawImg);
     // Reset draw image
-    m_drawable.fill(0);
+    m_drawable.fill(150); // TODO: fill with drawable.backGroundColor()
 }
 
 void Map::resetUpdateFlags()
@@ -610,13 +658,31 @@ void Map::startInitialAnimation()
     auto animation = Animation::Create(*this, 
                                        center(),
                                        center(),
-                                       scale()*0.01,
+                                       scale()*10.0,
                                        scale(),
                                        1000,
                                        false);
     startAnimation(animation);                                
 }
 
+void BlueMarble::Map::doCommand(const std::function<void()>& action)
+{
+    delete m_commmand;
+    m_commmand = new MapCommand(*this, action);
+    m_commmand->execute();
+}
+
+bool BlueMarble::Map::undoCommand()
+{
+    if(m_commmand)
+    {
+        m_commmand->revert();
+        delete m_commmand;
+        m_commmand = nullptr;
+        return true;
+    }
+    return false;
+}
 
 void Map::drawInfo()
 {
@@ -646,10 +712,10 @@ void Map::drawInfo()
 
 const Point Map::screenToLngLat(const Point& screenPoint)
 {
-    return mapToLngLat(mapToScreen(screenPoint));
+    return mapToLngLat(screenToMap(screenPoint));
 }
 
-const Point Map::mapToLngLat(const Point& mapPoint)
+const Point Map::mapToLngLat(const Point& mapPoint, bool normalize)
 {
     // This is temporary, remove.
     // Using georeferencing parameters from NE1_LR_LC_SR_W.tfw
@@ -671,8 +737,14 @@ const Point Map::mapToLngLat(const Point& mapPoint)
     // of the top left pixel, so we subtract half a pixel to account for this.
     auto imagePoint = Point(mapPoint.x()-0.5, mapPoint.y()-0.5);
 
-    double lng = Utils::normalizeLongitude(xTopLeft + xPixLen * imagePoint.x());
-    double lat = Utils::normalizeLatitude(yTopLeft + yPixLen * imagePoint.y()); // FIXME: y will change sign
+    double lng = xTopLeft + xPixLen * imagePoint.x();
+    double lat = yTopLeft + yPixLen * imagePoint.y();
+    
+    if (normalize)
+    {
+        lng = Utils::normalizeLongitude(lng);
+        lat = Utils::normalizeLatitude(lat); // FIXME: y will change sign
+    }
 
     return Point(lng, lat);
 }
@@ -716,8 +788,8 @@ Rectangle BlueMarble::Map::lngLatToMap(const Rectangle &rect)
 
 Rectangle BlueMarble::Map::mapToLngLat(const Rectangle &rect)
 {
-    auto topLeft = mapToLngLat(Point(rect.xMin(), rect.yMin()));
-    auto bottomRight = mapToLngLat(Point(rect.xMax(), rect.yMax()));
+    auto topLeft = mapToLngLat(Point(rect.xMin(), rect.yMin()), false);     // FIXME: not sure if not normalizing is always correct
+    auto bottomRight = mapToLngLat(Point(rect.xMax(), rect.yMax()), false); // FIXME: not sure if not normalizing is always correct
     
     return Rectangle(topLeft.x(), topLeft.y(), bottomRight.x(), bottomRight.y());
 }

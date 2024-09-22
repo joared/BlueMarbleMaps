@@ -1,4 +1,6 @@
 #include "UpdateInterfaces.h"
+#include "EngineObject.h"
+
 
 using namespace BlueMarble;
 
@@ -26,6 +28,19 @@ BlueMarble::FeatureHandler::FeatureHandler()
 void FeatureHandler::addUpdateHandler(IUpdateHandler *handler)
 {
     m_updateHandlers.push_back(handler);
+    
+    // FIXME: uggly fix, remove from here
+    auto obj = dynamic_cast<EngineObject*>(this);
+    auto child = dynamic_cast<EngineObject*>(handler);
+    if (obj && child)
+    {
+        obj->addChild(child);
+    }
+    else
+    { 
+        std::cout << "handler must inherit EngineObject\n";
+        throw std::exception();
+    }
 }
 
 void FeatureHandler::sendUpdateRequest(Map &map, const Rectangle &updateArea)

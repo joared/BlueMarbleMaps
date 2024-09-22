@@ -7,10 +7,12 @@
 #include "Drawable.h"
 #include "Layer.h"
 #include "PresentationObject.h"
+#include "EngineObject.h"
 
 #include <CImg.h>
 
 #include <map>
+#include <functional>
 
 namespace BlueMarble
 {
@@ -22,8 +24,34 @@ namespace BlueMarble
         Replace
     };
 
-    class Map
+    class Map : public EngineObject
     {
+
+        class MapCommand
+        {
+            public:
+                inline MapCommand(Map& map, const std::function<void()>& action)
+                    : m_map(map)
+                    , m_action(action)
+                {
+
+                }
+                inline void execute()
+                {
+                    m_from = m_map.area();
+                    m_action();
+                }
+
+                inline void revert()
+                {
+                    m_map.zoomToArea(m_from, true);
+                }
+
+            private:
+                Map& m_map;
+                const std::function<void()>& m_action;
+                Rectangle m_from;
+        };
         public:
             Map(cimg_library::CImgDisplay& disp);
             bool update(bool forceUpdate=false);
@@ -50,6 +78,7 @@ namespace BlueMarble
             void panBy(const Point& deltaScreen, bool animate=false);
             void zoomOn(const Point& mapPoint, double zoomFactor, bool animate=false);
             void zoomToArea(const Rectangle& bounds, bool animate=false);
+            void zoomToMinArea(const Rectangle& bounds, bool animate=false);
 
             Point screenToMap(const Point& screenPos) const;
             Point screenToMap(double x, double y) const;
@@ -59,7 +88,7 @@ namespace BlueMarble
             Rectangle screenToMap(const Rectangle& rect) const;
             Rectangle mapToScreen(const Rectangle& rect) const;
             const Point screenToLngLat(const Point& screenPoint);           // Temporary test, should be removed
-            const Point mapToLngLat(const Point& mapPoint);                 // Temporary test, should be removed
+            const Point mapToLngLat(const Point& mapPoint, bool normalize=true); // Temporary test, should be removed
             const Point lngLatToMap(const Point& lngLat);                   // Temporary test, should be removed
             const Point lngLatToScreen(const Point& lngLat);                // Temporary test, should be removed
             std::vector<Point> lngLatToScreen(const std::vector<Point>& points);   // Temporary test, should be removed
@@ -77,6 +106,8 @@ namespace BlueMarble
             void updateEnabled(bool enabled) { m_updateEnabled = enabled; };
             bool quickUpdateEnabled() const { return m_quickUpdateEnabled; }
             void quickUpdateEnabled(bool enabled) { m_quickUpdateEnabled = enabled; }
+            const Attributes& updateAttributes() const { return m_updateAttributes; };
+            Attributes& updateAttributes() { return m_updateAttributes; };
 
             void addMapEventHandler(MapEventHandler* mapEventHandler) { m_mapEventHandler = mapEventHandler; }
             void removeMapEventHandler() { m_mapEventHandler = nullptr; }
@@ -113,7 +144,10 @@ namespace BlueMarble
             bool rotationrChanged() { return m_rotationChanged; }
 
             void startInitialAnimation();
+            void doCommand(const std::function<void()>& action);
+            bool undoCommand();
         private:
+            void updateUpdateAttributes();
             void beforeRender();
             void afterRender();
             
@@ -145,11 +179,14 @@ namespace BlueMarble
 
             AnimationPtr    m_animation;
             int m_animationStartTimeStamp;
+            Attributes m_updateAttributes;
 
             std::vector<Layer*> m_layers;
             std::vector<PresentationObject> m_presentationObjects;
             std::vector<Id>                 m_selectedFeatures;
             std::vector<Id>                 m_hoveredFeatures;
+
+            MapCommand*                     m_commmand;
     };
 
     class MapEventHandler

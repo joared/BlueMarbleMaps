@@ -1,5 +1,5 @@
-#ifndef DEFAULT_EVENT_HANDLERS
-#define DEFAULT_EVENT_HANDLERS
+#ifndef DEFAULTEVENTHANDLERS
+#define DEFAULTEVENTHANDLERS
 
 #include "CImgEventManager.h" // TODO: remove, needed for a lot of types
 #include "EventHandler.h"
@@ -161,13 +161,26 @@ namespace BlueMarble
                 , m_inertiaOption{0.002, 0.1}
                 , m_funnyDudeRaster("/home/joar/BlueMarbleMaps/geodata/symbols/funny_dude.png")
                 , m_geoGuessGame(map, geoGuessDataSet)
+                , m_dataSetsInitialized(false)
+                , m_dataSetsToInitialize()
             {
-                m_cutoff = 300;
+                m_cutoff = 150;
                 int reserveAmount = (int)(m_cutoff / 16.0) + 1;
                 m_positions.reserve(reserveAmount);
                 m_timeStamps.reserve(reserveAmount);
 
                 m_map.addMapEventHandler(this);
+
+                m_map.findChildren<AbstractFileDataSet>(m_dataSetsToInitialize);
+                std::cout << "NDDATDASTSATST: " << m_dataSetsToInitialize.size() << "\n";
+                m_markerDataSet = dynamic_cast<MemoryDataSet*>(m_map.findChild("MarkerDataSet"));
+                if (!m_markerDataSet)
+                {
+                    std::cout << "PanEventHandler(): Couldn't find 'MarkerDataSet'\n";
+                    throw std::exception();
+                }
+                m_markerFeature = m_markerDataSet->createFeature(std::make_shared<PointGeometry>(Point()));
+                m_markerDataSet->addFeature(m_markerFeature);
             }
             
             void OnAreaChanged(BlueMarble::Map& /*map*/) override final 
@@ -197,21 +210,40 @@ namespace BlueMarble
             void OnCustomDraw(BlueMarble::Map& /*map*/) override final 
             {
                 
+                if (!m_dataSetsInitialized)
+                {
+                    int y = 10;
+                    int nInitialized = 0;
+                    for (auto d : m_dataSetsToInitialize)
+                    {
+                        auto name = (d->name().empty()) ? "DataSet " : d->name();
+                        std::string info = name + ": " + std::to_string((int)(d->progress()*100)) + "\n";
+                        m_map.drawable().drawText(10, y, info, Color::white());
+                        y += 20;
+                        nInitialized += (d->progress() < 1.0) ? 0 : 1;
+                    }
+                    if (nInitialized == m_dataSetsToInitialize.size())
+                        m_dataSetsInitialized = true;
+                }
+
                 // Geo guess game
                 if (!m_geoGuessGame.isStarted())
                 {
                     auto bounds = m_map.area();
                     bounds.scale(0.5); // TODO: this should not be hardcoded here, should be part of game
-                    int x = m_map.drawable().width() / 2.0;
+                    int x = m_map.drawable().width() / 2.0 - 65;
                     std::string info;
                     if (m_geoGuessGame.isFinnished())
                         info += "Finished in " + std::to_string(m_geoGuessGame.elapsedMs() / 1000.0) + " s!\n";
                     info += "Press Enter to start";
-                    m_map.drawable().drawText(x, 10, info, Color::blue());
-                    m_map.drawable().drawRect(m_map.mapToScreen(bounds), Color::red(0.1));
+                    m_map.drawable().drawText(x, 10, info, Color::blue(), 20, Color::white(0.7));
+                    //m_map.drawable().drawRect(m_map.mapToScreen(bounds), Color::red(0.1)); // TODO: add back again
 
                     return;
                 }
+
+                // Testing blur
+                m_map.drawable().getRaster().blur(0.5,0.5,0,false);
 
                 // Draw the bounds of the features in the game
                 auto gameBounds = m_geoGuessGame.bounds();
@@ -219,13 +251,15 @@ namespace BlueMarble
                 int lineWidth = 10;
                 gameBounds.extend(lineWidth, lineWidth);
                 auto boundingLine = gameBounds.corners();
+                boundingLine.push_back(boundingLine[0]);
                 m_map.drawable().drawLine(boundingLine, Color::red(0.5), lineWidth);
 
                 // Draw informational text
                 auto currCountry = m_geoGuessGame.currentCountryName();
                 std::string info = "Guesses: " + std::to_string(m_geoGuessGame.nCorrect()) + "/" + std::to_string(m_geoGuessGame.nTot()) + "\n";
                 info += "Find '" + currCountry + "'";
-                int x = m_map.drawable().width() / 2.0;
+                int x = m_map.drawable().width() / 2.0 - 65;
+                m_map.drawable().drawText(x+1, 10+1, info, Color::black(0.5), 20, Color::white(0.7));
                 m_map.drawable().drawText(x, 10, info, Color::blue());
 
                 // Zoom to rect
@@ -273,8 +307,13 @@ namespace BlueMarble
                     direction = BlueMarble::Point(1, 0);
                     break;
                 
+                case BlueMarble::KeyButton::BackSpace:
+                    break;
                 case BlueMarble::KeyButton::Space:
                 {
+                    if (m_map.undoCommand())
+                        return true;
+                        
                     if (m_map.selected().size() > 0)
                     {
                         auto boundsList = std::vector<Rectangle>();
@@ -288,7 +327,14 @@ namespace BlueMarble
                         if (!bounds.isUndefined())
                         {
                             auto rect = m_map.lngLatToMap(bounds);
-                            m_map.zoomToArea(rect, true);
+                            //m_map.zoomToArea(rect, true);
+                            // TODO
+                            m_map.doCommand([this, rect]() 
+                            {
+                                this->m_map.zoomToArea(rect, true);
+                            }
+                            );
+                            
                         }
                     }
                     return true;
@@ -309,8 +355,48 @@ namespace BlueMarble
                     }
                     std::cout << "Stopped game!\n";
                     m_map.update(true);
+                    break;
                 }
 
+                case KeyButton::Add:
+                {
+                    if (event.modificationKey & ModificationKeyCtrl)
+                    {
+                        m_inertiaOption.linearity += 0.01;
+                    }
+                    else
+                    {
+                        if (m_inertiaOption.alpha < 0.001)
+                            m_inertiaOption.alpha += 0.0001;
+                        else
+                            m_inertiaOption.alpha += 0.001;
+                    }
+                    m_inertiaOption.alpha = std::max(m_inertiaOption.alpha, 0.0001);
+                    m_inertiaOption.linearity = std::max(m_inertiaOption.linearity, 0.01);
+                    std::cout << "Linearity: " << m_inertiaOption.linearity << "\n";
+                    std::cout << "Alpha: " << m_inertiaOption.alpha << "\n";
+                    return true;
+                }
+                case KeyButton::Subtract:
+                {
+                    if (event.modificationKey & ModificationKeyCtrl)
+                    {
+                        m_inertiaOption.linearity -= 0.01;
+                    }
+                    else
+                    {
+                        if (m_inertiaOption.alpha < 0.001)
+                            m_inertiaOption.alpha -= 0.0001;
+                        else
+                            m_inertiaOption.alpha -= 0.001;
+                    }
+
+                    m_inertiaOption.alpha = std::max(m_inertiaOption.alpha, 0.0001);
+                    m_inertiaOption.linearity = std::max(m_inertiaOption.linearity, 0.01);
+                    std::cout << "Linearity: " << m_inertiaOption.linearity << "\n";
+                    std::cout << "Alpha: " << m_inertiaOption.alpha << "\n";
+                    return true;
+                }
                 default:
                     if (BlueMarble::isNumberKey(event.keyButton))
                     {
@@ -357,10 +443,12 @@ namespace BlueMarble
                 if (pObjs.size() > 0)
                 {
                     hoverId = pObjs[0].sourceFeature()->id();
+                    assert(hoverId != Id(0,0));
                 }
 
                 if (!m_map.isHovered(hoverId))
                 {
+                    std::cout << "Not hovered\n";
                     m_map.hover(hoverId);
                     m_map.update(true);
                 }
@@ -369,6 +457,8 @@ namespace BlueMarble
 
             bool OnClick(const BlueMarble::ClickEvent& event) override final
             {
+                moveMarker(event.pos.x, event.pos.y);
+
                 if (m_geoGuessGame.isStarted())
                 {
                     m_geoGuessGame.onClick(event.pos.x, event.pos.y);
@@ -464,9 +554,10 @@ namespace BlueMarble
 
             bool OnDragBegin(const BlueMarble::DragBeginEvent& dragBeginEvent) override final
             {
-                // std::cout << dragBeginEvent.toString()<< " (" << dragBeginEvent.pos.x << ", " << dragBeginEvent.pos.y << ")\n";
+                std::cout << dragBeginEvent.toString()<< " (" << dragBeginEvent.pos.x << ", " << dragBeginEvent.pos.y << ")\n";
                 addMousePos(dragBeginEvent.pos, dragBeginEvent.timeStampMs);
                 m_debugTime = dragBeginEvent.timeStampMs;
+                m_map.quickUpdateEnabled(true); // TODO: make an interaction handler that manages if this is enabled or not?
                 return true;
             }
 
@@ -527,8 +618,8 @@ namespace BlueMarble
 
             bool OnDragEnd(const BlueMarble::DragEndEvent& dragEndEvent) override final
             {
-                // std::cout << dragEndEvent.toString()<< " (" << dragEndEvent.pos.x << ", " << dragEndEvent.pos.y << ")\n";
-
+                std::cout << dragEndEvent.toString()<< " (" << dragEndEvent.pos.x << ", " << dragEndEvent.pos.y << ")\n";
+                m_map.quickUpdateEnabled(false);
                 if (m_zoomToRect)
                 {
                     m_zoomToRect = false;
@@ -550,12 +641,14 @@ namespace BlueMarble
                         m_timeStamps.clear();
                         m_positions.clear();
 
-                        std::cout << "Velocity: " << std::to_string(velocity.x()) << ", " << std::to_string(velocity.y()) << "\n";
+                        // std::cout << "Velocity: " << std::to_string(velocity.x()) << ", " << std::to_string(velocity.y()) << "\n";
 
                         double linearity = m_inertiaOption.linearity;
                         double alpha = m_inertiaOption.alpha;
-                        velocity = velocity * linearity * 2.0; // * 2.0 is Temp test
-                        double speed = velocity.length();
+                        double maxSpeed = m_inertiaOption.maxSpeed;
+                        velocity = velocity * linearity; // * 2.0 is Temp test
+                        std::cout << "Speed: " << velocity.length() << "\n";
+                        double speed = std::min(velocity.length(), maxSpeed);
                         if (speed <= 0)
                         {
                             return true;
@@ -579,7 +672,7 @@ namespace BlueMarble
                 default:
                     break;
                 }
-
+                m_map.update(true);
 
                 return true;
             }
@@ -590,9 +683,8 @@ namespace BlueMarble
 
                 double scale = 1.0 + abs(wheelEvent.delta)/WHEEL_DELTA;
                 double zoomFactor = wheelEvent.delta > 0 ? scale : 1.0/scale;
-                std::cout << "Wheel delta: " << wheelEvent.delta << "\n";
-                std::cout << "Zoom factor: " << zoomFactor << "\n";
-                m_map.zoomOn(m_map.screenToMap(BlueMarble::Point(wheelEvent.pos.x, wheelEvent.pos.y)), zoomFactor, true);
+                bool animate = abs(wheelEvent.delta) > 1; // only animate if wheel delta is large enough
+                m_map.zoomOn(m_map.screenToMap(BlueMarble::Point(wheelEvent.pos.x, wheelEvent.pos.y)), zoomFactor, animate);
 
                 return true;
             }
@@ -621,9 +713,10 @@ namespace BlueMarble
                     return BlueMarble::Point(0, 0);
                 }
                     
-                int size = m_timeStamps.size();
-                int deltaTime = m_timeStamps[size -1] - m_timeStamps[0];
-                BlueMarble::Point deltaPos = BlueMarble::Point(m_positions[size-1].x, m_positions[size-1].y) 
+                int size = (int)m_timeStamps.size();
+                int diffIdx = size-1;
+                int deltaTime = m_timeStamps[diffIdx] - m_timeStamps[0];
+                BlueMarble::Point deltaPos = BlueMarble::Point(m_positions[diffIdx].x, m_positions[diffIdx].y) 
                                             - BlueMarble::Point(m_positions[0].x, m_positions[0].y);
 
                 return deltaPos * (1.0/deltaTime);
@@ -639,6 +732,17 @@ namespace BlueMarble
                 return EventHandler::handleEvent(event);
             }
         private:
+            void moveMarker(int X, int Y)
+            {
+                auto lngLat = m_map.screenToLngLat(Point(X, Y));
+                std::string lngLatStr;
+                lngLatStr += std::to_string(lngLat.x());
+                lngLatStr += ", ";
+                lngLatStr += std::to_string(lngLat.y());
+                m_markerFeature->attributes().set("LNGLAT", lngLatStr);
+                m_markerFeature->moveTo(lngLat);
+            }
+            
             BlueMarble::Map& m_map;
             std::vector<int> m_timeStamps;
             std::vector<BlueMarble::ScreenPos> m_positions;
@@ -649,7 +753,11 @@ namespace BlueMarble
             bool m_zoomToRect;
             Raster m_funnyDudeRaster;
             GeoGuesGame m_geoGuessGame;
+            bool m_dataSetsInitialized;
+            std::vector<AbstractFileDataSet*> m_dataSetsToInitialize;
+            MemoryDataSet*                    m_markerDataSet;          
+            FeaturePtr                        m_markerFeature;                
     };
 
 }
-#endif /* DEFAULT_EVENT_HANDLERS */
+#endif /* DEFAULTEVENTHANDLERS */

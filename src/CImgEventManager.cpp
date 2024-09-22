@@ -66,6 +66,8 @@ void CImgEventManager::reset()
     m_keyButtonDownMap[KeyButton::Seven] = false;
     m_keyButtonDownMap[KeyButton::Eight] = false;
     m_keyButtonDownMap[KeyButton::Nine] = false;
+    m_keyButtonDownMap[KeyButton::Add] = false;
+    m_keyButtonDownMap[KeyButton::Subtract] = false;
 }
 
 void BlueMarble::CImgEventManager::getMousePos(ScreenPos &pos) const
@@ -194,7 +196,7 @@ void CImgEventManager::handleMouseButtonChanged(MouseButton currButton, const Sc
             DoubleClickEvent clickEvent;
             clickEvent.pos = currPos;
             clickEvent.modificationKey = modKey;
-            clickEvent.mouseButton = currButton; // We use the last down button
+            clickEvent.mouseButton = currButton;
             dispatchEvent(clickEvent, m_timeStampMs);
 
             m_previousMouseDownEvent = MouseDownEvent(); // Reset such that no click event occurs in next mouse down
@@ -322,6 +324,8 @@ void BlueMarble::CImgEventManager::captureKeyEvents()
     handleKey(m_disp.is_key7(), KeyButton::Seven);
     handleKey(m_disp.is_key8(), KeyButton::Eight);
     handleKey(m_disp.is_key9(), KeyButton::Nine);
+    handleKey(m_disp.is_keyPADADD(), KeyButton::Add);
+    handleKey(m_disp.is_keyPADSUB(), KeyButton::Subtract);
 }
 
 void BlueMarble::CImgEventManager::handleKey(bool currDownState, KeyButton key)
