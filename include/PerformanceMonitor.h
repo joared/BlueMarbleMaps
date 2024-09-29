@@ -87,6 +87,7 @@ namespace BlueMarble
         public:
             PerformanceReport(const PerformanceSampler& sampler);
             std::string toString();
+            void save(const std::string& filePath);
         private:
             PerformanceSampler m_sampler;
     };

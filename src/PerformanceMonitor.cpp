@@ -1,4 +1,5 @@
 #include "PerformanceMonitor.h"
+#include "File.h"
 
 using namespace BlueMarble;
 
@@ -125,4 +126,18 @@ std::string PerformanceReport::toString()
     }
 
     return s;
+}
+
+void PerformanceReport::save(const std::string &filePath)
+{
+    auto lines = File::readLines(filePath);
+    
+    for (auto& sample : m_sampler.getSamples())
+    {
+        lines.push_back(sample.toString());
+    }
+
+    File::writeLines(filePath, lines);
+
+    std::cout << "Saved performance report: " << filePath << "\n";
 }

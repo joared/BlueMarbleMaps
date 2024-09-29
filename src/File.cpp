@@ -33,8 +33,9 @@ std::vector<std::string> File::readLines(const std::string& filePath)
 {
     std::ifstream file(filePath);
     // Check if the file is successfully opened 
-    if (!file.is_open()) { 
-        std::cerr << "Error opening the file!\n";
+    if (!file.is_open()) 
+    { 
+        std::cerr << "File::readLines() Error opening the file!\n";
         return std::vector<std::string>();
     }
 
@@ -48,6 +49,23 @@ std::vector<std::string> File::readLines(const std::string& filePath)
     file.close();
 
     return lines;
+}
+
+void File::writeLines(const std::string& filePath, const std::vector<std::string>& lines)
+{
+    std::ofstream file(filePath);
+    // Check if the file is successfully opened 
+    if (!file.is_open()) 
+    { 
+        std::cerr << "File::writeLines() Error opening the file!\n";
+    }
+
+    for (auto l : lines)
+    {
+        file << l << "\n";
+    }
+    
+    file.close();
 }
 
 CSVFile::CSVFile(const std::string& filePath, const std::string& delimiter)

@@ -120,7 +120,7 @@ int main()
     
     auto backgroundDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/BlueMarbleMaps/geodata/NE1_LR_LC_SR_W/NE1_LR_LC_SR_W.tif");
     auto backgroundDataSet2 = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/BlueMarbleMaps/geodata/BlueMarble.jpeg");
-    // auto shapeFileDataSet = BlueMarble::ShapeFileDataSet("");
+
     auto svenskaStader = std::make_shared<BlueMarble::CsvFileDataSet>("/home/joar/BlueMarbleMaps/geodata/svenska_stader/svenska-stader.csv");
     auto northAmerica = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/world_geojson/northamerica_high_fixed.geo.json");
     auto southAmerica = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/world_geojson/southamerica_high.geo.json");
@@ -133,11 +133,11 @@ int main()
     auto markerDataSet = std::make_shared<BlueMarble::MemoryDataSet>(); markerDataSet->name("MarkerDataSet");
     auto debugDataSet = std::make_shared<DebugDataSet>();
     
-    sverigeRoadsDataSet->initialize();
+    //sverigeRoadsDataSet->initialize(); // Takes very long to initialize (1.4 GB large)
     roadsDataSet->initialize();
     backgroundDataSet->initialize(DataSetInitializationType::RightHereRightNow);
     backgroundDataSet2->initialize();
-    // shapeFileDataSet.init();
+
     northAmerica->initialize();
     southAmerica->initialize();
     world->initialize();
@@ -145,8 +145,7 @@ int main()
     svenskaStader->initialize();
     svenskaLandskapDataSet->initialize();
     markerDataSet->initialize();
-    
-    // debugDataSet.init();
+    debugDataSet->initialize(); // Does nothing
 
     auto backgroundLayer = BlueMarble::Layer();
     auto backgroundLayer2 = BlueMarble::Layer();
@@ -171,7 +170,6 @@ int main()
     roadsGeoJsonLayer.addUpdateHandler(sverigeRoadsDataSet.get());
     roadsGeoJsonLayer.minScale(5.0);
     roadsGeoJsonLayer.enabledDuringQuickUpdates(true);
-    //shapeFileLayer.addUpdateHandler(shapeFileDataSet.get());
     csvLayer.addUpdateHandler(svenskaStader.get());
     sverigeLayer.addUpdateHandler(svenskaLandskapDataSet.get());
     markerLayer.addUpdateHandler(markerDataSet.get());
@@ -183,7 +181,6 @@ int main()
     map.addLayer(&continentsLayer);
     map.addLayer(&sverigeLayer);
     map.addLayer(&roadsGeoJsonLayer);
-    //map.addLayer(&shapeFileLayer);
     map.addLayer(&csvLayer);
     map.addLayer(&markerLayer);
     map.addLayer(&debugLayer);
@@ -230,16 +227,9 @@ int main()
             auto point = map.lngLatToMap(Point(30, 30));
             map.center(point);
             map.scale(0.3);
-            std::cout << perfMonitor.staticStartStop(5000).toString() << "\n";
-            // if (perfMonitor.isRunning())
-            // {
-            //     std::cout << perfMonitor.stop().toString() << "\n";
-            // }
-            // else
-            // {
-            //     std::cout << "Started performance monitor!\n";
-            //     perfMonitor.start();
-            // }
+            auto report = perfMonitor.staticStartStop(5000);
+            std::cout << report.toString() << "\n";
+            report.save("/home/joar/BlueMarbleMaps/performance_reports/performance_report.pf");
         }
 
         // TODO: add as event in event manager instead
