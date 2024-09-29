@@ -6,6 +6,7 @@
 #include "Core.h"
 #include "Feature.h"
 #include "CImgEventManager.h"
+#include "PerformanceMonitor.h"
 
 #include "DefaultEventHandlers.h"
 #include "test_eventHandler.h"
@@ -15,8 +16,7 @@ using namespace cimg_library;
 class DebugDataSet : public BlueMarble::DataSet
 {
     public:
-        void init(DataSetInitializationType initType = DataSetInitializationType::RightHereRightNow) override final
-        {}
+        
 
         void onUpdateRequest(BlueMarble::Map& map, const BlueMarble::Rectangle& updateArea, BlueMarble::FeatureHandler* handler) override final
         {
@@ -57,16 +57,38 @@ class DebugDataSet : public BlueMarble::DataSet
         {
             return nullptr;
         }
+    private:
+        void init() override final {}
 };
 
 void setupMarkerLayerVisualization(BlueMarble::Layer& layer)
 {
     auto symVis1 = std::make_shared<BlueMarble::SymbolVisualizer>();
     symVis1->color([](auto, auto) { return BlueMarble::Color::black(0.5); });
-    symVis1->size([] (auto, auto) { return 15.0; });
+    symVis1->size([] (FeaturePtr feature, Attributes& updateAttributes) { 
+        static auto from = DirectDoubleAttributeVariable(0.0);
+        static auto to = DirectDoubleAttributeVariable(15.0);
+        static auto value = AnimatedDoubleAttributeVariable(
+            from, 
+            to, 
+            300,
+            EasingFunctionType::Linear);
+        
+        return value(feature, updateAttributes);
+        });
     auto symVis2 = std::make_shared<BlueMarble::SymbolVisualizer>();
     symVis2->color([](auto, auto) { return BlueMarble::Color::blue(); });
-    symVis2->size([] (auto, auto) { return 5.0; });
+    symVis2->size([] (FeaturePtr feature, Attributes& updateAttributes) { 
+        static auto from = DirectDoubleAttributeVariable(0.0);
+        static auto to = DirectDoubleAttributeVariable(5.0);
+        static auto value = AnimatedDoubleAttributeVariable(
+            from, 
+            to, 
+            150,
+            EasingFunctionType::Linear);
+        
+        return value(feature, updateAttributes);
+        });
     auto textVis = std::make_shared<BlueMarble::TextVisualizer>();
     textVis->text([] (FeaturePtr f, auto) 
     { 
@@ -94,34 +116,37 @@ int main()
 
     // New
     BlueMarble::Map map(display);
+    PerformanceMonitor perfMonitor(map);
     
-    auto backgroundDataSet = BlueMarble::ImageDataSet("/home/joar/BlueMarbleMaps/geodata/NE1_LR_LC_SR_W/NE1_LR_LC_SR_W.tif");
-    auto backgroundDataSet2 = BlueMarble::ImageDataSet("/home/joar/BlueMarbleMaps/geodata/BlueMarble.jpeg");
-    auto shapeFileDataSet = BlueMarble::ShapeFileDataSet("");
-    auto csvFileDataSet = BlueMarble::CsvFileDataSet("/home/joar/BlueMarbleMaps/geodata/svenska_stader/svenska-stader.csv");
-    auto northAmerica = BlueMarble::GeoJsonFileDataSet("/home/joar/BlueMarbleMaps/geodata/world_geojson/northamerica_high_fixed.geo.json");
-    auto southAmerica = BlueMarble::GeoJsonFileDataSet("/home/joar/BlueMarbleMaps/geodata/world_geojson/southamerica_high.geo.json");
-    auto world = BlueMarble::GeoJsonFileDataSet("/home/joar/BlueMarbleMaps/geodata/world_geojson/world_high.geo.json");
-    auto continents = BlueMarble::GeoJsonFileDataSet("/home/joar/BlueMarbleMaps/geodata/continents/continents.json");
-    auto sverigeRoadsDataSet = BlueMarble::GeoJsonFileDataSet("/home/joar/BlueMarbleMaps/geodata/svenska_vagar/hotosm_swe_roads_lines_geojson.geojson");
-    auto roadsDataSet = BlueMarble::GeoJsonFileDataSet("/home/joar/BlueMarbleMaps/geodata/roads_geojson/europe-road.geojson");
-    auto svenskaLandskapDataSet = BlueMarble::GeoJsonFileDataSet("/home/joar/BlueMarbleMaps/geodata/svenska_landskap/svenska-landskap-klippt.geo.json");
-    auto markerDataSet = BlueMarble::MemoryDataSet();
-    auto debugDataSet = DebugDataSet();
-    sverigeRoadsDataSet.name("Roads sverige");
-    //sverigeRoadsDataSet.init();
-    roadsDataSet.name("Roads"); roadsDataSet.init();
-    backgroundDataSet.init(DataSetInitializationType::RightHereRightNow);
-    backgroundDataSet2.init();
-    shapeFileDataSet.init();
-    northAmerica.init();
-    southAmerica.init();
-    world.init();
-    continents.name("Continents"); continents.init();
-    csvFileDataSet.init();
-    svenskaLandskapDataSet.init();
-    markerDataSet.name("MarkerDataSet"); markerDataSet.init();
-    debugDataSet.init();
+    auto backgroundDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/BlueMarbleMaps/geodata/NE1_LR_LC_SR_W/NE1_LR_LC_SR_W.tif");
+    auto backgroundDataSet2 = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/BlueMarbleMaps/geodata/BlueMarble.jpeg");
+    // auto shapeFileDataSet = BlueMarble::ShapeFileDataSet("");
+    auto svenskaStader = std::make_shared<BlueMarble::CsvFileDataSet>("/home/joar/BlueMarbleMaps/geodata/svenska_stader/svenska-stader.csv");
+    auto northAmerica = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/world_geojson/northamerica_high_fixed.geo.json");
+    auto southAmerica = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/world_geojson/southamerica_high.geo.json");
+    auto world = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/world_geojson/world_high.geo.json");
+    auto continents = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/continents/continents.json");
+    continents->name("Continents");
+    auto sverigeRoadsDataSet = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/svenska_vagar/hotosm_swe_roads_lines_geojson.geojson"); sverigeRoadsDataSet->name("Roads sverige");
+    auto roadsDataSet = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/roads_geojson/europe-road.geojson"); roadsDataSet->name("Roads");
+    auto svenskaLandskapDataSet = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/svenska_landskap/svenska-landskap-klippt.geo.json");
+    auto markerDataSet = std::make_shared<BlueMarble::MemoryDataSet>(); markerDataSet->name("MarkerDataSet");
+    auto debugDataSet = std::make_shared<DebugDataSet>();
+    
+    sverigeRoadsDataSet->initialize();
+    roadsDataSet->initialize();
+    backgroundDataSet->initialize(DataSetInitializationType::RightHereRightNow);
+    backgroundDataSet2->initialize();
+    // shapeFileDataSet.init();
+    northAmerica->initialize();
+    southAmerica->initialize();
+    world->initialize();
+    continents->initialize();
+    svenskaStader->initialize();
+    svenskaLandskapDataSet->initialize();
+    markerDataSet->initialize();
+    
+    // debugDataSet.init();
 
     auto backgroundLayer = BlueMarble::Layer();
     auto backgroundLayer2 = BlueMarble::Layer();
@@ -133,25 +158,24 @@ int main()
     auto sverigeLayer = BlueMarble::Layer();
     auto markerLayer = BlueMarble::Layer(false); setupMarkerLayerVisualization(markerLayer);
     auto debugLayer = BlueMarble::Layer();
-    backgroundLayer.addUpdateHandler(&backgroundDataSet);
-    backgroundLayer2.addUpdateHandler(&backgroundDataSet2);
+    backgroundLayer.addUpdateHandler(backgroundDataSet.get());
+    backgroundLayer2.addUpdateHandler(backgroundDataSet2.get());
     
     double minScaleCountries = 0.25;
     geoJsonLayer.minScale(minScaleCountries);
-    geoJsonLayer.addUpdateHandler(&northAmerica); geoJsonLayer.addUpdateHandler(&southAmerica); geoJsonLayer.addUpdateHandler(&world);
+    geoJsonLayer.addUpdateHandler(northAmerica.get()); geoJsonLayer.addUpdateHandler(southAmerica.get()); geoJsonLayer.addUpdateHandler(world.get());
 
     continentsLayer.maxScale(minScaleCountries);
-    continentsLayer.addUpdateHandler(&continents);
-
-    roadsGeoJsonLayer.addUpdateHandler(&roadsDataSet);
-    roadsGeoJsonLayer.addUpdateHandler(&sverigeRoadsDataSet);
+    continentsLayer.addUpdateHandler(continents.get());
+    roadsGeoJsonLayer.addUpdateHandler(roadsDataSet.get());
+    roadsGeoJsonLayer.addUpdateHandler(sverigeRoadsDataSet.get());
     roadsGeoJsonLayer.minScale(5.0);
     roadsGeoJsonLayer.enabledDuringQuickUpdates(true);
-    shapeFileLayer.addUpdateHandler(&shapeFileDataSet);
-    csvLayer.addUpdateHandler(&csvFileDataSet);
-    sverigeLayer.addUpdateHandler(&svenskaLandskapDataSet);
-    markerLayer.addUpdateHandler(&markerDataSet);
-    debugLayer.addUpdateHandler(&debugDataSet);
+    //shapeFileLayer.addUpdateHandler(shapeFileDataSet.get());
+    csvLayer.addUpdateHandler(svenskaStader.get());
+    sverigeLayer.addUpdateHandler(svenskaLandskapDataSet.get());
+    markerLayer.addUpdateHandler(markerDataSet.get());
+    debugLayer.addUpdateHandler(debugDataSet.get());
     
     map.addLayer(&backgroundLayer);
     map.addLayer(&backgroundLayer2);
@@ -166,7 +190,7 @@ int main()
 
     // Setup event manager and event handlers
     BlueMarble::CImgEventManager eventManager(display);
-    auto panHandler = BlueMarble::PanEventHandler(map, world);
+    auto panHandler = BlueMarble::PanEventHandler(map, *world);
     //auto polygonHandler = BlueMarble::PolygonEventHandler(map);
     //auto testEventHandler = BlueMarble::TestEventHandler();
     eventManager.addSubscriber(&panHandler);
@@ -199,7 +223,25 @@ int main()
         {
             eventManager.captureEvents();
         }
-            
+
+        if (display.is_keyP())
+        {
+            std::cout << "Started performance monitor!\n";
+            auto point = map.lngLatToMap(Point(30, 30));
+            map.center(point);
+            map.scale(0.3);
+            std::cout << perfMonitor.staticStartStop(5000).toString() << "\n";
+            // if (perfMonitor.isRunning())
+            // {
+            //     std::cout << perfMonitor.stop().toString() << "\n";
+            // }
+            // else
+            // {
+            //     std::cout << "Started performance monitor!\n";
+            //     perfMonitor.start();
+            // }
+        }
+
         // TODO: add as event in event manager instead
         if (display.is_keyF11())
         {

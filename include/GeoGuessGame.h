@@ -104,6 +104,7 @@ class GeoGuesGame
             m_isFinnished = false;
             m_map.mapConstraints().bounds() = m_startMapConstraints;
             m_map.zoomToArea(m_startBounds, true);
+            m_map.update(true);
         }
 
         int randomize()

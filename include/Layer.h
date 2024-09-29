@@ -22,6 +22,8 @@ namespace BlueMarble
             Layer(bool createdefaultVisualizers = true);
             void enabled(bool enabled);
             bool enabled() const;
+            void selectable(bool selectable);
+            bool selectable();
             void enabledDuringQuickUpdates(bool enabled) { m_enabledDuringQuickUpdates = enabled; };
             bool enabledDuringQuickUpdates() const { return m_enabledDuringQuickUpdates; };
             double maxScale() { return m_maxScale; }
@@ -43,8 +45,8 @@ namespace BlueMarble
 
             void createDefaultVisualizers();
             
-
             bool    m_enabled;
+            bool    m_selectable;
             bool    m_enabledDuringQuickUpdates;
             double  m_maxScale;
             double  m_minScale;

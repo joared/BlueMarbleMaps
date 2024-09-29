@@ -3,6 +3,7 @@
 
 #include "Animation.h"
 #include "Attributes.h"
+#include "DataSet.h"
 
 namespace BlueMarble
 {
@@ -12,30 +13,83 @@ namespace BlueMarble
     {
         public:
             virtual ~AttributeVariable() = default;
-            virtual bool tryGetValue(const Attributes& attributes, const T& val) = 0;
-            bool operator() (const Attributes& attributes, const T& val) const
+            virtual bool tryGetValue(FeaturePtr f, Attributes& attributes, T& val) = 0;
+
+            T operator() (FeaturePtr f, Attributes& attributes)
             {
-                return tryGetValue(attributes, val);
+                T val;
+                if(!tryGetValue(f, attributes, val))
+                {
+                    std::cout << "AttributeValue::operator() Failed to get value, undefined return value.";
+                }
+
+                return val;
             }
     };
     typedef AttributeVariable<int> IntegerAttributeVariable;
     typedef AttributeVariable<double> DoubleAttributeVariable;
     typedef AttributeVariable<std::string> StringAttributeVariable;
     typedef AttributeVariable<bool> BooleanAttributeVariable;
-    // typedef AttributeVariable<Color> ColorAttributeVariable;
-
+    typedef AttributeVariable<Color> ColorAttributeVariable;
 
     template <typename T>
-    class DirectAttributeVariable : public AttributeVariable
+    using EvaluationFunction = std::function<T(FeaturePtr, Attributes&)>;
+
+    template <typename T>
+    class ArtibtraryAttributeVariable : public AttributeVariable<T>
+    {
+        public:
+            ArtibtraryAttributeVariable(const ArtibtraryAttributeVariable<T>& other)
+                : m_function(other.m_function)
+            {}
+
+            template <typename Callable>
+            ArtibtraryAttributeVariable(Callable function) // Needs to be a copy
+                : m_function(std::forward<Callable>(function)) 
+            {}
+
+            ArtibtraryAttributeVariable(const EvaluationFunction<T>& function)
+                : m_function(function)
+            {}
+
+            template <typename Callable>
+            void operator=(Callable function) // Needs to be a copy
+            {
+                m_function = std::forward<Callable>(function);
+            }
+
+            void operator=(const EvaluationFunction<T>& function)
+            {
+                m_function = function;
+            }
+
+            bool tryGetValue(FeaturePtr f, Attributes& attributes, T& val) override final
+            {
+                val = T(m_function(f, attributes));
+                return true;
+            }
+
+        private:
+            EvaluationFunction<T> m_function;
+    };
+
+    typedef ArtibtraryAttributeVariable<bool>         Condition;
+    typedef ArtibtraryAttributeVariable<Color>        ColorEvaluation;
+    typedef ArtibtraryAttributeVariable<int>          IntEvaluation;
+    typedef ArtibtraryAttributeVariable<double>       DoubleEvaluation;
+    typedef ArtibtraryAttributeVariable<std::string>  StringEvaluation;
+
+    template <typename T>
+    class DirectAttributeVariable : public AttributeVariable<T>
     {
         public:
             DirectAttributeVariable(const T& value)
                 : m_value(value)
             {}
             
-            bool tryGetValue(const Attributes& /*attributes*/, const T& val) override final
+            bool tryGetValue(FeaturePtr /*f*/, Attributes& /*attributes*/, T& val) override final
             {
-                val = m_value;
+                val = T(m_value);
                 return true;
             }
 
@@ -46,10 +100,11 @@ namespace BlueMarble
     typedef DirectAttributeVariable<double> DirectDoubleAttributeVariable;
     typedef DirectAttributeVariable<std::string> DirectStringAttributeVariable;
     typedef DirectAttributeVariable<bool> DirectBooleanAttributeVariable;
+    typedef DirectAttributeVariable<Color> DirectColorAttributeVariable;
 
 
-    template <typename T>
-    class IndirectAttributeVariable : public AttributeVariable
+    template <typename T, typename U=T>
+    class IndirectAttributeVariable : public AttributeVariable<T>
     {
         public:
             IndirectAttributeVariable(const std::string& key, const T& defaultValue)
@@ -57,15 +112,15 @@ namespace BlueMarble
                 , m_defaultValue(defaultValue)
             {}
 
-            bool tryGetValue(const Attributes& attributes, const T& val) override final
+            bool tryGetValue(FeaturePtr f, Attributes& attributes, T& val) override final
             {
                 if (attributes.contains(m_key))
                 {
-                    val = attributes.get(m_key);
+                    val = T(attributes.get<T>(m_key)); // Wrap with typename T
                     return true;
                 }
 
-                val = std::get<T>(m_defaultValue);
+                val = T(std::get<T>(m_defaultValue));
                 return false;
             }
 
@@ -81,54 +136,71 @@ namespace BlueMarble
     // Typename T needs to support operator+, operator- and operator*(double) to specialize this template
     template <typename T>
     class AnimatedAttributeVariable
-        : public AttributeVariable
+        : public AttributeVariable<T>
         , private AbstractAnimation // Animation interface is private, we update ourselfs
     {
         public:
             // template <typename T>
-            AnimatedAttributeVariable(const AttributeVariable& from,
-                                      const AttributeVariable& to,
+            AnimatedAttributeVariable(AttributeVariable<T>& from,
+                                      AttributeVariable<T>& to,
                                       double duration, 
                                       EasingFunctionType easingFunc=EasingFunctionType::Linear)
                 //: AttributeVariable(key, defaultValue)
                 : AbstractAnimation(duration, easingFunc)
-                , m_key(key)
-                , m_progress(0)
                 , m_from(from)
                 , m_to(to)
                 , m_value()
             {}
 
             // template <typename T>
-            bool tryGetValue(const Attributes& attributes, const T& val) override final
+            bool tryGetValue(FeaturePtr f, Attributes& attributes, T& val) override final
             {
                 double timeMs = attributes.get<int>(UpdateAttributeKeys::UpdateTimeMs);
-                if (!attributes.contains(FeatureAttributeKeys::StartAnimationTimeMs))
+                // if (!f->attributes().contains(FeatureAttributeKeys::StartAnimationTimeMs))
+                // {
+                //     // No animation start time info, return "to" value
+                //     return m_to.tryGetValue(f, attributes, val);
+                // }
+                // double startTimeMs = f->attributes().get<int>(FeatureAttributeKeys::StartAnimationTimeMs);
+
+                auto dataSet = DataSet::getDataSetById(f->id().dataSetId());
+                double startTimeMs = dataSet->getVisualizationTimeStampForFeature(f->id());
+                if (startTimeMs < 0)
+                    return m_to.tryGetValue(f, attributes, val);
+                
+                double elapsed = timeMs - startTimeMs;
+                double p = elapsed/duration(); // TODO: easing
+                
+
+                bool retVal = true;
+                T to;
+                if (!m_to.tryGetValue(f, attributes, to))
                 {
-                    // First time the feature passes, add a timestamp
-                    // TODO: maybe the dataset should do this?
-                    attributes.set(FeatureAttributeKeys::StartAnimationTimeMs, timeMs);
+                    retVal = false;
+                    std::cout << "AnimatedAttributeVariable::tryGetValue(): Failed to retrieve to value\n";
                 }
 
-                double startTime = attributes.get<double>(FeatureAttributeKeys::StartAnimationTimeMs);
-                update(timeMs - startTime);
+                if (p >= 1.0)
+                {
+                    val = to;
+                    return retVal;
+                }
 
-                double p = progress(); // Progress includes easing
-
-                const T& from;
-                const T& to;
-                if(!m_from.tryGetValue(attributes, from))
+                T from;
+                if(!m_from.tryGetValue(f, attributes, from))
                 {
                     // TODO: error handling
-                    std::cout << "AnimatedAttributeVariable::tryGetValue(): Failed to retrieve from value\n".
+                    retVal = false;
+                    std::cout << "AnimatedAttributeVariable::tryGetValue(): Failed to retrieve from value\n";
                 }
-                if (!m_to.tryGetValue(attributes, to))
-                {
-                    // TODO: error handling
-                    std::cout << "AnimatedAttributeVariable::tryGetValue(): Failed to retrieve to value\n".
-                }
+                
 
                 val = from + (to-from)*p;
+
+                // Set update required such that the animation continues
+                attributes.set(UpdateAttributeKeys::UpdateRequired, true);
+
+                return retVal;
             }
 
         protected:
@@ -148,15 +220,12 @@ namespace BlueMarble
                 
             };
         private:
-            AttributeVariable m_from;
-            AttributeVariable m_to;
-            T                 m_value;
+            AttributeVariable<T>& m_from;
+            AttributeVariable<T>& m_to;
+            T                     m_value;
     };
 
     typedef AnimatedAttributeVariable<double> AnimatedDoubleAttributeVariable;
-    
-
-
 };
 
 #endif /* ATTRIBUTEVALUE */

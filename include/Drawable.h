@@ -3,6 +3,7 @@
 
 #include "Core.h"
 #include "Raster.h"
+#include "Utils.h"
 
 #include <string>
 #include <vector>
@@ -19,18 +20,18 @@ namespace BlueMarble
             inline static Color white(double a=1.0) { return Color(255, 255, 255, a); }
             inline static Color black(double a=1.0) { return Color(0, 0, 0, a); }
 
-            inline Color(int r, int g, int b)
-                : m_r(r)
-                , m_g(g)
-                , m_b(b)
-                , m_alpha(1.0)
-            {}
+            // inline Color(int r, int g, int b)
+            //     : m_r(r)
+            //     , m_g(g)
+            //     , m_b(b)
+            //     , m_alpha(1.0)
+            // {}
 
-            inline Color(int r, int g, int b, double alpha)
-                : m_r(r)
-                , m_g(g)
-                , m_b(b)
-                , m_alpha(alpha)
+            inline Color(int r=0, int g=0, int b=0, double alpha=1.0)
+                : m_r(Utils::clampValue(r, 0, 255))
+                , m_g(Utils::clampValue(g, 0, 255))
+                , m_b(Utils::clampValue(b, 0, 255))
+                , m_alpha(Utils::clampValue(alpha, 0, 1.0))
             {}
 
             inline int r() const { return m_r; }

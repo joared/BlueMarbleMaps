@@ -316,6 +316,32 @@ namespace BlueMarble
             return scaledPoints;
         }
 
+        inline Point rotatePoint(const Point& p, double angle, const Point& fixPoint)
+        {
+            auto vec = p-fixPoint;
+
+            auto rotated = Point(std::cos(angle)*vec.x() + -std::sin(angle)*vec.y(),  
+                                 std::sin(angle)*vec.x() + std::cos(angle)*vec.y());
+
+            return fixPoint + rotated;
+        }
+
+        inline std::vector<Point> rotatePoints(const std::vector<Point>& input, double angle, Point fixPoint=Point::undefined())
+        {
+            std::vector<Point> rotatedPoints;
+
+            if (fixPoint.isUndefined())
+            {
+                fixPoint = centroid(input);
+            }
+
+            for (auto& p: input)
+            {
+                rotatedPoints.push_back(rotatePoint(p, angle, fixPoint));
+            }
+
+            return rotatedPoints;
+        }
 
         // Function to calculate the normal of a vector (p2 - p1)
         inline Point calculateNormal(const Point& p1, const Point& p2) 

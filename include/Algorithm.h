@@ -41,6 +41,11 @@ namespace BlueMarble
                     // It is inside our bounds, 
                     // but first check children before adding
                     
+                    // TODO: it is unnecessary to extend this node if it is empty.
+                    // However, if we do that, we need to reorganize the tree very time 
+                    // a feature is inserted. maybe when the number of features exceeds 4?
+                    // For static datasets, it might be better/faster to first read all features,
+                    // and then call an "insertFeatures" or "setFeatures" method
                     if (m_children.empty())
                         extend(minSize);
                     

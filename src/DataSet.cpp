@@ -17,7 +17,7 @@ Id BlueMarble::DataSet::generateId()
     return Id(m_dataSetId, globalFeatureIdCounter);
 }
 
-FeaturePtr BlueMarble::DataSet::createFeature(GeometryPtr geometry)
+FeaturePtr DataSet::createFeature(GeometryPtr geometry)
 {
     auto feature = std::make_shared<Feature>
     (
@@ -28,44 +28,22 @@ FeaturePtr BlueMarble::DataSet::createFeature(GeometryPtr geometry)
     return feature;
 }
 
-BlueMarble::DataSet::DataSet()
-    : m_dataSetId(DataSetId(this))
+void DataSet::restartVisualizationAnimation(FeaturePtr feature, int timeStamp)
 {
-}
+    assert(feature->id().dataSetId() == dataSetId());
+    //feature->attributes().set(FeatureAttributeKeys::StartAnimationTimeMs, timeStamp);
 
-ImageDataSet::ImageDataSet()
-    : DataSet() 
-    , m_isInitialized(false)
-    , m_filePath("")
-    , m_raster()
-    , m_rasterPrev()
-    , m_overViews()
-{
+    m_idToVisualizationTimeStamp[feature->id()] = timeStamp;
 }
 
 
-ImageDataSet::ImageDataSet(const std::string &filePath)
-    : DataSet() 
-    , m_isInitialized(false)
-    , m_filePath(filePath)
-    , m_raster()
-    , m_rasterPrev()
-    , m_overViews()
+void DataSet::initialize(DataSetInitializationType initType)
 {
-}
-
-
-void ImageDataSet::init(DataSetInitializationType initType)
-{
-    assert(!m_filePath.empty());
-
     auto initWork = [this]()
     {
-        m_raster = Raster(m_filePath);
-        m_rasterPrev = m_raster;
-        generateOverViews();
+        init();
+        dataSets[m_dataSetId] = shared_from_this();
         m_isInitialized = true;
-        std::cout << "ImageDataSet: Data loaded!\n";
     };
 
     if (initType == DataSetInitializationType::RightHereRightNow)
@@ -77,12 +55,73 @@ void ImageDataSet::init(DataSetInitializationType initType)
         std::thread readThread(initWork);
         readThread.detach();
     }
+}
+
+/* Returns the stored start timestamp for animated visualization if the 
+id exists, otherwise -1;*/
+int BlueMarble::DataSet::getVisualizationTimeStampForFeature(const Id& id)
+{
+    auto it = m_idToVisualizationTimeStamp.find(id);
+    if (it != m_idToVisualizationTimeStamp.end())
+        return it->second;
     
+    return -1;
+}
+
+std::map<DataSetId, DataSetPtr> DataSet::dataSets;
+
+DataSetPtr DataSet::getDataSetById(const DataSetId& dataSetId)
+{
+    if (dataSets.find(dataSetId) == dataSets.end())
+        return nullptr;
+    
+    return dataSets[dataSetId];
+}
+
+DataSet::DataSet()
+    : m_dataSetId(DataSetId(this))
+    , m_isInitialized(false)
+    , m_idToVisualizationTimeStamp()
+{
+}
+
+BlueMarble::DataSet::~DataSet()
+{
+    dataSets.erase(m_dataSetId);
+}
+
+ImageDataSet::ImageDataSet()
+    : DataSet() 
+    , m_filePath("")
+    , m_raster()
+    , m_rasterPrev()
+    , m_overViews()
+{
+}
+
+
+ImageDataSet::ImageDataSet(const std::string &filePath)
+    : DataSet()
+    , m_filePath(filePath)
+    , m_raster()
+    , m_rasterPrev()
+    , m_overViews()
+{
+}
+
+
+void ImageDataSet::init()
+{
+    assert(!m_filePath.empty());
+    m_raster = Raster(m_filePath);
+    m_rasterPrev = m_raster;
+    generateOverViews();
+    std::cout << "ImageDataSet: Data loaded!\n";
 }
 
 void BlueMarble::ImageDataSet::onUpdateRequest(Map &map, const Rectangle& updateArea, FeatureHandler* handler)
 {
-    if (!m_isInitialized)
+    if (!isInitialized()) // TODO: move to base class
     {
         return;
     }
@@ -231,7 +270,7 @@ void ImageDataSet::OnUpdateRequest(Map &map, const Rectangle& updateArea)
 
 void ImageDataSet::OnUpdateRequestOld(Map &map, const Rectangle& /*updateArea*/)
 {
-    if (!m_isInitialized)
+    if (!isInitialized()) // TODO: move to base class
     {
         init();
     }
@@ -332,43 +371,28 @@ AbstractFileDataSet::AbstractFileDataSet(const std::string& filePath)
     : DataSet() 
     , m_filePath(filePath)
     , m_featureTree(Rectangle(-180.0, -90.0, 180.0, 90.0), 0.05)
-    , m_isInitialized(false)
     , m_progress(0)
 {
 }
 
-void AbstractFileDataSet::init(DataSetInitializationType initType)
+void AbstractFileDataSet::init()
 {
-    auto initWork = [this]()
+    read(m_filePath);
+    for (auto f : m_features)
     {
-        this->read(m_filePath);
-        for (auto f : m_features)
-        {
-            m_featureTree.insertFeature(f);
-        }
-        m_isInitialized = true;
-        std::cout << "Data loaded!\n";
-    };
-
-    if (initType == DataSetInitializationType::RightHereRightNow)
-    {
-        initWork();
+        m_featureTree.insertFeature(f);
     }
-    else
-    {
-        std::thread readThread(initWork);
-        readThread.detach();
-    }
+    std::cout << "AbstractFileDataSet::init() Data loaded!\n";
 }
 
-double BlueMarble::AbstractFileDataSet::progress()
+double AbstractFileDataSet::progress()
 {
-    return (m_isInitialized) ? 1.0 : (double)m_progress;
+    return (isInitialized()) ? 1.0 : (double)m_progress;
 }
 
 void AbstractFileDataSet::onUpdateRequest(Map& map, const Rectangle& updateArea, FeatureHandler* handler)
 {
-    if (!m_isInitialized)
+    if (!isInitialized()) // TODO: move to base class
     {
         return;
     }
@@ -980,7 +1004,7 @@ MemoryDataSet::MemoryDataSet()
 }
 
 
-void MemoryDataSet::init(DataSetInitializationType initType)
+void MemoryDataSet::init()
 {
 }
 

@@ -209,7 +209,9 @@ namespace BlueMarble
 
             void OnCustomDraw(BlueMarble::Map& /*map*/) override final 
             {
-                
+                if (!m_rectangle.isUndefined())
+                    drawRect(m_map.mapToScreen(m_rectangle));
+
                 if (!m_dataSetsInitialized)
                 {
                     int y = 10;
@@ -243,7 +245,7 @@ namespace BlueMarble
                 }
 
                 // Testing blur
-                m_map.drawable().getRaster().blur(0.5,0.5,0,false);
+                //m_map.drawable().getRaster().blur(0.5,0.5,0,false);
 
                 // Draw the bounds of the features in the game
                 auto gameBounds = m_geoGuessGame.bounds();
@@ -273,11 +275,7 @@ namespace BlueMarble
                 // p = m_map.lngLatToScreen(p);
                 // m_map.drawable().drawRaster(p.x(), p.y(), temp, 0.1);
 
-                if (m_rectangle.isUndefined())
-                    return;
-
-                std::cout << "Drawing rectangle\n";
-                drawRect(m_map.mapToScreen(m_rectangle));
+                
             }
 
             void OnUpdated(BlueMarble::Map& /*map*/) override final 
@@ -337,6 +335,14 @@ namespace BlueMarble
                             
                         }
                     }
+                    else
+                    {
+                        // Move to marker
+                        auto markerPos = m_map.lngLatToMap(m_markerFeature->center());
+                        bool close = (markerPos - m_map.center()).length() == 0.0;
+                        double newScale = close ? m_map.scale()*2.0 : m_map.scale();
+                        m_map.zoomTo(markerPos, newScale, true);
+                    }
                     return true;
                 }
 
@@ -352,10 +358,11 @@ namespace BlueMarble
                     else
                     {
                         m_geoGuessGame.stop();
+                        std::cout << "Stopped game!\n";
                     }
-                    std::cout << "Stopped game!\n";
-                    m_map.update(true);
-                    break;
+                    
+                    //m_map.update(true);
+                    return true;
                 }
 
                 case KeyButton::Add:
@@ -439,17 +446,16 @@ namespace BlueMarble
             bool OnMouseMove(const BlueMarble::MouseMoveEvent& event) override final
             {
                 auto pObjs = m_map.hitTest(event.pos.x, event.pos.y, 10.0);
-                BlueMarble::Id hoverId(0,0);
+                BlueMarble::FeaturePtr hoverFeature(nullptr);
                 if (pObjs.size() > 0)
                 {
-                    hoverId = pObjs[0].sourceFeature()->id();
-                    assert(hoverId != Id(0,0));
+                    hoverFeature = pObjs[0].sourceFeature();
                 }
 
-                if (!m_map.isHovered(hoverId))
+                if (!m_map.isHovered(hoverFeature))
                 {
-                    std::cout << "Not hovered\n";
-                    m_map.hover(hoverId);
+                    // std::cout << "Not hovered\n";
+                    m_map.hover(hoverFeature);
                     m_map.update(true);
                 }
                 return true;
@@ -741,6 +747,7 @@ namespace BlueMarble
                 lngLatStr += std::to_string(lngLat.y());
                 m_markerFeature->attributes().set("LNGLAT", lngLatStr);
                 m_markerFeature->moveTo(lngLat);
+                m_markerDataSet->restartVisualizationAnimation(m_markerFeature);
             }
             
             BlueMarble::Map& m_map;

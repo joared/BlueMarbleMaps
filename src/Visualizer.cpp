@@ -5,16 +5,17 @@ using namespace BlueMarble;
 
 Visualizer::Visualizer()
     : m_renderingEnabled(true)
-    , m_colorEval()
     , m_attachedFeatures()
     , m_sourceFeatures()
-    , m_condition()
+    , m_condition([](auto, auto) { return true; })
+    , m_colorEval([](auto, auto) { return Color::black(); })
+    , m_sizeEval([](auto, auto) { return 1.0; })
+    , m_sizeAddEval([](auto, auto) { return 1.0; })
+    , m_textEval([](auto, auto) { return ""; })
+    , m_rotationEval([](auto, auto) { return 0.0; })
+    , m_offsetXEval([](auto, auto) { return 0.0; })
+    , m_offsetYEval([](auto, auto) { return 0.0; })
 {
-    m_condition = [](auto, auto) { return true; };
-    m_colorEval = [](auto, auto) { return Color::black(); };
-    m_sizeEval = [](auto, auto) { return 1.0; };
-    m_sizeAddEval = [](auto, auto) { return 1.0; };
-    m_textEval = [](auto, auto) { return ""; };
 }
 
 void Visualizer::renderingEnabled(bool enabled)
@@ -48,6 +49,10 @@ void Visualizer::sizeAdd(const DoubleEvaluation& sizeAddEval)
     m_sizeAddEval = sizeAddEval;
 }
 
+void BlueMarble::Visualizer::rotation(const DoubleEvaluation &rotationEval)
+{
+    m_rotationEval = rotationEval;
+}
 
 bool Visualizer::attachFeature(FeaturePtr feature, FeaturePtr sourceFeature, Attributes& updateAttributes)
 {
@@ -87,12 +92,8 @@ PointVisualizer::PointVisualizer()
     : Visualizer()
     , m_isLabelOrganized(false)
     , m_atCenter(false)
-    , m_offsetXEval()
-    , m_offsetYEval()
     , m_labelOrganizer()
 {
-    m_offsetXEval = [](auto, auto) { return 0.0; };
-    m_offsetYEval = [](auto, auto) { return 0.0; };
 }
 
 void BlueMarble::PointVisualizer::preRender(Drawable& drawable, 
@@ -208,10 +209,9 @@ void SymbolVisualizer::renderPoints(Drawable& drawable, const std::vector<Point>
 
 TextVisualizer::TextVisualizer()
     : PointVisualizer()
-    , m_textEval()
-    , m_backgroundColorEval()
+    , m_textEval([](auto, auto) { return ""; })
+    , m_backgroundColorEval([](auto, auto) { return Color::transparent(); })
 {
-    m_backgroundColorEval = [](auto, auto) { return Color::transparent(); };
 }
 
 
@@ -290,22 +290,9 @@ void BlueMarble::LineVisualizer::width(DoubleEvaluation widthEval)
     m_widthEval = widthEval;
 }
 
-PolygonVisualizer::PolygonVisualizer(LineVisualizerPtr lineVis, SymbolVisualizerPtr nodeVis)
+PolygonVisualizer::PolygonVisualizer()
     : Visualizer()
-    , m_lineVisualizer(lineVis)
-    , m_nodeVisualizer(nodeVis)
 {
-    if (!m_lineVisualizer)
-    {
-        m_lineVisualizer = std::make_shared<LineVisualizer>();
-        m_lineVisualizer->color([](auto, auto) { return Color::white(); });
-        m_lineVisualizer->width([](auto, auto) { return 1.0; });
-    }
-
-    if (!m_nodeVisualizer)
-    {
-        //m_nodeVisualizer = std::make_shared<SymbolVisualizer>();
-    }
 }
 
 bool PolygonVisualizer::isValidGeometry(GeometryType type)
@@ -316,7 +303,7 @@ bool PolygonVisualizer::isValidGeometry(GeometryType type)
 void PolygonVisualizer::renderFeature(Drawable& drawable, FeaturePtr feature, FeaturePtr source, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs)
 {
     auto geometry = feature->geometryAsPolygon();
-    auto polygonPoints = geometry->outerRing();
+    auto polygonPoints = geometry->outerRing(); // Make a copy to prevent affecting hit testing
 
     // FIXME: changing the geometry like this will mess with hittest of 
     // other presentation objects that in fact was rendered with 
@@ -332,6 +319,19 @@ void PolygonVisualizer::renderFeature(Drawable& drawable, FeaturePtr feature, Fe
     {
         std::vector<Point> newPoints;
         polygonPoints = Utils::extendPolygon(polygonPoints, extend);
+    }
+
+    double rotation = m_rotationEval(feature, updateAttributes);
+    if (rotation != 0.0)
+    {
+        polygonPoints = Utils::rotatePoints(polygonPoints, rotation);
+    }
+
+    double offX = m_offsetXEval(feature, updateAttributes);
+    double offY = m_offsetYEval(feature, updateAttributes);
+    if (offX != 0.0 || offY != 0.0)
+    {
+        Utils::movePoints(polygonPoints, Point(offX, offY));
     }
 
     // Draw the polygon

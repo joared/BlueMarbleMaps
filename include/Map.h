@@ -24,9 +24,34 @@ namespace BlueMarble
         Replace
     };
 
-    class Map : public EngineObject
+    class MapEventHandler
     {
+        public:
+            virtual void OnAreaChanged(Map& map) = 0;
+            virtual void OnUpdating(Map& map) = 0;
+            virtual void OnCustomDraw(Map& map) = 0;
+            virtual void OnUpdated(Map& map) = 0;
+    };
 
+    class MapEventPublisher
+    {
+        public:
+            MapEventPublisher();
+            void sendOnAreaChanged(Map& map);
+            void sendOnUpdating(Map& map);
+            void sendOnCustomDraw(Map& map);
+            void sendOnUpdated(Map& map);
+
+            void addMapEventHandler(MapEventHandler* handler);
+            void removeMapEventHandler(MapEventHandler* handler);
+        private:
+            std::vector<MapEventHandler*> m_eventHandlers;
+    };
+
+    class Map 
+        : public EngineObject
+        , public MapEventPublisher
+    {
         class MapCommand
         {
             public:
@@ -56,10 +81,7 @@ namespace BlueMarble
             Map(cimg_library::CImgDisplay& disp);
             bool update(bool forceUpdate=false);
 
-            void render();              // 1
-            void renderWithOverviews(); // 2
-            void renderLayers();        // 3
-
+            void renderLayers();
  
             const Point& center() const;
             void center(const Point& center);
@@ -76,6 +98,7 @@ namespace BlueMarble
 
             // Operations
             void panBy(const Point& deltaScreen, bool animate=false);
+            void zoomTo(const Point& mapPoint, double newScale, bool animate=false);
             void zoomOn(const Point& mapPoint, double zoomFactor, bool animate=false);
             void zoomToArea(const Rectangle& bounds, bool animate=false);
             void zoomToMinArea(const Rectangle& bounds, bool animate=false);
@@ -109,9 +132,6 @@ namespace BlueMarble
             const Attributes& updateAttributes() const { return m_updateAttributes; };
             Attributes& updateAttributes() { return m_updateAttributes; };
 
-            void addMapEventHandler(MapEventHandler* mapEventHandler) { m_mapEventHandler = mapEventHandler; }
-            void removeMapEventHandler() { m_mapEventHandler = nullptr; }
-
             void addLayer(Layer* layer);
             std::vector<Layer*>& layers();
             
@@ -126,6 +146,7 @@ namespace BlueMarble
             const std::vector<Id>& selected() { return m_selectedFeatures; }
             void deSelect(FeaturePtr feature);
             void deSelectAll();
+            bool isSelected(const Id& id);
             bool isSelected(FeaturePtr feature);
             void hover(const Id& id);
             void hover(FeaturePtr feature);
@@ -175,8 +196,6 @@ namespace BlueMarble
             bool m_scaleChanged;
             bool m_rotationChanged;
 
-            MapEventHandler* m_mapEventHandler;
-
             AnimationPtr    m_animation;
             int m_animationStartTimeStamp;
             Attributes m_updateAttributes;
@@ -189,14 +208,6 @@ namespace BlueMarble
             MapCommand*                     m_commmand;
     };
 
-    class MapEventHandler
-    {
-        public:
-            virtual void OnAreaChanged(Map& map) = 0;
-            virtual void OnUpdating(Map& map) = 0;
-            virtual void OnCustomDraw(Map& map) = 0;
-            virtual void OnUpdated(Map& map) = 0;
-    };
 }
 
 #endif /* BLUEMARBLE_MAP */

@@ -1,6 +1,7 @@
 #include "Map.h"
 #include "MapConstraints.h"
 #include "Utils.h"
+#include "DataSet.h"
 
 #include <cmath>
 #include <iostream>
@@ -10,7 +11,8 @@
 using namespace BlueMarble;
 
 Map::Map(cimg_library::CImgDisplay& disp)
-    : m_disp(disp)
+    : MapEventPublisher()
+    , m_disp(disp)
     , m_backgroundRaster("/home/joar/BlueMarbleMaps/geodata/NE1_LR_LC_SR_W/NE1_LR_LC_SR_W.tif")
     , m_drawable(m_disp.width(), m_disp.height())
     //, m_center(Point((m_backgroundRaster.width()-1)*0.5, (m_backgroundRaster.height()-1)*0.5))
@@ -20,7 +22,6 @@ Map::Map(cimg_library::CImgDisplay& disp)
     , m_constraints(5000.0, 0.0001, Rectangle(0, 0, m_backgroundRaster.width()-1, m_backgroundRaster.height()-1))
     , m_updateRequired(true)
     , m_updateEnabled(true)
-    , m_mapEventHandler(nullptr)
     , m_animation(nullptr)
     , m_animationStartTimeStamp(0)
     , m_updateAttributes()
@@ -34,7 +35,7 @@ Map::Map(cimg_library::CImgDisplay& disp)
     
 {   
     m_scale = m_scale > (double)m_disp.height() / m_backgroundRaster.height() ? m_scale : (double)m_disp.height() / m_backgroundRaster.height();
-    m_presentationObjects.reserve(10000); // Reserve a good amount for efficiency
+    m_presentationObjects.reserve(100000); // Reserve a good amount for efficiency
     resetUpdateFlags();
     m_constraints.bounds().scale(3.0);
 
@@ -62,8 +63,7 @@ bool Map::update(bool forceUpdate)
     }
     updateUpdateAttributes(); // Set update attributes that contains useful information about the update
 
-    if (m_mapEventHandler)
-        m_mapEventHandler->OnUpdating(*this);
+    sendOnUpdating(*this);
 
     if(m_animation && m_animation->update(getTimeStampMs() - m_animationStartTimeStamp))
     {
@@ -74,19 +74,13 @@ bool Map::update(bool forceUpdate)
     // Constrain map pose
     m_constraints.constrainMap(*this);
 
+    // Rendering
     beforeRender();
-
-    // Let layers do their work
-    renderLayers();
-
-    if (m_mapEventHandler)
-        m_mapEventHandler->OnCustomDraw(*this);
-
-    // drawInfo();
+    renderLayers(); // Let layers do their work
+    sendOnCustomDraw(*this);
     afterRender();
 
-    if (m_mapEventHandler)
-        m_mapEventHandler->OnUpdated(*this);
+    sendOnUpdated(*this);
 
     //std::cout << "Updated\n";
     m_updateRequired = m_updateAttributes.get<bool>(UpdateAttributeKeys::UpdateRequired); // Someone in the operator chain needs more updates (e.g. Visualization evaluations)
@@ -97,56 +91,6 @@ bool Map::update(bool forceUpdate)
     return false;
 }
 
-void Map::render()
-{
-    // Crop image
-    auto bounds = area();
-    int x0 = std::max(0.0, bounds.xMin());
-    int y0 = std::max(0.0, bounds.yMin());
-    int x1 = std::min(m_backgroundRaster.width()-1.0, bounds.xMax());
-    int y1 = std::min(m_backgroundRaster.height()-1.0, bounds.yMax());
-    auto newImage = m_backgroundRaster.getCrop(std::round(x0), 
-                                               std::round(y0), 
-                                               std::round(x1), 
-                                               std::round(y1));
-
-    // Resize the cropped image
-    int newWidth = newImage.width()*m_scale;
-    int newHeight = newImage.height()*m_scale;
-    newImage.resize(newWidth, newHeight);
-
-    // Compute the position to center the image
-    auto displayCenter = screenCenter();
-    auto offset = Point(-m_center.x()*m_scale + displayCenter.x(),
-                        -m_center.y()*m_scale + displayCenter.y());
-
-    // Account for pixel truncation in offset
-    if (offset.x() < 0)
-            offset = Point((std::round(x0) - bounds.xMin())*m_scale, offset.y());
-    if (offset.y() < 0)
-            offset = Point(offset.x(), (std::round(y0) - bounds.yMin())*m_scale);
-    offset = offset.round();
-
-
-    // Draw map constraints before image
-    auto constrainBounds = mapToScreen(m_constraints.bounds());
-    m_drawable.drawRect(constrainBounds, Color{0, 155, 255});
-
-    // Draw new image
-    m_drawable.drawRaster(offset.x(), offset.y(), newImage, 1.0);
-
-    // Custom draw
-    if (m_mapEventHandler)
-        m_mapEventHandler->OnCustomDraw(*this);
-
-    drawInfo();
-
-    // Update the image and save new black draw image
-    const auto& drawImg = *(cimg_library::CImg<unsigned char>*)m_drawable.getRaster().data();
-    m_disp.display(drawImg);
-    // Reset draw image
-    m_drawable.fill(0);
-}
 
 void Map::renderLayers()
 {
@@ -242,7 +186,21 @@ void BlueMarble::Map::panBy(const Point& deltaScreen, bool animate)
     }
 }
 
-void BlueMarble::Map::zoomOn(const Point& mapPoint, double zoomFactor, bool animate)
+void Map::zoomTo(const Point& newCenter, double newScale, bool animate)
+{
+    if (animate)
+    {
+        auto animation = Animation::Create(*this, center(), newCenter, scale(), newScale, 1000, false);
+        startAnimation(animation);
+    }
+    else
+    {
+        center(newCenter);
+        scale(newScale);
+    }
+}
+
+void Map::zoomOn(const Point& mapPoint, double zoomFactor, bool animate)
 {
     // std::cout << "zoomOn\n";
     if (animate && m_animation)
@@ -260,16 +218,17 @@ void BlueMarble::Map::zoomOn(const Point& mapPoint, double zoomFactor, bool anim
     
     auto newCenter = mapPoint - delta*(1.0/zoomFactor);
 
-    if (animate)
-    {
-        auto animation = Animation::Create(*this, center(), newCenter, scale(), newScale, 300, false);
-        startAnimation(animation);
-    }
-    else
-    {
-        center(newCenter);
-        scale(newScale);
-    }
+    zoomTo(newCenter, newScale, animate);
+    // if (animate)
+    // {
+    //     auto animation = Animation::Create(*this, center(), newCenter, scale(), newScale, 300, false);
+    //     startAnimation(animation);
+    // }
+    // else
+    // {
+    //     center(newCenter);
+    //     scale(newScale);
+    // }
 }
 
 void BlueMarble::Map::zoomToArea(const Rectangle& bounds, bool animate)
@@ -285,6 +244,7 @@ void BlueMarble::Map::zoomToArea(const Rectangle& bounds, bool animate)
                                            m_constraints.minScale(), 
                                            m_constraints.maxScale());
 
+    //zoomTo(to, toScale, animate);
     if (animate)
     {
         auto animation = Animation::Create(*this, center(), to, scale(), toScale, 1000, false);
@@ -390,6 +350,7 @@ Point Map::screenCenter() const
 
 void BlueMarble::Map::startAnimation(AnimationPtr animation)
 {
+    std::cout << "Started animation\n";
     if (m_animation)
         stopAnimation();
     m_animation = animation;
@@ -399,6 +360,7 @@ void BlueMarble::Map::startAnimation(AnimationPtr animation)
 
 void BlueMarble::Map::stopAnimation()
 {
+    std::cout << "Stoppped animation\n";
     m_animation = nullptr;
     quickUpdateEnabled(false);
 }
@@ -526,6 +488,13 @@ void Map::select(FeaturePtr feature, SelectMode mode)
     if (!isSelected(feature))
     {
         m_selectedFeatures.push_back(feature->id());
+        
+        // Testing restartVisualizationAnimation
+        if (auto dataSet = DataSet::getDataSetById(feature->id().dataSetId()))
+        {
+            dataSet->restartVisualizationAnimation(feature, getTimeStampMs());
+        }
+
         // std::cout << "Selected feature, Id: " << "Id(" << feature->id().dataSetId() << ", " << feature->id().featureId() << ")\n";
         std::cout << feature->prettyString();
     }
@@ -548,27 +517,48 @@ void Map::deSelectAll()
     m_selectedFeatures.clear();
 }
 
-bool BlueMarble::Map::isSelected(FeaturePtr feature)
+bool Map::isSelected(const Id& id)
 {
-    for (auto id : m_selectedFeatures)
+    for (auto id2 : m_selectedFeatures)
     {
-        if (id == feature->id())
+        if (id == id2)
             return true;
     }
 
     return false;
 }
 
+bool Map::isSelected(FeaturePtr feature)
+{
+    return isSelected(feature->id());
+}
+
 void Map::hover(const Id& id)
 {
+    if (isHovered(id))
+        return;
     m_hoveredFeatures.clear();
     if (id != Id(0,0))
         m_hoveredFeatures.push_back(id);
 }
 
-void BlueMarble::Map::hover(FeaturePtr feature)
+void Map::hover(FeaturePtr feature)
 {
-    hover(feature->id());
+    Id featureId(0,0);
+    if (feature)
+        featureId = feature->id();
+
+    // Testing visualization animation
+    if (!isHovered(featureId) && !isSelected(featureId))
+    {
+        if (auto dataSet = DataSet::getDataSetById(featureId.dataSetId()))
+        {
+            dataSet->restartVisualizationAnimation(feature, getTimeStampMs());
+            std::cout << "Hover restart\n";
+        }
+    }
+    hover(featureId);
+    
 }
 
 void Map::hover(const std::vector<Id>& ids)
@@ -597,6 +587,8 @@ bool BlueMarble::Map::isHovered(const Id& id)
 
 bool BlueMarble::Map::isHovered(FeaturePtr feature)
 {
+    if (!feature)
+        return false;
     return isHovered(feature->id());
 }
 
@@ -805,4 +797,53 @@ Rectangle BlueMarble::Map::lngLatToScreen(const Rectangle &rect)
 const Point &Map::center() const
 {
     return m_center;
+}
+
+MapEventPublisher::MapEventPublisher()
+    : m_eventHandlers()
+{
+}
+
+void MapEventPublisher::sendOnAreaChanged(Map &map)
+{
+    for (auto h : m_eventHandlers) { h->OnAreaChanged(map); }
+}
+
+void MapEventPublisher::sendOnUpdating(Map &map)
+{
+    for (auto h : m_eventHandlers) { h->OnUpdating(map); }
+}
+
+void MapEventPublisher::sendOnCustomDraw(Map &map)
+{
+    for (auto h : m_eventHandlers) { h->OnCustomDraw(map); }
+}
+
+void MapEventPublisher::sendOnUpdated(Map &map)
+{
+    for (auto h : m_eventHandlers) { h->OnUpdated(map); }
+}
+
+void MapEventPublisher::addMapEventHandler(MapEventHandler *handler)
+{
+    for (auto h : m_eventHandlers)
+        assert(h != handler);
+
+    // insert such that performance monitor gets the events first
+    m_eventHandlers.insert(m_eventHandlers.begin(), handler);
+}
+
+void MapEventPublisher::removeMapEventHandler(MapEventHandler *handler)
+{
+    for (auto it=m_eventHandlers.begin(); it!=m_eventHandlers.end(); it++)
+    {
+        if (*it == handler)
+        {
+            m_eventHandlers.erase(it);
+            return;
+        }
+    }
+
+    std::cout << "MapEventPublisher::removeMapEventHandler() Handler does not exist!\n";
+    throw std::exception();
 }

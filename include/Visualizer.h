@@ -5,6 +5,7 @@
 #include "Drawable.h"
 #include "PresentationObject.h"
 #include "LabelOrganizer.h"
+#include "AttributeVariable.h"
 
 #include <functional>
 #include <memory>
@@ -12,14 +13,14 @@
 
 namespace BlueMarble
 {
-    template <typename T>
-    using FeatureEvaluation = std::function<T(FeaturePtr, Attributes&)>;
+    // template <typename T>
+    // using FeatureEvaluation = std::function<T(FeaturePtr, Attributes&)>;
 
-    typedef FeatureEvaluation<bool>         Condition;
-    typedef FeatureEvaluation<Color>        ColorEvaluation;
-    typedef FeatureEvaluation<int>          IntEvaluation;
-    typedef FeatureEvaluation<double>       DoubleEvaluation;
-    typedef FeatureEvaluation<std::string>  StringEvaluation;
+    // typedef FeatureEvaluation<bool>         Condition;
+    // typedef FeatureEvaluation<Color>        ColorEvaluation;
+    // typedef FeatureEvaluation<int>          IntEvaluation;
+    // typedef FeatureEvaluation<double>       DoubleEvaluation;
+    // typedef FeatureEvaluation<std::string>  StringEvaluation;
 
     class Visualizer
     {
@@ -29,8 +30,11 @@ namespace BlueMarble
             bool renderingEnabled();
             void condition(const Condition& condition);
             void color(const ColorEvaluation& colorEval);
+            void offsetX(DoubleEvaluation intEval) { m_offsetXEval = intEval; }
+            void offsetY(DoubleEvaluation intEval) { m_offsetYEval = intEval; }
             void size(const DoubleEvaluation& sizeEval);
             void sizeAdd(const DoubleEvaluation& sizeAddEval);
+            void rotation(const DoubleEvaluation& rotationEval);
             bool attachFeature(FeaturePtr feature, FeaturePtr sourceFeature, Attributes& updateAttributes);
             void render(Drawable& drawable, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs);
             // TODO Both below should be removed and replace with renderFeatures() (to enable OpenGl stuff)
@@ -42,6 +46,9 @@ namespace BlueMarble
             DoubleEvaluation        m_sizeEval;
             DoubleEvaluation        m_sizeAddEval;
             StringEvaluation        m_textEval;
+            DoubleEvaluation        m_rotationEval;
+            DoubleEvaluation        m_offsetXEval;
+            DoubleEvaluation        m_offsetYEval;
         private:
             bool                    m_renderingEnabled;
             std::vector<FeaturePtr> m_attachedFeatures;
@@ -59,8 +66,6 @@ namespace BlueMarble
             bool atCenter() { return m_atCenter; }
             bool isLabelOrganized() { return m_isLabelOrganized; }
             void isLabelOrganized(bool enabled) { m_isLabelOrganized = enabled; }
-            void offsetX(DoubleEvaluation intEval) { m_offsetXEval = intEval; }
-            void offsetY(DoubleEvaluation intEval) { m_offsetYEval = intEval; }
 
             void preRender(Drawable& drawable, std::vector<FeaturePtr>& attachedFeatures, std::vector<FeaturePtr>& sourceFeatures, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs) override final;
             void renderFeature(Drawable& drawable, FeaturePtr feature, FeaturePtr source, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs) override final;
@@ -72,8 +77,6 @@ namespace BlueMarble
         private:
             bool            m_isLabelOrganized;
             bool            m_atCenter;
-            DoubleEvaluation   m_offsetXEval;
-            DoubleEvaluation   m_offsetYEval;
             LabelOrganizer  m_labelOrganizer;
             
     };
@@ -120,7 +123,7 @@ namespace BlueMarble
     class PolygonVisualizer : public Visualizer
     {
         public:
-            PolygonVisualizer(LineVisualizerPtr lineVis = nullptr, SymbolVisualizerPtr nodeVis = nullptr);
+            PolygonVisualizer();
             void renderFeature(Drawable& drawable, FeaturePtr feature, FeaturePtr source, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs) override final;
         protected:
             bool isValidGeometry(GeometryType type) override final;

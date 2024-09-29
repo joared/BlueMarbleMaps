@@ -6,6 +6,7 @@ using namespace BlueMarble;
 
 Layer::Layer(bool createdefaultVisualizers)
     : m_enabled(true)
+    , m_selectable(true) // TODO: use this for something
     , m_enabledDuringQuickUpdates(true)
     , m_maxScale(std::numeric_limits<double>::infinity())
     , m_minScale(0)
@@ -27,6 +28,15 @@ bool Layer::enabled() const
     return m_enabled;
 }
 
+void Layer::selectable(bool selectable)
+{
+    m_selectable = selectable;
+}
+
+bool Layer::selectable()
+{
+    return m_selectable;
+}
 
 void Layer::onUpdateRequest(Map &map, const Rectangle &updateArea, FeatureHandler* /*handler*/)
 {
@@ -186,70 +196,19 @@ void Layer::createDefaultVisualizers()
 {
     auto animatedDouble = [](FeaturePtr feature, Attributes& updateAttributes) 
     { 
-        // // FIXME: What is bad about this is that other animated evaluations needs to store the features also.
-        // // Better to use a global manager/feature state factory
-        static std::map<Id, int> featureStartTimes;
-        static Id prevId = Id(0,0); // TEMP fix
-        static int prevTimeStamp = 0; // = updateAttributes.get<int>(UpdateAttributeKeys::UpdateTimeMs);
-        static std::map<Id, int>  prevHandledFeatures;
-        // static double progress;
-
-        constexpr int duration = 150;
-
-
-        int timeStamp = updateAttributes.get<int>(UpdateAttributeKeys::UpdateTimeMs);
+        static auto from = DirectDoubleAttributeVariable(0.0);
+        static auto to = DirectDoubleAttributeVariable(1.0);
+        static auto value = AnimatedDoubleAttributeVariable(
+            from, 
+            to, 
+            700,
+            EasingFunctionType::Linear);
         
-        if (timeStamp != prevTimeStamp)
-        {
-            if (featureStartTimes.empty())
-                std::cout << "New update with empty ids!\n";
-            else
-            {
-                prevHandledFeatures = featureStartTimes;
-                featureStartTimes.clear();
-                prevTimeStamp = timeStamp;
-            }
-        }
-        
-        auto it2 = featureStartTimes.find(feature->id());
-        auto it = prevHandledFeatures.find(feature->id());
-        if (it == prevHandledFeatures.end() && it2 == featureStartTimes.end())
-        {
-            featureStartTimes[feature->id()] = timeStamp;
-            // We need updates
-            updateAttributes.set(UpdateAttributeKeys::UpdateRequired, true);
-            
-            std::cout << "Animation started for: " << "(" << feature->id().dataSetId() << ", " << feature->id().featureId() << "\n";
-
-            return 0.0;
-        }
-
-        // Feature is being animated!
-        int startTime = it->second;
-
-        int elapsed = timeStamp - startTime;
-        //std::cout << "Elapsed: " << elapsed << "\n";
-
-        if (elapsed > duration)
-        {
-            
-            std::cout << "Animation finished for: " << "(" << feature->id().dataSetId() << ", " << feature->id().featureId() << "\n";
-            
-            return 1.0;
-        }
-
-        updateAttributes.set(UpdateAttributeKeys::UpdateRequired, true);
-        
-        double progress = (double)elapsed/(double)duration;
-        //std::cout << "Animation progress: " << progress << "\n";
-
-        
-        
-        return progress;
+        return value(feature, updateAttributes);
     };
 
     // Standard visualizers
-    ColorEvaluation colorEval = [](FeaturePtr f, auto)
+    auto colorEval = [](FeaturePtr f, Attributes&)
     {
         int r=0, g=0, b=255;
         double a=0.1;
@@ -274,16 +233,28 @@ void Layer::createDefaultVisualizers()
         return Color(r,g,b,a);
     };
 
-    ColorEvaluation colorEvalHover = [=](auto f, auto updateAttributes)
+    ColorEvaluation colorEvalHover = [colorEval, animatedDouble](FeaturePtr f, Attributes& updateAttributes) -> Color
     {
-        auto color = colorEval(f, updateAttributes);
+        Color color = colorEval(f, updateAttributes);
         double alpha = 0.5*animatedDouble(f, updateAttributes);
         return Color(color.r(), color.g(), color.b(), alpha);
     };
 
-    ColorEvaluation colorEvalSelect = [](auto, auto)
+    ColorEvaluation colorEvalSelect = [colorEval, animatedDouble](FeaturePtr f, Attributes& updateAttributes)
     {
-        return Color(255, 255, 0, 0.5);
+        auto toColor = Color(255, 255, 0, 0.5);
+        Color fromColor = colorEval(f, updateAttributes);
+        double progress = animatedDouble(f, updateAttributes);
+        double alpha = 0.5*progress;
+
+        double red = fromColor.r() + (double)(toColor.r()-fromColor.r())*progress;
+        double green = fromColor.g() + (double)(toColor.g()-fromColor.g())*progress;
+        double blue = fromColor.b() + (double)(toColor.b()-fromColor.b())*progress;
+        auto color = Color(red, green, blue, alpha);
+        // std::cout << "From: " <<  fromColor.toString() << "\n";
+        // std::cout << "Result: " << color.toString() << "\n";
+
+        return color;
     };
 
     // Point visualizers
@@ -293,8 +264,8 @@ void Layer::createDefaultVisualizers()
     
     // Line visualizer
     auto lineVis = std::make_shared<LineVisualizer>();
-    lineVis->color([](auto, auto) { return Color(50,50,50,0.5); });
-    lineVis->width([](auto, auto) { return 1; });
+    lineVis->color([](FeaturePtr, Attributes&) { return Color(50,50,50,0.25); });
+    lineVis->width([](FeaturePtr, Attributes&) -> double { return 1; });
 
     // Polygon visualizer
     auto polVis = std::make_shared<PolygonVisualizer>();
@@ -319,50 +290,6 @@ void Layer::createDefaultVisualizers()
             return std::string();
         }
     );
-    // textVis->color([](FeaturePtr, Attributes& updateAttributes) { 
-    //     // TODO: add animation
-    //     static bool reStart = false;
-    //     static bool prevState = false;
-    //     static int startTime = updateAttributes.get<int>("_timeMs");
-    //     static bool update = false;
-    //     static double alpha = 1.0;
-
-    //     constexpr int duration = 500;
-
-    //     bool currState = updateAttributes.get<bool>("_hover");
-    //     if (currState == prevState)
-    //         reStart = false;
-    //     else
-    //     {
-    //         reStart = currState == true;
-    //         prevState = currState;
-    //     }
-
-    //     if (reStart)
-    //     {
-    //         std::cout << "Animation started!\n";
-    //         update = true;
-    //         startTime = updateAttributes.get<int>("_timeMs");
-    //     }
-
-    //     if (update)
-    //     {
-    //         int elapsed = updateAttributes.get<int>("_timeMs")- startTime;
-    //         if (elapsed > duration)
-    //         {
-    //             std::cout << "Animation finished!\n";
-    //             alpha = 1.0;
-    //             update = false;
-    //         }
-    //         else
-    //         {
-    //             alpha = (double)elapsed/(double)duration;
-    //         }
-    //         updateAttributes.set("updateRequired_", true);
-    //     }
-            
-    //     return Color::black(alpha);
-    // });
 
     m_visualizers.push_back(polVis);
     m_visualizers.push_back(pointVis);
@@ -372,7 +299,7 @@ void Layer::createDefaultVisualizers()
 
     // Line visualizer
     auto lineVisHover = std::make_shared<LineVisualizer>();
-    lineVisHover->color([](auto, auto) { return Color::white(); });
+    lineVisHover->color([](auto, auto) { return Color(50,50,50,0.25); });
     lineVisHover->width([](auto, auto) { return 3.0; });
 
     auto pointVisHover = std::make_shared<SymbolVisualizer>();
@@ -403,6 +330,10 @@ void Layer::createDefaultVisualizers()
     
     auto polVisSelect = std::make_shared<PolygonVisualizer>();
     polVisSelect->color(colorEvalSelect);
+    polVisSelect->size([=](FeaturePtr f, Attributes& u) { return 1.0*animatedDouble(f,u); });
+    polVisSelect->rotation([=](FeaturePtr f, Attributes& u) { return 2.0*M_PI*animatedDouble(f,u); });
+    polVisSelect->offsetX([=](FeaturePtr f, Attributes& u) { return 500.0*(1.0-animatedDouble(f,u)); });
+    polVisSelect->offsetY([=](FeaturePtr f, Attributes& u) { return 500.0*(1.0-animatedDouble(f,u)); });
     
     auto textVisSelect = std::make_shared<TextVisualizer>(*textVisHover);
 
