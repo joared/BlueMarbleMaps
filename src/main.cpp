@@ -231,6 +231,10 @@ int main()
             std::cout << report.toString() << "\n";
             report.save("/home/joar/BlueMarbleMaps/performance_reports/performance_report.pf");
         }
+        if (display.is_keyD())
+        {
+            map.showDebugInfo() = !map.showDebugInfo();
+        }
 
         // TODO: add as event in event manager instead
         if (display.is_keyF11())

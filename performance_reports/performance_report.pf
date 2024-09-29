@@ -1,2 +1,6 @@
-[Layers] avg: 75.581818 tot: 4157 n: 55
-[Update] avg: 92.163636 tot: 5069 n: 55
+[Custom draw] avg: 17.345455 tot: 954 n: 55
+[Layers] avg: 74.927273 tot: 4121 n: 55
+[Update] avg: 92.272727 tot: 5075 n: 55
+[Custom draw] avg: 7.233333 tot: 434 n: 60
+[Layers] avg: 76.100000 tot: 4566 n: 60
+[Update] avg: 83.333333 tot: 5000 n: 60

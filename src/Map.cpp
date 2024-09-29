@@ -32,6 +32,7 @@ Map::Map(cimg_library::CImgDisplay& disp)
     , m_selectedFeatures()
     , m_hoveredFeatures()
     , m_commmand(nullptr)
+    , m_showDebugInfo(false)
     
 {   
     m_scale = m_scale > (double)m_disp.height() / m_backgroundRaster.height() ? m_scale : (double)m_disp.height() / m_backgroundRaster.height();
@@ -39,7 +40,7 @@ Map::Map(cimg_library::CImgDisplay& disp)
     resetUpdateFlags();
     m_constraints.bounds().scale(3.0);
 
-    updateUpdateAttributes();
+    updateUpdateAttributes(getTimeStampMs());
 
     // std::cout << "Display: " << m_disp.width() << ", " << m_disp.height() << "\n";
     // std::cout << "LngLat(0,0): " << m_center.x() << ", " << m_center.y() << "\n";
@@ -57,15 +58,16 @@ Map::Map(cimg_library::CImgDisplay& disp)
 
 bool Map::update(bool forceUpdate)
 {   
+    int timeStampMs = getTimeStampMs();
     if (!m_updateEnabled || (!forceUpdate && !m_animation && !m_updateRequired))
     {
         return false;
     }
-    updateUpdateAttributes(); // Set update attributes that contains useful information about the update
+    updateUpdateAttributes(timeStampMs); // Set update attributes that contains useful information about the update
 
     sendOnUpdating(*this);
 
-    if(m_animation && m_animation->update(getTimeStampMs() - m_animationStartTimeStamp))
+    if(m_animation && m_animation->update(timeStampMs - m_animationStartTimeStamp))
     {
         // Animation finished
         stopAnimation();
@@ -78,17 +80,15 @@ bool Map::update(bool forceUpdate)
     beforeRender();
     renderLayers(); // Let layers do their work
     sendOnCustomDraw(*this);
+    if (m_showDebugInfo)
+        drawDebugInfo(getTimeStampMs() - timeStampMs);
     afterRender();
-
     sendOnUpdated(*this);
-
-    //std::cout << "Updated\n";
+    
     m_updateRequired = m_updateAttributes.get<bool>(UpdateAttributeKeys::UpdateRequired); // Someone in the operator chain needs more updates (e.g. Visualization evaluations)
     resetUpdateFlags();
-    if (m_animation || m_updateRequired)
-        return true;
 
-    return false;
+    return m_animation || m_updateRequired;
 }
 
 
@@ -605,9 +605,9 @@ BlueMarble::Drawable& Map::drawable()
     return m_drawable;
 }
 
-void Map::updateUpdateAttributes()
+void Map::updateUpdateAttributes(int timeStampMs)
 {
-    m_updateAttributes.set(UpdateAttributeKeys::UpdateTimeMs, getTimeStampMs());
+    m_updateAttributes.set(UpdateAttributeKeys::UpdateTimeMs, timeStampMs);
     m_updateAttributes.set(UpdateAttributeKeys::QuickUpdate, false);
     m_updateAttributes.set(UpdateAttributeKeys::SelectionUpdate, false);
     m_updateAttributes.set(UpdateAttributeKeys::HoverUpdate, false);
@@ -676,7 +676,7 @@ bool BlueMarble::Map::undoCommand()
     return false;
 }
 
-void Map::drawInfo()
+void Map::drawDebugInfo(int elapsedMs)
 {
     auto mouseMapPos = screenToMap(m_disp.mouse_x(), m_disp.mouse_y());
     auto mouseLngLat = mapToLngLat(mouseMapPos);
@@ -697,6 +697,9 @@ void Map::drawInfo()
         info += "\nScreen error: " + std::to_string(m_disp.mouse_x()-(int)screenPos.x()) + ", " + std::to_string(m_disp.mouse_y()-(int)screenPos.y());
         info += "\nMouseLngLat: " + std::to_string(mouseLngLat.x()) + ", " + std::to_string(mouseLngLat.y());
     }
+
+    info += "\nUpdate time: " + std::to_string(elapsedMs);
+    info += "\nPresentationObjects: " + std::to_string(m_presentationObjects.size());
     
     int fontSize = 16;
     m_drawable.drawText(0, 0, info.c_str(), Color(0, 0, 0), fontSize);

@@ -167,14 +167,15 @@ namespace BlueMarble
             void startInitialAnimation();
             void doCommand(const std::function<void()>& action);
             bool undoCommand();
+            bool& showDebugInfo() { return m_showDebugInfo; }
         private:
-            void updateUpdateAttributes();
+            void updateUpdateAttributes(int timeStampMs);
             void beforeRender();
             void afterRender();
             
             void resetUpdateFlags();
 
-            void drawInfo();
+            void drawDebugInfo(int elapsedMs);
             
             cimg_library::CImgDisplay& m_disp;
 
@@ -206,6 +207,8 @@ namespace BlueMarble
             std::vector<Id>                 m_hoveredFeatures;
 
             MapCommand*                     m_commmand;
+
+            bool m_showDebugInfo;
     };
 
 }
