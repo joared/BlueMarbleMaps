@@ -10,6 +10,8 @@ Layer::Layer(bool createdefaultVisualizers)
     , m_enabledDuringQuickUpdates(true)
     , m_maxScale(std::numeric_limits<double>::infinity())
     , m_minScale(0)
+    , m_effects()
+    , m_drawable(1,1)
 {
     // TODO: remove, this is a temporary solution
     if (createdefaultVisualizers)
@@ -97,13 +99,25 @@ void Layer::onFeatureInput(Map& map, const std::vector<FeaturePtr>& features)
         }
     }
 
+    auto drawable = &map.drawable();
+    if (!m_effects.empty())
+    {
+        m_drawable.getRaster() = Raster(drawable->width(), drawable->height(), 4, 0);
+        //m_drawable.drawRaster(0,0,map.drawable().getRaster(), 1);
+        drawable = &m_drawable;
+    }
     // TODO: Selection and hover visualizer should render after other layers normal visualizers
     for (auto vis : m_visualizers)
-        vis->render(map.drawable(), map.updateAttributes(), map.presentationObjects());
+        vis->render(*drawable, map.updateAttributes(), map.presentationObjects());
     for (auto hVis : m_hoverVisualizers)
-        hVis->render(map.drawable(), map.updateAttributes(), map.presentationObjects());
+        hVis->render(*drawable, map.updateAttributes(), map.presentationObjects());
     for (auto sVis : m_selectionVisualizers)
-        sVis->render(map.drawable(), map.updateAttributes(), map.presentationObjects());
+        sVis->render(*drawable, map.updateAttributes(), map.presentationObjects());
+
+    for (const auto& e : m_effects)
+    {
+        e->apply(map.drawable(), m_drawable.getRaster());
+    }
 }
 
 

@@ -20,6 +20,7 @@ class CImgEventManager
         void handleOsMessage(const OSEvent& /*msg*/) override final {};
         bool captureEvents() override final;
         void wait();
+        void wait(int durationMs);
     private:
         void reset();
 

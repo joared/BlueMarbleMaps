@@ -18,6 +18,7 @@ namespace BlueMarble
         public:
             AbstractAnimation(double duration, EasingFunctionType easingFunc=EasingFunctionType::Linear);
             bool isFinished() const;
+            bool updateTimeStamp(int timeStampMs);
             bool update(double elapsed);
             bool updateDelta(double deltaTime);
             void restart();
@@ -32,6 +33,7 @@ namespace BlueMarble
         private:
             double             m_duration;
             double             m_elapsed;
+            int                m_startTimeStamp;
     };
     typedef std::shared_ptr<AbstractAnimation> AbstractAnimationPtr;
 

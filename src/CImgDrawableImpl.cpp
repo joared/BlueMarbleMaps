@@ -47,7 +47,7 @@ namespace BlueMarble
             void drawCircle(int x, int y, double radius, const Color& color)
             {
                 auto& img = rasterToCImg(m_raster);
-                unsigned char c[] = {color.r(), color.g(), color.b()};
+                unsigned char c[] = {color.r(), color.g(), color.b(), (unsigned char)(color.a()*255)};
                 img.draw_circle(x, y, radius, c, color.a());
             }
 
@@ -55,7 +55,7 @@ namespace BlueMarble
             {
                 auto img = static_cast<cimg_library::CImg<unsigned char>*>(m_raster.data());
 
-                unsigned char c[] = {color.r(), color.g(), color.b()};
+                unsigned char c[] = {color.r(), color.g(), color.b(), (unsigned char)(color.a()*255)};
                 int size = points.size();
                 auto line = points;
                 for (int i(0); i < size-1; ++i)
@@ -100,7 +100,7 @@ namespace BlueMarble
                 }
                 
                 auto& img = rasterToCImg(m_raster);
-                unsigned char c[] = {color.r(), color.g(), color.b()};
+                unsigned char c[] = {color.r(), color.g(), color.b(), (unsigned char)(color.a()*255)};
                 img.draw_polygon(pointsCImg, c, color.a()); // .display();
             }
 
@@ -109,7 +109,7 @@ namespace BlueMarble
                 auto topLeftRounded = topLeft.round();
                 auto bottomRightRounded = bottomRight.round();
                 auto& img = rasterToCImg(m_raster);
-                unsigned char c[] = {color.r(), color.g(), color.b()};
+                unsigned char c[] = {color.r(), color.g(), color.b(), (unsigned char)(color.a()*255)};
 
                 img.draw_rectangle(topLeftRounded.x(), 
                                    topLeftRounded.y(), 
@@ -123,17 +123,28 @@ namespace BlueMarble
             {
                 auto& img = rasterToCImg(m_raster);
                 auto& rasterImg = rasterToCImg(raster);
-                img.draw_image(x, y, 0, 0, rasterImg, alpha);
+
+                if (rasterImg.spectrum() == 4)
+                {
+                    //img.draw_image(x, y, rasterImg.get_shared_channels(0,2), rasterImg.get_shared_channel(3), 1.0, 255);
+                    img.draw_image(x, y, rasterImg, rasterImg.get_shared_channel(3), 1.0, 255);
+                }
+                else
+                {
+                    img.draw_image(x, y, 0, 0, rasterImg, alpha);
+                }
             }
 
             void drawText(int x, int y, const std::string& text, const Color& color, int fontSize, const Color& bcolor)
             {
+                // TODO: fix opacity/alpha stuff
                 auto& img = rasterToCImg(m_raster);
-                unsigned char c[] = {color.r(), color.g(), color.b()};
+                unsigned char c[] = {color.r(), color.g(), color.b(), (unsigned char)(color.a()*255)};
                 if (bcolor.a() > 0)
                 {
                     // With background color
-                    unsigned char backc[] = {bcolor.r(), bcolor.g(), bcolor.b()};
+                    unsigned char backc[] = {bcolor.r(), bcolor.g(), bcolor.b(), (unsigned char)(bcolor.a()*255)};
+
                     img.draw_text(x, y, text.c_str(), backc, backc, bcolor.a(), fontSize);
                     img.draw_text(x, y, text.c_str(), c, 0, color.a(), fontSize);
                 }

@@ -2,6 +2,7 @@
 #include "Map.h"
 #include "File.h"
 #include "Utils.h"
+#include "FeatureAnimation.h"
 
 #include <cassert>
 #include <set>
@@ -1000,9 +1001,36 @@ double GeoJsonFileDataSet::extractCoordinate(JsonValue* coordinate)
 
 MemoryDataSet::MemoryDataSet()
     : DataSet()
+    , m_features()
+    , m_idToFeatureAnimation()
 {
 }
 
+FeaturePtr BlueMarble::MemoryDataSet::onGetFeatureRequest(const Id &id)
+{
+    for (auto& f : m_features)
+    {
+        if (f->id() == id)
+            return f;
+    }
+
+    return nullptr;
+}
+
+void MemoryDataSet::startFeatureAnimation(FeaturePtr feature)
+{
+    assert(feature->id().dataSetId() == dataSetId());
+    auto from = Point(-179, 38);
+    auto to = Point(179, 31);
+    startFeatureAnimation(feature, from, to);
+}
+
+void BlueMarble::MemoryDataSet::startFeatureAnimation(FeaturePtr feature, const Point& from, const Point& to)
+{
+    assert(feature->id().dataSetId() == dataSetId());
+    auto animation = std::make_shared<FeatureAnimation>(feature, from, to);
+    m_idToFeatureAnimation[feature->id()] = animation;
+}
 
 void MemoryDataSet::init()
 {
@@ -1020,13 +1048,28 @@ void MemoryDataSet::removeFeature(const Id &id)
     m_features.remove(id);
 }
 
-void MemoryDataSet::onUpdateRequest(Map &map, const Rectangle &updateArea, FeatureHandler *handler)
+void MemoryDataSet::onUpdateRequest(Map& map, const Rectangle &updateArea, FeatureHandler *handler)
 {
+    int timeStampMs = map.updateAttributes().get<int>(UpdateAttributeKeys::UpdateTimeMs);
+    for (const auto& it : m_idToFeatureAnimation)
+    {
+        auto& animation = it.second;
+        animation->updateTimeStamp(timeStampMs);
+        if (animation->isFinished())
+        {
+            std::cout << "Feature animation finished (" << animation->feature()->id().toString() << ")\n";
+            m_idToFeatureAnimation.erase(it.first);
+        }
+        map.updateAttributes().set(UpdateAttributeKeys::UpdateRequired, true);
+    }
+
     std::vector<FeaturePtr> features;
     for (auto f : m_features)
     {
         if (f->isInside(map.mapToLngLat(updateArea)))
+        {
             features.push_back(f);
+        }
     }
 
     handler->onFeatureInput(map, features);

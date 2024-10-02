@@ -306,30 +306,52 @@ namespace BlueMarble
                     break;
                 
                 case BlueMarble::KeyButton::BackSpace:
+                    if (m_map.undoCommand())
+                        return true;
                     break;
                 case BlueMarble::KeyButton::Space:
                 {
-                    if (m_map.undoCommand())
-                        return true;
-                        
                     if (m_map.selected().size() > 0)
                     {
-                        auto boundsList = std::vector<Rectangle>();
+                        auto pointList = std::vector<Point>();
                         for (auto id : m_map.selected()) 
                         { 
                             auto f = m_map.getFeature(id);
                             if (f && !f->bounds().isUndefined())
-                                boundsList.push_back(f->bounds()); 
+                            {
+                                for (auto p: f->bounds().corners())
+                                {
+                                    pointList.push_back(p);
+                                }
+                            }
+                            else if (auto pointGeometry = f->geometryAsPoint())
+                            {
+                                pointList.push_back(pointGeometry->point());
+                            }
                         }
-                        Rectangle bounds = Rectangle::mergeBounds(boundsList);
+
+                        Rectangle bounds = Rectangle::undefined();
+                        if (pointList.size() == 1)
+                        {
+                            auto area = m_map.mapToLngLat(m_map.area());
+                            area.center(pointList[0]);
+                            bounds = m_map.lngLatToMap(area);
+                        }
+                        else if (pointList.size() > 1)
+                        {
+                            bounds = m_map.lngLatToMap(Rectangle::fromPoints(pointList));
+                            // Add some margin
+                            bounds.extend(50.0/m_map.scale(), 50.0/m_map.scale());
+                        }
+
+                        
                         if (!bounds.isUndefined())
                         {
-                            auto rect = m_map.lngLatToMap(bounds);
                             //m_map.zoomToArea(rect, true);
                             // TODO
-                            m_map.doCommand([this, rect]() 
+                            m_map.doCommand([this, bounds]() 
                             {
-                                this->m_map.zoomToArea(rect, true);
+                                this->m_map.zoomToArea(bounds, true);
                             }
                             );
                             
@@ -463,7 +485,6 @@ namespace BlueMarble
 
             bool OnClick(const BlueMarble::ClickEvent& event) override final
             {
-                moveMarker(event.pos.x, event.pos.y);
 
                 if (m_geoGuessGame.isStarted())
                 {
@@ -481,6 +502,7 @@ namespace BlueMarble
                 }
                 else
                 {
+                    moveMarker(event.pos.x, event.pos.y);
                     m_map.deSelectAll();
                     m_map.update(true);
 
@@ -689,9 +711,9 @@ namespace BlueMarble
 
                 double scale = 1.0 + abs(wheelEvent.delta)/WHEEL_DELTA;
                 double zoomFactor = wheelEvent.delta > 0 ? scale : 1.0/scale;
-                bool animate = abs(wheelEvent.delta) > 1; // only animate if wheel delta is large enough
+                bool animate = false; //abs(wheelEvent.delta) > 1; // only animate if wheel delta is large enough
                 m_map.zoomOn(m_map.screenToMap(BlueMarble::Point(wheelEvent.pos.x, wheelEvent.pos.y)), zoomFactor, animate);
-
+                m_map.update(true);
                 return true;
             }
 

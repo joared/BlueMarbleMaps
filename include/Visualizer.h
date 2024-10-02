@@ -81,14 +81,133 @@ namespace BlueMarble
             
     };
 
-    // TODO: shuold symbol visualizer handle line and polygons (instead of polygon and line having nodes)?
-    // The draw back is the rendering order? Orr??? Mayvbe its betterrerreer
+    
+    enum class BuiltInSymbol
+    {
+        Invalid,
+        Circle
+    };
+
+    enum HotSpotAlignments : int
+    {
+        NoAlignment = 0, // Same as top left
+        Top = BIT(1), 
+        Bottom = BIT(2), 
+        Left = BIT(3),
+        Right = BIT(4),
+        TopLeft = Top | Left,
+        TopRight = Top | Right,
+        BottomLeft = Bottom | Left,
+        BottomRight = Bottom | Right,
+        Center = Top | Bottom | Left | Right
+    };
+
+    // inline HotSpotAlignments operator|(HotSpotAlignments a, HotSpotAlignments b)
+    // {
+    //     return static_cast<HotSpotAlignments>(static_cast<int>(a) | static_cast<int>(b));
+    // }
+
     class SymbolVisualizer : public PointVisualizer
     {
         public:
+            class Symbol
+            {
+                public:
+                    inline Symbol(BuiltInSymbol symbol=BuiltInSymbol::Circle)
+                        : m_symbol(symbol)
+                        , m_rasterSymbol()
+                        , m_hotSpot()
+                        , m_rasterCache()
+                    {
+
+                    }
+                    inline Symbol(const std::string& imagePath, int xHot, int yHot)
+                        : m_symbol(BuiltInSymbol::Invalid)
+                        , m_rasterSymbol(imagePath)
+                        , m_hotSpot(xHot, yHot)
+                        , m_rasterCache()
+                    {
+
+                    }
+
+                    inline Symbol(const std::string& imagePath, HotSpotAlignments alignments)
+                        : m_symbol(BuiltInSymbol::Invalid)
+                        , m_rasterSymbol(imagePath)
+                        , m_hotSpot(0, 0)
+                        , m_rasterCache()
+                    {
+                        m_hotSpot = hotSpotFromAlignments(alignments);
+                    }
+
+                    inline void render(Drawable& drawable, const Point& point, double size, const Color& color)
+                    {
+                        switch (m_symbol)
+                        {
+                        case BuiltInSymbol::Circle:
+                        {
+                            drawable.drawCircle(point.x(), point.y(), size, color);
+                            break;
+                        }
+                        default:
+                        {
+                            // Calc new width/height
+                            int w = (double)m_rasterSymbol.width()*size;
+                            int h = (double)m_rasterSymbol.height()*size;
+
+                            // Use width as cache index
+                            int cacheIdx = w;
+                            
+                            auto it = m_rasterCache.find(cacheIdx);
+                            if (it == m_rasterCache.end())
+                            {
+                                std::cout << "Symbol::render() Created new raster cache\n";
+                                auto raster = m_rasterSymbol;
+                                raster.resize(w, h);
+                                m_rasterCache.emplace(cacheIdx, raster);
+                            }
+                            int xHot = m_hotSpot.x()*size; // Only approx
+                            int yHot = m_hotSpot.y()*size; // Only approx
+                            auto&raster = m_rasterCache[cacheIdx];
+                            drawable.drawRaster(point.x()-xHot, point.y()-yHot, raster, color.a());
+                            //auto img = *static_cast<cimg_library::CImg<unsigned char>*>(m_rasterSymbol.data());
+                            //img.draw_image(x, y, rasterImg.get_shared_channels(0,2), rasterImg.get_shared_channel(3), 1.0, 255);
+                            break;
+                        }
+                        }
+                    }
+                private:
+                    inline Point hotSpotFromAlignments(HotSpotAlignments alignments)
+                    {
+                        int xHot, yHot = 0;
+                        int w = m_rasterSymbol.width();
+                        int h = m_rasterSymbol.height();
+                        if (alignments & HotSpotAlignments::Center)
+                        {
+                            return Point((double)w*0.5, (double)h*0.5);
+                        }
+
+                        xHot = alignments & Left ? 0 : xHot;
+                        xHot = alignments & Right ? w-1 : xHot;
+                        yHot = alignments & Top ? 0 : yHot;
+                        yHot = alignments & Bottom ? h-1 : yHot;
+
+                        return Point(xHot, yHot);
+                    }
+
+                    BuiltInSymbol m_symbol;
+                    Raster m_rasterSymbol;
+                    Point m_hotSpot;
+                    std::map<int, Raster> m_rasterCache;
+            };
+
+        public:
             SymbolVisualizer();
+            void symbol(const Symbol& symbol) { m_symbol = symbol; }
+            const Symbol& symbol() { return m_symbol; }
         protected:
             void renderPoints(Drawable& drawable, const std::vector<Point>& points, FeaturePtr feature, FeaturePtr source, Attributes& updateAttributes) override final;
+        private:
+            Symbol m_symbol;
     };
     typedef std::shared_ptr<SymbolVisualizer> SymbolVisualizerPtr;
 

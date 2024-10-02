@@ -29,7 +29,7 @@ namespace BlueMarble
             };
             Raster();
             Raster(const Raster& raster);
-            Raster(int width, int height);
+            Raster(int width, int height, int depth=3, int fill=0);
             Raster(void* data);
             Raster(const std::string& filePath);
             int width() const;

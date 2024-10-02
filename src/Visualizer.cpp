@@ -193,6 +193,7 @@ void PointVisualizer::toPointFeature(FeaturePtr feature, Attributes& updateAttri
 
 SymbolVisualizer::SymbolVisualizer()
     : PointVisualizer()
+    , m_symbol()
 {
 }
 
@@ -202,7 +203,8 @@ void SymbolVisualizer::renderPoints(Drawable& drawable, const std::vector<Point>
     Color color = m_colorEval(feature, updateAttributes);
     for (auto& point : points)
     {
-        drawable.drawCircle(point.x(), point.y(), radius-3, color);
+        //drawable.drawCircle(point.x(), point.y(), radius-3, color);
+        m_symbol.render(drawable, point, radius, color);
     }
 }
 
@@ -233,6 +235,8 @@ void TextVisualizer::renderPoints(Drawable &drawable, const std::vector<Point> &
     
     auto color = m_colorEval(feature, updateAttributes);
     auto backgroundColor = m_backgroundColorEval(feature, updateAttributes);
+    int offX = m_offsetXEval(feature, updateAttributes);
+    int offY = m_offsetYEval(feature, updateAttributes);
     double radius = 6;
     for (auto& point : points)
     {
@@ -240,7 +244,7 @@ void TextVisualizer::renderPoints(Drawable &drawable, const std::vector<Point> &
         int fontSize = 22;
         double offsetX = -(double)(fontSize*text.length())*0.25;
         double offsetY = -(double)fontSize*0.5;
-        drawable.drawText(point.x()+offsetX, point.y()+offsetY, text, color, 22, backgroundColor);
+        drawable.drawText(point.x()+offsetX+offX, point.y()+offsetY+offY, text, color, 22, backgroundColor);
     }
 }
 

@@ -26,7 +26,7 @@ bool CImgEventManager::captureEvents()
 
 }
 
-void BlueMarble::CImgEventManager::wait()
+void CImgEventManager::wait()
 {
     if(!captureEvents())
     {
@@ -41,6 +41,12 @@ void BlueMarble::CImgEventManager::wait()
     // }
     // eventManager.captureEvents();
     // map.update();
+}
+
+void CImgEventManager::wait(int durationMs)
+{
+    m_disp.wait(durationMs);
+    captureEvents();
 }
 
 void CImgEventManager::reset()

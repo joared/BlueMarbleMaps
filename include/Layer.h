@@ -5,6 +5,7 @@
 #include "UpdateInterfaces.h"
 #include "EngineObject.h"
 #include "Visualizer.h"
+#include "Effect.h"
 
 #include <vector>
 
@@ -40,6 +41,8 @@ namespace BlueMarble
             std::vector<VisualizerPtr>& hoverVisualizers() { return m_hoverVisualizers; }
             std::vector<VisualizerPtr>& selectionVisualizers() { return m_selectionVisualizers; }
 
+            std::vector<EffectPtr>& effects() { return m_effects; }
+
         private:
             void toScreen(Map& map, const std::vector<FeaturePtr>& features, std::vector<FeaturePtr>& screenFeatures);
 
@@ -54,6 +57,9 @@ namespace BlueMarble
             std::vector<VisualizerPtr> m_visualizers;
             std::vector<VisualizerPtr> m_hoverVisualizers;
             std::vector<VisualizerPtr> m_selectionVisualizers;
+
+            std::vector<EffectPtr> m_effects;
+            Drawable m_drawable;
     };
 
 }

@@ -8,12 +8,23 @@ using namespace BlueMarble;
 AbstractAnimation::AbstractAnimation(double duration, EasingFunctionType easingFunc)
     : m_duration(duration)
     , m_elapsed(0)
+    , m_startTimeStamp(-1)
 {
 }
 
 bool AbstractAnimation::isFinished() const
 {
     return m_elapsed >= m_duration;
+}
+
+bool AbstractAnimation::updateTimeStamp(int timeStampMs)
+{
+    if (m_startTimeStamp == -1)
+    {
+        m_startTimeStamp = timeStampMs;
+    }
+
+    return update(timeStampMs - m_startTimeStamp);
 }
 
 bool AbstractAnimation::update(double elapsed)
@@ -34,18 +45,22 @@ bool AbstractAnimation::update(double elapsed)
     if (isFinished())
     {
         m_elapsed = m_duration;
+        m_startTimeStamp = -1;
         onFinished();
     }
+
+    return isFinished(); // Subclasses may restart the animation in onFinished()
 }
 
 bool AbstractAnimation::updateDelta(double deltaTime)
 {
-    update(m_elapsed + deltaTime);
+    return update(m_elapsed + deltaTime);
 }
 
-void BlueMarble::AbstractAnimation::restart()
+void AbstractAnimation::restart()
 {
     m_elapsed = 0;
+    m_startTimeStamp = -1;
 }
 
 AnimationPtr Animation::Create(Map &map, const Point &from, const Point &to, double duration, bool isInertial, const InertiaOptions &options)
@@ -53,7 +68,7 @@ AnimationPtr Animation::Create(Map &map, const Point &from, const Point &to, dou
     return AnimationPtr(new Animation(map, from, to, map.scale(), map.scale(), duration, isInertial, options));
 }
 
-AnimationPtr BlueMarble::Animation::Create(Map &map, const Point &from, const Point &to, double fromScale, double toScale, double duration, bool isInertial, const InertiaOptions &options)
+AnimationPtr Animation::Create(Map &map, const Point &from, const Point &to, double fromScale, double toScale, double duration, bool isInertial, const InertiaOptions &options)
 {
     return AnimationPtr(new Animation(map, from, to, fromScale, toScale, duration, isInertial, options));
 }

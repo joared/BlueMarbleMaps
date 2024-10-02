@@ -106,6 +106,44 @@ void setupMarkerLayerVisualization(BlueMarble::Layer& layer)
     layer.visualizers().push_back(textVis);
 }
 
+void setupAirPlaneLayerVisualization(BlueMarble::Layer& layer)
+{
+    auto symVis1 = std::make_shared<BlueMarble::SymbolVisualizer>();
+    
+    symVis1->symbol(SymbolVisualizer::Symbol());
+    symVis1->size(DirectDoubleAttributeVariable(10));
+
+    symVis1->symbol(SymbolVisualizer::Symbol("/home/joar/BlueMarbleMaps/geodata/symbols/airplane.png", HotSpotAlignments::Center));
+    symVis1->size([] (FeaturePtr /*f*/, const Attributes& updateAttribbutes)
+        {
+            double mapScale = updateAttribbutes.get<double>(UpdateAttributeKeys::UpdateViewScale);
+            return Utils::clampValue(0.06*mapScale, 0.01, 0.06);
+        }
+    );
+
+    auto textSelHoverViz = std::make_shared<TextVisualizer>();
+    textSelHoverViz->text(IndirectStringAttributeVariable("Name", std::string("Unknown aircraft")));
+    textSelHoverViz->offsetY(DirectDoubleAttributeVariable(-20));
+    textSelHoverViz->color(DirectColorAttributeVariable(Color::black()));
+    textSelHoverViz->backgroundColor(DirectColorAttributeVariable(Color::white(0.5)));
+    //symVis1->color([](auto, auto) { return BlueMarble::Color::black(0.5); });
+    // symVis1->size([] (FeaturePtr feature, Attributes& updateAttributes) { 
+    //     static auto from = DirectDoubleAttributeVariable(0.0);
+    //     static auto to = DirectDoubleAttributeVariable(15.0);
+    //     static auto value = AnimatedDoubleAttributeVariable(
+    //         from, 
+    //         to, 
+    //         300,
+    //         EasingFunctionType::Linear);
+        
+    //     return value(feature, updateAttributes);
+    //     });
+    layer.visualizers().push_back(symVis1);
+    layer.hoverVisualizers().push_back(textSelHoverViz);
+    layer.selectionVisualizers().push_back(textSelHoverViz);
+    layer.effects().push_back(std::make_shared<BlueMarble::DropShadowEffect>(2.0, 10, 10, 0.5));
+}
+
 int main()
 {
     // Create a display
@@ -131,6 +169,7 @@ int main()
     auto roadsDataSet = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/roads_geojson/europe-road.geojson"); roadsDataSet->name("Roads");
     auto svenskaLandskapDataSet = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/svenska_landskap/svenska-landskap-klippt.geo.json");
     auto markerDataSet = std::make_shared<BlueMarble::MemoryDataSet>(); markerDataSet->name("MarkerDataSet");
+    auto airPlaneDataSet = std::make_shared<BlueMarble::MemoryDataSet>(); airPlaneDataSet->name("AirPlanesDataSet");
     auto debugDataSet = std::make_shared<DebugDataSet>();
     
     //sverigeRoadsDataSet->initialize(); // Takes very long to initialize (1.4 GB large)
@@ -145,6 +184,17 @@ int main()
     svenskaStader->initialize();
     svenskaLandskapDataSet->initialize();
     markerDataSet->initialize();
+    airPlaneDataSet->initialize(); 
+    // Populate airplanes and start animations
+    for (int i=0; i < 100; i++)
+    {
+        auto from = Point(std::rand() % 360 - 180, std::rand() % 180 - 90);
+        auto to = Point(std::rand() % 360 - 180, std::rand() % 180 - 90);
+        auto airPlaneFeature = airPlaneDataSet->createFeature(std::make_shared<PointGeometry>(from));
+        airPlaneFeature->attributes().set("Name", "Aircraft #" + std::to_string(i+1));
+        airPlaneDataSet->addFeature(airPlaneFeature); airPlaneDataSet->startFeatureAnimation(airPlaneFeature, from, to);
+    }
+    
     debugDataSet->initialize(); // Does nothing
 
     auto backgroundLayer = BlueMarble::Layer();
@@ -156,6 +206,7 @@ int main()
     auto csvLayer = BlueMarble::Layer();
     auto sverigeLayer = BlueMarble::Layer();
     auto markerLayer = BlueMarble::Layer(false); setupMarkerLayerVisualization(markerLayer);
+    auto airPlaneLayer = BlueMarble::Layer(false); setupAirPlaneLayerVisualization(airPlaneLayer);
     auto debugLayer = BlueMarble::Layer();
     backgroundLayer.addUpdateHandler(backgroundDataSet.get());
     backgroundLayer2.addUpdateHandler(backgroundDataSet2.get());
@@ -173,6 +224,7 @@ int main()
     csvLayer.addUpdateHandler(svenskaStader.get());
     sverigeLayer.addUpdateHandler(svenskaLandskapDataSet.get());
     markerLayer.addUpdateHandler(markerDataSet.get());
+    airPlaneLayer.addUpdateHandler(airPlaneDataSet.get());
     debugLayer.addUpdateHandler(debugDataSet.get());
     
     map.addLayer(&backgroundLayer);
@@ -183,6 +235,7 @@ int main()
     map.addLayer(&roadsGeoJsonLayer);
     map.addLayer(&csvLayer);
     map.addLayer(&markerLayer);
+    map.addLayer(&airPlaneLayer);
     map.addLayer(&debugLayer);
 
     // Setup event manager and event handlers
@@ -216,9 +269,10 @@ int main()
         {
             eventManager.wait();
         }
-        else if (display.is_event())
+        else
         {
-            eventManager.captureEvents();
+            //eventManager.captureEvents();
+            eventManager.wait(10);
         }
 
         if (display.is_keyP())

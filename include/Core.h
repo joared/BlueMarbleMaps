@@ -80,6 +80,11 @@ namespace BlueMarble
                 return Point(m_x*other, m_y*other);
             }
 
+            inline std::string toString()
+            {
+                return "Point(" + std::to_string(m_x) + ", " + std::to_string(m_y);
+            }
+
         private:
             double  m_x;
             double  m_y;
@@ -215,6 +220,14 @@ namespace BlueMarble
                     return false;
 
                 return true;
+            }
+
+            inline void offset(double offsetX, double offsetY)
+            {
+                m_xMin += offsetX;
+                m_xMax += offsetX;
+                m_yMin += offsetY;
+                m_yMax += offsetY;
             }
 
             inline void extend(double x, double y)

@@ -11,6 +11,7 @@ namespace BlueMarble
     namespace UpdateAttributeKeys
     {
         const std::string UpdateTimeMs = std::string("__timeMs");
+        const std::string UpdateViewScale = std::string("__updateViewScale");
         const std::string QuickUpdate = std::string("__quickUpdate");
         const std::string SelectionUpdate = std::string("__selection");
         const std::string HoverUpdate = std::string("__hover");

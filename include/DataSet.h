@@ -5,6 +5,7 @@
 #include "File.h"
 #include "Algorithm.h"
 #include "EngineObject.h"
+#include "FeatureAnimation.h"
 
 #include <atomic>
 #include <memory>
@@ -139,11 +140,14 @@ namespace BlueMarble
             void removeFeature(const Id& id);
             void onUpdateRequest(Map& map, const Rectangle& updateArea, FeatureHandler* handler) override final;
             void onGetFeaturesRequest(const Attributes& attributes, std::vector<FeaturePtr>& features) override final {};
-            FeaturePtr onGetFeatureRequest(const Id& id) override final { return nullptr; };
+            FeaturePtr onGetFeatureRequest(const Id& id) override final;
+            void startFeatureAnimation(FeaturePtr feature);
+            void startFeatureAnimation(FeaturePtr feature, const Point& from, const Point& to);
         protected:
             void init() override final;
         private:
             FeatureCollection m_features;
+            std::map<Id, FeatureAnimationPtr> m_idToFeatureAnimation;
     };
 
 }

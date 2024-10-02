@@ -5,7 +5,7 @@ using namespace BlueMarble;
 
 
 Raster::Raster()
-    : m_img(1, 1, 1, 4, 0)
+    : m_img(1, 1, 1, 3, 0)
 {
     std::cout << "Raster::Raster() Warning: Raster not initialized\n";
 }
@@ -15,8 +15,8 @@ BlueMarble::Raster::Raster(const Raster &raster)
 {
 }
 
-Raster::Raster(int width, int height)
-    : m_img(width, height, 1, 4, 0)
+Raster::Raster(int width, int height, int depth, int fill)
+    : m_img(width, height, 1, depth, fill)
 {
 
 }

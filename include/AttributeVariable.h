@@ -20,7 +20,7 @@ namespace BlueMarble
                 T val;
                 if(!tryGetValue(f, attributes, val))
                 {
-                    std::cout << "AttributeValue::operator() Failed to get value, undefined return value.";
+                    std::cout << "AttributeValue::operator() Failed to get value, undefined return value.\n";
                 }
 
                 return val;
@@ -107,26 +107,40 @@ namespace BlueMarble
     class IndirectAttributeVariable : public AttributeVariable<T>
     {
         public:
+            IndirectAttributeVariable(const std::string& key)
+                : m_key(key)
+                , m_defaultValue(T())
+                , m_hasDefaultValue(false)
+            {}
+
             IndirectAttributeVariable(const std::string& key, const T& defaultValue)
                 : m_key(key)
                 , m_defaultValue(defaultValue)
+                , m_hasDefaultValue(true)
             {}
 
             bool tryGetValue(FeaturePtr f, Attributes& attributes, T& val) override final
             {
-                if (attributes.contains(m_key))
+                if (f->attributes().contains(m_key))
                 {
-                    val = T(attributes.get<T>(m_key)); // Wrap with typename T
+                    val = f->attributes().get<T>(m_key);
+                    return true;
+                }
+                else if (attributes.contains(m_key))
+                {
+                    val = attributes.get<T>(m_key);
                     return true;
                 }
 
-                val = T(std::get<T>(m_defaultValue));
-                return false;
+                val = m_defaultValue;
+
+                return m_hasDefaultValue;
             }
 
         private:
             std::string m_key;
             T           m_defaultValue;
+            bool        m_hasDefaultValue;
     };
     typedef IndirectAttributeVariable<int> IndirectIntegerAttributeVariable;
     typedef IndirectAttributeVariable<double> IndirectDoubleAttributeVariable;

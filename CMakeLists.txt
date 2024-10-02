@@ -23,6 +23,7 @@ set(SRC_MAIN main.cpp)
 
 # Define the path to the source directory
 set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
+set(EXAMPLES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/examples)
 
 # The source files needed to compile the project executable
 set(SOURCES  
@@ -48,6 +49,8 @@ set(SOURCES
     ${SRC_DIR}/EngineObject.cpp
     ${SRC_DIR}/LabelOrganizer.cpp
     ${SRC_DIR}/PerformanceMonitor.cpp
+    ${SRC_DIR}/FeatureAnimation.cpp
+    ${SRC_DIR}/Effect.cpp
 )
 
 # Add the executable
@@ -56,13 +59,19 @@ add_executable(BlueMarbleMaps ${SRC_DIR}/${SRC_MAIN} ${SOURCES})
 target_include_directories(BlueMarbleMaps
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
+# Link
+target_link_libraries(BlueMarbleMaps PRIVATE CImgLib)
+
+# Example drop shadow
+add_executable(ExampleDropShadow ${EXAMPLES_DIR}/example_dropshadow.cpp) #${SOURCES})
+target_include_directories(ExampleDropShadow
+  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(ExampleDropShadow PRIVATE CImgLib)
 
 # Add a library to easy link test cases
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/cimg_lib)
 #add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/matrix_lib)
-
-# Link
-target_link_libraries(BlueMarbleMaps PRIVATE CImgLib)
 
 # # Check if the BUILD_TESTS flag is set
 # set(BUILD_TESTS True)

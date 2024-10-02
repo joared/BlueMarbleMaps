@@ -388,7 +388,7 @@ FeaturePtr BlueMarble::Map::getFeature(const Id &id)
     return nullptr;
 }
 
-void BlueMarble::Map::getFeatures(const Attributes& attributes, std::vector<FeaturePtr>& features)
+void Map::getFeatures(const Attributes& attributes, std::vector<FeaturePtr>& features)
 {
     for (auto l : m_layers)
     {
@@ -396,7 +396,7 @@ void BlueMarble::Map::getFeatures(const Attributes& attributes, std::vector<Feat
     }
 }
 
-std::vector<FeaturePtr> BlueMarble::Map::featuresAt(int X, int Y, double pointerRadius)
+std::vector<FeaturePtr> Map::featuresAt(int X, int Y, double pointerRadius)
 {
     std::vector<FeaturePtr> hitFeatures;
     for (auto& po : hitTest(X, Y, pointerRadius))
@@ -608,6 +608,7 @@ BlueMarble::Drawable& Map::drawable()
 void Map::updateUpdateAttributes(int timeStampMs)
 {
     m_updateAttributes.set(UpdateAttributeKeys::UpdateTimeMs, timeStampMs);
+    m_updateAttributes.set(UpdateAttributeKeys::UpdateViewScale, scale());
     m_updateAttributes.set(UpdateAttributeKeys::QuickUpdate, false);
     m_updateAttributes.set(UpdateAttributeKeys::SelectionUpdate, false);
     m_updateAttributes.set(UpdateAttributeKeys::HoverUpdate, false);
