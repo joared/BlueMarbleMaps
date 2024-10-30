@@ -4,11 +4,19 @@
 #include <string>
 #include <vector>
 
+#define BLUEMARBLE_OBJECT_PROPERTY(propertyName, propertyType) \
+    private:                                \
+        propertyType m_##propertyName;      \
+    public:                                 \
+        const propertyType& propertyName() { return m_##propertyName; }      \  
+        void propertyName(propertyType value) { m_##propertyName = value; } \
+
 namespace BlueMarble
 {
     class EngineObject
     {
         public:
+            // TODO: make methods pure virtual instead
             EngineObject();
             EngineObject(const std::string& name);
             const std::string& name();

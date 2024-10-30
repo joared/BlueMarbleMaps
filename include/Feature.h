@@ -10,7 +10,6 @@
 
 namespace BlueMarble
 {
-
     class Feature; // Forward declaration
     typedef std::shared_ptr<Feature> FeaturePtr;
     class Feature
@@ -68,6 +67,19 @@ namespace BlueMarble
 
                 std::cout << "FeatureCollection::remove() Feature with id '(" << id.dataSetId() << ", " << id.featureId() << ")' doesn't exist!";
                 throw std::exception();
+            }
+
+            const FeaturePtr& getFeature(const Id& id)
+            {
+                for (auto& f : m_features)
+                {
+                    if (f->id() == id)
+                    {
+                        return f;
+                    }
+                }
+
+                return nullptr;
             }
 
             Rectangle bounds() const 

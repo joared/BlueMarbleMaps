@@ -7,8 +7,8 @@ namespace BlueMarble
     class Drawable::Impl
     {
         public:
-            Impl(int width, int height)
-                : m_raster(width, height)
+            Impl(int width, int height, int colorDepth)
+                : m_raster(width, height, colorDepth)
                 , m_backGroundColor(Color::blue(0.5))
             {
 

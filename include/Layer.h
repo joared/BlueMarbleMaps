@@ -59,7 +59,7 @@ namespace BlueMarble
             std::vector<VisualizerPtr> m_selectionVisualizers;
 
             std::vector<EffectPtr> m_effects;
-            Drawable m_drawable;
+            Drawable m_drawable; // Needed if we need to draw on our own buffer
     };
 
 }

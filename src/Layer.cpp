@@ -11,7 +11,7 @@ Layer::Layer(bool createdefaultVisualizers)
     , m_maxScale(std::numeric_limits<double>::infinity())
     , m_minScale(0)
     , m_effects()
-    , m_drawable(1,1)
+    , m_drawable(1,1,4)
 {
     // TODO: remove, this is a temporary solution
     if (createdefaultVisualizers)
@@ -102,7 +102,15 @@ void Layer::onFeatureInput(Map& map, const std::vector<FeaturePtr>& features)
     auto drawable = &map.drawable();
     if (!m_effects.empty())
     {
-        m_drawable.getRaster() = Raster(drawable->width(), drawable->height(), 4, 0);
+        if (map.drawable().width() != m_drawable.width() ||
+            map.drawable().height() != m_drawable.height())
+        {
+            // Resize
+            m_drawable.resize(map.drawable().width(), map.drawable().height());
+        }
+        m_drawable.fill(0);
+        
+        //m_drawable.getRaster() = Raster(drawable->width(), drawable->height(), 4, 0);
         //m_drawable.drawRaster(0,0,map.drawable().getRaster(), 1);
         drawable = &m_drawable;
     }
@@ -278,12 +286,12 @@ void Layer::createDefaultVisualizers()
     
     // Line visualizer
     auto lineVis = std::make_shared<LineVisualizer>();
-    lineVis->color([](FeaturePtr, Attributes&) { return Color(50,50,50,0.25); });
+    lineVis->color(ColorEvaluation([](FeaturePtr, Attributes&) { return Color(50,50,50,0.25); }));
     lineVis->width([](FeaturePtr, Attributes&) -> double { return 1; });
 
     // Polygon visualizer
     auto polVis = std::make_shared<PolygonVisualizer>();
-    polVis->color(colorEval);
+    polVis->color(ColorEvaluation(colorEval));
 
     // Raster visualizer
     auto rasterVis = std::make_shared<RasterVisualizer>();
@@ -314,7 +322,7 @@ void Layer::createDefaultVisualizers()
     // Line visualizer
     auto lineVisHover = std::make_shared<LineVisualizer>();
     lineVisHover->color([](auto, auto) { return Color(50,50,50,0.25); });
-    lineVisHover->width([](auto, auto) { return 3.0; });
+    lineVisHover->width(DirectDoubleAttributeVariable(3.0)); //[](auto, auto) { return 3.0; });
 
     auto pointVisHover = std::make_shared<SymbolVisualizer>();
     auto polVisHover = std::make_shared<PolygonVisualizer>();
@@ -327,9 +335,10 @@ void Layer::createDefaultVisualizers()
 
     auto textVisHover = std::make_shared<TextVisualizer>(*textVis);
     // textVisHover->color([](FeaturePtr, Attributes& updateAttributes) { 
-    textVisHover->color([=](FeaturePtr feature, Attributes& updateAttributes) { 
+    textVisHover->color(ColorEvaluation([=](FeaturePtr feature, Attributes& updateAttributes) 
+        { 
             return Color::white(animatedDouble(feature, updateAttributes));
-        });
+        }));
     //textVisHover->backgroundColor([](auto) { return Color::black(0.5); });
     textVisHover->offsetX( [](auto, auto) {return -3.0; });
     textVisHover->offsetY( [](auto, auto) {return -3.0; });

@@ -39,7 +39,7 @@ namespace BlueMarble
             void render(Drawable& drawable, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs);
             // TODO Both below should be removed and replace with renderFeatures() (to enable OpenGl stuff)
             virtual void preRender(Drawable& drawable, std::vector<FeaturePtr>& attachedFeatures, std::vector<FeaturePtr>& sourceFeatures, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs) {}
-            virtual void renderFeature(Drawable& drawable, FeaturePtr feature, FeaturePtr source, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs) = 0;
+            virtual void renderFeature(Drawable& drawable, const FeaturePtr& feature, const FeaturePtr& source, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs) = 0;
         protected:
             virtual bool isValidGeometry(GeometryType type) = 0;
             ColorEvaluation         m_colorEval;
@@ -68,17 +68,16 @@ namespace BlueMarble
             void isLabelOrganized(bool enabled) { m_isLabelOrganized = enabled; }
 
             void preRender(Drawable& drawable, std::vector<FeaturePtr>& attachedFeatures, std::vector<FeaturePtr>& sourceFeatures, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs) override final;
-            void renderFeature(Drawable& drawable, FeaturePtr feature, FeaturePtr source, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs) override final;
+            void renderFeature(Drawable& drawable, const FeaturePtr& feature, const FeaturePtr& source, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs) override final;
         protected:
             bool isValidGeometry(GeometryType type) override final;
-            virtual void renderPoints(Drawable& drawable, const std::vector<Point>& points, FeaturePtr feature, FeaturePtr source, Attributes& updateAttributes) = 0;
+            virtual void renderPoints(Drawable& drawable, const std::vector<Point>& points, const FeaturePtr& feature, const FeaturePtr& source, Attributes& updateAttributes) = 0;
             // Help method for converting Polygon or Line to Point feature
-            void toPointFeature(FeaturePtr feature, Attributes& updateAttributes, std::vector<FeaturePtr>& outPointFeatures); // TODO: add convertGeometry?
+            void toPointFeature(const FeaturePtr& feature, Attributes& updateAttributes, std::vector<FeaturePtr>& outPointFeatures); // TODO: add convertGeometry?
         private:
             bool            m_isLabelOrganized;
             bool            m_atCenter;
             LabelOrganizer  m_labelOrganizer;
-            
     };
 
     
@@ -139,7 +138,7 @@ namespace BlueMarble
                         m_hotSpot = hotSpotFromAlignments(alignments);
                     }
 
-                    inline void render(Drawable& drawable, const Point& point, double size, const Color& color)
+                    inline void render(Drawable& drawable, const Point& point, double size, const Color& color, double rotation)
                     {
                         switch (m_symbol)
                         {
@@ -168,7 +167,20 @@ namespace BlueMarble
                             int xHot = m_hotSpot.x()*size; // Only approx
                             int yHot = m_hotSpot.y()*size; // Only approx
                             auto&raster = m_rasterCache[cacheIdx];
-                            drawable.drawRaster(point.x()-xHot, point.y()-yHot, raster, color.a());
+                            if (rotation != 0)
+                            {
+                                // Copy and rotate the copy
+                                auto raster = m_rasterCache[cacheIdx];
+                                raster.rotate(rotation, xHot, yHot);
+                                drawable.drawRaster(point.x()-xHot, point.y()-yHot, raster, color.a());
+                            }
+                            else 
+                            {
+                                // Reference and no rotation
+                                auto& raster = m_rasterCache[cacheIdx];
+                                drawable.drawRaster(point.x()-xHot, point.y()-yHot, raster, color.a());
+                            }
+                            
                             //auto img = *static_cast<cimg_library::CImg<unsigned char>*>(m_rasterSymbol.data());
                             //img.draw_image(x, y, rasterImg.get_shared_channels(0,2), rasterImg.get_shared_channel(3), 1.0, 255);
                             break;
@@ -205,7 +217,7 @@ namespace BlueMarble
             void symbol(const Symbol& symbol) { m_symbol = symbol; }
             const Symbol& symbol() { return m_symbol; }
         protected:
-            void renderPoints(Drawable& drawable, const std::vector<Point>& points, FeaturePtr feature, FeaturePtr source, Attributes& updateAttributes) override final;
+            void renderPoints(Drawable& drawable, const std::vector<Point>& points, const FeaturePtr& feature, const FeaturePtr& source, Attributes& updateAttributes) override final;
         private:
             Symbol m_symbol;
     };
@@ -218,7 +230,7 @@ namespace BlueMarble
             void text(const StringEvaluation& textEval);
             void backgroundColor(ColorEvaluation colorEval);
         protected:
-            void renderPoints(Drawable& drawable, const std::vector<Point>& points, FeaturePtr feature, FeaturePtr source, Attributes& updateAttributes) override final;
+            void renderPoints(Drawable& drawable, const std::vector<Point>& points, const FeaturePtr& feature, const FeaturePtr& source, Attributes& updateAttributes) override final;
         private:
             StringEvaluation m_textEval;
             ColorEvaluation  m_backgroundColorEval;
@@ -229,7 +241,7 @@ namespace BlueMarble
     {
         public:
             LineVisualizer();
-            void renderFeature(Drawable& drawable, FeaturePtr feature, FeaturePtr source, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs) override final;
+            void renderFeature(Drawable& drawable, const FeaturePtr& feature, const FeaturePtr& source, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs) override final;
             void width(DoubleEvaluation widthEval);
         protected:
             bool isValidGeometry(GeometryType type) override final;
@@ -243,7 +255,7 @@ namespace BlueMarble
     {
         public:
             PolygonVisualizer();
-            void renderFeature(Drawable& drawable, FeaturePtr feature, FeaturePtr source, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs) override final;
+            void renderFeature(Drawable& drawable, const FeaturePtr& feature, const FeaturePtr& source, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs) override final;
         protected:
             bool isValidGeometry(GeometryType type) override final;
         private:
@@ -257,7 +269,7 @@ namespace BlueMarble
     {
         public:
             RasterVisualizer();
-            void renderFeature(Drawable& drawable, FeaturePtr feature, FeaturePtr source, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs) override final;
+            void renderFeature(Drawable& drawable, const FeaturePtr& feature, const FeaturePtr& source, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs) override final;
         protected:
             bool isValidGeometry(GeometryType type) override final;
     };

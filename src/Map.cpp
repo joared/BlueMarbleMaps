@@ -33,6 +33,7 @@ Map::Map(cimg_library::CImgDisplay& disp)
     , m_hoveredFeatures()
     , m_commmand(nullptr)
     , m_showDebugInfo(false)
+    , m_isUpdating(false)
     
 {   
     m_scale = m_scale > (double)m_disp.height() / m_backgroundRaster.height() ? m_scale : (double)m_disp.height() / m_backgroundRaster.height();
@@ -58,6 +59,9 @@ Map::Map(cimg_library::CImgDisplay& disp)
 
 bool Map::update(bool forceUpdate)
 {   
+    assert(!m_isUpdating);
+    m_isUpdating = true;
+    // TODO: should be handled as int64_t
     int timeStampMs = getTimeStampMs();
     if (!m_updateEnabled || (!forceUpdate && !m_animation && !m_updateRequired))
     {
@@ -87,6 +91,8 @@ bool Map::update(bool forceUpdate)
     
     m_updateRequired = m_updateAttributes.get<bool>(UpdateAttributeKeys::UpdateRequired); // Someone in the operator chain needs more updates (e.g. Visualization evaluations)
     resetUpdateFlags();
+
+    m_isUpdating = false;
 
     return m_animation || m_updateRequired;
 }
@@ -167,7 +173,7 @@ Rectangle BlueMarble::Map::area() const
     );
 }
 
-void BlueMarble::Map::panBy(const Point& deltaScreen, bool animate)
+void Map::panBy(const Point& deltaScreen, bool animate)
 {
     //center(m_center + Point(deltaScreen.x(), deltaScreen.y())*(1/m_scale));
     // TODO: add this back when fixed, or?
@@ -183,6 +189,19 @@ void BlueMarble::Map::panBy(const Point& deltaScreen, bool animate)
     else
     {
         center(to);
+    }
+}
+
+void Map::panTo(const Point& mapPoint, bool animate)
+{
+    if (animate)
+    {
+        auto animation = Animation::Create(*this, center(), mapPoint, scale(), scale(), 1000, false);
+        startAnimation(animation);
+    }
+    else
+    {
+        center(mapPoint);
     }
 }
 
@@ -605,9 +624,9 @@ BlueMarble::Drawable& Map::drawable()
     return m_drawable;
 }
 
-void Map::updateUpdateAttributes(int timeStampMs)
+void Map::updateUpdateAttributes(int64_t timeStampMs)
 {
-    m_updateAttributes.set(UpdateAttributeKeys::UpdateTimeMs, timeStampMs);
+    m_updateAttributes.set(UpdateAttributeKeys::UpdateTimeMs, (int)timeStampMs);
     m_updateAttributes.set(UpdateAttributeKeys::UpdateViewScale, scale());
     m_updateAttributes.set(UpdateAttributeKeys::QuickUpdate, false);
     m_updateAttributes.set(UpdateAttributeKeys::SelectionUpdate, false);

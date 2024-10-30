@@ -34,7 +34,9 @@ namespace BlueMarble
             Raster(const std::string& filePath);
             int width() const;
             int height() const;
+            int colorDepth() const;
             void resize(int x, int y, ResizeInterpolation interpolation = ResizeInterpolation::NearestNeighbor);
+            void rotate(double angle, int cx, int cy, ResizeInterpolation interpolation = ResizeInterpolation::NearestNeighbor);
             void fill(int val);
             void blur(double sigmaX, double sigmaY, double sigmaZ, bool isGaussian=false);
             Raster getCrop(int x0, int y0, int x1, int y1);

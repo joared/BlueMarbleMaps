@@ -13,14 +13,14 @@ namespace BlueMarble
     {
         public:
             virtual ~AttributeVariable() = default;
-            virtual bool tryGetValue(FeaturePtr f, Attributes& attributes, T& val) = 0;
+            virtual bool tryGetValue(const FeaturePtr& f, Attributes& attributes, T& val) { return false; };
 
-            T operator() (FeaturePtr f, Attributes& attributes)
+            T operator() (const FeaturePtr& f, Attributes& attributes)
             {
                 T val;
                 if(!tryGetValue(f, attributes, val))
                 {
-                    std::cout << "AttributeValue::operator() Failed to get value, undefined return value.\n";
+                    std::cout << "AttributeVariable::operator() Failed to get value, undefined return value.\n";
                 }
 
                 return val;
@@ -29,11 +29,11 @@ namespace BlueMarble
     typedef AttributeVariable<int> IntegerAttributeVariable;
     typedef AttributeVariable<double> DoubleAttributeVariable;
     typedef AttributeVariable<std::string> StringAttributeVariable;
-    typedef AttributeVariable<bool> BooleanAttributeVariable;
+    typedef AttributeVariable<bool> BooleanAttributeVariable; 
     typedef AttributeVariable<Color> ColorAttributeVariable;
 
     template <typename T>
-    using EvaluationFunction = std::function<T(FeaturePtr, Attributes&)>;
+    using EvaluationFunction = std::function<T(const FeaturePtr&, Attributes&)>;
 
     template <typename T>
     class ArtibtraryAttributeVariable : public AttributeVariable<T>
@@ -63,7 +63,7 @@ namespace BlueMarble
                 m_function = function;
             }
 
-            bool tryGetValue(FeaturePtr f, Attributes& attributes, T& val) override final
+            bool tryGetValue(const FeaturePtr& f, Attributes& attributes, T& val) override final
             {
                 val = T(m_function(f, attributes));
                 return true;
@@ -87,7 +87,7 @@ namespace BlueMarble
                 : m_value(value)
             {}
             
-            bool tryGetValue(FeaturePtr /*f*/, Attributes& /*attributes*/, T& val) override final
+            bool tryGetValue(const FeaturePtr& /*f*/, Attributes& /*attributes*/, T& val) override final
             {
                 val = T(m_value);
                 return true;
@@ -119,7 +119,7 @@ namespace BlueMarble
                 , m_hasDefaultValue(true)
             {}
 
-            bool tryGetValue(FeaturePtr f, Attributes& attributes, T& val) override final
+            bool tryGetValue(const FeaturePtr& f, Attributes& attributes, T& val) override final
             {
                 if (f->attributes().contains(m_key))
                 {
@@ -167,9 +167,10 @@ namespace BlueMarble
             {}
 
             // template <typename T>
-            bool tryGetValue(FeaturePtr f, Attributes& attributes, T& val) override final
+            bool tryGetValue(const FeaturePtr& f, Attributes& attributes, T& val) override final
             {
-                double timeMs = attributes.get<int>(UpdateAttributeKeys::UpdateTimeMs);
+                // TODO: since we are using int, timestamps may be negative
+                int timeMs = attributes.get<int>(UpdateAttributeKeys::UpdateTimeMs);
                 // if (!f->attributes().contains(FeatureAttributeKeys::StartAnimationTimeMs))
                 // {
                 //     // No animation start time info, return "to" value
@@ -178,13 +179,17 @@ namespace BlueMarble
                 // double startTimeMs = f->attributes().get<int>(FeatureAttributeKeys::StartAnimationTimeMs);
 
                 auto dataSet = DataSet::getDataSetById(f->id().dataSetId());
-                double startTimeMs = dataSet->getVisualizationTimeStampForFeature(f->id());
-                if (startTimeMs < 0)
-                    return m_to.tryGetValue(f, attributes, val);
+                int startTimeMs = dataSet->getVisualizationTimeStampForFeature(f->id());
+
                 
                 double elapsed = timeMs - startTimeMs;
+
+                if (elapsed < 0)
+                {
+                    return m_to.tryGetValue(f, attributes, val);
+                }
+
                 double p = elapsed/duration(); // TODO: easing
-                
 
                 bool retVal = true;
                 T to;

@@ -29,17 +29,20 @@ FeaturePtr DataSet::createFeature(GeometryPtr geometry)
     return feature;
 }
 
-void DataSet::restartVisualizationAnimation(FeaturePtr feature, int timeStamp)
+void DataSet::restartVisualizationAnimation(FeaturePtr feature, int64_t timeStamp)
 {
     assert(feature->id().dataSetId() == dataSetId());
-    //feature->attributes().set(FeatureAttributeKeys::StartAnimationTimeMs, timeStamp);
+    if (timeStamp == -1)
+        timeStamp = getTimeStampMs();
 
+    //feature->attributes().set(FeatureAttributeKeys::StartAnimationTimeMs, timeStamp);
     m_idToVisualizationTimeStamp[feature->id()] = timeStamp;
 }
 
 
 void DataSet::initialize(DataSetInitializationType initType)
 {
+    assert(!m_isInitialized);
     auto initWork = [this]()
     {
         init();
@@ -60,7 +63,7 @@ void DataSet::initialize(DataSetInitializationType initType)
 
 /* Returns the stored start timestamp for animated visualization if the 
 id exists, otherwise -1;*/
-int BlueMarble::DataSet::getVisualizationTimeStampForFeature(const Id& id)
+int64_t BlueMarble::DataSet::getVisualizationTimeStampForFeature(const Id& id)
 {
     auto it = m_idToVisualizationTimeStamp.find(id);
     if (it != m_idToVisualizationTimeStamp.end())
@@ -1001,6 +1004,7 @@ double GeoJsonFileDataSet::extractCoordinate(JsonValue* coordinate)
 
 MemoryDataSet::MemoryDataSet()
     : DataSet()
+    , FeatureEventPublisher(false)
     , m_features()
     , m_idToFeatureAnimation()
 {
@@ -1025,11 +1029,21 @@ void MemoryDataSet::startFeatureAnimation(FeaturePtr feature)
     startFeatureAnimation(feature, from, to);
 }
 
-void BlueMarble::MemoryDataSet::startFeatureAnimation(FeaturePtr feature, const Point& from, const Point& to)
+void MemoryDataSet::startFeatureAnimation(FeaturePtr feature, const Point& from, const Point& to)
 {
     assert(feature->id().dataSetId() == dataSetId());
-    auto animation = std::make_shared<FeatureAnimation>(feature, from, to);
+    auto animation = std::make_shared<SinusoidalFeatureAnimation>(feature, from, to);
     m_idToFeatureAnimation[feature->id()] = animation;
+}
+
+// Currently only for triggering the onFeatureUpdated event
+void MemoryDataSet::triggerFeatureUpdated(const FeaturePtr& feature)
+{
+    assert(feature->id().dataSetId() == dataSetId());
+    if (featureEventsEnabled())
+    {
+        sendOnFeatureUpdated(feature);
+    }
 }
 
 void MemoryDataSet::init()
@@ -1039,17 +1053,28 @@ void MemoryDataSet::init()
 
 void MemoryDataSet::addFeature(FeaturePtr feature)
 {
+    assert(feature->id().dataSetId() == dataSetId());
+
     m_features.add(feature);
+
+    if (featureEventsEnabled())
+        sendOnFeatureCreated(feature);
 }
 
 
 void MemoryDataSet::removeFeature(const Id &id)
 {
+    assert(id.dataSetId() == dataSetId());
+
     m_features.remove(id);
+
+    if (featureEventsEnabled())
+        sendOnFeatureDeleted(id);
 }
 
 void MemoryDataSet::onUpdateRequest(Map& map, const Rectangle &updateArea, FeatureHandler *handler)
 {
+    // TODO: feature animations should be performed before the OnUpdating event, not during rendering
     int timeStampMs = map.updateAttributes().get<int>(UpdateAttributeKeys::UpdateTimeMs);
     for (const auto& it : m_idToFeatureAnimation)
     {
@@ -1073,4 +1098,108 @@ void MemoryDataSet::onUpdateRequest(Map& map, const Rectangle &updateArea, Featu
     }
 
     handler->onFeatureInput(map, features);
+}
+
+FeatureEventPublisher::FeatureEventPublisher(bool eventsEnabled)
+{
+    featureEventsEnabled(eventsEnabled);
+}
+
+void FeatureEventPublisher::addFeatureEventListener(IFeatureEventListener *listener, const Id &id)
+{
+    assert(featureEventsEnabled());
+
+    auto it = m_listeners.find(id);
+    if (it == m_listeners.end())
+    {
+        // No listeners exist. Create a new vector and add the listener
+        m_listeners[id] = std::vector<IFeatureEventListener*>{listener};
+        return;
+    }
+
+    // Listeners exist. Make sure it is not a double registration
+    auto& listeners = it->second;
+    for (auto l : listeners)
+    {
+        assert(l != listener);
+    }
+
+    // All ok. Add the listener
+    listeners.push_back(listener);
+}
+
+void FeatureEventPublisher::removeFeatureEventListener(IFeatureEventListener* listener, const Id& id)
+{
+    assert(m_eventsEnabled);
+    auto it = m_listeners.find(id);
+    assert(it != m_listeners.end());
+
+    auto& listeners = it->second;
+    for (auto it2=listeners.begin(); it2!=listeners.end(); it2++)
+    {
+        if (*it2 == listener)
+        {
+            listeners.erase(it2);
+            return;
+        }
+    }
+
+    // Listener not found.
+    std::cout << "FeatureEventPublisher::removeFeatureEventListener() called for a listener that is not registered.\n";
+    throw std::exception();
+}
+
+
+bool FeatureEventPublisher::featureEventsEnabled()
+{
+    return m_eventsEnabled;
+}
+
+
+void FeatureEventPublisher::featureEventsEnabled(bool enabled)
+{
+    m_eventsEnabled = enabled;
+}
+
+
+void FeatureEventPublisher::sendOnFeatureCreated(const FeaturePtr& feature) const
+{
+    assert(m_eventsEnabled);
+    auto it = m_listeners.find(feature->id());
+    if (it == m_listeners.end())
+        return;
+
+    auto& listeners = it->second;
+    for (auto listener : listeners)
+    {
+        listener->onFeatureCreated(feature);
+    }
+}
+
+void FeatureEventPublisher::sendOnFeatureUpdated(const FeaturePtr& feature) const
+{
+    assert(m_eventsEnabled);
+    auto it = m_listeners.find(feature->id());
+    if (it == m_listeners.end())
+        return;
+
+    auto& listeners = it->second;
+    for (auto listener : listeners)
+    {
+        listener->onFeatureUpdated(feature);
+    }
+}
+
+void FeatureEventPublisher::sendOnFeatureDeleted(const Id& id) const
+{
+    assert(m_eventsEnabled);
+    auto it = m_listeners.find(id);
+    if (it == m_listeners.end())
+        return;
+
+    auto& listeners = it->second;
+    for (auto listener : listeners)
+    {
+        listener->onFeatureDeleted(id);
+    }
 }

@@ -62,7 +62,7 @@ namespace BlueMarble
     class Drawable
     {
         public:
-            Drawable(int width, int height);
+            Drawable(int width, int height, int colorDepth=3);
             Drawable(const Drawable& drawable) = delete;
             
             // Properties

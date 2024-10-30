@@ -98,6 +98,7 @@ namespace BlueMarble
 
             // Operations
             void panBy(const Point& deltaScreen, bool animate=false);
+            void panTo(const Point& mapPoint, bool animate=false);
             void zoomTo(const Point& mapPoint, double newScale, bool animate=false);
             void zoomOn(const Point& mapPoint, double zoomFactor, bool animate=false);
             void zoomToArea(const Rectangle& bounds, bool animate=false);
@@ -169,7 +170,7 @@ namespace BlueMarble
             bool undoCommand();
             bool& showDebugInfo() { return m_showDebugInfo; }
         private:
-            void updateUpdateAttributes(int timeStampMs);
+            void updateUpdateAttributes(int64_t timeStampMs);
             void beforeRender();
             void afterRender();
             
@@ -209,6 +210,7 @@ namespace BlueMarble
             MapCommand*                     m_commmand;
 
             bool m_showDebugInfo;
+            bool m_isUpdating; // Not allowed to call update() within an update() call
     };
 
 }

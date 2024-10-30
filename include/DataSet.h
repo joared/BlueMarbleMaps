@@ -41,14 +41,14 @@ namespace BlueMarble
             const DataSetId& dataSetId() { return m_dataSetId; }
             bool isInitialized() { return m_isInitialized; }
             void initialize(DataSetInitializationType initType = DataSetInitializationType::BackgroundThread);
-            int getVisualizationTimeStampForFeature(const Id& id);
-            void restartVisualizationAnimation(FeaturePtr feature, int timeStamp = getTimeStampMs());
+            int64_t getVisualizationTimeStampForFeature(const Id& id);
+            void restartVisualizationAnimation(FeaturePtr feature, int64_t timeStamp = -1);
         protected:
             virtual void init() = 0;
         private:
             DataSetId        m_dataSetId;
             std::atomic_bool m_isInitialized;
-            std::map<Id, int> m_idToVisualizationTimeStamp;
+            std::map<Id, int64_t> m_idToVisualizationTimeStamp;
     };
 
 
@@ -132,7 +132,34 @@ namespace BlueMarble
             double extractCoordinate(JsonValue* coordinate);
     };
 
-    class MemoryDataSet : public DataSet
+    class IFeatureEventListener
+    {
+        public:
+            virtual void onFeatureCreated(const FeaturePtr& feature) = 0;
+            virtual void onFeatureUpdated(const FeaturePtr& feature) = 0;
+            virtual void onFeatureDeleted(const Id& id) = 0;
+    };
+
+    class FeatureEventPublisher
+    {
+        public:
+            FeatureEventPublisher(bool eventsEnabled);
+            void addFeatureEventListener(IFeatureEventListener* listener, const Id& id);
+            void removeFeatureEventListener(IFeatureEventListener* listener, const Id& id);
+            bool featureEventsEnabled();
+            void featureEventsEnabled(bool enabled);
+        protected:
+            void sendOnFeatureCreated(const FeaturePtr& feature) const;
+            void sendOnFeatureUpdated(const FeaturePtr& feature) const;
+            void sendOnFeatureDeleted(const Id& id) const;
+        private:
+            std::map<Id, std::vector<IFeatureEventListener*>> m_listeners;
+            bool m_eventsEnabled;
+    };
+
+    class MemoryDataSet 
+        : public DataSet
+        , public FeatureEventPublisher
     {
         public:
             MemoryDataSet();
@@ -143,12 +170,14 @@ namespace BlueMarble
             FeaturePtr onGetFeatureRequest(const Id& id) override final;
             void startFeatureAnimation(FeaturePtr feature);
             void startFeatureAnimation(FeaturePtr feature, const Point& from, const Point& to);
+            void triggerFeatureUpdated(const FeaturePtr& id);
         protected:
             void init() override final;
         private:
             FeatureCollection m_features;
             std::map<Id, FeatureAnimationPtr> m_idToFeatureAnimation;
     };
+    typedef std::shared_ptr<MemoryDataSet> MemoryDataSetPtr;
 
 }
 

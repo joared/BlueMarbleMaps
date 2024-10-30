@@ -43,11 +43,22 @@ int Raster::height() const
     return m_img.height();
 }
 
+int BlueMarble::Raster::colorDepth() const
+{
+    return m_img.spectrum();
+}
+
 void Raster::resize(int width, int height, ResizeInterpolation interpolation)
 {
     int interpolationType = (int)interpolation;
     // interpolationType = interpolationType == 0 ? -1 : interpolationType; // -1 does not work as I expect
     m_img.resize(width, height, -100, -100, interpolationType);
+}
+
+void Raster::rotate(double angle, int cx, int cy, ResizeInterpolation interpolation)
+{
+    int interpolationType = (int)interpolation;
+    m_img.rotate(angle, cx, cy, interpolationType, 0);
 }
 
 void Raster::fill(int val)

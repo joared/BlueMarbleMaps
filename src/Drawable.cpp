@@ -19,8 +19,8 @@ namespace BlueMarble
     //         void* getImage();
     // };
 
-    Drawable::Drawable(int width, int height)
-        : m_impl(new Impl(width, height))
+    Drawable::Drawable(int width, int height, int colorDepth)
+        : m_impl(new Impl(width, height, colorDepth))
     {}
 
     // Nedded for incomplete type error?

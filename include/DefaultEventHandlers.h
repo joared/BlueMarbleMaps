@@ -152,6 +152,7 @@ namespace BlueMarble
     class PanEventHandler 
         : public BlueMarble::EventHandler
         , public BlueMarble::MapEventHandler
+        , public IFeatureEventListener
     {
         public:
             PanEventHandler(BlueMarble::Map& map, DataSet& geoGuessDataSet) 
@@ -163,6 +164,7 @@ namespace BlueMarble
                 , m_geoGuessGame(map, geoGuessDataSet)
                 , m_dataSetsInitialized(false)
                 , m_dataSetsToInitialize()
+                , m_featureToFollow(nullptr)
             {
                 m_cutoff = 150;
                 int reserveAmount = (int)(m_cutoff / 16.0) + 1;
@@ -190,7 +192,13 @@ namespace BlueMarble
 
             void OnUpdating(BlueMarble::Map& /*map*/) override final 
             {
-
+                if (m_featureToFollow)
+                {
+                    auto to = m_map.lngLatToScreen(m_featureToFollow->center());
+                    auto curr = m_map.screenCenter();
+                    double aggression = 0.1; // 0-1
+                    m_map.panBy((to-curr)*aggression, false);
+                }
             }
 
             void drawRect(const BlueMarble::Rectangle& bounds)
@@ -283,6 +291,19 @@ namespace BlueMarble
 
             }
 
+            void onFeatureCreated(const FeaturePtr& /*feature*/) override final {}
+            void onFeatureUpdated(const FeaturePtr& feature) override final
+            {
+                // Perform zoom/pan in OnUpdated instead
+            }
+            void onFeatureDeleted(const Id& id) override final
+            {
+                auto dataSet = std::dynamic_pointer_cast<MemoryDataSet>(DataSet::getDataSetById(id.dataSetId()));
+                assert(dataSet != nullptr);
+                dataSet->removeFeatureEventListener(this, id);
+                m_featureToFollow = nullptr;
+            }
+
             bool OnKeyDown(const BlueMarble::KeyDownEvent& event)
             {
                 BlueMarble::Point direction;
@@ -311,8 +332,29 @@ namespace BlueMarble
                     break;
                 case BlueMarble::KeyButton::Space:
                 {
+                    // First see if there is One feature we can follow
+                    if (m_featureToFollow)
+                    {
+                        onFeatureDeleted(m_featureToFollow->id());
+                        return true;
+                    }
+
+                    if (m_map.selected().size() == 1)
+                    {
+                        auto id = m_map.selected()[0];
+                        auto f = m_map.getFeature(id);
+                        if (auto dataSet = std::dynamic_pointer_cast<MemoryDataSet>(DataSet::getDataSetById(id.dataSetId())))
+                        {
+                            dataSet->featureEventsEnabled(true);
+                            dataSet->addFeatureEventListener(this, id);
+                            m_featureToFollow = f;
+                            return true;
+                        }
+                    }
+                    
                     if (m_map.selected().size() > 0)
                     {
+                        // Get a list of all boundary points for all features 
                         auto pointList = std::vector<Point>();
                         for (auto id : m_map.selected()) 
                         { 
@@ -614,6 +656,7 @@ namespace BlueMarble
                         {
                             m_map.panBy({(double)(dragEvent.lastPos.x - dragEvent.pos.x), 
                                         (double)(dragEvent.lastPos.y - dragEvent.pos.y)});
+                            m_map.update(true);
                         }
                         
                         break;
@@ -626,6 +669,7 @@ namespace BlueMarble
                         double scale = 1 + abs(deltaY)*ZOOM_SCALE;
                         double zoomFactor = deltaY > 0 ? scale : 1.0/scale;
                         m_map.zoomOn(mapPoint, zoomFactor);
+                        m_map.update(true);
                         break;
                     }
                 case BlueMarble::MouseButtonMiddle:
@@ -785,7 +829,8 @@ namespace BlueMarble
             bool m_dataSetsInitialized;
             std::vector<AbstractFileDataSet*> m_dataSetsToInitialize;
             MemoryDataSet*                    m_markerDataSet;          
-            FeaturePtr                        m_markerFeature;                
+            FeaturePtr                        m_markerFeature;  
+            FeaturePtr                        m_featureToFollow;                
     };
 
 }

@@ -64,8 +64,8 @@ class DebugDataSet : public BlueMarble::DataSet
 void setupMarkerLayerVisualization(BlueMarble::Layer& layer)
 {
     auto symVis1 = std::make_shared<BlueMarble::SymbolVisualizer>();
-    symVis1->color([](auto, auto) { return BlueMarble::Color::black(0.5); });
-    symVis1->size([] (FeaturePtr feature, Attributes& updateAttributes) { 
+    symVis1->color(ColorEvaluation([](auto, auto) { return BlueMarble::Color::black(0.5); }));
+    symVis1->size([] (const FeaturePtr& feature, Attributes& updateAttributes) { 
         static auto from = DirectDoubleAttributeVariable(0.0);
         static auto to = DirectDoubleAttributeVariable(15.0);
         static auto value = AnimatedDoubleAttributeVariable(
@@ -77,8 +77,8 @@ void setupMarkerLayerVisualization(BlueMarble::Layer& layer)
         return value(feature, updateAttributes);
         });
     auto symVis2 = std::make_shared<BlueMarble::SymbolVisualizer>();
-    symVis2->color([](auto, auto) { return BlueMarble::Color::blue(); });
-    symVis2->size([] (FeaturePtr feature, Attributes& updateAttributes) { 
+    symVis2->color(ColorEvaluation([](auto, auto) { return BlueMarble::Color::blue(); }));
+    symVis2->size([] (const FeaturePtr& feature, Attributes& updateAttributes) { 
         static auto from = DirectDoubleAttributeVariable(0.0);
         static auto to = DirectDoubleAttributeVariable(5.0);
         static auto value = AnimatedDoubleAttributeVariable(
@@ -90,7 +90,7 @@ void setupMarkerLayerVisualization(BlueMarble::Layer& layer)
         return value(feature, updateAttributes);
         });
     auto textVis = std::make_shared<BlueMarble::TextVisualizer>();
-    textVis->text([] (FeaturePtr f, auto) 
+    textVis->text([] (const FeaturePtr& f, auto) 
     { 
         if (f->attributes().contains("LNGLAT"))
         {
@@ -114,12 +114,14 @@ void setupAirPlaneLayerVisualization(BlueMarble::Layer& layer)
     symVis1->size(DirectDoubleAttributeVariable(10));
 
     symVis1->symbol(SymbolVisualizer::Symbol("/home/joar/BlueMarbleMaps/geodata/symbols/airplane.png", HotSpotAlignments::Center));
-    symVis1->size([] (FeaturePtr /*f*/, const Attributes& updateAttribbutes)
+    symVis1->size([] (const FeaturePtr& /*f*/, Attributes& updateAttribbutes)
         {
             double mapScale = updateAttribbutes.get<double>(UpdateAttributeKeys::UpdateViewScale);
             return Utils::clampValue(0.06*mapScale, 0.01, 0.06);
         }
     );
+    //symVis1->rotation([] (const FeaturePtr&, Attributes&) { return 80.0; });
+    symVis1->rotation(IndirectDoubleAttributeVariable("Rotation", 0.0));
 
     auto textSelHoverViz = std::make_shared<TextVisualizer>();
     textSelHoverViz->text(IndirectStringAttributeVariable("Name", std::string("Unknown aircraft")));
@@ -127,7 +129,7 @@ void setupAirPlaneLayerVisualization(BlueMarble::Layer& layer)
     textSelHoverViz->color(DirectColorAttributeVariable(Color::black()));
     textSelHoverViz->backgroundColor(DirectColorAttributeVariable(Color::white(0.5)));
     //symVis1->color([](auto, auto) { return BlueMarble::Color::black(0.5); });
-    // symVis1->size([] (FeaturePtr feature, Attributes& updateAttributes) { 
+    // symVis1->size([] (const FeaturePtr& feature, Attributes& updateAttributes) { 
     //     static auto from = DirectDoubleAttributeVariable(0.0);
     //     static auto to = DirectDoubleAttributeVariable(15.0);
     //     static auto value = AnimatedDoubleAttributeVariable(
@@ -141,7 +143,7 @@ void setupAirPlaneLayerVisualization(BlueMarble::Layer& layer)
     layer.visualizers().push_back(symVis1);
     layer.hoverVisualizers().push_back(textSelHoverViz);
     layer.selectionVisualizers().push_back(textSelHoverViz);
-    layer.effects().push_back(std::make_shared<BlueMarble::DropShadowEffect>(2.0, 10, 10, 0.5));
+    layer.effects().push_back(std::make_shared<BlueMarble::DropShadowEffect>(0.0, 10, 10, 0.5));
 }
 
 int main()
@@ -184,9 +186,9 @@ int main()
     svenskaStader->initialize();
     svenskaLandskapDataSet->initialize();
     markerDataSet->initialize();
-    airPlaneDataSet->initialize(); 
+    airPlaneDataSet->initialize(DataSetInitializationType::RightHereRightNow); 
     // Populate airplanes and start animations
-    for (int i=0; i < 100; i++)
+    for (int i=0; i < 10000; i++)
     {
         auto from = Point(std::rand() % 360 - 180, std::rand() % 180 - 90);
         auto to = Point(std::rand() % 360 - 180, std::rand() % 180 - 90);
@@ -272,7 +274,7 @@ int main()
         else
         {
             //eventManager.captureEvents();
-            eventManager.wait(10);
+            eventManager.wait(20);
         }
 
         if (display.is_keyP())

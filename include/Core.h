@@ -314,7 +314,7 @@ namespace BlueMarble
             bool m_isUndefined;
     };
 
-    inline int getTimeStampMs()
+    inline int64_t getTimeStampMs()
     {
         auto now = std::chrono::high_resolution_clock::now();
 
@@ -323,9 +323,9 @@ namespace BlueMarble
 
         // Get the number of milliseconds since epoch
         auto epoch = now_ms.time_since_epoch();
-        auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(epoch).count();
+        int64_t milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(epoch).count();
 
-        return (int)milliseconds;
+        return milliseconds;
     }
 } // namespace BlueMarble
 
