@@ -46,9 +46,8 @@ namespace BlueMarble
 
             void drawCircle(int x, int y, double radius, const Color& color)
             {
-                m_raster.drawCircle(x, y, radius, color);
+                m_raster.drawCircle(x, y,radius,color);
             }
-
 
             void drawLine(const std::vector<Point>& points, const Color& color, double width)
             {
@@ -79,14 +78,8 @@ namespace BlueMarble
             {
                 return m_raster;
             }
-
-        private:
-            cimg_library::CImg<unsigned char>& rasterToCImg(const Raster& raster)
-            {
-                return *static_cast<cimg_library::CImg<unsigned char>*>(raster.data());
-            }
+        private:            
             Raster m_raster;
             Color  m_backGroundColor;
-
     };
 }
