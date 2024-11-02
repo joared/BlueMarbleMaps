@@ -51,6 +51,40 @@ void Raster::drawRect(const Point& topLeft, const Point& bottomRight, const Colo
                        (float)color.a());
 }
 
+void Raster::drawText(int x, int y, const std::string& text, const Color& color, int fontSize, const Color& bcolor)
+{
+    // TODO: fix opacity/alpha stuff
+    auto& img = m_img;
+    unsigned char c[] = {color.r(), color.g(), color.b(), (unsigned char)(color.a()*255)};
+    if (bcolor.a() > 0)
+    {
+        // With background color
+        unsigned char backc[] = {bcolor.r(), bcolor.g(), bcolor.b(), (unsigned char)(bcolor.a()*255)};
+        img.draw_text(x, y, text.c_str(), backc, backc, bcolor.a(), fontSize);
+        img.draw_text(x, y, text.c_str(), c, 0, color.a(), fontSize);
+    }
+    else
+    {
+        // Without background color
+        img.draw_text(x, y, text.c_str(), c, 0, color.a(), fontSize);
+    }
+}
+
+void Raster::drawRaster(int x, int y, const Raster& raster, double alpha)
+{
+    auto& img = m_img;
+    auto& rasterImg = *static_cast<cimg_library::CImg<unsigned char>*>(raster.data());
+    if (rasterImg.spectrum() == 4)
+    {
+        //img.draw_image(x, y, rasterImg.get_shared_channels(0,2), rasterImg.get_shared_channel(3), 1.0, 255);
+        img.draw_image(x, y, rasterImg, rasterImg.get_shared_channel(3), 1.0, 255);
+    }
+    else
+    {
+        img.draw_image(x, y, 0, 0, rasterImg, alpha);
+    }
+}
+
 void Raster::drawLine(const std::vector<Point>& points, const Color& color, double width)
 {
     auto& img = m_img;
@@ -119,7 +153,12 @@ void Raster::resize(int width, int height, ResizeInterpolation interpolation)
     // interpolationType = interpolationType == 0 ? -1 : interpolationType; // -1 does not work as I expect
     m_img.resize(width, height, -100, -100, interpolationType);
 }
-
+void Raster::resize(float scaleRatio, ResizeInterpolation interpolation)
+{
+    int interpolationType = (int)interpolation;
+    // interpolationType = interpolationType == 0 ? -1 : interpolationType; // -1 does not work as I expect
+    m_img.resize(width()*scaleRatio, height()*scaleRatio, -100, -100, interpolationType);
+}
 void Raster::rotate(double angle, int cx, int cy, ResizeInterpolation interpolation)
 {
     int interpolationType = (int)interpolation;

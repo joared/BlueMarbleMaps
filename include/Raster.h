@@ -37,14 +37,17 @@ namespace BlueMarble
             int width() const;
             int height() const;
             int colorDepth() const;
-            void resize(int x, int y, ResizeInterpolation interpolation = ResizeInterpolation::NearestNeighbor);
+            void resize(int width, int height, ResizeInterpolation interpolation = ResizeInterpolation::NearestNeighbor);
+            void resize(float scaleRatio, ResizeInterpolation interpolation = ResizeInterpolation::NearestNeighbor);
             void rotate(double angle, int cx, int cy, ResizeInterpolation interpolation = ResizeInterpolation::NearestNeighbor);
             void fill(int val);
             void blur(double sigmaX, double sigmaY, double sigmaZ, bool isGaussian=false);
             Raster getCrop(int x0, int y0, int x1, int y1);
             void drawPolygon(const std::vector<Point>& points, const Color& color);
+            void drawRaster(int x, int y, const Raster& raster, double alpha);
             void drawRect(const Point& topLeft, const Point& bottomRight, const Color& color);
             void drawLine(const std::vector<Point>& points, const Color& color, double width);
+            void drawText(int x, int y, const std::string& text, const Color& color, int fontSize, const Color& bcolor);
             void drawCircle(int x, int y, double radius, const Color& color);
             void* data() const; // Specific implementation for used framework (e.g. CImg)
         private:

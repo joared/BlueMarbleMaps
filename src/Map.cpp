@@ -104,6 +104,14 @@ bool Map::update(bool forceUpdate)
     Point point2(1000,1000);
     Color rectColor(50,0,100);
     m_drawable.drawRect(point1, point2, rectColor);
+    m_drawable.drawText(500,500,"ello",Color::white(),50, color);
+    m_drawable.drawText(900,500,"ello",rectColor,100);
+    Raster raster0("/home/joar/BlueMarbleMaps/geodata/symbols/funny_dude.png");
+    Raster raster1("/home/joar/BlueMarbleMaps/geodata/symbols/funny_dude.png");
+    raster0.resize(0.5f);
+    raster1.resize(100,100);
+    m_drawable.drawRaster(750,500,raster0,1);
+    m_drawable.drawRaster(500,500,raster1,1);
     afterRender();
 
     m_drawable.drawPolygon(polyPoints, color);

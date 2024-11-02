@@ -49,6 +49,7 @@ namespace BlueMarble
                 m_raster.drawCircle(x, y, radius, color);
             }
 
+
             void drawLine(const std::vector<Point>& points, const Color& color, double width)
             {
                 m_raster.drawLine(points,color,width);
@@ -66,38 +67,12 @@ namespace BlueMarble
 
             void drawRaster(int x, int y, const Raster& raster, double alpha)
             {
-                auto& img = rasterToCImg(m_raster);
-                auto& rasterImg = rasterToCImg(raster);
-
-                if (rasterImg.spectrum() == 4)
-                {
-                    //img.draw_image(x, y, rasterImg.get_shared_channels(0,2), rasterImg.get_shared_channel(3), 1.0, 255);
-                    img.draw_image(x, y, rasterImg, rasterImg.get_shared_channel(3), 1.0, 255);
-                }
-                else
-                {
-                    img.draw_image(x, y, 0, 0, rasterImg, alpha);
-                }
+                m_raster.drawRaster(x,y,raster,alpha);
             }
 
             void drawText(int x, int y, const std::string& text, const Color& color, int fontSize, const Color& bcolor)
             {
-                // TODO: fix opacity/alpha stuff
-                auto& img = rasterToCImg(m_raster);
-                unsigned char c[] = {color.r(), color.g(), color.b(), (unsigned char)(color.a()*255)};
-                if (bcolor.a() > 0)
-                {
-                    // With background color
-                    unsigned char backc[] = {bcolor.r(), bcolor.g(), bcolor.b(), (unsigned char)(bcolor.a()*255)};
-
-                    img.draw_text(x, y, text.c_str(), backc, backc, bcolor.a(), fontSize);
-                    img.draw_text(x, y, text.c_str(), c, 0, color.a(), fontSize);
-                }
-                else
-                {
-                    // Without background color
-                    img.draw_text(x, y, text.c_str(), c, 0, color.a(), fontSize);
-                }
+                m_raster.drawText(x,y,text,color,fontSize,bcolor);
             }
 
             Raster& getRaster()
