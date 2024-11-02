@@ -48,7 +48,6 @@ set(SOURCES
     ${SRC_DIR}/Thread.cpp
     ${SRC_DIR}/EngineObject.cpp
     ${SRC_DIR}/LabelOrganizer.cpp
-    ${SRC_DIR}/PerformanceMonitor.cpp
     ${SRC_DIR}/FeatureAnimation.cpp
     ${SRC_DIR}/Effect.cpp
 )

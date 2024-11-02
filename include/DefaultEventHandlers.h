@@ -5,9 +5,6 @@
 #include "EventHandler.h"
 #include "Map.h"
 #include "Core.h"
-#include "GeoGuessGame.h"
-
-
 
 namespace BlueMarble
 {

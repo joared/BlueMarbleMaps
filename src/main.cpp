@@ -25,7 +25,7 @@ int main()
     
     auto backgroundDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/geodata/NE1_50M_SR_W/NE1_50M_SR_W.tif");
     
-    backgroundDataSet->initialize(DataSetInitializationType::RightHereRightNow);
+    backgroundDataSet->initialize(BlueMarble::DataSetInitializationType::RightHereRightNow);
 
     auto backgroundLayer = BlueMarble::Layer();
     backgroundLayer.addUpdateHandler(backgroundDataSet.get());
