@@ -61,17 +61,7 @@ namespace BlueMarble
 
             void drawRect(const Point& topLeft, const Point& bottomRight, const Color& color)
             {
-                auto topLeftRounded = topLeft.round();
-                auto bottomRightRounded = bottomRight.round();
-                auto& img = rasterToCImg(m_raster);
-                unsigned char c[] = {color.r(), color.g(), color.b(), (unsigned char)(color.a()*255)};
-
-                img.draw_rectangle(topLeftRounded.x(), 
-                                   topLeftRounded.y(), 
-                                   bottomRightRounded.x(), 
-                                   bottomRightRounded.y(), 
-                                   c, 
-                                   (float)color.a());
+                m_raster.drawRect(topLeft, bottomRight, color);
             }
 
             void drawRaster(int x, int y, const Raster& raster, double alpha)

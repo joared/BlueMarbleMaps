@@ -98,6 +98,12 @@ bool Map::update(bool forceUpdate)
     polyPoints.push_back(Point(1500,1000));
     polyPoints.push_back(Point(1500,1500));
     polyPoints.push_back(Point(1000,1500));
+
+    std::vector<Point> rectPoints;
+    Point point1(750,750);
+    Point point2(1000,1000);
+    Color rectColor(50,0,100);
+    m_drawable.drawRect(point1, point2, rectColor);
     afterRender();
 
     m_drawable.drawPolygon(polyPoints, color);

@@ -37,6 +37,20 @@ int Raster::width() const
     return m_img.width();
 }
 
+void Raster::drawRect(const Point& topLeft, const Point& bottomRight, const Color& color)
+{
+    auto topLeftRounded = topLeft.round();
+    auto bottomRightRounded = bottomRight.round();
+    auto& img = m_img;
+    unsigned char c[] = {color.r(), color.g(), color.b(), (unsigned char)(color.a()*255)};
+    img.draw_rectangle(topLeftRounded.x(), 
+                       topLeftRounded.y(), 
+                       bottomRightRounded.x(), 
+                       bottomRightRounded.y(), 
+                       c, 
+                       (float)color.a());
+}
+
 void Raster::drawLine(const std::vector<Point>& points, const Color& color, double width)
 {
     auto& img = m_img;
