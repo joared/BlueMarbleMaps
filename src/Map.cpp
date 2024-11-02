@@ -59,7 +59,7 @@ Map::Map(cimg_library::CImgDisplay& disp)
 
 bool Map::update(bool forceUpdate)
 {   
-    assert(!m_isUpdating);
+    //assert(!m_isUpdating);
     m_isUpdating = true;
     // TODO: should be handled as int64_t
     int timeStampMs = getTimeStampMs();
@@ -742,10 +742,10 @@ const Point Map::mapToLngLat(const Point& mapPoint, bool normalize)
     // Line 4: negative length of a pixel in the y direction (vertical)
     // Line 5: x coordinate at the center of the pixel in the top left corner of the image
     // Line 6: y coordinate at the center of the pixel in the top left corner of the image
-    double xPixLen = 0.02222222222222;
-    double yPixLen = -0.02222222222222;
-    double xTopLeft = -179.98888888888889;
-    double yTopLeft = 89.98888888888889;
+    double xPixLen = 0.03333333333333;
+    double yPixLen = -0.03333333333333;
+    double xTopLeft = -179.98333333333333;
+    double yTopLeft = 89.98333333333333;
 
     // The origin is defined at the center of the top left pixel.
     // Map coordinates (image coordinates) are currently center in the top left corner
@@ -766,10 +766,10 @@ const Point Map::mapToLngLat(const Point& mapPoint, bool normalize)
 
 const Point BlueMarble::Map::lngLatToMap(const Point &lngLat)
 {
-    double xPixLen = 0.02222222222222;
-    double yPixLen = -0.02222222222222;
-    double xTopLeft = -179.98888888888889;
-    double yTopLeft = 89.98888888888889;
+    double xPixLen = 0.03333333333333;
+    double yPixLen = -0.03333333333333;
+    double xTopLeft = -179.98333333333333;
+    double yTopLeft = 89.98333333333333;
 
     double x = (lngLat.x() - xTopLeft) / xPixLen + 0.5;
     double y = (lngLat.y() - yTopLeft) / yPixLen + 0.5;
