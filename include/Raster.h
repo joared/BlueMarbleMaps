@@ -1,6 +1,8 @@
 #ifndef RASTER
 #define RASTER
 
+#include "Color.h"
+
 #include <string>
 
 #include <CImg.h> // TODO: remove this dependency when implementing pimpl
@@ -40,6 +42,9 @@ namespace BlueMarble
             void fill(int val);
             void blur(double sigmaX, double sigmaY, double sigmaZ, bool isGaussian=false);
             Raster getCrop(int x0, int y0, int x1, int y1);
+            void drawPolygon(const std::vector<Point>& points, const Color& color);
+            void drawLine(const std::vector<Point>& points, const Color& color, double width);
+            void drawCircle(int x, int y, double radius, const Color& color);
             void* data() const; // Specific implementation for used framework (e.g. CImg)
         private:
             cimg_library::CImg<unsigned char> m_img; // TODO: remove this dependency when implementing pimpl

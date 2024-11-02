@@ -86,7 +86,21 @@ bool Map::update(bool forceUpdate)
     sendOnCustomDraw(*this);
     if (m_showDebugInfo)
         drawDebugInfo(getTimeStampMs() - timeStampMs);
+
+    Color color(0,0,0);
+    m_drawable.drawCircle(100, 100, 10, Color(0,0,0));
+    std::vector<Point> points;
+    points.push_back(Point(0,0));
+    points.push_back(Point(500,500));
+    m_drawable.drawLine(points,color,20);
+    std::vector<Point> polyPoints;
+    polyPoints.push_back(Point(1000,1000));
+    polyPoints.push_back(Point(1500,1000));
+    polyPoints.push_back(Point(1500,1500));
+    polyPoints.push_back(Point(1000,1500));
     afterRender();
+
+    m_drawable.drawPolygon(polyPoints, color);
     sendOnUpdated(*this);
     
     m_updateRequired = m_updateAttributes.get<bool>(UpdateAttributeKeys::UpdateRequired); // Someone in the operator chain needs more updates (e.g. Visualization evaluations)

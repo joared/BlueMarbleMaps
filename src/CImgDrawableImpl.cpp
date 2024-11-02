@@ -46,62 +46,17 @@ namespace BlueMarble
 
             void drawCircle(int x, int y, double radius, const Color& color)
             {
-                auto& img = rasterToCImg(m_raster);
-                unsigned char c[] = {color.r(), color.g(), color.b(), (unsigned char)(color.a()*255)};
-                img.draw_circle(x, y, radius, c, color.a());
+                m_raster.drawCircle(x, y, radius, color);
             }
 
             void drawLine(const std::vector<Point>& points, const Color& color, double width)
             {
-                auto img = static_cast<cimg_library::CImg<unsigned char>*>(m_raster.data());
-
-                unsigned char c[] = {color.r(), color.g(), color.b(), (unsigned char)(color.a()*255)};
-                int size = points.size();
-                auto line = points;
-                for (int i(0); i < size-1; ++i)
-                {
-                    auto& p1 = line[i];
-                    auto& p2 = line[i+1];
-                    int x0 = std::round(p1.x());
-                    int y0 = std::round(p1.y());
-                    int x1 = std::round(p2.x());
-                    int y1 = std::round(p2.y());
-                    if (width <= 1.0)
-                        img->draw_line(x0, y0, x1, y1, c, color.a());
-                    else
-                    {
-                        // Draw the line as a polygon
-                        auto start = Point(x0, y0);
-                        auto end = Point(x1, y1);
-                        auto v = (end-start).norm();    // unit vector parallell to line
-                        auto v2 = Point(-v.y(), v.x()); // unit vector norm to the line
-                        
-                        std::vector<Point> polygon;
-                        polygon.push_back(start + v2*width*0.5);
-                        polygon.push_back(start - v2*width*0.5);
-                        polygon.push_back(end - v2*width*0.5);
-                        polygon.push_back(end + v2*width*0.5);
-                        drawPolygon(polygon, color);
-                    }
-                }
+                m_raster.drawLine(points,color,width);
             }
 
             void drawPolygon(const std::vector<Point>& points, const Color& color)
             {
-                assert(points.size() > 2);
-
-                auto iterator = points.begin();
-                cimg_library::CImg<int> pointsCImg(points.size(),2);
-                cimg_forX(pointsCImg,i) 
-                { 
-                    auto& p = *(iterator++);
-                    pointsCImg(i,0) = p.x(); 
-                    pointsCImg(i,1) = p.y(); 
-                }
-                
-                auto& img = rasterToCImg(m_raster);
-                unsigned char c[] = {color.r(), color.g(), color.b(), (unsigned char)(color.a()*255)};
-                img.draw_polygon(pointsCImg, c, color.a()); // .display();
+                m_raster.drawPolygon(points,color);
             }
 
             void drawRect(const Point& topLeft, const Point& bottomRight, const Color& color)
