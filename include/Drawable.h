@@ -16,7 +16,6 @@ namespace BlueMarble
         public:
             Drawable(int width, int height, int colorDepth=3);
             Drawable(const Drawable& drawable) = delete;
-            
             // Properties
             int width() const;
             int height() const;
@@ -34,6 +33,8 @@ namespace BlueMarble
             void drawRaster(int x, int y, const Raster& raster, double alpha);
             void drawText(int x, int y, const std::string& text, const Color& color, int fontSize=20, const Color& backgroundColor=Color::transparent());
             Raster& getRaster();
+            void swapBuffers();
+            void* getDisplay();
         private:
             class Impl;   // Forward declaration
             Impl* m_impl; // Using "pimpl" design pattern for fun

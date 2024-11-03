@@ -10,8 +10,9 @@ namespace BlueMarble
             Impl(int width, int height, int colorDepth)
                 : m_raster(width, height, colorDepth)
                 , m_backGroundColor(Color::blue(0.5))
+                , m_disp(cimg_library::CImg<unsigned char>(), "BlueMarbleMaps Demo", 3, true, true)
             {
-
+                m_disp.resize(width, height, true);
             }
 
             void resize(int width, int height)
@@ -51,7 +52,7 @@ namespace BlueMarble
 
             void drawLine(const std::vector<Point>& points, const Color& color, double width)
             {
-                m_raster.drawLine(points,color,width);
+                m_raster.drawLine(points, color, width);
             }
 
             void drawPolygon(const std::vector<Point>& points, const Color& color)
@@ -78,8 +79,25 @@ namespace BlueMarble
             {
                 return m_raster;
             }
+
+            void swapBuffers()
+            {
+                // Update the image and save new black draw image
+                const auto& drawImg = *(cimg_library::CImg<unsigned char>*)getRaster().data();
+                m_disp.display(drawImg);
+                // Reset draw image
+                fill(150); // TODO: fill with drawable.backGroundColor()
+            }
+
+            void* getDisplay()
+            {
+                return &m_disp;
+            }
+
         private:            
             Raster m_raster;
             Color  m_backGroundColor;
+            cimg_library::CImgDisplay m_disp;
+
     };
 }

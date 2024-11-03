@@ -10,14 +10,13 @@
 
 using namespace BlueMarble;
 
-Map::Map(cimg_library::CImgDisplay& disp)
+Map::Map()
     : MapEventPublisher()
-    , m_disp(disp)
     , m_backgroundRaster("/home/joar/BlueMarbleMaps/geodata/NE1_LR_LC_SR_W/NE1_LR_LC_SR_W.tif")
-    , m_drawable(m_disp.width(), m_disp.height())
+    , m_drawable(500, 500)
     //, m_center(Point((m_backgroundRaster.width()-1)*0.5, (m_backgroundRaster.height()-1)*0.5))
     , m_center(lngLatToMap(Point(0, 0)))
-    , m_scale((double)m_disp.width() / m_backgroundRaster.width())
+    , m_scale(1.0)
     , m_rotation(0.0)
     , m_constraints(5000.0, 0.0001, Rectangle(0, 0, m_backgroundRaster.width()-1, m_backgroundRaster.height()-1))
     , m_updateRequired(true)
@@ -36,25 +35,11 @@ Map::Map(cimg_library::CImgDisplay& disp)
     , m_isUpdating(false)
     
 {   
-    m_scale = m_scale > (double)m_disp.height() / m_backgroundRaster.height() ? m_scale : (double)m_disp.height() / m_backgroundRaster.height();
     m_presentationObjects.reserve(100000); // Reserve a good amount for efficiency
     resetUpdateFlags();
     m_constraints.bounds().scale(3.0);
 
     updateUpdateAttributes(getTimeStampMs());
-
-    // std::cout << "Display: " << m_disp.width() << ", " << m_disp.height() << "\n";
-    // std::cout << "LngLat(0,0): " << m_center.x() << ", " << m_center.y() << "\n";
-
-    // Draw some info when starting up
-    std::string info = "BlueMarbleMaps";
-    int fontSize = 50;
-    int x = screenCenter().x() - fontSize*0.2*info.length();
-    int y = screenCenter().y() - fontSize;
-    m_drawable.drawText(x, y, info, Color(0,0,255), fontSize);
-    const auto& drawImg = *(cimg_library::CImg<unsigned char>*)m_drawable.getRaster().data();
-    m_disp.display(drawImg);
-    m_drawable.fill(0);
 }
 
 bool Map::update(bool forceUpdate)
@@ -182,12 +167,12 @@ void BlueMarble::Map::rotation(double rotation)
 
 double BlueMarble::Map::width() const
 {
-    return m_disp.width() / scale(); // TODO: should we use raster width instead?
+    return m_drawable.width() / scale(); // TODO: should we use raster width instead?
 }
 
 double BlueMarble::Map::height() const
 {
-    return m_disp.height() / scale(); // TODO: should we use raster height instead?
+    return m_drawable.height() / scale(); // TODO: should we use raster height instead?
 }
 
 Rectangle BlueMarble::Map::area() const
@@ -392,7 +377,7 @@ Rectangle BlueMarble::Map::mapToScreen(const Rectangle &rect) const
 
 Point Map::screenCenter() const
 {
-    return Point((m_disp.width()-1)*0.5, (m_disp.height()-1)*0.5);
+    return Point((m_drawable.width()-1)*0.5, (m_drawable.height()-1)*0.5);
 }
 
 void BlueMarble::Map::startAnimation(AnimationPtr animation)
@@ -639,13 +624,6 @@ bool BlueMarble::Map::isHovered(FeaturePtr feature)
     return isHovered(feature->id());
 }
 
-void Map::resize()
-{
-    m_drawable.resize(m_disp.width(), m_disp.height());
-    auto& drawImg = *(cimg_library::CImg<unsigned char>*)m_drawable.getRaster().data();
-    m_disp.display(drawImg);
-}
-
 BlueMarble::Drawable& Map::drawable()
 {
     // TODO: should be own m_drawable
@@ -679,11 +657,7 @@ void Map::beforeRender()
 
 void Map::afterRender()
 {
-    // Update the image and save new black draw image
-    const auto& drawImg = *(cimg_library::CImg<unsigned char>*)m_drawable.getRaster().data();
-    m_disp.display(drawImg);
-    // Reset draw image
-    m_drawable.fill(150); // TODO: fill with drawable.backGroundColor()
+    m_drawable.swapBuffers();
 }
 
 void Map::resetUpdateFlags()
@@ -726,31 +700,31 @@ bool BlueMarble::Map::undoCommand()
 
 void Map::drawDebugInfo(int elapsedMs)
 {
-    auto mouseMapPos = screenToMap(m_disp.mouse_x(), m_disp.mouse_y());
-    auto mouseLngLat = mapToLngLat(mouseMapPos);
-    auto centerLngLat = mapToLngLat(center());
-    auto screenPos = mapToScreen(mouseMapPos).round();
-    auto screenError = Point(m_disp.mouse_x()-(int)screenPos.x(), m_disp.mouse_y()-(int)screenPos.y());
-    std::string info = "Center: " + std::to_string(m_center.x()) + ", " + std::to_string(m_center.y());
-    info += "\nCenter LngLat: " + std::to_string(centerLngLat.x()) + ", " + std::to_string(centerLngLat.y());
-    info += "\nScale: " + std::to_string(m_scale);
-    info += "\nScale inv: " + std::to_string(invertedScale());
+    // auto mouseMapPos = screenToMap(m_disp.mouse_x(), m_disp.mouse_y());
+    // auto mouseLngLat = mapToLngLat(mouseMapPos);
+    // auto centerLngLat = mapToLngLat(center());
+    // auto screenPos = mapToScreen(mouseMapPos).round();
+    // auto screenError = Point(m_disp.mouse_x()-(int)screenPos.x(), m_disp.mouse_y()-(int)screenPos.y());
+    // std::string info = "Center: " + std::to_string(m_center.x()) + ", " + std::to_string(m_center.y());
+    // info += "\nCenter LngLat: " + std::to_string(centerLngLat.x()) + ", " + std::to_string(centerLngLat.y());
+    // info += "\nScale: " + std::to_string(m_scale);
+    // info += "\nScale inv: " + std::to_string(invertedScale());
     
-    if (std::abs(screenError.x()) > 0 || std::abs(screenError.y()) > 0)
-    {
-        // Only display this when error occurs
-        info += "\nMouse: " + std::to_string(m_disp.mouse_x()) + ", " + std::to_string(m_disp.mouse_y());
-        info += "\nMouseToMap: " + std::to_string(mouseMapPos.x()) + ", " + std::to_string(mouseMapPos.y());
-        info += "\nMouseToMapToMouse: " + std::to_string((int)screenPos.x()) + ", " + std::to_string((int)screenPos.y());
-        info += "\nScreen error: " + std::to_string(m_disp.mouse_x()-(int)screenPos.x()) + ", " + std::to_string(m_disp.mouse_y()-(int)screenPos.y());
-        info += "\nMouseLngLat: " + std::to_string(mouseLngLat.x()) + ", " + std::to_string(mouseLngLat.y());
-    }
+    // if (std::abs(screenError.x()) > 0 || std::abs(screenError.y()) > 0)
+    // {
+    //     // Only display this when error occurs
+    //     info += "\nMouse: " + std::to_string(m_disp.mouse_x()) + ", " + std::to_string(m_disp.mouse_y());
+    //     info += "\nMouseToMap: " + std::to_string(mouseMapPos.x()) + ", " + std::to_string(mouseMapPos.y());
+    //     info += "\nMouseToMapToMouse: " + std::to_string((int)screenPos.x()) + ", " + std::to_string((int)screenPos.y());
+    //     info += "\nScreen error: " + std::to_string(m_disp.mouse_x()-(int)screenPos.x()) + ", " + std::to_string(m_disp.mouse_y()-(int)screenPos.y());
+    //     info += "\nMouseLngLat: " + std::to_string(mouseLngLat.x()) + ", " + std::to_string(mouseLngLat.y());
+    // }
 
-    info += "\nUpdate time: " + std::to_string(elapsedMs);
-    info += "\nPresentationObjects: " + std::to_string(m_presentationObjects.size());
+    // info += "\nUpdate time: " + std::to_string(elapsedMs);
+    // info += "\nPresentationObjects: " + std::to_string(m_presentationObjects.size());
     
-    int fontSize = 16;
-    m_drawable.drawText(0, 0, info.c_str(), Color(0, 0, 0), fontSize);
+    // int fontSize = 16;
+    // m_drawable.drawText(0, 0, info.c_str(), Color(0, 0, 0), fontSize);
 }
 
 const Point Map::screenToLngLat(const Point& screenPoint)

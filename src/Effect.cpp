@@ -34,7 +34,7 @@ void DropShadowEffect::apply(Drawable& drawable, Raster &raster)
     // background.draw_image(m_offsetX, m_offsetY, shadow, shadowAlpha, 1, 255);
     // background.draw_image(0, 0, img, img.get_shared_channel(3), 1, 255);
 
-    auto& img = *static_cast<cimg_library::CImg<unsigned char>*>(raster.data());
+    /*auto& img = *static_cast<cimg_library::CImg<unsigned char>*>(raster.data());
     
     if (img.spectrum() != 4) {
         std::cerr << "The image does not have an alpha channel! Ensure it's RGBA.\n";
@@ -53,5 +53,5 @@ void DropShadowEffect::apply(Drawable& drawable, Raster &raster)
 
     // Draw shadow offset on output
     background.draw_image(m_offsetX, m_offsetY, shadow, shadowAlpha, 1, 255);
-    background.draw_image(0, 0, img, img.get_channel(3), 1, 255);
+    background.draw_image(0, 0, img, img.get_channel(3), 1, 255);*/
 }

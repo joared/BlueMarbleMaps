@@ -88,7 +88,6 @@ void Raster::drawRaster(int x, int y, const Raster& raster, double alpha)
 void Raster::drawLine(const std::vector<Point>& points, const Color& color, double width)
 {
     auto& img = m_img;
-
     unsigned char c[] = {color.r(), color.g(), color.b(), (unsigned char)(color.a()*255)};
     int size = points.size();
     auto line = points;

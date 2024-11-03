@@ -9,8 +9,6 @@
 #include "PresentationObject.h"
 #include "EngineObject.h"
 
-#include <CImg.h>
-
 #include <map>
 #include <functional>
 
@@ -78,7 +76,7 @@ namespace BlueMarble
                 Rectangle m_from;
         };
         public:
-            Map(cimg_library::CImgDisplay& disp);
+            Map();
             bool update(bool forceUpdate=false);
 
             void renderLayers();
@@ -157,7 +155,6 @@ namespace BlueMarble
             bool isHovered(const Id& id);
             bool isHovered(FeaturePtr feature);
 
-            void resize();
             Drawable& drawable();
 
             // Update flags
@@ -177,8 +174,6 @@ namespace BlueMarble
             void resetUpdateFlags();
 
             void drawDebugInfo(int elapsedMs);
-            
-            cimg_library::CImgDisplay& m_disp;
 
             Raster m_backgroundRaster;
             Drawable m_drawable;

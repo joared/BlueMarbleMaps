@@ -96,4 +96,13 @@ namespace BlueMarble
     {
         return m_impl->getRaster();
     }
+    void Drawable::swapBuffers()
+    {
+        m_impl->swapBuffers();
+    }
+
+    void* Drawable::getDisplay()
+    {
+        return m_impl->getDisplay();
+    }
 }

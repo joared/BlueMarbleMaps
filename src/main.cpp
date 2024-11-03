@@ -14,14 +14,9 @@ using namespace cimg_library;
 
 int main()
 {
-    // Create a display
-    CImg<unsigned char> dummy; //("/home/joar/BlueMarbleMaps/NE1_LR_LC_SR_W/NE1_LR_LC_SR_W.tif");
-    CImgDisplay display(dummy,"BlueMarbleMaps Demo", 3, true, true);
-    //display.resize(3373, 1412, true); // Full screen doesnt work, using this temporarily
-    display.resize(1500, 900, true);
-
     // New
-    BlueMarble::Map map(display);
+    BlueMarble::Map map;
+    CImgDisplay& display = *static_cast<CImgDisplay*>(map.drawable().getDisplay());
     
     auto backgroundDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/geodata/NE1_50M_SR_W/NE1_50M_SR_W.tif");
     
@@ -72,7 +67,8 @@ int main()
         {
             display.resize(display.window_width(), display.window_height());
             std::cout << "Resize: " << display.window_width() << ", " << display.window_height() << "\n";
-            map.resize();
+            //map.resize(display.window_width(), display.window_height());
+            map.drawable().resize(display.window_width(), display.window_height());
             requireUpdate = map.update(true);
         }
         else
