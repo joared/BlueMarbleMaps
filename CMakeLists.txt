@@ -68,6 +68,40 @@ target_include_directories(ExampleDropShadow
 )
 target_link_libraries(ExampleDropShadow PRIVATE CImgLib)
 
+#cmake_policy(SET CMP0072 NEW)
+find_package(glfw3 REQUIRED)
+find_package(OpenGL REQUIRED)
+
+add_executable(ExampleGLFW ${EXAMPLES_DIR}/example_glfw.cpp ${EXAMPLES_DIR}/khrplatform.h ${EXAMPLES_DIR}/glad.h ${EXAMPLES_DIR}/glad.c)
+target_include_directories(ExampleGLFW
+  PRIVATE ${EXAMPLES_DIR}/include
+)
+target_include_directories(ExampleGLFW
+  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(ExampleGLFW PUBLIC glfw OpenGL::GL ${CMAKE_DL_LIBS})
+
+add_executable(ExampleGLFW2 ${EXAMPLES_DIR}/example_glfw_2.cpp ${EXAMPLES_DIR}/khrplatform.h ${EXAMPLES_DIR}/glad.h ${EXAMPLES_DIR}/glad.c)
+target_include_directories(ExampleGLFW2
+  PRIVATE ${EXAMPLES_DIR}/include
+)
+target_include_directories(ExampleGLFW2
+  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(ExampleGLFW2 PUBLIC glfw OpenGL::GL ${CMAKE_DL_LIBS})
+
+
+
+add_executable(ExampleTexture ${EXAMPLES_DIR}/example_texture.cpp ${EXAMPLES_DIR}/khrplatform.h ${EXAMPLES_DIR}/glad.h ${EXAMPLES_DIR}/glad.c ${EXAMPLES_DIR}/Texture.h ${EXAMPLES_DIR}/OpenGLTexture.h ${EXAMPLES_DIR}/OpenGLTexture.cpp ${EXAMPLES_DIR}/stb_image.h ${EXAMPLES_DIR}/stb_image.cpp)
+# target_include_directories(ExampleTexture
+#   PRIVATE ${EXAMPLES_DIR}/include
+# )
+target_include_directories(ExampleTexture
+  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
+  PUBLIC ${EXAMPLES_DIR}
+)
+target_link_libraries(ExampleTexture PUBLIC glfw OpenGL::GL ${CMAKE_DL_LIBS} CImgLib)
+
 # Add a library to easy link test cases
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/cimg_lib)
 #add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/matrix_lib)
