@@ -29,13 +29,12 @@ int main()
     map.addLayer(&backgroundLayer);
 
     // Setup event manager and event handlers
-    BlueMarble::CImgEventManager eventManager(display);
+    BlueMarble::CImgEventManager eventManager(map.drawable());
     auto panHandler = BlueMarble::PanEventHandler(map);
     //auto polygonHandler = BlueMarble::PolygonEventHandler(map);
     //auto testEventHandler = BlueMarble::TestEventHandler();
     eventManager.addSubscriber(&panHandler);
     
-
     // Main loop
     map.startInitialAnimation();
     bool requireUpdate = map.update();
@@ -51,25 +50,10 @@ int main()
             eventManager.wait(20);
         }
 
-        if (display.is_keyD())
+        if (eventManager.isResized())
         {
-            map.showDebugInfo() = !map.showDebugInfo();
-        }
-
-        // TODO: add as event in event manager instead
-        if (display.is_keyF11())
-        {
-            display.set_fullscreen(!display.is_fullscreen(), false);
-            display.resize(display.window_width(), display.window_height());
-        }
-
-        if (display.is_resized() || display.is_keyF11())
-        {
-            display.resize(display.window_width(), display.window_height());
-            std::cout << "Resize: " << display.window_width() << ", " << display.window_height() << "\n";
-            //map.resize(display.window_width(), display.window_height());
-            map.drawable().resize(display.window_width(), display.window_height());
             requireUpdate = map.update(true);
+            eventManager.resizeDone();
         }
         else
         {

@@ -181,14 +181,16 @@ namespace BlueMarble
             {
                 auto& drawable = m_map.drawable(); // TODO: add reference again
                 auto lineColor = BlueMarble::Color{0, 0, 0};
-                auto fillColor = BlueMarble::Color{255, 255, 255, 0.5};
+                auto fillColor = BlueMarble::Color{255, 255, 255, 0.2};
                 
 
                 std::cout << "drawRect\n";
                 drawable.drawRect(bounds, fillColor);
                 std::cout << "drawRect exit\n";
 
-                drawable.drawLine(bounds.corners(), lineColor); 
+                auto line = bounds.corners();
+                line.push_back(line[0]);
+                drawable.drawLine(line, lineColor); 
             }
 
             void OnCustomDraw(BlueMarble::Map& /*map*/) override final 

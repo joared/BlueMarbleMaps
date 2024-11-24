@@ -2,11 +2,12 @@
 
 using namespace BlueMarble;
 
-CImgEventManager::CImgEventManager(cimg_library::CImgDisplay &disp)
+CImgEventManager::CImgEventManager(Drawable &drawable)
     : EventManager()
-    , m_disp(disp)
+    , m_disp(*static_cast<cimg_library::CImgDisplay*>(drawable.getDisplay()))
     , m_timeStampMs(0)
     , m_downTimeStampMs(0)
+    , m_drawable(drawable)
 {
     reset();
 }
@@ -19,6 +20,7 @@ bool CImgEventManager::captureEvents()
     m_timeStampMs = getTimeStampMs();
     captureMouseEvents();
     captureKeyEvents();
+    resize();
     // std::cout << "Unlocking display\n";
     // cimg_library::cimg_unlock_display();
     // std::cout << "Display unlocked\n";
@@ -103,8 +105,9 @@ ModificationKey BlueMarble::CImgEventManager::getModificationKeyMask() const
     return keyMask;
 }
 
-MouseButton CImgEventManager::getMouseButton(unsigned int button)
+MouseButton CImgEventManager::getMouseButton()
 {
+    unsigned int button = m_disp.button();
     MouseButton mouseButton = MouseButtonNone;
     if (button & 0x1)
     {
@@ -269,7 +272,7 @@ bool CImgEventManager::detectDrag(const ScreenPos &startPos, const ScreenPos &cu
 
 void CImgEventManager::captureMouseEvents()
 {
-    MouseButton mouseButton = getMouseButton(m_disp.button());
+    MouseButton mouseButton = getMouseButton();
     bool mButtonChanged = mouseButtonChanged(m_lastDown, mouseButton);
     
     ScreenPos currScreenPos;
@@ -300,19 +303,29 @@ void CImgEventManager::captureMouseEvents()
 
 
     // Mouse wheel
-    if (m_disp.wheel())
+    if (int wheelDelta = getWheelDelta())
     {
         MouseWheelEvent event;
         event.mouseButton = mouseButton;
         event.pos = currScreenPos;
-        event.delta = m_disp.wheel();
+        event.delta = wheelDelta;
         dispatchEvent(event, m_timeStampMs);
 
-        m_disp.set_wheel(); // Reset the wheel counter.
+        resetWheelDelta(); // Reset the wheel counter.
     }
 }
 
-void BlueMarble::CImgEventManager::captureKeyEvents()
+int CImgEventManager::getWheelDelta()
+{
+    return m_disp.wheel();
+}
+
+void CImgEventManager::resetWheelDelta()
+{
+    m_disp.set_wheel();
+}
+
+void CImgEventManager::captureKeyEvents()
 {
     handleKey(m_disp.is_keyARROWDOWN(), KeyButton::ArrowDown);
     handleKey(m_disp.is_keyARROWUP(), KeyButton::ArrowUp);
@@ -334,16 +347,16 @@ void BlueMarble::CImgEventManager::captureKeyEvents()
     handleKey(m_disp.is_keyPADSUB(), KeyButton::Subtract);
 }
 
-void BlueMarble::CImgEventManager::handleKey(bool currDownState, KeyButton key)
+void CImgEventManager::handleKey(bool keyIsDown, KeyButton key)
 {
-    if (currDownState == m_keyButtonDownMap[key])
+    if (keyIsDown == m_keyButtonDownMap[key])
         return;
 
-    m_keyButtonDownMap[key] = currDownState;
+    m_keyButtonDownMap[key] = keyIsDown;
     ScreenPos pos;
     getMousePos(pos);
     ModificationKey modKey = getModificationKeyMask();
-    if (currDownState)
+    if (keyIsDown)
     {
         // Key down
         KeyDownEvent event;
@@ -362,3 +375,23 @@ void BlueMarble::CImgEventManager::handleKey(bool currDownState, KeyButton key)
         dispatchEvent(event, m_timeStampMs);
     }
 }
+
+void CImgEventManager::resize()
+    {
+        if (m_disp.is_resized() || m_disp.is_keyF11())
+        {
+            m_isResized = true;
+            m_disp.resize(m_disp.window_width(), m_disp.window_height());
+            std::cout << "Resize: " << m_disp.window_width() << ", " << m_disp.window_height() << "\n";
+            //map.resize(display.window_width(), display.window_height());
+            m_drawable.resize(m_disp.window_width(), m_disp.window_height());
+        }
+    }
+    bool BlueMarble::CImgEventManager::isResized()
+    {
+        return m_isResized;
+    }
+    void BlueMarble::CImgEventManager::resizeDone()
+    {
+        m_isResized = false;
+    }
