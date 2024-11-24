@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.10)
 #project(GraphicsRendererGL)
 
 find_package(GLFW3 REQUIRED)
+
 #find_package(GLAD REQUIRED)
 #find_package(GLM REQUIRED)
 
@@ -13,7 +14,7 @@ target_include_directories(GraphicsRendererGL
 
 message(STATUS "Looking for GLFW")
 
-include_directories(${GLFW3_INCLUDE_DIR})
+target_include_directories(GraphicsRendererGL PRIVATE ${GLFW3_INCLUDE_DIR})
 target_link_libraries(GraphicsRendererGL ${GLFW3_LIBRARY})
 
 message(STATUS "Looking for GLAD")

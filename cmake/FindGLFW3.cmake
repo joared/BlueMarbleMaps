@@ -17,6 +17,7 @@
 set( _glfw3_HEADER_SEARCH_DIRS
 "/usr/include"
 "/usr/local/include"
+"/usr/include/GLFW/"
 "${CMAKE_SOURCE_DIR}/includes"
 "C:/Program Files (x86)/glfw/include"
 "C:/dependencies/includes/GLFW" )
