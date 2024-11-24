@@ -70,33 +70,3 @@ target_link_libraries(ExampleDropShadow PRIVATE CImgLib)
 
 # Add a library to easy link test cases
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/cimg_lib)
-#add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/matrix_lib)
-
-# # Check if the BUILD_TESTS flag is set
-# set(BUILD_TESTS True)
-
-# if(BUILD_TESTS)
-#     # This is needed to install the test executable (dynamic linking)
-#     set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-
-#     set(TEST_MAIN tests.cpp)
-#     set(TEST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/test)
-#     set(TESTS 
-#         ${TEST_DIR}/veclib_test.cpp
-#         )
-#     # Executable for tests, linking to library
-#     add_executable(GraphicsEngineTest ${TEST_DIR}/${TEST_MAIN} ${TESTS})
-#     target_link_libraries(GraphicsEngineTest GraphicsEngineLib)
-
-#     # Locate GTest
-#     find_package(GTest REQUIRED)
-#     include_directories(${GTEST_INCLUDE_DIRS})
-
-#     target_link_libraries(GraphicsEngineTest ${GTEST_LIBRARIES} pthread)
-#     # Link the test executable with Google Test
-#     target_link_libraries(GraphicsEngineTest gtest_main)
-    
-#     # Add the test executable to CTest
-#     include(GoogleTest)
-#     gtest_discover_tests(GraphicsEngineTest)
-# endif()
