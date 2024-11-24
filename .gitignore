@@ -1,2 +1,4 @@
 geodata/*
 !geodata/.gitkeep
+*.tfw
+*.tif
