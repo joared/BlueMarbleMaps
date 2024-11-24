@@ -1,9 +1,8 @@
 # Everything from this: https://stackoverflow.com/questions/38903996/cimg-x11-linking-error-using-clion-and-cmake
 cmake_minimum_required(VERSION 3.10)
-project(CImgProject)
 
-set(CMAKE_CXX_COMPILER "g++")
-set(CMAKE_CXX_STANDARD 17)
+# set(CMAKE_CXX_COMPILER "g++")
+# set(CMAKE_CXX_STANDARD 17)
 
 add_library(CImgLib STATIC include/CImg.h dummy.cpp)
 target_include_directories(CImgLib INTERFACE include)
