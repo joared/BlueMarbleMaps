@@ -26,11 +26,11 @@ set(SOURCES
     ${SRC_DIR}/PresentationObject.cpp
     ${SRC_DIR}/Visualizer.cpp
     ${SRC_DIR}/Algorithm.cpp
-    ${SRC_DIR}/Thread.cpp
     ${SRC_DIR}/EngineObject.cpp
     ${SRC_DIR}/LabelOrganizer.cpp
     ${SRC_DIR}/FeatureAnimation.cpp
     ${SRC_DIR}/Effect.cpp
+    ${SRC_DIR}/MapControl.cpp
 )
 
 # Add the executable
