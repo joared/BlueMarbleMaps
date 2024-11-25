@@ -17,12 +17,6 @@ namespace BlueMarble
             }
     };
 
-    class OSEvent
-    {
-        public:
-            OSEvent();
-    };
-
     class EventDispatcher
     {
         public:
@@ -48,9 +42,6 @@ namespace BlueMarble
         public:
             EventManager();
             virtual bool captureEvents() = 0;
-            virtual void handleOsMessage(const OSEvent& msg) = 0;
-            virtual bool isResized() = 0;
-            virtual void resizeDone() = 0;
             void dispatchEvent(Event& event, int timeStampMs);
         protected:
             bool m_eventDispatched;

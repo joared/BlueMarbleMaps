@@ -208,6 +208,8 @@ namespace BlueMarble
             bool m_isUpdating; // Not allowed to call update() within an update() call
     };
 
+    typedef std::shared_ptr<Map> MapPtr;
+
 }
 
 #endif /* BLUEMARBLE_MAP */

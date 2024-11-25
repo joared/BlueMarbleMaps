@@ -49,17 +49,6 @@ int main()
             //eventManager.captureEvents();
             eventManager.wait(20);
         }
-
-        if (eventManager.isResized())
-        {
-            requireUpdate = map.update(true);
-            eventManager.resizeDone();
-        }
-        else
-        {
-            requireUpdate = map.update();
-        }
-        
     }
     
     return 0;

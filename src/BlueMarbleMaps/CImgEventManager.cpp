@@ -380,7 +380,6 @@ void CImgEventManager::resize()
     {
         if (m_disp.is_resized() || m_disp.is_keyF11())
         {
-            m_isResized = true;
             m_disp.resize(m_disp.window_width(), m_disp.window_height());
             std::cout << "Resize: " << m_disp.window_width() << ", " << m_disp.window_height() << "\n";
             //map.resize(display.window_width(), display.window_height());
@@ -391,12 +390,4 @@ void CImgEventManager::resize()
             event.height = m_disp.window_height();
             dispatchEvent(event, m_timeStampMs);
         }
-    }
-    bool BlueMarble::CImgEventManager::isResized()
-    {
-        return m_isResized;
-    }
-    void BlueMarble::CImgEventManager::resizeDone()
-    {
-        m_isResized = false;
     }

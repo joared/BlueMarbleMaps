@@ -18,12 +18,9 @@ class CImgEventManager
 {
     public:
         CImgEventManager(Drawable& drawable);
-        void handleOsMessage(const OSEvent& /*msg*/) override final {};
         bool captureEvents() override final;
         void wait();
         void wait(int durationMs);
-        bool isResized();
-        void resizeDone();
     private:
         void reset();
 
@@ -60,7 +57,6 @@ class CImgEventManager
         MouseButton m_lastDown;
         MouseDownEvent m_previousMouseDownEvent;
         bool m_isDragging;
-        bool m_isResized;
 
         // For key events
         std::map<KeyButton, bool> m_keyButtonDownMap;
