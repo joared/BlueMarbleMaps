@@ -1,0 +1,3 @@
+add_subdirectory(BlueMarbleMaps)
+add_subdirectory(Platform)
+add_subdirectory(rendererGL)

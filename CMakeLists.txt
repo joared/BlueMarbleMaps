@@ -30,9 +30,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -O3")
 
 # Add a library to easy link test cases
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external)
-#add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/cimg_lib)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/BlueMarbleMaps)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/examples)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/rendererGL)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 
