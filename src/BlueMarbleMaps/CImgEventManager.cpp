@@ -385,6 +385,11 @@ void CImgEventManager::resize()
             std::cout << "Resize: " << m_disp.window_width() << ", " << m_disp.window_height() << "\n";
             //map.resize(display.window_width(), display.window_height());
             m_drawable.resize(m_disp.window_width(), m_disp.window_height());
+
+            ResizeEvent event;
+            event.width = m_disp.window_width();
+            event.height = m_disp.window_height();
+            dispatchEvent(event, m_timeStampMs);
         }
     }
     bool BlueMarble::CImgEventManager::isResized()

@@ -28,6 +28,7 @@ namespace BlueMarble
 	};									\
 
 	#define EVENT_LIST(X)				\
+		X(Resize)						\
 		X(KeyDown)						\
 		X(KeyUp)						\
 		X(MouseDown)					\

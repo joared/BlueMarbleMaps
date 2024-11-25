@@ -6,6 +6,14 @@
 
 namespace BlueMarble
 {
+	class ResizeEvent : public Event
+	{
+		public:
+			DEFINE_EVENT(Resize);
+			int width;
+			int height;
+	};
+
 	class PointerEvent : public Event
 	{
 		public:

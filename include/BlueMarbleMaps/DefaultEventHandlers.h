@@ -214,6 +214,11 @@ namespace BlueMarble
 
             }
 
+            bool OnResize(const BlueMarble::ResizeEvent& event) override
+            {
+                std::cout << "Fucking resize!: " << event.width << ", " << event.height << "\n";
+            }
+
             bool OnKeyDown(const BlueMarble::KeyDownEvent& event)
             {
                 BlueMarble::Point direction;
@@ -655,6 +660,11 @@ namespace BlueMarble
                 // const BlueMarble::PointerEvent& pointerEvent = static_cast<const BlueMarble::PointerEvent&>(event);
                 // std::string button = BlueMarble::mouseButtonToString(pointerEvent.mouseButton);
                 // std::cout << button << event.toString()<< " (" << pointerEvent.pos.x << ", " << pointerEvent.pos.y << ")\n";
+
+                if (event.getType() == EventType::Resize)
+                {
+                    std::cout << "Resize!\n";
+                }
 
                 return EventHandler::handleEvent(event);
             }
