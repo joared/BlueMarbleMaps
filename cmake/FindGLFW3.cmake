@@ -20,13 +20,15 @@ set( _glfw3_HEADER_SEARCH_DIRS
 "/usr/include/GLFW/"
 "${CMAKE_SOURCE_DIR}/includes"
 "C:/Program Files (x86)/glfw/include"
-"C:/dependencies/includes/GLFW" )
+"C:/dependencies/includes/GLFW"
+"D:/programmering/dependencies/includes/glfw" )
 set( _glfw3_LIB_SEARCH_DIRS
 "/usr/lib"
 "/usr/local/lib"
 "${CMAKE_SOURCE_DIR}/lib"
 "C:/Program Files (x86)/glfw/lib-msvc110"
-"C:/dependencies/libs" )
+"C:/dependencies/libs"
+"D:/programmering/dependencies/libs" )
 
 # Check environment for root search directory
 set( _glfw3_ENV_ROOT $ENV{GLFW3_ROOT} )

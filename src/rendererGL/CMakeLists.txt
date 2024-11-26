@@ -21,7 +21,7 @@ message(STATUS "Looking for GLAD")
 
 target_link_libraries(GraphicsRendererGL Glad)
 
-#message(STATUS "Looking for GLM")
+message(STATUS "Looking for GLM")
 
-#include_directories(${GLM_INCLUDE_DIR})
+target_link_libraries(GraphicsRendererGL glm)
 
