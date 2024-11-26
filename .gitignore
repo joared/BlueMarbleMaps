@@ -3,3 +3,4 @@ geodata/*
 *.tfw
 *.tif
 build/
+*.sln
