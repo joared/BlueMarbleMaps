@@ -1,6 +1,7 @@
 #include "glad/glad.h"
 #include <glfw3.h>
 #include "glm.hpp"
+#include <iostream>
 
 int main()
 {
@@ -8,8 +9,11 @@ int main()
 	GLFWwindow* window = glfwCreateWindow(500,500,"Fuck you", nullptr,nullptr);
 	glfwMakeContextCurrent(window);
 	gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
-	while (true)
+	while (!glfwWindowShouldClose(window))
 	{
-
+		// Keep running
+		double fuck = glm::acos(0.1);
+		std::cout << fuck << "\n";
+		glfwPollEvents();
 	}
 }
