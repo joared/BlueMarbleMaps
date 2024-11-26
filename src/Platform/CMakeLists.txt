@@ -1,1 +1,1 @@
-#add_subdirectory(CImg)
+add_subdirectory(CImg/src)

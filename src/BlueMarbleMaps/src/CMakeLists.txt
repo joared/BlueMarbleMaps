@@ -14,8 +14,6 @@ set(SOURCES
     ${SRC_DIR}/Animation.cpp
     ${SRC_DIR}/EventHandler.cpp
     ${SRC_DIR}/Event.cpp
-    ${SRC_DIR}/CImgEventManager.cpp
-    ${SRC_DIR}/CImgRaster.cpp
     ${SRC_DIR}/Drawable.cpp
     ${SRC_DIR}/Layer.cpp
     ${SRC_DIR}/DataSet.cpp
@@ -39,5 +37,12 @@ add_executable(BlueMarbleMaps ${SRC_DIR}/${SRC_MAIN} ${SOURCES})
 target_include_directories(BlueMarbleMaps
   PRIVATE ${CMAKE_SOURCE_DIR}/include/BlueMarbleMaps
 )
-# Link
-target_link_libraries(BlueMarbleMaps PRIVATE CImgLib)
+option(USE_CIMG "Enable CImg-based implementation" ON)
+if(USE_CIMG)
+    #add_subdirectory(implementations/cimg)
+    message("Linking to CImgLib")
+    target_link_libraries(BlueMarbleMaps CImgLib)
+    message("Linking to CImgImplementation")
+    target_link_libraries(BlueMarbleMaps CImgImplementation)
+endif()
+
