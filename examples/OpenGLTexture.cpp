@@ -2,6 +2,7 @@
 #include <CImg.h>
 #include <cassert>
 #include "stb_image.h"
+#include <vector>
 
 using namespace BlueMarble;
 
@@ -21,23 +22,43 @@ using namespace BlueMarble;
 // 		glTextureParameteri(m_RendererID, GL_TEXTURE_WRAP_T, GL_REPEAT);
 // 	}
 
+void convertCImgToOpenGL(cimg_library::CImg<unsigned char>& cimgImage, 
+                         unsigned char* openglData, 
+                         int width, int height, int channels) 
+{
+    cimgImage.mirror('y');
+    for (int c = 0; c < channels; ++c) {
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                // Compute OpenGL index (row-major order)
+                int openglIndex = (y * width + x) * channels + c;
+                
+                // Copy data
+                openglData[openglIndex] = cimgImage(x,y,0,c);
+            }
+        }
+    }
+}
+
 OpenGLTexture::OpenGLTexture(const std::string& path)
     : m_Path(path)
 {
     int width, height, channels;
 
     // CIMG
-    // cimg_library::CImg<unsigned char> image(path.c_str());
-    // image.mirror('y');
-    // channels = image.spectrum();
-    // width = image.width();
-    // height = image.height();
-    // auto data = image.data();
+    cimg_library::CImg<unsigned char> image(path.c_str());
+    channels = image.spectrum();
+    width = image.width();
+    height = image.height();
+    std::vector<unsigned char> openglData(width * height * channels);
+    auto data = openglData.data();
+    convertCImgToOpenGL(image, data, width, height, channels);
+
   
     // STB IMAGE
-    stbi_set_flip_vertically_on_load(1);
-    stbi_uc* data = nullptr;
-    data = stbi_load(path.c_str(), &width, &height, &channels, 0);
+    // stbi_set_flip_vertically_on_load(1);
+    // stbi_uc* data = nullptr;
+    // data = stbi_load(path.c_str(), &width, &height, &channels, 0);
     
     if (data)
     {
