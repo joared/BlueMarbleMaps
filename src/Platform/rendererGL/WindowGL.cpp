@@ -9,7 +9,7 @@ WindowGL::WindowGL()
 	m_height(0),
 	m_windowTitle("")
 {
-	externalKeyEventCallback = nullptr;
+
 }
 WindowGL::~WindowGL()
 {
