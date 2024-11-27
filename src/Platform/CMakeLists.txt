@@ -1,2 +1,2 @@
-add_subdirectory(CImg/src)
+#add_subdirectory(CImg/src)
 add_subdirectory(rendererGL)
