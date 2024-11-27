@@ -3,7 +3,6 @@ cmake_minimum_required(VERSION 3.10)
 #project(GraphicsRendererGL)
 
 find_package(GLFW3 REQUIRED)
-
 #find_package(GLAD REQUIRED)
 #find_package(GLM REQUIRED)
 
@@ -12,12 +11,11 @@ file(GLOB_RECURSE RENDERER_SOURCES
     "${CMAKE_SOURCE_DIR}/include/RendererGL/*.h"
 )
 
-message(STATUS "here are the files" ${RENDERER_INCLUDES})
+Message(STATUS "Files: " ${RENDERER_SOURCES})
 
-add_executable(GraphicsRendererGL ${RENDERER_SOURCES}) #${SOURCES})
-#source_group("Header Files" FILES ${RENDERER_INCLUDES})
+add_executable(GraphicsRendererGL ${RENDERER_SOURCES}) 
 
-#target_include_directories(GraphicsRendererGL PRIVATE ${RENDERER_INCLUDES})
+target_include_directories(GraphicsRendererGL PRIVATE "${CMAKE_SOURCE_DIR}/include/RendererGL/")
 
 message(STATUS "Looking for GLFW")
 

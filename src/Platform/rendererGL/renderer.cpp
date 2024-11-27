@@ -2,6 +2,7 @@
 #include <glfw3.h>
 #include "glm.hpp"
 #include <iostream>
+#include "WindowGL.h"
 
 int main()
 {
