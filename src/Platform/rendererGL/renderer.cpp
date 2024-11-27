@@ -4,17 +4,21 @@
 #include <iostream>
 #include "WindowGL.h"
 
+void keyEvent(WindowGL* window, int key, int scanCode, int action, int modifier)
+{
+	std::cout << "I am inside your walls" << std::endl;
+}
+
 int main()
 {
-	glfwInit();
-	GLFWwindow* window = glfwCreateWindow(500,500,"Fuck you", nullptr,nullptr);
-	glfwMakeContextCurrent(window);
-	gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
-	while (!glfwWindowShouldClose(window))
+	WindowGL window;
+	window.init(500,500,"Hello World");
+	window.registerKeyEventCallback(keyEvent);
+	while (!window.windowShutdown())
 	{
 		// Keep running
 		double fuck = glm::acos(0.1);
-		std::cout << fuck << "\n";
-		glfwPollEvents();
+		
+		window.pollWindowEvents();
 	}
 }
