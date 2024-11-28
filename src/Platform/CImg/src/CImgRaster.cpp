@@ -1,8 +1,35 @@
 #include "Raster.h"
-// TODO: use pimpl?
 
 using namespace BlueMarble;
 
+// void convertCImgToOpenGL(cimg_library::CImg<unsigned char>& cimgImage, 
+//                          unsigned char* openglData, 
+//                          int width, int height, int channels) 
+// {
+//     cimgImage.mirror('y');
+//     for (int c = 0; c < channels; ++c) {
+//         for (int y = 0; y < height; ++y) {
+//             for (int x = 0; x < width; ++x) {
+//                 // Compute OpenGL index (row-major order)
+//                 int openglIndex = (y * width + x) * channels + c;
+                
+//                 // Copy data
+//                 openglData[openglIndex] = cimgImage(x,y,0,c);
+//             }
+//         }
+//     }
+// }
+
+cimg_library::CImg<unsigned char> toCImg(const ImageData& imgData, int width, int height, int channels)
+{
+    return cimg_library::CImg<unsigned char>(imgData.data(), width, height, 1, channels);
+
+}
+
+cimg_library::CImg<unsigned char> toCImg(const unsigned char* data, int width, int height, int channels)
+{
+    return cimg_library::CImg<unsigned char>(data, width, height, 1, channels);
+}
 
 Raster::Raster()
     : m_img(1, 1, 1, 3, 0)
@@ -73,7 +100,7 @@ void Raster::drawText(int x, int y, const std::string& text, const Color& color,
 void Raster::drawRaster(int x, int y, const Raster& raster, double alpha)
 {
     auto& img = m_img;
-    auto& rasterImg = *static_cast<cimg_library::CImg<unsigned char>*>(raster.data());
+    auto& rasterImg = raster.m_img;
     if (rasterImg.spectrum() == 4)
     {
         //img.draw_image(x, y, rasterImg.get_shared_channels(0,2), rasterImg.get_shared_channel(3), 1.0, 255);
@@ -188,8 +215,13 @@ void Raster::drawCircle(int x, int y, double radius, const Color& color)
     img.draw_circle(x, y, radius, c, color.a());
 }
 
-void* Raster::data() const
+const unsigned char * Raster::data() const
 {
-    return (void*)&m_img;
+    int w = m_img.width();
+    int h = m_img.height();
+    int c = m_img.spectrum();
+    ImageData imgData(w*h*c);
+    *imgData.data() = *m_img.data();
+    return m_img.data();
 }
 

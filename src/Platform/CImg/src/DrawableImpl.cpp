@@ -83,7 +83,14 @@ namespace BlueMarble
             void swapBuffers()
             {
                 // Update the image and save new black draw image
-                const auto& drawImg = *(cimg_library::CImg<unsigned char>*)getRaster().data();
+                // const auto& drawImg = *(cimg_library::CImg<unsigned char>*)getRaster().data();
+                // m_disp.display(drawImg);
+                // // Reset draw image
+                // fill(150); // TODO: fill with drawable.backGroundColor()
+                
+                auto& raster = getRaster();
+                //width, height, 1, depth
+                auto drawImg = cimg_library::CImg<unsigned char>(raster.data(), raster.width(), raster.height(), 1, raster.colorDepth());
                 m_disp.display(drawImg);
                 // Reset draw image
                 fill(150); // TODO: fill with drawable.backGroundColor()

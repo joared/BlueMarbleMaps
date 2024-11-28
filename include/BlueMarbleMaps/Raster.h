@@ -4,11 +4,14 @@
 #include "Color.h"
 
 #include <string>
+#include <vector>
 
 #include <CImg.h> // TODO: remove this dependency when implementing pimpl
 
 namespace BlueMarble
 {
+    typedef std::vector<unsigned char> ImageData;
+
     class Raster
     {
         public:
@@ -49,7 +52,7 @@ namespace BlueMarble
             void drawLine(const std::vector<Point>& points, const Color& color, double width);
             void drawText(int x, int y, const std::string& text, const Color& color, int fontSize, const Color& bcolor);
             void drawCircle(int x, int y, double radius, const Color& color);
-            void* data() const; // Specific implementation for used framework (e.g. CImg)
+            const unsigned char * data() const; // Specific implementation for used framework (e.g. CImg)
         private:
             cimg_library::CImg<unsigned char> m_img; // TODO: remove this dependency when implementing pimpl
     };
