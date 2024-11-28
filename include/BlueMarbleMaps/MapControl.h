@@ -2,19 +2,31 @@
 #define BLUEMARBLE_MAPCONTROL
 
 #include "Map.h"
+#include "EventHandler.h"
+#include "Core.h"
 
 namespace BlueMarble
 {
-    class MapControl
+    class MapControl : public EventHandler
     {
         public:
             MapControl();
             virtual ~MapControl() = default;
+            static int64_t getGinotonicTimeStampMs() { return getTimeStampMs(); };
+            virtual void* getWindow() = 0;
             
+            void setView(MapPtr mapView);
+            MapPtr getView();
+
+            void updateView();
+            void updateViewInternal(); // TODO: make private
         private:
+            
+            bool m_updateRequired;
             MapPtr m_mapView;
 
     };
+    typedef std::shared_ptr<MapControl> MapControlPtr;
 }
 
 #endif /* BLUEMARBLE_MAPCONTROL */
