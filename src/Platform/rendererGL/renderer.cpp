@@ -44,7 +44,6 @@ int main()
 	while (!window.windowShutdown())
 	{
 		// Keep running
-		double fuck = glm::acos(0.1);
 		window.swapBuffers();
 		window.pollWindowEvents();
 	}
