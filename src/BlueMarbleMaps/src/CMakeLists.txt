@@ -6,6 +6,8 @@ set(SRC_MAIN main.cpp)
 # Define the path to the source directory
 set(SRC_DIR ".")
 
+file(GLOB_RECURSE BBM_SOURCES ${CMAKE_SOURCE_DIR}/include/BlueMarbleMaps/*.h)
+
 # The source files needed to compile the project executable
 set(SOURCES  
     ${SRC_DIR}/Map.cpp
@@ -29,6 +31,7 @@ set(SOURCES
     ${SRC_DIR}/FeatureAnimation.cpp
     ${SRC_DIR}/Effect.cpp
     ${SRC_DIR}/MapControl.cpp
+    ${BBM_SOURCES}
 )
 
 # Add the executable
