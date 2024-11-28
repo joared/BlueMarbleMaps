@@ -39,7 +39,6 @@ class CImgEventManager
         void resetWheelDelta();
         void resize();
         
-
         // Key events
         void captureKeyEvents();// Window specific
         void handleKey(bool keyDownState, KeyButton key);
