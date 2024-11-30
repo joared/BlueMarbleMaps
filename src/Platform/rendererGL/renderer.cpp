@@ -7,6 +7,10 @@
 void keyEvent(WindowGL* window, int key, int scanCode, int action, int modifier)
 {
 	std::cout << "I am inside your walls" << std::endl;
+	if (key == GLFW_KEY_ESCAPE)
+	{
+		window->shutdownWindow();
+	}
 }
 void resizeEvent(WindowGL* window, int width, int height)
 {
@@ -37,6 +41,10 @@ void mouseEntered(WindowGL* window, int entered)
 {
 	std::cout << "received mouse entered event" << std::endl;
 }
+void windowClosed(WindowGL* window)
+{
+	std::cout << "he's dead..." << std::endl;
+}
 int main()
 {
 	WindowGL window;
@@ -52,10 +60,11 @@ int main()
 	window.registerMousePositionEventCallback(mousePositionEvent);
 	window.registerMouseScrollEventCallback(mouseScrollEvent);
 	window.registerMouseEnteredCallback(mouseEntered);
+	window.registerCloseWindowEventCallback(windowClosed);
 
 	glClearColor(0.0f,0.0f,0.5f,1.0f);
 	
-	while (!window.windowShutdown())
+	while (!window.windowShouldClose())
 	{
 		glClear(GL_COLOR_BUFFER_BIT);
 		// Keep running
