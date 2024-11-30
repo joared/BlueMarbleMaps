@@ -11,7 +11,15 @@ void keyEvent(WindowGL* window, int key, int scanCode, int action, int modifier)
 void resizeEvent(WindowGL* window, int width, int height)
 {
 	std::cout << "resize finished" << std::endl;
-	glViewport(0,0,width,height);
+}
+void resizeFrameBuffer(WindowGL* window, int width, int height)
+{
+	std::cout << "I shalle be doing a glViwPort resize yes" << std::endl;
+	glViewport(0, 0, width, height);
+
+	glClear(GL_COLOR_BUFFER_BIT);
+	window->swapBuffers();
+	window->pollWindowEvents();
 }
 void mouseButtonEvent(WindowGL* window, int button, int action, int modifier)
 {
@@ -32,19 +40,27 @@ void mouseEntered(WindowGL* window, int entered)
 int main()
 {
 	WindowGL window;
-	window.init(500,500,"Hello World");
+	if (!window.init(200, 200, "Hello World"))
+	{
+		std::cout << "Could not initiate window..." << std::endl;
+	}
+	
 	window.registerKeyEventCallback(keyEvent);
 	window.registerResizeEventCallback(resizeEvent);
+	window.registerResizeFrameBufferEventCallback(resizeFrameBuffer);
 	window.registerMouseButtonEventCallback(mouseButtonEvent);
 	window.registerMousePositionEventCallback(mousePositionEvent);
 	window.registerMouseScrollEventCallback(mouseScrollEvent);
 	window.registerMouseEnteredCallback(mouseEntered);
 
-	window.resize(1000,1000);
+	glClearColor(0.0f,0.0f,0.5f,1.0f);
+	
 	while (!window.windowShutdown())
 	{
+		glClear(GL_COLOR_BUFFER_BIT);
 		// Keep running
 		window.swapBuffers();
 		window.pollWindowEvents();
 	}
+	glfwTerminate();
 }

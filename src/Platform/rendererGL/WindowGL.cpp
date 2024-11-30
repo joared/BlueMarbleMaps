@@ -13,12 +13,17 @@ WindowGL::WindowGL()
 }
 WindowGL::~WindowGL()
 {
-	delete(m_window);
+	glfwTerminate();
+	glfwDestroyWindow(m_window);
 }
 
 bool WindowGL::init(int width, int height, std::string windowTitle)
 {
-	glfwInit();
+	
+	if (!glfwInit())
+	{
+		return false;
+	}
 	m_window = glfwCreateWindow(width, height, windowTitle.c_str(), nullptr, nullptr);
 	glfwMakeContextCurrent(m_window);
 	gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
@@ -29,6 +34,7 @@ bool WindowGL::init(int width, int height, std::string windowTitle)
 	//bind internal callbacks
 	glfwSetKeyCallback(m_window, internalKeyEventCallback);
 	glfwSetWindowSizeCallback(m_window, internalResizeEventCallback);
+	glfwSetFramebufferSizeCallback(m_window, internalResizeFrameBufferEventCallback);
 	glfwSetMouseButtonCallback(m_window, internalMouseButtonEventCallback);
 	glfwSetCursorPosCallback(m_window, internalMousePositionEventCallback);
 	glfwSetScrollCallback(m_window, internalMouseScrollEventCallback);
@@ -54,6 +60,11 @@ void WindowGL::registerKeyEventCallback(void callback(WindowGL* window, int key,
 void WindowGL::registerResizeEventCallback(void callback(WindowGL* window, int width, int height))
 {
 	externalResizeEventCallback = callback;
+}
+
+void WindowGL::registerResizeFrameBufferEventCallback(void callback(WindowGL* window, int width, int height))
+{
+	externalResizeFrameBufferEventCallback = callback;
 }
 
 void WindowGL::registerMouseButtonEventCallback(void callback(WindowGL* window, int button, int action, int mods))
@@ -114,8 +125,18 @@ void WindowGL::internalResizeEventCallback(GLFWwindow* window, int width, int he
 	WindowGL* owner = reinterpret_cast<WindowGL*>(glfwGetWindowUserPointer(window));
 	if (*owner->externalResizeEventCallback != NULL)
 	{
-		std::cout << "Resizing mai balls to precisely y: " << height << " x: " << width << std::endl;
+		std::cout << "Resizing mai balls to precisely x: " << width << " y: " << height << std::endl;
 		owner->externalResizeEventCallback(owner, width, height);
+	}
+}
+
+void WindowGL::internalResizeFrameBufferEventCallback(GLFWwindow* window, int width, int height)
+{
+	WindowGL* owner = reinterpret_cast<WindowGL*>(glfwGetWindowUserPointer(window));
+	if (*owner->externalResizeFrameBufferEventCallback != NULL)
+	{
+		std::cout << "gosh darn it resize your view port to x: " << width << " y: " << height << std::endl;
+		owner->externalResizeFrameBufferEventCallback(owner, width, height);
 	}
 }
 
