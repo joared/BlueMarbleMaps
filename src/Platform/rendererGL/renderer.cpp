@@ -3,10 +3,12 @@
 #include "glm.hpp"
 #include <iostream>
 #include "WindowGL.h"
+#include "Keys.h"
 
 void keyEvent(WindowGL* window, int key, int scanCode, int action, int modifier)
 {
-	std::cout << "I am inside your walls" << std::endl;
+	Key keyStroke = static_cast<Key::KeyStroke>(scanCode);
+	std::cout << "Key is: " << keyStroke << " " << keyStroke.toString() << std::endl;
 	if (key == GLFW_KEY_ESCAPE)
 	{
 		window->shutdownWindow();
