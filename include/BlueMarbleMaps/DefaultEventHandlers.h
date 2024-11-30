@@ -85,7 +85,7 @@ namespace BlueMarble
                     if (polygon.size() > 1)
                     {
                         // Draw line
-                        auto& drawable = m_map.drawable();
+                        auto& drawable = *m_map.drawable();
 
                         drawable.drawLine(m_map.mapToScreen(polygon), Color(255, 255, 255));
                     }
@@ -93,7 +93,7 @@ namespace BlueMarble
                     if (polygon.size() > 2)
                     {
                         // Draw polygon
-                        auto& drawable = m_map.drawable();
+                        auto& drawable = *m_map.drawable();
                         drawable.drawPolygon(m_map.mapToScreen(polygon), Color(0, 0, 0, 0.5));
                     }
                 }
@@ -179,7 +179,7 @@ namespace BlueMarble
 
             void drawRect(const BlueMarble::Rectangle& bounds)
             {
-                auto& drawable = m_map.drawable(); // TODO: add reference again
+                auto& drawable = *m_map.drawable(); // TODO: add reference again
                 auto lineColor = BlueMarble::Color{0, 0, 0};
                 auto fillColor = BlueMarble::Color{255, 255, 255, 0.2};
                 

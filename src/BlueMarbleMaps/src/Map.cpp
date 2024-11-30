@@ -13,7 +13,7 @@ using namespace BlueMarble;
 Map::Map()
     : MapEventPublisher()
     , m_backgroundRaster("/home/joar/BlueMarbleMaps/geodata/NE1_LR_LC_SR_W/NE1_LR_LC_SR_W.tif")
-    , m_drawable(500, 500)
+    , m_drawable(std::make_shared<BitmapDrawable>(500, 500))
     //, m_center(Point((m_backgroundRaster.width()-1)*0.5, (m_backgroundRaster.height()-1)*0.5))
     , m_center(lngLatToMap(Point(0, 0)))
     , m_scale(1.0)
@@ -73,11 +73,11 @@ bool Map::update(bool forceUpdate)
         drawDebugInfo(getTimeStampMs() - timeStampMs);
 
     Color color(0,0,0);
-    m_drawable.drawCircle(100, 100, 10, Color(0,0,0));
+    m_drawable->drawCircle(100, 100, 10, Color(0,0,0));
     std::vector<Point> points;
     points.push_back(Point(0,0));
     points.push_back(Point(500,500));
-    m_drawable.drawLine(points,color,20);
+    m_drawable->drawLine(points,color,20);
     std::vector<Point> polyPoints;
     polyPoints.push_back(Point(1000,1000));
     polyPoints.push_back(Point(1500,1000));
@@ -88,18 +88,18 @@ bool Map::update(bool forceUpdate)
     Point point1(750,750);
     Point point2(1000,1000);
     Color rectColor(50,0,100);
-    m_drawable.drawRect(point1, point2, rectColor);
-    m_drawable.drawText(500,500,"ello",Color::white(),50, color);
-    m_drawable.drawText(900,500,"ello",rectColor,100);
+    m_drawable->drawRect(point1, point2, rectColor);
+    m_drawable->drawText(500,500,"ello",Color::white(),50, color);
+    m_drawable->drawText(900,500,"ello",rectColor,100);
     Raster raster0("/home/joar/BlueMarbleMaps/geodata/symbols/funny_dude.png");
     Raster raster1("/home/joar/BlueMarbleMaps/geodata/symbols/funny_dude.png");
     raster0.resize(0.5f);
     raster1.resize(100,100);
-    m_drawable.drawRaster(750,500,raster0,1);
-    m_drawable.drawRaster(500,500,raster1,1);
+    m_drawable->drawRaster(750,500,raster0,1);
+    m_drawable->drawRaster(500,500,raster1,1);
     afterRender();
 
-    m_drawable.drawPolygon(polyPoints, color);
+    m_drawable->drawPolygon(polyPoints, color);
     sendOnUpdated(*this);
     
     m_updateRequired = m_updateAttributes.get<bool>(UpdateAttributeKeys::UpdateRequired); // Someone in the operator chain needs more updates (e.g. Visualization evaluations)
@@ -167,12 +167,12 @@ void BlueMarble::Map::rotation(double rotation)
 
 double BlueMarble::Map::width() const
 {
-    return m_drawable.width() / scale(); // TODO: should we use raster width instead?
+    return m_drawable->width() / scale(); // TODO: should we use raster width instead?
 }
 
 double BlueMarble::Map::height() const
 {
-    return m_drawable.height() / scale(); // TODO: should we use raster height instead?
+    return m_drawable->height() / scale(); // TODO: should we use raster height instead?
 }
 
 Rectangle BlueMarble::Map::area() const
@@ -377,7 +377,7 @@ Rectangle BlueMarble::Map::mapToScreen(const Rectangle &rect) const
 
 Point Map::screenCenter() const
 {
-    return Point((m_drawable.width()-1)*0.5, (m_drawable.height()-1)*0.5);
+    return Point((m_drawable->width()-1)*0.5, (m_drawable->height()-1)*0.5);
 }
 
 void BlueMarble::Map::startAnimation(AnimationPtr animation)
@@ -624,7 +624,7 @@ bool BlueMarble::Map::isHovered(FeaturePtr feature)
     return isHovered(feature->id());
 }
 
-BlueMarble::Drawable& Map::drawable()
+BlueMarble::DrawablePtr Map::drawable()
 {
     // TODO: should be own m_drawable
     return m_drawable;
@@ -657,7 +657,7 @@ void Map::beforeRender()
 
 void Map::afterRender()
 {
-    m_drawable.swapBuffers();
+    m_drawable->swapBuffers();
 }
 
 void Map::resetUpdateFlags()
@@ -724,7 +724,7 @@ void Map::drawDebugInfo(int elapsedMs)
     // info += "\nPresentationObjects: " + std::to_string(m_presentationObjects.size());
     
     // int fontSize = 16;
-    // m_drawable.drawText(0, 0, info.c_str(), Color(0, 0, 0), fontSize);
+    // m_drawable->drawText(0, 0, info.c_str(), Color(0, 0, 0), fontSize);
 }
 
 const Point Map::screenToLngLat(const Point& screenPoint)

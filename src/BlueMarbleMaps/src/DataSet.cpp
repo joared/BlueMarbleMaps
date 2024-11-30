@@ -333,9 +333,9 @@ void ImageDataSet::OnUpdateRequestOld(Map &map, const Rectangle& /*updateArea*/)
     // TODO: Rotation
     //(*(cimg_library::CImg<unsigned char>*)newImage.data()).rotate(m_rotation);
     //drawImg.rotate(m_rotation, m_center.x(), m_center.y()); 
-    map.drawable().drawRaster(offset.x(), offset.y(), newImage, 0.9);
+    map.drawable()->drawRaster(offset.x(), offset.y(), newImage, 0.9);
     std::string info = "Overview index " + std::to_string(invScaleIndex) + "(" + std::to_string(backgroundRaster.width()) + ", " + std::to_string(backgroundRaster.height()) + ")";
-    map.drawable().drawText(map.drawable().width() / 2.0, 10, info, Color(0,0,0));
+    map.drawable()->drawText(map.drawable()->width() / 2.0, 10, info, Color(0,0,0));
 }
 
 void ImageDataSet::filePath(const std::string &filePath)

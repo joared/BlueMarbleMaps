@@ -155,7 +155,7 @@ namespace BlueMarble
             bool isHovered(const Id& id);
             bool isHovered(FeaturePtr feature);
 
-            Drawable& drawable();
+            DrawablePtr drawable();
 
             // Update flags
             bool centerChanged() { return m_centerChanged; }
@@ -176,7 +176,7 @@ namespace BlueMarble
             void drawDebugInfo(int elapsedMs);
 
             Raster m_backgroundRaster;
-            Drawable m_drawable;
+            DrawablePtr m_drawable;
             
             Point m_center;
             double m_scale;

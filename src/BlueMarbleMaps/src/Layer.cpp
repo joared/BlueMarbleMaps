@@ -99,14 +99,14 @@ void Layer::onFeatureInput(Map& map, const std::vector<FeaturePtr>& features)
         }
     }
 
-    auto drawable = &map.drawable();
+    auto& drawable = *map.drawable();
     if (!m_effects.empty())
     {
-        if (map.drawable().width() != m_drawable.width() ||
-            map.drawable().height() != m_drawable.height())
+        if (map.drawable()->width() != m_drawable->width() ||
+            map.drawable()->height() != m_drawable->height())
         {
             // Resize
-            m_drawable.resize(map.drawable().width(), map.drawable().height());
+            m_drawable.resize(map.drawable()->width(), map.drawable()->height());
         }
         m_drawable.fill(0);
         
@@ -124,7 +124,7 @@ void Layer::onFeatureInput(Map& map, const std::vector<FeaturePtr>& features)
 
     for (const auto& e : m_effects)
     {
-        e->apply(map.drawable(), m_drawable.getRaster());
+        e->apply(*map.drawable(), m_drawable.getRaster());
     }
 }
 

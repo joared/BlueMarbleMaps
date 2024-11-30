@@ -16,7 +16,7 @@ int main()
 {
     // New
     BlueMarble::Map map;
-    CImgDisplay& display = *static_cast<CImgDisplay*>(map.drawable().getDisplay());
+    CImgDisplay& display = *static_cast<CImgDisplay*>(map.drawable()->getDisplay());
     
     auto backgroundDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/geodata/NE1_50M_SR_W/NE1_50M_SR_W.tif");
     
@@ -29,7 +29,7 @@ int main()
     map.addLayer(&backgroundLayer);
 
     // Setup event manager and event handlers
-    BlueMarble::CImgEventManager eventManager(map.drawable());
+    BlueMarble::CImgEventManager eventManager(*map.drawable());
     auto panHandler = BlueMarble::PanEventHandler(map);
     //auto polygonHandler = BlueMarble::PolygonEventHandler(map);
     //auto testEventHandler = BlueMarble::TestEventHandler();

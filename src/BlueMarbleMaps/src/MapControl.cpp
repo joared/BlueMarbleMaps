@@ -15,7 +15,10 @@ void MapControl::setView(MapPtr mapView)
 
     // TODO decide drawable and possibly set window handle
     auto& drawable = m_mapView->drawable();
-    auto window = getWindow();
+    if (auto window = getWindow())
+    {
+        
+    }
     //drawable.setWindowHandle(window)
 }
 
