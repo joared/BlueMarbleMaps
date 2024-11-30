@@ -56,7 +56,7 @@
     X(DOT, 0x34, ".") \
     X(DASH, 0x35, "-") \
     X(RIGHT_SHIFT, 0x36, "Right Shift") \
-    X(NUM_STAR, 0x37, "Num Pad Star") \
+    X(NUM_STAR, 0x37, "Numpad Star") \
     X(LEFT_ALT, 0x38, "Left Alt") \
     X(SPACE, 0x39, "Space") \
     X(CAPS_LOCK, 0x3A, "Caps Lock") \
@@ -72,27 +72,28 @@
     X(F10, 0x44, "F10") \
     X(PAUSE, 0x45, "Pause") \
     X(SCROLL_LOCK, 0x46, "Scroll Lock") \
-    X(NUM_SEVEN, 0x47, "Num Pad Seven") \
-    X(NUM_EIGHT, 0x48, "Num Pad Eight") \
-    X(NUM_NINE, 0x49, "Num Pad Nine") \
-    X(NUM_SUBTRACT, 0x4A, "Num Pad Subtract") \
-    X(NUM_FOUR, 0x4B, "Num Pad Four") \
-    X(NUM_FIVE, 0x4C, "Num Pad Five") \
-    X(NUM_SIX, 0x4D, "Num Pad Six") \
-    X(NUM_PLUS, 0x4E, "Num Pad Plus") \
-    X(NUM_1, 0x4F, "Num Pad One") \
-    X(NUM_2, 0x50, "Num Pad Two") \
-    X(NUM_3, 0x51, "Num Pad Three") \
-    X(NUM_0, 0x52, "Num Pad Zero") \
-    X(NUM_DELETE, 0x53, "Num Pad Delete") \
+    X(NUM_SEVEN, 0x47, "Numpad Seven") \
+    X(NUM_EIGHT, 0x48, "Numpad Eight") \
+    X(NUM_NINE, 0x49, "Numpad Nine") \
+    X(NUM_SUBTRACT, 0x4A, "Numpad Subtract") \
+    X(NUM_FOUR, 0x4B, "Numpad Four") \
+    X(NUM_FIVE, 0x4C, "Numpad Five") \
+    X(NUM_SIX, 0x4D, "Numpad Six") \
+    X(NUM_PLUS, 0x4E, "Numpad Plus") \
+    X(NUM_1, 0x4F, "Numpad One") \
+    X(NUM_2, 0x50, "Numpad Two") \
+    X(NUM_3, 0x51, "Numpad Three") \
+    X(NUM_0, 0x52, "Numpad Zero") \
+    X(NUM_DELETE, 0x53, "Numpad Delete") \
     X(SYSTEM_REQUEST, 0x54, "System Request") \
     X(LESS_THAN, 0x56, "Less Than") \
     X(F11, 0x57, "F11") \
     X(F12, 0x58, "F12") \
-    X(NUM_ENTER, 0x011C, "Num Pad Enter") \
+    X(NUM_ENTER, 0x011C, "Numpad Enter") \
     X(RIGHT_CONTROL, 0x011D, "Right Control") \
-    X(NUM_SLASH, 0x0135, "Num Pad Slash") \
+    X(NUM_SLASH, 0x0135, "Numpad Slash") \
     X(RIGHT_ALT, 0x0138, "Right Alt") \
+    X(NUM_LOCK, 0x0145, "Num Lock") \
     X(HOME, 0x0147, "Home") \
     X(UP_ARROW, 0x0148, "Up Arrow") \
     X(PAGE_UP, 0x0149, "Page Up") \
