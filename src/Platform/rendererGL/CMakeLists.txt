@@ -11,8 +11,6 @@ file(GLOB_RECURSE RENDERER_SOURCES
     "${CMAKE_SOURCE_DIR}/include/RendererGL/*.h"
 )
 
-Message(STATUS "Files: " ${RENDERER_SOURCES})
-
 add_executable(GraphicsRendererGL ${RENDERER_SOURCES}) 
 
 target_include_directories(GraphicsRendererGL PRIVATE "${CMAKE_SOURCE_DIR}/include/RendererGL/")
