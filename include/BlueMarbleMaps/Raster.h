@@ -5,7 +5,7 @@
 
 #include <string>
 
-//#include <CImg.h> // TODO: remove this dependency when implementing pimpl
+#include <CImg.h> // TODO: remove this dependency when implementing pimpl
 
 namespace BlueMarble
 {
@@ -51,7 +51,7 @@ namespace BlueMarble
             void drawCircle(int x, int y, double radius, const Color& color);
             void* data() const; // Specific implementation for used framework (e.g. CImg)
         private:
-            //cimg_library::CImg<unsigned char> m_img; // TODO: remove this dependency when implementing pimpl
+            cimg_library::CImg<unsigned char> m_img; // TODO: remove this dependency when implementing pimpl
     };
 }
 
