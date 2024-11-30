@@ -2,7 +2,7 @@
 #include <glfw3.h>
 #include "glm.hpp"
 #include <iostream>
-#include "WindowGL.h"
+#include "Application/WindowGL.h"
 #include "Keys.h"
 
 void keyEvent(WindowGL* window, int key, int scanCode, int action, int modifier)

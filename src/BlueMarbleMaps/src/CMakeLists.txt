@@ -36,8 +36,12 @@ set(SOURCES
 
 # Add the executable
 add_executable(BlueMarbleMaps ${SRC_DIR}/${SRC_MAIN} ${SOURCES})
+add_library(BlueMarbleMapsLib ${SOURCES})
 # Add include folder as a private include directory for BlueMarbleEngine
 target_include_directories(BlueMarbleMaps
+  PRIVATE ${CMAKE_SOURCE_DIR}/include/BlueMarbleMaps
+)
+target_include_directories(BlueMarbleMapsLib
   PRIVATE ${CMAKE_SOURCE_DIR}/include/BlueMarbleMaps
 )
 option(USE_CIMG "Enable CImg-based implementation" ON)
@@ -48,4 +52,5 @@ if(USE_CIMG)
     message("Linking to CImgImplementation")
     #target_link_libraries(BlueMarbleMaps CImgImplementation)
 endif()
+
 
