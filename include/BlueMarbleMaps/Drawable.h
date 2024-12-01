@@ -17,6 +17,7 @@ namespace BlueMarble
         public:
             Drawable(int width, int height, int colorDepth=3);
             Drawable(const Drawable& drawable) = delete;
+            virtual ~Drawable() = default;
             // Properties
             int width() const;
             int height() const;
@@ -36,7 +37,7 @@ namespace BlueMarble
             Raster& getRaster();
             void swapBuffers();
             void* getDisplay(); // TODO remove
-        private:
+        protected:
             class Impl;   // Forward declaration
             Impl* m_impl; // Using "pimpl" design pattern for fun
     };
@@ -45,21 +46,15 @@ namespace BlueMarble
     class BitmapDrawable : public Drawable
     {
         public:
-            BitmapDrawable();
-            BitmapDrawable(const BitmapDrawable& drawable) = delete;
-            virtual ~BitmapDrawable() = default;
+            using Drawable::Drawable;
     };
     typedef std::shared_ptr<BitmapDrawable> BitmapDrawablePtr;
 
     class WindowDrawable : public Drawable
     {
         public:
-            WindowDrawable();
-            WindowDrawable(const WindowDrawable& drawable) = delete;
-            virtual ~WindowDrawable() = default;
+            using Drawable::Drawable;
             void setWindow(void* window);
-        private:
-            void* m_window;
     };
     typedef std::shared_ptr<WindowDrawable> WindowDrawablePtr;
 }

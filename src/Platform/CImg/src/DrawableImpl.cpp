@@ -10,9 +10,9 @@ namespace BlueMarble
             Impl(int width, int height, int colorDepth)
                 : m_raster(width, height, colorDepth)
                 , m_backGroundColor(Color::blue(0.5))
-                , m_disp(cimg_library::CImg<unsigned char>(), "BlueMarbleMaps Demo", 3, true, true)
+                , m_disp(nullptr)
             {
-                m_disp.resize(width, height, true);
+                //m_disp.resize(width, height, true);
             }
 
             void resize(int width, int height)
@@ -84,9 +84,14 @@ namespace BlueMarble
             {
                 // Update the image and save new black draw image
                 const auto& drawImg = *(cimg_library::CImg<unsigned char>*)getRaster().data();
-                m_disp.display(drawImg);
+                m_disp->display(drawImg);
                 // Reset draw image
                 fill(150); // TODO: fill with drawable.backGroundColor()
+            }
+
+            void setWindow(void* window)
+            {
+                m_disp = static_cast<cimg_library::CImgDisplay*>(window);
             }
 
             void* getDisplay()
@@ -94,10 +99,10 @@ namespace BlueMarble
                 return &m_disp;
             }
 
-        private:            
+        private:
             Raster m_raster;
             Color  m_backGroundColor;
-            cimg_library::CImgDisplay m_disp;
+            cimg_library::CImgDisplay* m_disp;
 
     };
 }

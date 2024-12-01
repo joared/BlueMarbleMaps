@@ -7,7 +7,7 @@
 
 namespace BlueMarble
 {
-    class MapControl : public EventHandler
+    class MapControl : public EventManager
     {
         public:
             MapControl();
@@ -20,6 +20,8 @@ namespace BlueMarble
 
             void updateView();
             void updateViewInternal(); // TODO: make private
+        protected:
+            void handleResize(int width, int height);
         private:
             
             bool m_updateRequired;

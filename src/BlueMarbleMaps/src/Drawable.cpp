@@ -105,4 +105,9 @@ namespace BlueMarble
     {
         return m_impl->getDisplay();
     }
+
+    void WindowDrawable::setWindow(void* window)
+    {
+        m_impl->setWindow(window);
+    }
 }

@@ -99,11 +99,11 @@ void Layer::onFeatureInput(Map& map, const std::vector<FeaturePtr>& features)
         }
     }
 
-    auto& drawable = *map.drawable();
+    auto drawable = map.drawable().get();
     if (!m_effects.empty())
     {
-        if (map.drawable()->width() != m_drawable->width() ||
-            map.drawable()->height() != m_drawable->height())
+        if (map.drawable()->width() != m_drawable.width() ||
+            map.drawable()->height() != m_drawable.height())
         {
             // Resize
             m_drawable.resize(map.drawable()->width(), map.drawable()->height());

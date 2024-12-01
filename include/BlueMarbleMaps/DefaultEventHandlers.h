@@ -1,10 +1,11 @@
 #ifndef DEFAULTEVENTHANDLERS
 #define DEFAULTEVENTHANDLERS
 
-#include "CImgEventManager.h" // TODO: remove, needed for a lot of types
 #include "EventHandler.h"
 #include "Map.h"
 #include "Core.h"
+#include "PointerEvent.h"
+#include "KeyEvent.h"
 
 namespace BlueMarble
 {

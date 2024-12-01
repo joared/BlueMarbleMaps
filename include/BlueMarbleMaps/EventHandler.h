@@ -3,7 +3,9 @@
 
 #include "Event.h"
 #include "Buttons.h"
+#include "PointerEvent.h"
 #include <vector>
+#include <map>
 
 namespace BlueMarble
 {
@@ -67,6 +69,38 @@ namespace BlueMarble
             bool dispatchEvent(Event& event, int timeStampMs);
         protected:
             bool m_eventDispatched;
+
+            virtual void getMousePos(ScreenPos& pos) const { }; // Window specific
+            virtual ModificationKey getModificationKeyMask() const { }; // Window specific
+            virtual MouseButton getMouseButton() { }; // Window specific
+            virtual int getWheelDelta() {};
+            virtual void captureKeyEvents() {};// Window specific
+        
+            void reset();
+            bool mouseButtonChanged(MouseButton lastDown, MouseButton current);
+            bool mousePosChanged(const ScreenPos& lastPos, const ScreenPos& currPos);
+            void handlePosChanged(MouseButton lastDown, const ScreenPos& currPos);
+            void handleMouseButtonChanged(MouseButton curr, const ScreenPos& currPos);
+            bool detectDrag(const ScreenPos& startPos, const ScreenPos& currPos, int thresh);
+            void captureMouseEvents();
+            
+            
+            // Key events
+            void handleKey(bool keyDownState, KeyButton key);
+
+            EventConfiguration m_configration;
+
+            // For mouse events
+            int m_timeStampMs;
+            int m_downTimeStampMs;
+            ScreenPos m_downPos;
+            ScreenPos m_lastPos;
+            MouseButton m_lastDown;
+            MouseDownEvent m_previousMouseDownEvent;
+            bool m_isDragging;
+
+            // For key events
+            std::map<KeyButton, bool> m_keyButtonDownMap;
     };
 
 

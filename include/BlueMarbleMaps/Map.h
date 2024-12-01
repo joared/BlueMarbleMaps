@@ -156,6 +156,7 @@ namespace BlueMarble
             bool isHovered(FeaturePtr feature);
 
             DrawablePtr drawable();
+            void drawable(const DrawablePtr& drawable);
 
             // Update flags
             bool centerChanged() { return m_centerChanged; }

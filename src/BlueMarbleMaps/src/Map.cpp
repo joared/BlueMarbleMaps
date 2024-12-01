@@ -630,6 +630,11 @@ BlueMarble::DrawablePtr Map::drawable()
     return m_drawable;
 }
 
+void BlueMarble::Map::drawable(const DrawablePtr &drawable)
+{
+    m_drawable = drawable;
+}
+
 void Map::updateUpdateAttributes(int64_t timeStampMs)
 {
     m_updateAttributes.set(UpdateAttributeKeys::UpdateTimeMs, (int)timeStampMs);

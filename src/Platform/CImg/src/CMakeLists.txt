@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.10)
 
 # CMake configuration for the CImg implementation
 add_library(CImgImplementation STATIC
-    CImgEventManager.h
-    CImgEventManager.cpp
     CImgRaster.cpp
     DrawableImpl.cpp
 )
