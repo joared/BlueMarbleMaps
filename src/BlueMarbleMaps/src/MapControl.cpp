@@ -1,4 +1,5 @@
 #include "MapControl.h"
+#include <exception>
 
 using namespace BlueMarble;
 
@@ -11,17 +12,28 @@ MapControl::MapControl()
 
 void MapControl::setView(MapPtr mapView)
 {
-    m_mapView = mapView;
-
-    // TODO decide drawable and possibly set window handle
-    if (auto window = getWindow())
+    if (!mapView)
     {
-        std::cout << "MapControl::setView() Setting new drawable\n";
+        std::cout << "MapControl::setView() Detaching view, setting Bitmap drawable\n";
+        auto drawable = std::make_shared<BitmapDrawable>(500, 500, 3);
+        mapView->drawable(drawable);
+        m_mapView = mapView;
+        m_mapView->onDetachedFromMapControl();
+    }
+    else if (auto window = getWindow())
+    {
+        std::cout << "MapControl::setView() Attaching Window drawable\n";
         auto drawable = std::make_shared<WindowDrawable>(500, 500, 3);
         drawable->setWindow(window);
-        m_mapView->drawable(drawable);
+        mapView->drawable(drawable);
+        m_mapView = mapView;
+        m_mapView->onAttachedToMapControl(this);
     }
-    //drawable.setWindowHandle(window)
+    else
+    {
+        std::cout << "No window provided in MapControl::getWindow()\n";
+        throw std::exception();
+    }
 }
 
 MapPtr MapControl::getView()
@@ -39,6 +51,11 @@ void MapControl::updateViewInternal()
 {
     if (m_updateRequired)
         m_updateRequired = m_mapView->update(true);
+}
+
+bool BlueMarble::MapControl::updateRequired()
+{
+    return m_updateRequired;
 }
 
 void BlueMarble::MapControl::handleResize(int width, int height)

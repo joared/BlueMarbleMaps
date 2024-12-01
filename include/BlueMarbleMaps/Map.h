@@ -12,9 +12,12 @@
 #include <map>
 #include <functional>
 
+
 namespace BlueMarble
 {
-    class MapEventHandler; // Forward declaration
+    // Forward declarations
+    class MapControl;
+    class MapEventHandler;
 
     enum class SelectMode
     {
@@ -167,6 +170,8 @@ namespace BlueMarble
             void doCommand(const std::function<void()>& action);
             bool undoCommand();
             bool& showDebugInfo() { return m_showDebugInfo; }
+            void onAttachedToMapControl(MapControl* mapControl) { m_mapControl = mapControl; };
+            void onDetachedFromMapControl() { m_mapControl = nullptr; };
         private:
             void updateUpdateAttributes(int64_t timeStampMs);
             void beforeRender();
@@ -176,6 +181,7 @@ namespace BlueMarble
 
             void drawDebugInfo(int elapsedMs);
 
+            MapControl* m_mapControl;
             Raster m_backgroundRaster;
             DrawablePtr m_drawable;
             

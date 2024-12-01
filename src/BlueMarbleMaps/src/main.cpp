@@ -20,8 +20,6 @@ class CImgMapControl : public MapControl
         {}
         bool captureEvents() override final 
         {
-            // std::cout << "Locking display\n";
-            // cimg_library::cimg_lock_display();
             m_eventDispatched = false;
             m_timeStampMs = getTimeStampMs();
             captureMouseEvents();
@@ -33,9 +31,7 @@ class CImgMapControl : public MapControl
                 handleResize(m_disp.window_width(), m_disp.window_height());
                 resize(m_disp.window_width(), m_disp.window_height());
             }
-            // std::cout << "Unlocking display\n";
-            // cimg_library::cimg_unlock_display();
-            // std::cout << "Display unlocked\n";
+
             return m_eventDispatched;
         }
         int getWheelDelta() override final
@@ -143,6 +139,7 @@ class CImgMapControl : public MapControl
     private:
         CImgDisplay& m_disp;
 };
+typedef std::shared_ptr<CImgMapControl> CImgMapControlPtr;
 
 
 int main()
@@ -160,23 +157,24 @@ int main()
     map->addLayer(&backgroundLayer);
 
     // Setup MapControl and event handlers
-    CImgMapControl mapControl(display);
+    CImgMapControlPtr mapControl = std::make_shared<CImgMapControl>(display);
     auto panHandler = BlueMarble::PanEventHandler(*map);
-    mapControl.addSubscriber(&panHandler);
-    mapControl.setView(map);
+    mapControl->addSubscriber(&panHandler);
+    mapControl->setView(map);
     
     // Main loop
     map->startInitialAnimation();
-    bool requireUpdate = map->update();
+    map->update();
     while (!display.is_closed() && !display.is_keyESC()) 
     {
-        if(!requireUpdate)
+        mapControl->captureEvents();
+        if (mapControl->updateRequired())
         {
-            mapControl.wait();
+            mapControl->updateViewInternal();
         }
         else
         {
-            mapControl.wait(20);
+            mapControl->wait();
         }
     }
     

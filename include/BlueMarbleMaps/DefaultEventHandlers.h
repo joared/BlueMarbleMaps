@@ -114,7 +114,7 @@ namespace BlueMarble
                 auto& polygon = m_polygons[m_polygons.size()-1];
                 Point p = m_map.screenToMap(event.pos.x, event.pos.y);
                 polygon.push_back(p);
-                m_map.update(true);
+                m_map.update();
                 return true;
             }
 
@@ -133,7 +133,7 @@ namespace BlueMarble
                     {
                         m_polygons.erase(m_polygons.end() - 1);
                         std::cout << "Delete polygon\n";
-                        m_map.update(true);
+                        m_map.update();
                     }
                     break;
                 default:
@@ -300,7 +300,7 @@ namespace BlueMarble
 
                 case KeyButton::Enter:
                 {   
-                    //m_map.update(true);
+                    //m_map.update();
                     return true;
                 }
 
@@ -355,7 +355,7 @@ namespace BlueMarble
                             enabled = !enabled;
                             m_map.layers()[i-1]->enabled(enabled);
                             std::cout << "Enabled layer " << i << " (" << enabled << "\n";
-                            m_map.update(true);
+                            m_map.update();
                             return true;
                         }
                     }
@@ -378,7 +378,7 @@ namespace BlueMarble
             bool OnMouseDown(const BlueMarble::MouseDownEvent& /*mouseDownEvent*/) override final
             {
                 m_map.stopAnimation();
-                m_map.update(true);
+                m_map.update();
                 return true;
             }
 
@@ -395,7 +395,7 @@ namespace BlueMarble
                 {
                     // std::cout << "Not hovered\n";
                     m_map.hover(hoverFeature);
-                    m_map.update(true);
+                    m_map.update();
                 }
                 return true;
             }
@@ -413,7 +413,7 @@ namespace BlueMarble
                 else
                 {
                     m_map.deSelectAll();
-                    m_map.update(true);
+                    m_map.update();
 
                     return true;
                 }
@@ -440,7 +440,7 @@ namespace BlueMarble
                     m_map.deSelect(selFeat);
                 }
                 
-                m_map.update(true);
+                m_map.update();
 
                 return true;
             }
@@ -511,13 +511,13 @@ namespace BlueMarble
                             m_zoomToRect = true;
                             auto rect = BlueMarble::Rectangle(dragEvent.startPos.x, dragEvent.startPos.y, dragEvent.pos.x, dragEvent.pos.y);
                             m_rectangle = m_map.screenToMap(rect);
-                            m_map.update(true);
+                            m_map.update();
                         }
                         else
                         {
                             m_map.panBy({(double)(dragEvent.lastPos.x - dragEvent.pos.x), 
                                         (double)(dragEvent.lastPos.y - dragEvent.pos.y)});
-                            m_map.update(true);
+                            m_map.update();
                         }
                         
                         break;
@@ -530,7 +530,7 @@ namespace BlueMarble
                         double scale = 1 + abs(deltaY)*ZOOM_SCALE;
                         double zoomFactor = deltaY > 0 ? scale : 1.0/scale;
                         m_map.zoomOn(mapPoint, zoomFactor);
-                        m_map.update(true);
+                        m_map.update();
                         break;
                     }
                 case BlueMarble::MouseButtonMiddle:
@@ -539,7 +539,7 @@ namespace BlueMarble
                         auto corner2 = m_map.screenToMap(dragEvent.startPos.x, dragEvent.startPos.y);
                         m_rectangle = BlueMarble::Rectangle(corner1.x(), corner1.y(), corner2.x(), corner2.y());
                         std::cout << "Rectangle set: " << std::to_string(m_rectangle.xMin()) << ", " << std::to_string(m_rectangle.yMin()) << ", " << std::to_string(m_rectangle.xMax()) << ", " << std::to_string(m_rectangle.yMax()) << "\n";
-                        m_map.update(true);
+                        m_map.update();
                         break;
                     }
                 default:
@@ -605,7 +605,7 @@ namespace BlueMarble
                 default:
                     break;
                 }
-                m_map.update(true);
+                m_map.update();
 
                 return true;
             }
@@ -617,8 +617,12 @@ namespace BlueMarble
                 double scale = 1.0 + abs(wheelEvent.delta)/WHEEL_DELTA;
                 double zoomFactor = wheelEvent.delta > 0 ? scale : 1.0/scale;
                 bool animate = false; //abs(wheelEvent.delta) > 1; // only animate if wheel delta is large enough
+                if (!animate)
+                {
+                    m_map.stopAnimation(); // Need to stop animation for this to have an affect when not animating
+                }
                 m_map.zoomOn(m_map.screenToMap(BlueMarble::Point(wheelEvent.pos.x, wheelEvent.pos.y)), zoomFactor, animate);
-                m_map.update(true);
+                m_map.update();
                 return true;
             }
 

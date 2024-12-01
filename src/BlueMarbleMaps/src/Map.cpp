@@ -2,6 +2,7 @@
 #include "MapConstraints.h"
 #include "Utils.h"
 #include "DataSet.h"
+#include "MapControl.h"
 
 #include <cmath>
 #include <iostream>
@@ -45,11 +46,19 @@ Map::Map()
 bool Map::update(bool forceUpdate)
 {   
     //assert(!m_isUpdating);
+    if (!forceUpdate && m_mapControl)
+    {
+        // Let MapControl schedule update
+        m_mapControl->updateView();
+        return true;
+    }
+
     m_isUpdating = true;
     // TODO: should be handled as int64_t
     int timeStampMs = getTimeStampMs();
     if (!m_updateEnabled || (!forceUpdate && !m_animation && !m_updateRequired))
     {
+        std::cout << "Map::update() No update required!\n";
         return false;
     }
     updateUpdateAttributes(timeStampMs); // Set update attributes that contains useful information about the update
@@ -103,11 +112,12 @@ bool Map::update(bool forceUpdate)
     sendOnUpdated(*this);
     
     m_updateRequired = m_updateAttributes.get<bool>(UpdateAttributeKeys::UpdateRequired); // Someone in the operator chain needs more updates (e.g. Visualization evaluations)
+    //m_updateRequired = m_updateRequired || m_animation != nullptr;
     resetUpdateFlags();
 
     m_isUpdating = false;
 
-    return m_animation || m_updateRequired;
+    return m_updateRequired || m_animation != nullptr;
 }
 
 

@@ -19,11 +19,11 @@ namespace BlueMarble
             MapPtr getView();
 
             void updateView();
+            bool updateRequired();
             void updateViewInternal(); // TODO: make private
         protected:
             void handleResize(int width, int height);
         private:
-            
             bool m_updateRequired;
             MapPtr m_mapView;
 
