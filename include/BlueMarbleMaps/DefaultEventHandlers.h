@@ -200,10 +200,12 @@ namespace BlueMarble
             {
                 ScreenPos pos;
                 m_mapControl->getMousePos(pos);
-                auto pixelColor = m_map.drawable()->readPixel(pos.x, pos.y);
+                int offset = 10;
+                auto pixelColor = m_map.drawable()->readPixel(pos.x, pos.y-offset);
+                m_map.drawable()->setPixel(pos.x, pos.y-offset, Color::red());
                 std::string posString = std::to_string(pos.x) + ", " + std::to_string(pos.y);
-                m_map.drawable()->drawText(pos.x, pos.y-50, posString, Color::red());
-                m_map.drawable()->drawText(pos.x, pos.y-20, pixelColor.toString(), Color::red());
+                m_map.drawable()->drawText(0, 0, posString, Color::red());
+                m_map.drawable()->drawText(0, 15, pixelColor.toString(), Color::red());
 
                 if (!m_rectangle.isUndefined())
                     drawRect(m_map.mapToScreen(m_rectangle));
@@ -374,10 +376,12 @@ namespace BlueMarble
                 if (event.modificationKey & ModificationKeyCtrl)
                 {
                     m_map.rotation(m_map.rotation() + direction.x()*10.0);
+                    m_map.update();
                 }
                 else
                 {
                     m_map.panBy(direction * 50.0, true);
+                    m_map.update();
                 }
                 
 
@@ -536,13 +540,36 @@ namespace BlueMarble
                     }
                 case BlueMarble::MouseButtonRight:
                     {
-                        const double ZOOM_SCALE = 0.01;
-                        auto mapPoint = m_map.screenToMap(BlueMarble::Point(dragEvent.startPos.x, dragEvent.startPos.y));
-                        double deltaY = dragEvent.pos.y - dragEvent.lastPos.y;
-                        double scale = 1 + abs(deltaY)*ZOOM_SCALE;
-                        double zoomFactor = deltaY > 0 ? scale : 1.0/scale;
-                        m_map.zoomOn(mapPoint, zoomFactor);
-                        m_map.update();
+                        if (dragEvent.modificationKey & ModificationKeyCtrl)
+                        {
+                            // Rotate
+                            auto center = m_map.screenCenter();
+                            auto prev = Point(dragEvent.lastPos.x, dragEvent.lastPos.y);
+                            auto curr = Point(dragEvent.pos.x, dragEvent.pos.y);
+                            
+                            auto prevOffset = prev-center;
+                            auto currOffset = curr-center;
+
+                            double startAngle = std::atan2(prevOffset.y(), prevOffset.x());
+                            double currAngle = std::atan2(currOffset.y(), currOffset.x());
+
+                            double deltaAngle = currAngle-startAngle;
+
+                            m_map.rotation(m_map.rotation() + deltaAngle*RAD_TO_DEG);
+                            m_map.update();
+                        }
+                        else
+                        {
+                            // Zoom
+                            const double ZOOM_SCALE = 0.01;
+                            auto mapPoint = m_map.screenToMap(BlueMarble::Point(dragEvent.startPos.x, dragEvent.startPos.y));
+                            double deltaY = dragEvent.pos.y - dragEvent.lastPos.y;
+                            double scale = 1 + abs(deltaY)*ZOOM_SCALE;
+                            double zoomFactor = deltaY > 0 ? scale : 1.0/scale;
+                            m_map.zoomOn(mapPoint, zoomFactor);
+                            m_map.update();
+                        }
+                        
                         break;
                     }
                 case BlueMarble::MouseButtonMiddle:

@@ -32,7 +32,7 @@ Map::Map()
     , m_selectedFeatures()
     , m_hoveredFeatures()
     , m_commmand(nullptr)
-    , m_showDebugInfo(false)
+    , m_showDebugInfo(true)
     , m_isUpdating(false)
     
 {   
@@ -339,14 +339,14 @@ Point BlueMarble::Map::screenToMap(double x, double y) const
     double mapX = ((double)x - sCenter.x()) / m_scale + m_center.x();// + m_img.width() / 2.0;
     double mapY = ((double)y - sCenter.y()) / m_scale + m_center.y();// + m_img.height() / 2.0;
 
-    return Point(mapX, mapY);
+    return Utils::rotatePointDegrees(Point(mapX, mapY), -m_rotation, m_center);
 }
 
 Point Map::mapToScreen(const Point& point) const
 {
     auto screenC = screenCenter();
     // auto imgCenter = Point(m_img.width()*0.5, m_img.height()*0.5);
-    auto delta = point - m_center;
+    auto delta = Utils::rotatePointDegrees(point, -m_rotation, m_center) - m_center;
     double x = (delta.x() /*- imgCenter.x()*/)*m_scale + screenC.x();
     double y = (delta.y() /*- imgCenter.y()*/)*m_scale + screenC.y();
 
@@ -673,6 +673,7 @@ void Map::updateUpdateAttributes(int64_t timeStampMs)
 void Map::beforeRender()
 {
     m_drawable->fill(150);
+    m_drawable->setTransform(Transform(m_center, m_scale, m_rotation));
 }
 
 void Map::afterRender()
@@ -745,6 +746,9 @@ void Map::drawDebugInfo(int elapsedMs)
     
     // int fontSize = 16;
     // m_drawable->drawText(0, 0, info.c_str(), Color(0, 0, 0), fontSize);
+    m_drawable->drawText(0,30, "Center: " + m_center.toString(), Color::black(0.5));
+    m_drawable->drawText(0,45, "Scale: " + std::to_string(m_scale), Color::black(0.5));
+    m_drawable->drawText(0,60, "Rotation: " + std::to_string(m_rotation), Color::black(0.5));
 }
 
 const Point Map::screenToLngLat(const Point& screenPoint)

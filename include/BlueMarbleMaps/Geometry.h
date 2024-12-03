@@ -4,6 +4,7 @@
 #include "Core.h"
 #include "Raster.h"
 #include "Utils.h"
+#include "Transform.h"
 
 #include <memory>
 #include <vector>
@@ -47,12 +48,14 @@ namespace BlueMarble
         public:
             virtual GeometryPtr clone() = 0;
             virtual GeometryType type() = 0;
-            virtual Rectangle bounds() = 0;
+            virtual Rectangle calculateBounds() = 0;
             virtual Point center() = 0;
             virtual void move(const Point& delta) = 0;
             virtual void moveTo(const Point& point) = 0;
             virtual bool isInside(const Rectangle& bounds) const = 0;
             virtual bool isStrictlyInside(const Rectangle& bounds) const = 0;
+            const Transform& getTransForm() { std::cout << "Geometry::getTransForm() Not implemented\n"; throw std::exception(); };
+            void setTransForm(const Transform& transform) { std::cout << "Geometry::getTransForm() Not implemented\n"; throw std::exception(); };
         protected:
             virtual ~Geometry() = default; // { std::cout << "~Geometry()\n"; };
     };
@@ -65,7 +68,7 @@ namespace BlueMarble
             PointGeometry(const Point& point);
             GeometryPtr clone() override final { return std::make_shared<PointGeometry>(*this); };
             GeometryType type() override final { return GeometryType::Point; };
-            Rectangle bounds() override final { return Rectangle::undefined(); };
+            Rectangle calculateBounds() override final { return Rectangle::undefined(); };
             Point center() override final { return m_point; };
             void move(const Point& delta) override final { m_point += delta; };
             void moveTo(const Point& point) override final { m_point = point; };
@@ -87,7 +90,7 @@ namespace BlueMarble
             LineGeometry(const std::vector<Point>& points);
             GeometryPtr clone() override final { return std::make_shared<LineGeometry>(*this); };
             GeometryType type() override final { return GeometryType::Line; };
-            Rectangle bounds() override final { return Rectangle::fromPoints(m_points); };
+            Rectangle calculateBounds() override final { return Rectangle::fromPoints(m_points); };
             Point center() override final { return m_points[m_points.size()%2]; }; // FIXME
             void move(const Point& delta) override final;
             void moveTo(const Point& point) override final;
@@ -112,7 +115,7 @@ namespace BlueMarble
 
             GeometryPtr clone() override final { return std::make_shared<PolygonGeometry>(*this); };
             GeometryType type() override final { return GeometryType::Polygon; };
-            Rectangle bounds() override final { return Rectangle::fromPoints(outerRing()); }; //{ return m_cachedBounds.get(); };
+            Rectangle calculateBounds() override final { return Rectangle::fromPoints(outerRing()); }; //{ return m_cachedBounds.get(); };
             Point center() override final { return Utils::centroid(outerRing()); };
             void move(const Point& delta) override final;
             void moveTo(const Point& point) override final;
@@ -148,7 +151,7 @@ namespace BlueMarble
             const std::vector<Point>& outerRing() const { assert(m_rings.size() > 0); return m_rings[0]; }
             std::vector<std::vector<Point>>& rings() { return m_rings; };
         private:
-            std::vector<std::vector<Point>>     m_rings; // All rings, including outer
+            std::vector<std::vector<Point>>     m_rings; // All rings, including outer. TODO: make each ring a LineGeometry
             Utils::CachableVariable<Rectangle>  m_cachedBounds; // TODO: No obvious gain, remove?
     };
     typedef std::shared_ptr<PolygonGeometry> PolygonGeometryPtr;
@@ -162,7 +165,7 @@ namespace BlueMarble
 
             GeometryPtr clone() override final { return std::make_shared<MultiPolygonGeometry>(*this); };
             GeometryType type() override final { return GeometryType::MultiPolygon; };
-            Rectangle bounds() override final { return Rectangle(); };
+            Rectangle calculateBounds() override final { return Rectangle(); };
             Point center() override final { return Point(); };
             void move(const Point& delta) override final;
             void moveTo(const Point& point) override final;
@@ -199,7 +202,9 @@ namespace BlueMarble
             RasterGeometry(const Raster& raster, const Point& offset = Point(0,0));
             GeometryPtr clone() override final { return std::make_shared<RasterGeometry>(*this); };
             GeometryType type() override final { return GeometryType::Raster; };
-            Rectangle bounds() override final { return Rectangle(); };
+            Rectangle calculateBounds() override final { return Rectangle(); };
+            double cellHeight();
+            double cellWidth();
             Point center() override final { return Point(); };
             void move(const Point& delta) override final { m_offset += delta; }; // Not tested
             void moveTo(const Point& point) override final { m_offset = point; }; // Not tested
@@ -211,6 +216,8 @@ namespace BlueMarble
         private:
             Raster m_raster;
             Point  m_offset; // TODO: remove probably, temporary fix
+            double m_cellWidth;
+            double m_cellHeight;
     };
     typedef std::shared_ptr<RasterGeometry> RasterGeometryPtr;
 

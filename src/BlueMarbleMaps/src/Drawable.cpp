@@ -27,6 +27,16 @@ namespace BlueMarble
     // Drawable::Drawable()
     // {}
 
+    const Transform &Drawable::getTransform()
+    {
+        return m_impl->getTransform();
+    }
+
+    void Drawable::setTransform(const Transform &transform)
+    {
+        m_impl->setTransform(transform);
+    }
+
     void Drawable::resize(int width, int height)
     {
         m_impl->resize(width, height);
@@ -109,6 +119,11 @@ namespace BlueMarble
     Color Drawable::readPixel(int x, int y)
     {
         return m_impl->readPixel(x, y);
+    }
+
+    void Drawable::setPixel(int x, int y, const Color &color)
+    {
+        m_impl->setPixel(x, y, color);
     }
 
     void WindowDrawable::setWindow(void* window)

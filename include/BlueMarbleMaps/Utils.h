@@ -17,6 +17,9 @@ namespace BlueMarble
         #define LATITUDE_MIN -90
         #define LATITUDE_MAX 90
 
+        #define RAD_TO_DEG 57.2957795131
+        #define DEG_TO_RAD 0.0174532925
+
         inline double clampValue(double val, double minVal, double maxVal) { return std::min(std::max(val, minVal), maxVal); }
         inline double normalizeValue(double val, double minVal, double maxVal)
         {
@@ -314,6 +317,17 @@ namespace BlueMarble
             // }
 
             return scaledPoints;
+        }
+
+        inline Point rotatePointDegrees(const Point& p, double angle, const Point& fixPoint)
+        {
+            angle *= DEG_TO_RAD;
+            auto vec = p-fixPoint;
+
+            auto rotated = Point(std::cos(angle)*vec.x() + -std::sin(angle)*vec.y(),  
+                                 std::sin(angle)*vec.x() + std::cos(angle)*vec.y());
+
+            return fixPoint + rotated;
         }
 
         inline Point rotatePoint(const Point& p, double angle, const Point& fixPoint)

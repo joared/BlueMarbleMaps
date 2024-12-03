@@ -38,7 +38,7 @@ void BlueMarble::Feature::moveTo(const Point &point)
 
 Rectangle Feature::bounds() const
 {
-    return m_geometry->bounds();
+    return m_geometry->calculateBounds();
 }
 
 Point Feature::center() const

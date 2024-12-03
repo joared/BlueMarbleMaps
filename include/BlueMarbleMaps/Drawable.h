@@ -6,6 +6,7 @@
 #include "Utils.h"
 #include "Color.h"
 #include "Renderer.h"
+#include "Transform.h"
 
 #include <string>
 #include <vector>
@@ -26,6 +27,8 @@ namespace BlueMarble
             void backgroundColor(const Color& color);
             
             // Methods
+            const Transform& getTransform();
+            void setTransform(const Transform& transform);
             void resize(int width, int height);
             void fill(int val);
             void drawCircle(int x, int y, double radius, const Color& color);
@@ -40,6 +43,7 @@ namespace BlueMarble
             RendererImplementation renderer();
 
             Color readPixel(int x, int y);
+            void setPixel(int x, int y, const Color& color);
         protected:
             class Impl;   // Forward declaration
             Impl* m_impl; // Using "pimpl" design pattern for fun

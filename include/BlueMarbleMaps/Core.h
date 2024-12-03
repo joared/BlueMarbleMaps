@@ -8,6 +8,7 @@
 #include <limits>
 #include <string>
 
+
 namespace BlueMarble
 {
     #define BIT(x) (1 << x)
@@ -90,6 +91,12 @@ namespace BlueMarble
             double  m_y;
             bool    m_isUndefined;
     };
+
+    // Uggly forward declarations
+    namespace Utils
+    {
+        std::vector<Point> rotatePoints(const std::vector<Point>& input, double angle, Point fixPoint);
+    }
 
     class Rectangle
     {
@@ -247,6 +254,13 @@ namespace BlueMarble
                 m_xMax = c.x() + newWidth*0.5;
                 m_yMin = c.y() - newHeight*0.5;
                 m_yMax = c.y() + newHeight*0.5;
+            }
+
+            inline Rectangle rotate(double angle)
+            {
+                auto points = corners();
+                auto rotated = Utils::rotatePoints(points, angle, center());
+                return fromPoints(rotated);
             }
 
             inline Point minCorner() const
