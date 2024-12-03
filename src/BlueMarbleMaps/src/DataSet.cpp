@@ -97,8 +97,8 @@ BlueMarble::DataSet::~DataSet()
 ImageDataSet::ImageDataSet()
     : DataSet() 
     , m_filePath("")
-    , m_raster()
-    , m_rasterPrev()
+    , m_raster(0,0,0,0) // Prevent warning
+    , m_rasterPrev(0,0,0,0) // Prevent warning
     , m_overViews()
 {
 }
@@ -107,8 +107,8 @@ ImageDataSet::ImageDataSet()
 ImageDataSet::ImageDataSet(const std::string &filePath)
     : DataSet()
     , m_filePath(filePath)
-    , m_raster()
-    , m_rasterPrev()
+    , m_raster(0,0,0,0) // Prevent warning
+    , m_rasterPrev(0,0,0,0) // Prevent warning
     , m_overViews()
 {
 }
@@ -163,6 +163,7 @@ void BlueMarble::ImageDataSet::onUpdateRequest(Map &map, const Rectangle& update
                                             std::round(x1), 
                                             std::round(y1));
 
+    
     // Resize the cropped image
     int newWidth = std::round(newImage.width()*map.scale()*invScaleX);
     int newHeight = std::round(newImage.height()*map.scale()*invScaleY);
@@ -347,7 +348,7 @@ void ImageDataSet::generateOverViews()
 {
     const int LIMIT = 500; // TODO
     int s = 0;
-    m_overViews[s] = m_raster;
+    m_overViews.emplace(s, m_raster);
     s++;
 
     std::cout << "Generating overviews...\n";
@@ -363,7 +364,7 @@ void ImageDataSet::generateOverViews()
             break;
         }
         std::cout << "Add: " << overview.width() << ", " << overview.height() << "\n";
-        m_overViews[s] = overview;
+        m_overViews.emplace(s, overview);
 
         std::cout << "Overview: " << s << "\n";
         s++;

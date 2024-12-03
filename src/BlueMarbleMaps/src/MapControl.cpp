@@ -15,7 +15,7 @@ void MapControl::setView(MapPtr mapView)
     if (!mapView)
     {
         std::cout << "MapControl::setView() Detaching view, setting Bitmap drawable\n";
-        auto drawable = std::make_shared<BitmapDrawable>(500, 500, 3);
+        auto drawable = std::make_shared<BitmapDrawable>(500, 500, 4);
         mapView->drawable(drawable);
         m_mapView = mapView;
         m_mapView->onDetachedFromMapControl();
@@ -23,7 +23,7 @@ void MapControl::setView(MapPtr mapView)
     else if (auto window = getWindow())
     {
         std::cout << "MapControl::setView() Attaching Window drawable\n";
-        auto drawable = std::make_shared<WindowDrawable>(500, 500, 3);
+        auto drawable = std::make_shared<WindowDrawable>(500, 500, 4);
         drawable->setWindow(window);
         mapView->drawable(drawable);
         m_mapView = mapView;
@@ -53,12 +53,19 @@ void MapControl::updateViewInternal()
         m_updateRequired = m_mapView->update(true);
 }
 
-bool BlueMarble::MapControl::updateRequired()
+bool MapControl::updateRequired()
 {
     return m_updateRequired;
 }
 
-void BlueMarble::MapControl::handleResize(int width, int height)
+bool MapControl::resize(int width, int height, int64_t timeStampMs)
+{
+    handleResize(width, height);
+    return EventManager::resize(width, height, timeStampMs);
+}
+
+void MapControl::handleResize(int width, int height)
 {
     m_mapView->drawable()->resize(width, height);
+    m_mapView->update();
 }

@@ -114,7 +114,7 @@ namespace BlueMarble
                 public:
                     inline Symbol(BuiltInSymbol symbol=BuiltInSymbol::Circle)
                         : m_symbol(symbol)
-                        , m_rasterSymbol()
+                        , m_rasterSymbol(0,0,0,0) // Prevent warning
                         , m_hotSpot()
                         , m_rasterCache()
                     {

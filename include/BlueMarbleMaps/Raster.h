@@ -31,8 +31,8 @@ namespace BlueMarble
             };
             Raster();
             Raster(const Raster& raster);
-            Raster(int width, int height, int depth=3, int fill=0);
-            Raster(void* data);
+            Raster(int width, int height, int channels, int fill=0);
+            Raster(unsigned char* data, int width, int height, int channels);
             Raster(const std::string& filePath);
             int width() const;
             int height() const;
@@ -43,15 +43,16 @@ namespace BlueMarble
             void fill(int val);
             void blur(double sigmaX, double sigmaY, double sigmaZ, bool isGaussian=false);
             Raster getCrop(int x0, int y0, int x1, int y1);
-            void drawPolygon(const std::vector<Point>& points, const Color& color);
-            void drawRaster(int x, int y, const Raster& raster, double alpha);
-            void drawRect(const Point& topLeft, const Point& bottomRight, const Color& color);
-            void drawLine(const std::vector<Point>& points, const Color& color, double width);
-            void drawText(int x, int y, const std::string& text, const Color& color, int fontSize, const Color& bcolor);
-            void drawCircle(int x, int y, double radius, const Color& color);
-            void* data() const; // Specific implementation for used framework (e.g. CImg)
+
+            const unsigned char* data() const; // Specific implementation for used framework (e.g. CImg)
+
+            void operator=(const Raster& raster);
         private:
             cimg_library::CImg<unsigned char> m_img; // TODO: remove this dependency when implementing pimpl
+            unsigned char* m_data;
+            int m_width;
+            int m_height;
+            int m_channels;
     };
 }
 

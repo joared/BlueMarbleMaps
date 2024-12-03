@@ -5,6 +5,7 @@
 #include "Raster.h"
 #include "Utils.h"
 #include "Color.h"
+#include "Renderer.h"
 
 #include <string>
 #include <vector>
@@ -15,7 +16,7 @@ namespace BlueMarble
     class Drawable
     {
         public:
-            Drawable(int width, int height, int colorDepth=3);
+            Drawable(int width, int height, int colorDepth=4);
             Drawable(const Drawable& drawable) = delete;
             virtual ~Drawable() = default;
             // Properties
@@ -30,13 +31,15 @@ namespace BlueMarble
             void drawCircle(int x, int y, double radius, const Color& color);
             void drawLine(const std::vector<Point>& points, const Color& color, double width=1.0);
             void drawPolygon(const std::vector<Point>& points, const Color& color);
-            void drawRect(const Rectangle& rect, const Color& color);
+            void drawRect(const Rectangle& rect, const Color& color); // Utility method
             void drawRect(const Point& topLeft, const Point& bottomRight, const Color& color);
             void drawRaster(int x, int y, const Raster& raster, double alpha);
             void drawText(int x, int y, const std::string& text, const Color& color, int fontSize=20, const Color& backgroundColor=Color::transparent());
             Raster& getRaster();
             void swapBuffers();
-            void* getDisplay(); // TODO remove
+            RendererImplementation renderer();
+
+            Color readPixel(int x, int y);
         protected:
             class Impl;   // Forward declaration
             Impl* m_impl; // Using "pimpl" design pattern for fun

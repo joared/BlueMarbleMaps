@@ -59,12 +59,12 @@ namespace BlueMarble
 
     void Drawable::drawCircle(int x, int y, double radius, const Color& color)
     {
-        return m_impl->drawCircle(x, y, radius, color);
+        m_impl->drawCircle(x, y, radius, color);
     }
 
     void Drawable::drawLine(const std::vector<Point>& points, const Color& color, double width)
     {
-        return m_impl->drawLine(points, color, width);
+        m_impl->drawLine(points, color, width);
     }
 
     void Drawable::drawPolygon(const std::vector<Point>& points, const Color& color)
@@ -101,9 +101,14 @@ namespace BlueMarble
         m_impl->swapBuffers();
     }
 
-    void* Drawable::getDisplay()
+    RendererImplementation Drawable::renderer()
     {
-        return m_impl->getDisplay();
+        return m_impl->renderer();
+    }
+
+    Color Drawable::readPixel(int x, int y)
+    {
+        return m_impl->readPixel(x, y);
     }
 
     void WindowDrawable::setWindow(void* window)

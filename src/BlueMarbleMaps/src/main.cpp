@@ -18,35 +18,30 @@ class CImgMapControl : public MapControl
         CImgMapControl(CImgDisplay& display)
             : m_disp(display)
         {}
-        bool captureEvents() override final 
+
+        bool getResize(int& width, int& height) override final
         {
-            m_eventDispatched = false;
-            m_timeStampMs = getTimeStampMs();
-            captureMouseEvents();
-            captureKeyEvents();
             if (m_disp.is_resized() || m_disp.is_keyF11())
             {
-                m_disp.resize(m_disp.window_width(), m_disp.window_height());
                 std::cout << "Resize: " << m_disp.window_width() << ", " << m_disp.window_height() << "\n";
-                handleResize(m_disp.window_width(), m_disp.window_height());
-                resize(m_disp.window_width(), m_disp.window_height());
+                width = m_disp.window_width();
+                height = m_disp.window_height();
+                
+                return true;
             }
 
-            return m_eventDispatched;
+            return false;
         }
+
         int getWheelDelta() override final
         {
             int delta = m_disp.wheel();
-            resetWheelDelta(); // Reset the wheel counter.
+            m_disp.set_wheel();
             return delta;
         }
 
-        void resetWheelDelta()
-        {
-            m_disp.set_wheel();
-        }
-
-        void captureKeyEvents() override final
+        // TODO: remove this and use keyCode instead
+        bool captureKeyEvents() override final
         {
             handleKey(m_disp.is_keyARROWDOWN(), KeyButton::ArrowDown);
             handleKey(m_disp.is_keyARROWUP(), KeyButton::ArrowUp);
@@ -66,6 +61,8 @@ class CImgMapControl : public MapControl
             handleKey(m_disp.is_key9(), KeyButton::Nine);
             handleKey(m_disp.is_keyPADADD(), KeyButton::Add);
             handleKey(m_disp.is_keyPADSUB(), KeyButton::Subtract);
+
+            return true;
         }
         void getMousePos(ScreenPos &pos) const override final
         {
@@ -117,21 +114,6 @@ class CImgMapControl : public MapControl
             return mouseButton;
         }
 
-        void wait()
-        {
-            if(!captureEvents())
-            {
-                m_disp.wait();
-                captureEvents();
-            }
-        }
-
-        void wait(int durationMs)
-        {
-            m_disp.wait(durationMs);
-            captureEvents();
-        }
-
         void* getWindow() override final
         {
             return (void*)&m_disp;
@@ -146,7 +128,8 @@ int main()
 {
     // Set up window/display
     BlueMarble::MapPtr map = std::make_shared<Map>();
-    CImgDisplay display(cimg_library::CImg<unsigned char>(), "BlueMarbleMaps Demo", 3, true, true); //*static_cast<CImgDisplay*>(map->drawable()->getDisplay());
+    int normalization = 0;
+    CImgDisplay display(cimg_library::CImg<unsigned char>(), "BlueMarbleMaps Demo", normalization, true, true); //*static_cast<CImgDisplay*>(map->drawable()->getDisplay());
     display.resize(500, 500, true);
 
     // Set up Map view
@@ -158,7 +141,7 @@ int main()
 
     // Setup MapControl and event handlers
     CImgMapControlPtr mapControl = std::make_shared<CImgMapControl>(display);
-    auto panHandler = BlueMarble::PanEventHandler(*map);
+    auto panHandler = BlueMarble::PanEventHandler(*map, mapControl);
     mapControl->addSubscriber(&panHandler);
     mapControl->setView(map);
     
@@ -168,13 +151,19 @@ int main()
     while (!display.is_closed() && !display.is_keyESC()) 
     {
         mapControl->captureEvents();
+        if (display.is_resized() || display.is_keyF11())
+        {
+            display.resize(false);
+        }
+
+
         if (mapControl->updateRequired())
         {
             mapControl->updateViewInternal();
         }
         else
         {
-            mapControl->wait();
+            display.wait();
         }
     }
     

@@ -1,5 +1,5 @@
-#ifndef BLUEMARBLE_MAP
-#define BLUEMARBLE_MAP
+#ifndef MAP
+#define MAP
 
 #include "Core.h"
 #include "MapConstraints.h"
@@ -219,4 +219,4 @@ namespace BlueMarble
 
 }
 
-#endif /* BLUEMARBLE_MAP */
+#endif /* MAP */

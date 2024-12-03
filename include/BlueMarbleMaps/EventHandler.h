@@ -44,7 +44,6 @@ namespace BlueMarble
     {
         public:
             EventManager();
-            virtual bool captureEvents() = 0;
 
             // Mouse events
             bool mouseDown(MouseButton button, int x, int y, ModificationKey modKeys, int64_t timeStamp);
@@ -64,29 +63,29 @@ namespace BlueMarble
             void touchEnd() {}
 
             // Other window related events
-            bool resize(int width, int height, int64_t timeStamp=-1);
+            virtual bool resize(int width, int height, int64_t timeStamp);
 
-            bool dispatchEvent(Event& event, int timeStampMs);
-        protected:
-            bool m_eventDispatched;
-
-            virtual void getMousePos(ScreenPos& pos) const { }; // Window specific
-            virtual ModificationKey getModificationKeyMask() const { }; // Window specific
-            virtual MouseButton getMouseButton() { }; // Window specific
-            virtual int getWheelDelta() {};
-            virtual void captureKeyEvents() {};// Window specific
+            // Use this for polling events. NOTE: need to implement window specific (virtual) getters below
+            bool captureEvents();
         
+            virtual void getMousePos(ScreenPos& pos) const { throw std::exception(); }; // Window specific
+            virtual ModificationKey getModificationKeyMask() const { throw std::exception(); }; // Window specific
+            virtual MouseButton getMouseButton() { throw std::exception(); }; // Window specific
+        protected:
+            virtual int getWheelDelta() { throw std::exception(); }; // Window
+            virtual bool getResize(int& width, int& height) { throw std::exception(); } // Window specific
+            virtual bool captureKeyEvents() { throw std::exception(); };// Window specific
+            // Key events
+            void handleKey(bool keyDownState, KeyButton key);
+        private:
             void reset();
+            bool captureMouseEvents();
             bool mouseButtonChanged(MouseButton lastDown, MouseButton current);
             bool mousePosChanged(const ScreenPos& lastPos, const ScreenPos& currPos);
             void handlePosChanged(MouseButton lastDown, const ScreenPos& currPos);
             void handleMouseButtonChanged(MouseButton curr, const ScreenPos& currPos);
             bool detectDrag(const ScreenPos& startPos, const ScreenPos& currPos, int thresh);
-            void captureMouseEvents();
             
-            
-            // Key events
-            void handleKey(bool keyDownState, KeyButton key);
 
             EventConfiguration m_configration;
 

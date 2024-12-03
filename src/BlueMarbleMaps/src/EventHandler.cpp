@@ -2,6 +2,8 @@
 #include "PointerEvent.h"
 #include "KeyEvent.h"
 
+#include <iostream>
+
 namespace BlueMarble
 {
     EventHandler::EventHandler()
@@ -36,6 +38,20 @@ namespace BlueMarble
         reset();
     }
 
+    bool EventManager::captureEvents()
+    {
+        m_timeStampMs = getTimeStampMs();
+        bool handled = captureMouseEvents();
+        handled = captureKeyEvents() || handled;
+        int w, h;
+        if (getResize(w, h))
+        {
+            handled = resize(w, h, m_timeStampMs) || handled;
+        }
+
+        return handled;
+    }
+
     bool EventManager::mouseDown(MouseButton button, int x, int y, ModificationKey modKeys, int64_t timeStampMs)
     {
         MouseDownEvent event;
@@ -66,6 +82,7 @@ namespace BlueMarble
     bool EventManager::mouseWheel(int delta, int x, int y, ModificationKey modKeys, int64_t timeStampMs)
     {
         MouseWheelEvent event;
+        event.delta = delta;
         event.pos = ScreenPos{x,y};
         event.modificationKey = modKeys;
         return dispatchEvent(event, timeStampMs);
@@ -91,12 +108,6 @@ namespace BlueMarble
         event.width = width;
         event.height = height;
         return dispatchEvent(event, timeStampMs);
-    }
-
-    bool EventManager::dispatchEvent(Event &event, int timeStampMs)
-    {
-        m_eventDispatched = true;
-        return EventDispatcher::dispatchEvent(event, timeStampMs);
     }
 
     void EventManager::reset()
@@ -166,11 +177,7 @@ namespace BlueMarble
             else 
             {
                 // Mouse move
-                MouseMoveEvent event;
-                event.pos = currPos;
-                event.modificationKey = modKey;
-                event.mouseButton = lastDown;
-                dispatchEvent(event, m_timeStampMs);
+                mouseMove(lastDown, currPos.x, currPos.y, modKey, m_timeStampMs);
             }
         }
         else
@@ -268,7 +275,7 @@ namespace BlueMarble
         return abs(startPos.x - currPos.x) > thresh || abs(startPos.y - currPos.y) > thresh;
     }
 
-    void EventManager::captureMouseEvents()
+    bool EventManager::captureMouseEvents()
     {
         MouseButton mouseButton = getMouseButton();
         bool mButtonChanged = mouseButtonChanged(m_lastDown, mouseButton);
@@ -294,21 +301,19 @@ namespace BlueMarble
             m_lastPos = currScreenPos;
         }
 
-        // if (mButtonChanged && !first)
-        // {
-        //     handleMouseButtonChanged(mouseButton, currScreenPos);
-        // }
-
 
         // Mouse wheel
         if (int wheelDelta = getWheelDelta())
         {
-            MouseWheelEvent event;
-            event.mouseButton = mouseButton;
-            event.pos = currScreenPos;
-            event.delta = wheelDelta;
-            dispatchEvent(event, m_timeStampMs);
+            // MouseWheelEvent event;
+            // event.mouseButton = mouseButton;
+            // event.pos = currScreenPos;
+            // event.delta = wheelDelta;
+            // dispatchEvent(event, m_timeStampMs);
+            mouseWheel(wheelDelta, currScreenPos.x, currScreenPos.y, getModificationKeyMask(), m_timeStampMs);
         }
+
+        return true; // TODO
     }
 
     

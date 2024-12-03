@@ -14,7 +14,7 @@ namespace BlueMarble
         , public BlueMarble::MapEventHandler
     {
         public:
-            DrawSomeEventHandler(BlueMarble::Map& map) 
+            DrawSomeEventHandler(Map& map) 
                 : m_map(map)
             {
 
@@ -153,12 +153,14 @@ namespace BlueMarble
         , public IFeatureEventListener
     {
         public:
-            PanEventHandler(BlueMarble::Map& map) 
+            PanEventHandler(BlueMarble::Map& map, MapControlPtr mapControl) 
                 : m_map(map)
+                , m_mapControl(mapControl)
                 , m_rectangle(BlueMarble::Rectangle::undefined())
                 , m_zoomToRect(false)
                 , m_inertiaOption{0.002, 0.1}
                 , m_dataSetsInitialized(false)
+                , m_funnyDudeRaster(0,0,0,0) // Prevent warning
             {
                 m_cutoff = 150;
                 int reserveAmount = (int)(m_cutoff / 16.0) + 1;
@@ -196,6 +198,13 @@ namespace BlueMarble
 
             void OnCustomDraw(BlueMarble::Map& /*map*/) override final 
             {
+                ScreenPos pos;
+                m_mapControl->getMousePos(pos);
+                auto pixelColor = m_map.drawable()->readPixel(pos.x, pos.y);
+                std::string posString = std::to_string(pos.x) + ", " + std::to_string(pos.y);
+                m_map.drawable()->drawText(pos.x, pos.y-50, posString, Color::red());
+                m_map.drawable()->drawText(pos.x, pos.y-20, pixelColor.toString(), Color::red());
+
                 if (!m_rectangle.isUndefined())
                     drawRect(m_map.mapToScreen(m_rectangle));
             }
@@ -384,6 +393,8 @@ namespace BlueMarble
 
             bool OnMouseMove(const BlueMarble::MouseMoveEvent& event) override final
             {
+                
+
                 auto pObjs = m_map.hitTest(event.pos.x, event.pos.y, 10.0);
                 BlueMarble::FeaturePtr hoverFeature(nullptr);
                 if (pObjs.size() > 0)
@@ -479,6 +490,7 @@ namespace BlueMarble
                 {
                     m_map.zoomOn(mapPoint, zoomFactor, true);
                 }
+                m_map.update();
 
                 return true;
             }
@@ -676,6 +688,7 @@ namespace BlueMarble
         private:
             
             BlueMarble::Map& m_map;
+            MapControlPtr m_mapControl;
             std::vector<int> m_timeStamps;
             std::vector<BlueMarble::ScreenPos> m_positions;
             int m_cutoff;

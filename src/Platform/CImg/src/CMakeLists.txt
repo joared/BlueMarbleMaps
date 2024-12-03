@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 3.10)
 add_library(CImgImplementation STATIC
     CImgRaster.cpp
     DrawableImpl.cpp
+    CImgSoftwareRenderer.cpp
 )
 
 # Specify include directories for this implementation
