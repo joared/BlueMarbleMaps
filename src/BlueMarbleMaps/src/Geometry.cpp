@@ -82,13 +82,14 @@ void PolygonGeometry::moveTo(const Point& point)
 
 RasterGeometry::RasterGeometry()
     : m_raster()
-    , m_offset()
 {
 }
 
-RasterGeometry::RasterGeometry(const Raster& raster, const Point& offset)
+BlueMarble::RasterGeometry::RasterGeometry(const Raster& raster, const Rectangle& bounds, double cellWidth, double cellHeight)
     : m_raster(raster)
-    , m_offset(offset)
+    , m_bounds(bounds)
+    , m_cellWidth(0)
+    , m_cellHeight(0)
 {
 }
 

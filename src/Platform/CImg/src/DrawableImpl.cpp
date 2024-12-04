@@ -109,6 +109,7 @@ namespace BlueMarble
             void swapBuffers()
             {
                 // Update the image and save new black draw image
+                
                 auto drawImg = cimg_library::CImg<unsigned char>(m_raster.data(), m_raster.width(), m_raster.height(), 1, m_raster.colorDepth(), true);
 
                 cimg_library::CImg<unsigned char> fixed_size_canvas(drawImg.width(), drawImg.height(), 1, drawImg.spectrum(), 0);
@@ -117,12 +118,6 @@ namespace BlueMarble
                 cimg_library::CImg<unsigned char> rotated = drawImg.get_rotate(m_transform.rotation(), drawImg.width() / 2.0f, drawImg.height() / 2.0f);
                 //cimg_library::CImg<unsigned char> rotated = drawImg.get_rotate(m_transform.rotation(), 0, 0);
 
-                std::cout << "Size before: " << drawImg.width() << ",  " << drawImg.width() << "\n";
-                std::cout << "Size after: " << rotated.width() << ",  " << rotated.width() << "\n";
-
-                // Rectangle screen(0,0,drawImg.width(), drawImg.height());
-                // auto screenRotated = screen.rotate(-m_transform.rotation());
-                // auto offset = screenRotated.minCorner();
                 auto center1 = Point(drawImg.width() / 2.0, drawImg.height() / 2.0);
                 auto center2 = Point(rotated.width() / 2.0, rotated.height() / 2.0);
                 auto offset = center1 - center2;
@@ -130,8 +125,6 @@ namespace BlueMarble
                 fixed_size_canvas.draw_image(offset.x(), offset.y(), 0, 0, rotated, 1.0f);
 
                 m_disp->display(fixed_size_canvas);
-                // Reset draw image
-                //fill(150); // TODO: fill with drawable.backGroundColor()
             }
 
             void setWindow(void* window)

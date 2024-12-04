@@ -58,8 +58,6 @@ namespace BlueMarble
             ImageDataSet();
             ImageDataSet(const std::string &filePath);
             void onUpdateRequest(Map& map, const Rectangle& updateArea, FeatureHandler* handler) override final;
-            void OnUpdateRequest(Map& map, const Rectangle& updateArea);
-            void OnUpdateRequestOld(Map& map, const Rectangle& updateArea);
             void onGetFeaturesRequest(const Attributes& attributes, std::vector<FeaturePtr>& features) override final {};
             FeaturePtr onGetFeatureRequest(const Id& id) override final { return nullptr; };
 

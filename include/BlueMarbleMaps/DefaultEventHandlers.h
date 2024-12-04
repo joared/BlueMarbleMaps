@@ -283,7 +283,7 @@ namespace BlueMarble
                         if (pointList.size() == 1)
                         {
                             auto area = m_map.mapToLngLat(m_map.area());
-                            area.center(pointList[0]);
+                            area.reCenter(pointList[0]);
                             bounds = m_map.lngLatToMap(area);
                         }
                         else if (pointList.size() > 1)

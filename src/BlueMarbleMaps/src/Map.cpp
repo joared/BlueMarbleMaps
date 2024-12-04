@@ -672,7 +672,7 @@ void Map::updateUpdateAttributes(int64_t timeStampMs)
 
 void Map::beforeRender()
 {
-    m_drawable->fill(150);
+    m_drawable->fill(0);
     m_drawable->setTransform(Transform(m_center, m_scale, m_rotation));
 }
 

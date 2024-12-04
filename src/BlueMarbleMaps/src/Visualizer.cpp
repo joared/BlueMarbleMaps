@@ -367,6 +367,6 @@ void RasterVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& featu
 {
     auto geometry = feature->geometryAsRaster();
     auto& newImage = geometry->raster();
-    auto& offset = geometry->offset();
+    auto offset = geometry->bounds().minCorner();
     drawable.drawRaster(offset.x(), offset.y(), newImage, 1.0);
 }

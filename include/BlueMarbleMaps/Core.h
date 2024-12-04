@@ -302,7 +302,7 @@ namespace BlueMarble
             inline double xMax() const { return m_xMax; }
             inline double yMax() const { return m_yMax; }
             inline Point center() const { return Point(xMin() + width()*0.5, yMin() + height()*0.5); }
-            inline void center(const Point& center) 
+            inline void reCenter(const Point& center) 
             { 
                 double w = width();
                 double h = height();

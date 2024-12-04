@@ -199,23 +199,25 @@ namespace BlueMarble
     {
         public:
             RasterGeometry();
-            RasterGeometry(const Raster& raster, const Point& offset = Point(0,0));
+            RasterGeometry(const Raster& raster, const Rectangle& bounds, double cellWidth, double cellHeight);
             GeometryPtr clone() override final { return std::make_shared<RasterGeometry>(*this); };
             GeometryType type() override final { return GeometryType::Raster; };
-            Rectangle calculateBounds() override final { return Rectangle(); };
-            double cellHeight();
-            double cellWidth();
+            
+            Rectangle calculateBounds() override final { return m_bounds; };
+            
             Point center() override final { return Point(); };
-            void move(const Point& delta) override final { m_offset += delta; }; // Not tested
-            void moveTo(const Point& point) override final { m_offset = point; }; // Not tested
+            void move(const Point& delta) override final { m_bounds.offset(delta.x(), delta.y()); }; // Not tested
+            void moveTo(const Point& point) override final { m_bounds.reCenter(point); }; // Not tested
             bool isInside(const Rectangle& /*bounds*/) const override final { return false; }; // TODO
             bool isStrictlyInside(const Rectangle& /*bounds*/) const override final { return false; }; // TODO
 
-            const Point& offset() { return m_offset; }
+            Rectangle bounds() { return m_bounds; };
+            double cellHeight() { return m_cellWidth; };
+            double cellWidth() { return m_cellHeight; };
             Raster& raster() { return m_raster; }
         private:
             Raster m_raster;
-            Point  m_offset; // TODO: remove probably, temporary fix
+            Rectangle m_bounds;
             double m_cellWidth;
             double m_cellHeight;
     };
