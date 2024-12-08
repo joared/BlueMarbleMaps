@@ -1,14 +1,19 @@
 #include "glad/glad.h"
 #include <glfw3.h>
+#include <vector>
 #include "glm.hpp"
 #include <iostream>
 #include "Application/WindowGL.h"
 #include "Keys.h"
 
+#include "Vertice.h"
+#include "VAO.h"
+#include "VBO.h"
+
 void keyEvent(WindowGL* window, int key, int scanCode, int action, int modifier)
 {
-	Key keyStroke = static_cast<Key::KeyStroke>(scanCode);
-	std::cout << "Key is: " << keyStroke << " " << keyStroke.toString() << std::endl;
+	Key keyStroke(scanCode);
+	std::cout << "Key is: " << keyStroke << " " << keyStroke.toString() << keyStroke.isNumberKey() << keyStroke.numberKeyToInt() << std::endl;
 	if (key == GLFW_KEY_ESCAPE)
 	{
 		window->shutdownWindow();
@@ -63,6 +68,19 @@ int main()
 	window.registerMouseScrollEventCallback(mouseScrollEvent);
 	window.registerMouseEnteredCallback(mouseEntered);
 	window.registerCloseWindowEventCallback(windowClosed);
+
+	std::vector<Vertice> vertices = {Vertice(),Vertice(),Vertice()};
+	vertices[0].position = glm::vec3(-0.5f,-0.5f,0.0f);
+	vertices[1].position = glm::vec3(0.5f, -0.5f, 0.0f);
+	vertices[2].position = glm::vec3(0.0f, 0.5f, 0.0f);
+
+	VBO vbo;
+	VAO vao;
+
+	vbo.init(vertices);
+	vao.init();
+	vao.link(vbo,0,3,GL_FLOAT,sizeof(vertices)*3, (void*)0);
+
 
 	glClearColor(0.0f,0.0f,0.5f,1.0f);
 	

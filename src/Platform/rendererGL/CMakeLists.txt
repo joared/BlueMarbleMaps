@@ -12,8 +12,12 @@ file(GLOB_RECURSE RENDERER_SOURCES
     "${CMAKE_SOURCE_DIR}/include/Application/WindowGL.h"
     "${CMAKE_SOURCE_DIR}/include/RendererGL/*.h"
 )
+file(GLOB SHADER_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.frag"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.vert"
+)
 
-add_executable(GraphicsRendererGL ${RENDERER_SOURCES}) 
+add_executable(GraphicsRendererGL ${RENDERER_SOURCES} ${SHADER_SOURCES}) 
 
 target_include_directories(GraphicsRendererGL PRIVATE "${CMAKE_SOURCE_DIR}/include/RendererGL/")
 
@@ -30,3 +34,13 @@ message(STATUS "Looking for GLM")
 
 target_link_libraries(GraphicsRendererGL glm)
 
+set_source_files_properties(${SHADER_SOURCES} PROPERTIES LANGUAGE GLSL)
+
+source_group("shaders" FILES ${SHADER_SOURCES})
+
+add_custom_command(
+        TARGET GraphicsRendererGL POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "$<TARGET_PROPERTY:GraphicsRendererGL,SOURCE_DIR>/shaders"
+            "$<TARGET_PROPERTY:GraphicsRendererGL,BINARY_DIR>/shaders"
+    )

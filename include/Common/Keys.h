@@ -2,6 +2,7 @@
 #include <string>
 
 #define KEY_STROKES \
+    X(INVALID, 0x00, "invalid character") \
     X(ESCAPE, 0x01, "Escape") \
     X(ONE, 0x02, "One") \
     X(TWO, 0x03, "Two") \
@@ -110,7 +111,7 @@
 
 struct Key
 {
-#define X(name ,id) name = id,
+#define X(name, id, string) name = id,
 	enum KeyStroke
 	{
 		KEY_STROKES
@@ -119,6 +120,20 @@ struct Key
 
 	Key() = default;
 	constexpr Key(KeyStroke key):keyValue(key) {};
+    Key(int key)
+    {
+        switch (key)
+        {
+#define X(name, id, string) \
+            case id: \
+                keyValue = KeyStroke::name; \
+            break;
+            KEY_STROKES
+#undef X
+        default:
+            keyValue = KeyStroke::INVALID;
+        }
+    }
 
 	//allow user to get value by calling 
 
@@ -131,7 +146,6 @@ struct Key
 	constexpr bool operator == (KeyStroke key) const { return key == keyValue; };
 	constexpr bool operator != (KeyStroke key) const { return key != keyValue; };
 
-#define X(name, id, string) string,
     const char* toString()
     {
         switch (keyValue)
@@ -144,6 +158,20 @@ struct Key
         }
     }
 
+    bool isNumberKey()
+    {
+        return (keyValue >= KeyStroke::ONE && keyValue <= KeyStroke::ZERO);
+    }
+
+    int numberKeyToInt()
+    {
+        assert(isNumberKey());
+        if (keyValue == KeyStroke::ZERO)
+        {
+            return 0;
+        }
+        return keyValue - KeyStroke::ONE + 1;
+    }
 
 	private:
 		KeyStroke keyValue;
