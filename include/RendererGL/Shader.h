@@ -10,7 +10,9 @@ struct Shader
 	
 	bool linkProgram(const char* vertexPath, const char* fragPath);
 	void useProgram();
-
-	const char* readFile(const char* path);
+	std::string readFile(const char* path);
 	
+private:
+	bool getShaderCompileLog(GLuint shaderId, char* info);
+	bool getProgramLog(GLuint programId, char* info);
 };
