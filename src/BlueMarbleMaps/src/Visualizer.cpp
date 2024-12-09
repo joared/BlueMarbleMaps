@@ -366,7 +366,8 @@ bool RasterVisualizer::isValidGeometry(GeometryType type)
 void RasterVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feature, const FeaturePtr& source, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs)
 {
     auto geometry = feature->geometryAsRaster();
-    auto& newImage = geometry->raster();
-    auto offset = geometry->bounds().minCorner();
-    drawable.drawRaster(offset.x(), offset.y(), newImage, 1.0);
+    // auto& newImage = geometry->raster();
+    // auto offset = geometry->bounds().minCorner();
+    // drawable.drawRaster(offset.x(), offset.y(), newImage, 1.0);
+    drawable.drawRaster(geometry, 1.0);
 }

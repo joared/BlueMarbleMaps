@@ -356,6 +356,7 @@ namespace BlueMarble
                 }
                 default:
                     if (BlueMarble::isNumberKey(event.keyButton))
+                    //if (event.key.isNumberKey())
                     {
                         int i = numberKeyToInt(event.keyButton);
                         std::cout << "Layers: " << m_map.layers().size() << "\n";

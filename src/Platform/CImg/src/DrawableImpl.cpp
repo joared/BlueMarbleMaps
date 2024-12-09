@@ -89,9 +89,126 @@ namespace BlueMarble
                 m_renderer->drawRect(topLeft, bottomRight, color);
             }
 
+            void drawRaster(const RasterGeometryPtr& geometry, double alpha)
+            {
+                auto center = m_transform.translation();
+                double scale = m_transform.scale();
+                double rotaiton = m_transform.rotation();
+                
+
+                Raster& raster = geometry->raster();
+                
+                int screenWidth = geometry->bounds().width()*scale;
+                int screenHeight = geometry->bounds().height()*scale;
+                auto minCorner = geometry->bounds().minCorner();
+
+                auto screenC = screenCenter();
+                auto delta = minCorner - center;
+                int x = delta.x()*scale + screenC.x();
+                int y = delta.y()*scale + screenC.y();
+
+                std::cout << "Before: " << raster.width() << ", " << raster.height() << "\n";
+                raster.resize(screenWidth, screenHeight, Raster::ResizeInterpolation::NearestNeighbor);
+                std::cout << "After: " << raster.width() << ", " << raster.height() << "\n";
+
+                std::cout << "Offset: " << Point(x,y).toString() << "\n";
+                m_renderer->drawRaster(x, y, raster, alpha);
+
+
+                // // Copied from Map::mapToScreen()
+                // auto screenC = screenCenter();
+                // //auto delta = Utils::rotatePointDegrees(raster->bounds().center(), -rotaiton, center) - center;
+                // auto deltaMinCorner = geometry->bounds().minCorner() - center;
+                // double xMinCorner = deltaMinCorner.x()*scale + screenC.x();
+                // double yMinCorner = deltaMinCorner.y()*scale + screenC.y();
+
+                // auto deltaMaxCorner = geometry->bounds().maxCorner() - center;
+                // double xMaxCorner = deltaMaxCorner.x()*scale + screenC.x();
+                // double yMaxCorner = deltaMaxCorner.y()*scale + screenC.y();
+
+                // auto screenBounds = Rectangle(xMinCorner, yMinCorner, xMaxCorner, yMaxCorner);
+                
+                // Raster& rasterOrig = geometry->raster();
+
+                // Raster raster;
+                // int screenWidth;
+                // int screenHeight;
+                // // Crop raster if needed for efficiency
+                // if (screenBounds.xMin() < 0 || screenBounds.yMin() < 0 || 
+                //     screenBounds.xMax() >= width() || screenBounds.yMax() >= height())
+                // {
+                    
+                //     // int x0 = std::max((int)round(screenBounds.xMin()),0);
+                //     // int y0 = std::max((int)round(screenBounds.yMin()), 0);
+                //     // int x1 = std::min((int)round(screenBounds.xMax()),width()-1);
+                //     // int y1 = std::min((int)round(screenBounds.yMax()), height()-1);
+
+                //     // // Copied from Map::screenToMap
+                //     // auto sCenter = screenCenter();
+                //     // double x0Map = ((double)x0 - sCenter.x()) / scale + center.x();
+                //     // double y0Map = ((double)y0 - sCenter.y()) / scale + center.y();
+                //     // double x1Map = ((double)x1 - sCenter.x()) / scale + center.x();
+                //     // double y1Map = ((double)y1 - sCenter.y()) / scale + center.y();
+
+                //     // // Convert to cell index
+                //     // int x0MapIdx = (int)round(x0Map/geometry->cellWidth());
+                //     // int y0MapIdx = (int)round(y0Map/geometry->cellHeight());
+                //     // int x1MapIdx = (int)round(x1Map/geometry->cellWidth());
+                //     // int y1MapIdx = (int)round(y1Map/geometry->cellHeight());
+
+                //     // x0MapIdx = std::max((int)x0MapIdx,0);
+                //     // y0MapIdx = std::max((int)y0MapIdx, 0);
+                //     // x1MapIdx = std::min((int)x1MapIdx, rasterOrig.width()-1);
+                //     // y1MapIdx = std::min((int)y1MapIdx, rasterOrig.height()-1);
+
+                //     // std::cout << "Cellwidth: " << geometry->cellWidth() << "\n";
+                //     // std::cout << "Cellheight: " << geometry->cellHeight() << "\n";
+
+                //     // std::cout << "x0: " << x0Map << "\n";
+                //     // std::cout << "y0: " << y0Map << "\n";
+                //     // std::cout << "x1: " << x1Map << "\n";
+                //     // std::cout << "y1: " << y1Map << "\n";
+
+                //     // raster = rasterOrig.getCrop(x0MapIdx, y0MapIdx, x1MapIdx, y1MapIdx);
+                //     // //screenBounds = Rectangle(x0, y0, x1, y1);
+                    
+                //     // // Again, use new raster to convert to screen bounds
+                    
+                //     // auto newBounds = Rectangle(-x0Map + 2.0*x0MapIdx, 
+                //     //                            -y0Map + 2.0*y0MapIdx, 
+                //     //                            -x1Map + 2.0*x1MapIdx, 
+                //     //                            -y1Map + 2.0*y1MapIdx);
+                //     // auto deltaMinCorner = newBounds.minCorner() - center;
+                //     // double xMinCorner = deltaMinCorner.x()*scale + screenC.x();
+                //     // double yMinCorner = deltaMinCorner.y()*scale + screenC.y();
+
+                //     // auto deltaMaxCorner = newBounds.maxCorner() - center;
+                //     // double xMaxCorner = deltaMaxCorner.x()*scale + screenC.x();
+                //     // double yMaxCorner = deltaMaxCorner.y()*scale + screenC.y();
+
+                //     // screenBounds = Rectangle(xMinCorner, yMinCorner, xMaxCorner, yMaxCorner);
+                    
+                //     // screenWidth = Rectangle(x0, y0, x1, y1).width();
+                //     // screenHeight = Rectangle(x0, y0, x1, y1).height();
+                // }
+                // else
+                // {
+                //     // Copy orignal raster
+                //     screenWidth = screenBounds.width();
+                //     screenHeight = screenBounds.height();
+                //     raster = rasterOrig;
+                // }
+
+                // std::cout << "Before: " << raster.width() << ", " << raster.height() << "\n";
+                // raster.resize(screenWidth, screenHeight, Raster::ResizeInterpolation::NearestNeighbor);
+                // std::cout << "After: " << raster.width() << ", " << raster.height() << "\n";
+
+                // auto offset = screenBounds.minCorner();
+                // m_renderer->drawRaster(offset.x(), offset.y(), raster, alpha);
+            }
+
             void drawRaster(int x, int y, const Raster& raster, double alpha)
             {
-                //m_raster.drawRaster(x,y,raster,alpha);
                 m_renderer->drawRaster(x, y, raster, alpha);
             }
 

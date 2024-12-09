@@ -107,6 +107,8 @@ bool Map::update(bool forceUpdate)
     // m_drawable->drawRaster(500,500,raster1,1);
     // m_drawable->drawPolygon(polyPoints, color);
 
+
+
     sendOnCustomDraw(*this);
     if (m_showDebugInfo)
         drawDebugInfo(getTimeStampMs() - timeStampMs);
@@ -130,10 +132,17 @@ void Map::renderLayers()
 {
     m_presentationObjects.clear(); // Clear presentation objects, layers will add new
     auto updateArea = area();
+    //updateArea.scale(.2);
     for (auto l : m_layers)
     {
         l->onUpdateRequest(*this, updateArea, nullptr);
     }
+
+    auto color = Color(200, 75, 150);
+    auto rect = mapToScreen(updateArea);
+    auto line = rect.corners();
+    line.push_back(line[0]);
+    m_drawable->drawLine(line, color, 3.0);
 
     // Debug when adjusting the update area to something else
     //drawable().drawRect(mapToScreen(updateArea), Color::red(0.1));
@@ -335,6 +344,7 @@ Point BlueMarble::Map::screenToMap(const Point& screenPos) const
 
 Point BlueMarble::Map::screenToMap(double x, double y) const
 {
+    // NOTE: this methods treats screen coordinates as "pixel indexes", not the geometrical point
     auto sCenter = screenCenter();
     double mapX = ((double)x - sCenter.x()) / m_scale + m_center.x();// + m_img.width() / 2.0;
     double mapY = ((double)y - sCenter.y()) / m_scale + m_center.y();// + m_img.height() / 2.0;
@@ -344,11 +354,13 @@ Point BlueMarble::Map::screenToMap(double x, double y) const
 
 Point Map::mapToScreen(const Point& point) const
 {
+    // NOTE: this methods treats screen coordinates as "pixel indexes", not the geometrical point
     auto screenC = screenCenter();
-    // auto imgCenter = Point(m_img.width()*0.5, m_img.height()*0.5);
+    //auto screenC = Point(m_drawable->width()*0.5, m_drawable->height()*0.5);
+
     auto delta = Utils::rotatePointDegrees(point, -m_rotation, m_center) - m_center;
-    double x = (delta.x() /*- imgCenter.x()*/)*m_scale + screenC.x();
-    double y = (delta.y() /*- imgCenter.y()*/)*m_scale + screenC.y();
+    double x = delta.x()*m_scale + screenC.x();
+    double y = delta.y()*m_scale + screenC.y();
 
     return Point(x, y);
 }

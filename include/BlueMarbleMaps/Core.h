@@ -173,6 +173,14 @@ namespace BlueMarble
                 , m_isUndefined(false)
             {}
 
+            inline Rectangle(const Point& center, double width, double height) 
+                : m_xMin(center.x() - width*0.5)
+                , m_yMin(center.y() - height*0.5)
+                , m_xMax(center.x() + width*0.5)
+                , m_yMax(center.y() + height*0.5)
+                , m_isUndefined(false)
+            {}
+
             inline bool isUndefined() const { return m_isUndefined; }
 
             inline bool isInside(const Point& point) const

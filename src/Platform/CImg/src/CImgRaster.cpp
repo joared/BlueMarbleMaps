@@ -5,10 +5,10 @@ using namespace BlueMarble;
 
 void takeCImgData(cimg_library::CImg<unsigned char>& cimg, unsigned char** data, int& width, int& height, int& channels)
 {
-    width = cimg.width();
-    height = cimg.height();
-    channels = cimg.spectrum();
-    *data = cimg._data;
+    // width = cimg.width();
+    // height = cimg.height();
+    // channels = cimg.spectrum();
+    // *data = cimg._data;
     //cimg._data = nullptr;
 }
 
@@ -85,7 +85,7 @@ void Raster::resize(int width, int height, ResizeInterpolation interpolation)
     int interpolationType = (int)interpolation;
     // interpolationType = interpolationType == 0 ? -1 : interpolationType; // -1 does not work as I expect
     // takeCImgData(m_img, &m_data, m_width, m_height, m_channels);
-    auto img = cimg_library::CImg<unsigned char>(m_data, m_width, m_height, 1, m_channels, true);
+    //auto img = cimg_library::CImg<unsigned char>(m_data, m_width, m_height, 1, m_channels, true);
     // m_img.display();
     // cimg_library::CImgDisplay display(cimg_library::CImg<unsigned char>(), "BlueMarbleMaps Demo", 3, true, true); //*static_cast<CImgDisplay*>(map->drawable()->getDisplay());
     // //display.resize(500, 500, true);
@@ -101,6 +101,7 @@ void Raster::resize(int width, int height, ResizeInterpolation interpolation)
     // std::cout << "My Image resize2: " << m_img.width() << ", " << m_img.height() << "\n";
     // takeCImgData(m_img, &m_data, m_width, m_height, m_channels);
     m_img.resize(width, height, -100, -100, interpolationType);
+    takeCImgData(m_img, &m_data, m_width, m_height, m_channels);
     
 }
 void Raster::resize(float scaleRatio, ResizeInterpolation interpolation)
@@ -108,11 +109,13 @@ void Raster::resize(float scaleRatio, ResizeInterpolation interpolation)
     int interpolationType = (int)interpolation;
     // interpolationType = interpolationType == 0 ? -1 : interpolationType; // -1 does not work as I expect
     m_img.resize(width()*scaleRatio, height()*scaleRatio, -100, -100, interpolationType);
+    takeCImgData(m_img, &m_data, m_width, m_height, m_channels);
 }
 void Raster::rotate(double angle, int cx, int cy, ResizeInterpolation interpolation)
 {
     int interpolationType = (int)interpolation;
     m_img.rotate(angle, cx, cy, interpolationType, 0);
+    takeCImgData(m_img, &m_data, m_width, m_height, m_channels);
 }
 
 void Raster::fill(int val)
@@ -127,11 +130,16 @@ void Raster::blur(double sigmaX, double sigmaY, double sigmaZ, bool isGaussian)
 
 Raster Raster::getCrop(int x0, int y0, int x1, int y1)
 {
-    auto crop = m_img.get_crop(x0, y0, x1, y1);
+    auto crop = m_img;
+    crop = crop.get_crop(x0, y0, x1, y1);
     auto raster = Raster(0,0,0,0); // prevent warning
     raster.m_img = crop;
+    raster.m_data = raster.m_img.data();
+    raster.m_width = raster.m_img.width();
+    raster.m_height = raster.m_img.height();
+    raster.m_channels = raster.m_img.spectrum();
 
-    return raster;
+    return raster; //Raster(crop.data(), crop.width(), crop.height(), crop.spectrum());
 }
 
 const unsigned char* Raster::data() const
@@ -142,4 +150,5 @@ const unsigned char* Raster::data() const
 void Raster::operator=(const Raster &raster)
 {
     m_img = raster.m_img;
+    takeCImgData(m_img, &m_data, m_width, m_height, m_channels);
 }

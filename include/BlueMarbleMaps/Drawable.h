@@ -7,6 +7,7 @@
 #include "Color.h"
 #include "Renderer.h"
 #include "Transform.h"
+#include "Geometry.h"
 
 #include <string>
 #include <vector>
@@ -37,6 +38,7 @@ namespace BlueMarble
             void drawRect(const Rectangle& rect, const Color& color); // Utility method
             void drawRect(const Point& topLeft, const Point& bottomRight, const Color& color);
             void drawRaster(int x, int y, const Raster& raster, double alpha);
+            void drawRaster(const RasterGeometryPtr& raster, double alpha);
             void drawText(int x, int y, const std::string& text, const Color& color, int fontSize=20, const Color& backgroundColor=Color::transparent());
             Raster& getRaster();
             void swapBuffers();

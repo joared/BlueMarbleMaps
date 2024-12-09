@@ -123,14 +123,13 @@ void ImageDataSet::init()
     std::cout << "ImageDataSet: Data loaded!\n";
 }
 
-void BlueMarble::ImageDataSet::onUpdateRequest(Map &map, const Rectangle& updateArea, FeatureHandler* handler)
+void ImageDataSet::onUpdateRequest(Map &map, const Rectangle& updateArea, FeatureHandler* handler)
 {
     if (!isInitialized()) // TODO: move to base class
     {
         return;
     }
-    // first get the overview with specific inverted scale
-    // TODO: Shouldn't be divided by two. Temporary fix. Fix together with intepolation and limit in generateOverviews
+
     int invScaleIndex = (int)map.invertedScale() / 2.0;
     
     if (m_overViews.find(invScaleIndex) != m_overViews.end())
@@ -143,59 +142,109 @@ void BlueMarble::ImageDataSet::onUpdateRequest(Map &map, const Rectangle& update
         invScaleIndex = m_overViews.size()-1;
     }
 
-    auto& backgroundRaster = m_overViews[invScaleIndex];
+    // Retrieve the appropriate raster for the scale
+    auto& raster = m_overViews[invScaleIndex];
 
-    double invScaleX = (double)m_raster.width() / backgroundRaster.width();
-    double invScaleY = (double)m_raster.height() / backgroundRaster.height();
+    double cellWidth = m_overViews[0].width() / raster.width();
+    double cellHeight = m_overViews[0].height() / raster.height();
 
-    // Crop image
-    auto bounds = updateArea;//map.area(); // TODO: testing, remove!!!!
-    int x0 = std::max(0.0, bounds.xMin() / invScaleX);
-    int y0 = std::max(0.0, bounds.yMin() / invScaleY);
-    int x1 = std::min(backgroundRaster.width()-1.0, bounds.xMax() / invScaleX);
-    int y1 = std::min(backgroundRaster.height()-1.0, bounds.yMax() / invScaleY);
+    // Retrie the crop that is inside the update area
+    auto minCorner = updateArea.minCorner();
+    int minPixelX = std::max((int)(minCorner.x()/cellWidth), 0);
+    int minPixelY = std::max((int)(minCorner.y()/cellHeight), 0);
 
-    if (x0 > x1 || y0 > y1)
-        return;
+    auto maxCorner = updateArea.maxCorner();
+    int maxPixelX = std::min((int)(maxCorner.x()/cellWidth), (int)(raster.width()-1));
+    int maxPixelY = std::min((int)(maxCorner.y()/cellHeight), (int)(raster.height()-1));
 
-    auto newImage = backgroundRaster.getCrop(std::round(x0), 
-                                            std::round(y0), 
-                                            std::round(x1), 
-                                            std::round(y1));
+    auto cropped = raster.getCrop(minPixelX, minPixelY, maxPixelX, maxPixelY);
 
+    // Calculate bounds of cropped raster. Assuming 0 at the very left pixel
+    Rectangle rasterBounds(minPixelX*cellWidth, 
+                           minPixelY*cellHeight, 
+                           (maxPixelX+1)*cellWidth, 
+                           (maxPixelY+1)*cellHeight);
     
-    // Resize the cropped image
-    int newWidth = std::round(newImage.width()*map.scale()*invScaleX);
-    int newHeight = std::round(newImage.height()*map.scale()*invScaleY);
-    newImage.resize(newWidth, newHeight, Raster::ResizeInterpolation::NearestNeighbor); // TODO: Want to use NoInterpolation but it doesn't work
+    std::cout << "Raster: " << cropped.width() << ", " << cropped.height() << "\n";
+    std::cout << "Bounds: " << rasterBounds.toString() << "\n";
 
-    // Compute the position to center the image
-    auto displayCenter = map.screenCenter();
-    
-    auto offset = Point(-map.center().x()*map.scale() + displayCenter.x(),
-                        -map.center().y()*map.scale() + displayCenter.y());
-
-    // Account for pixel truncation in offset
-    //auto offset2 = map.mapToScreen(bounds).minCorner(); // TODO remove if not working
-    if (offset.x() < 0)
-    {
-        offset = Point((std::round(x0)*invScaleX - bounds.xMin())*map.scale(), offset.y());
-        //offset = Point(offset.x()+offset2.x(), offset.y());
-    }
-
-    if (offset.y() < 0)
-    {
-        offset = Point(offset.x(), (std::round(y0)*invScaleY - bounds.yMin())*map.scale());
-        //offset = Point(offset.x(), offset.y()+offset2.y());
-    }
-
-    offset = offset.round();
-
-    Rectangle rasterBounds(offset.x(), offset.y(), offset.x()+newWidth, offset.y()+newHeight);
-    auto geometry = std::make_shared<RasterGeometry>(newImage, rasterBounds, 0.0, 0.0); // TODO
+    auto geometry = std::make_shared<RasterGeometry>(cropped, rasterBounds, cellWidth, cellHeight);
     auto feature = std::make_shared<Feature>(Id(0,0), geometry);
 
     handler->onFeatureInput(map, std::vector<FeaturePtr>({ feature }));
+
+    // Old 
+    // if (!isInitialized()) // TODO: move to base class
+    // {
+    //     return;
+    // }
+    // // first get the overview with specific inverted scale
+    // // TODO: Shouldn't be divided by two. Temporary fix. Fix together with intepolation and limit in generateOverviews
+    // int invScaleIndex = (int)map.invertedScale() / 2.0;
+    
+    // if (m_overViews.find(invScaleIndex) != m_overViews.end())
+    // {
+    //     // Found an overview!
+    // }
+    // else
+    // {
+    //     // Did not find an overview, use lowest resolution
+    //     invScaleIndex = m_overViews.size()-1;
+    // }
+
+    // auto& backgroundRaster = m_overViews[invScaleIndex];
+
+    // double invScaleX = (double)m_raster.width() / backgroundRaster.width();
+    // double invScaleY = (double)m_raster.height() / backgroundRaster.height();
+
+    // // Crop image
+    // auto bounds = updateArea;//map.area(); // TODO: testing, remove!!!!
+    // int x0 = std::max(0.0, bounds.xMin() / invScaleX);
+    // int y0 = std::max(0.0, bounds.yMin() / invScaleY);
+    // int x1 = std::min(backgroundRaster.width()-1.0, bounds.xMax() / invScaleX);
+    // int y1 = std::min(backgroundRaster.height()-1.0, bounds.yMax() / invScaleY);
+
+    // if (x0 > x1 || y0 > y1)
+    //     return;
+
+    // auto newImage = backgroundRaster.getCrop(std::round(x0), 
+    //                                         std::round(y0), 
+    //                                         std::round(x1), 
+    //                                         std::round(y1));
+
+    
+    // // Resize the cropped image
+    // int newWidth = std::round(newImage.width()*map.scale()*invScaleX);
+    // int newHeight = std::round(newImage.height()*map.scale()*invScaleY);
+    // newImage.resize(newWidth, newHeight, Raster::ResizeInterpolation::NearestNeighbor); // TODO: Want to use NoInterpolation but it doesn't work
+
+    // // Compute the position to center the image
+    // auto displayCenter = map.screenCenter();
+    
+    // auto offset = Point(-map.center().x()*map.scale() + displayCenter.x(),
+    //                     -map.center().y()*map.scale() + displayCenter.y());
+
+    // // Account for pixel truncation in offset
+    // //auto offset2 = map.mapToScreen(bounds).minCorner(); // TODO remove if not working
+    // if (offset.x() < 0)
+    // {
+    //     offset = Point((std::round(x0)*invScaleX - bounds.xMin())*map.scale(), offset.y());
+    //     //offset = Point(offset.x()+offset2.x(), offset.y());
+    // }
+
+    // if (offset.y() < 0)
+    // {
+    //     offset = Point(offset.x(), (std::round(y0)*invScaleY - bounds.yMin())*map.scale());
+    //     //offset = Point(offset.x(), offset.y()+offset2.y());
+    // }
+
+    // offset = offset.round();
+
+    // Rectangle rasterBounds(offset.x(), offset.y(), offset.x()+newWidth, offset.y()+newHeight);
+    // auto geometry = std::make_shared<RasterGeometry>(newImage, rasterBounds, 0.0, 0.0); // TODO
+    // auto feature = std::make_shared<Feature>(Id(0,0), geometry);
+
+    // handler->onFeatureInput(map, std::vector<FeaturePtr>({ feature }));
 }
 
 void ImageDataSet::filePath(const std::string &filePath)

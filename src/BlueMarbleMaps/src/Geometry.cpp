@@ -88,8 +88,8 @@ RasterGeometry::RasterGeometry()
 BlueMarble::RasterGeometry::RasterGeometry(const Raster& raster, const Rectangle& bounds, double cellWidth, double cellHeight)
     : m_raster(raster)
     , m_bounds(bounds)
-    , m_cellWidth(0)
-    , m_cellHeight(0)
+    , m_cellWidth(cellWidth)
+    , m_cellHeight(cellHeight)
 {
 }
 

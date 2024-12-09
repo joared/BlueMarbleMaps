@@ -8,7 +8,7 @@ namespace BlueMarble
 {
 	#define EVENT_CALLBACK(eventType) virtual bool On##eventType(const eventType##Event& /*event*/) { return false; }
 	#define ENUM_ELEMENT(element) element,
-	#define FORWARD_DEECLARE_EVENT(event) class event##Event;
+	#define FORWARD_DECLARE_EVENT(event) class event##Event;
 
 	#define DECLARE_EVENTS(...) 		\
 	enum class EventType				\
@@ -17,8 +17,8 @@ namespace BlueMarble
 		Invalid							\
 	};									\
 										\
-	__VA_ARGS__(FORWARD_DEECLARE_EVENT)	\
-	FORWARD_DEECLARE_EVENT(Invalid)		\
+	__VA_ARGS__(FORWARD_DECLARE_EVENT)	\
+	FORWARD_DECLARE_EVENT(Invalid)		\
 										\
 	class EventCallbacks				\
 	{									\
