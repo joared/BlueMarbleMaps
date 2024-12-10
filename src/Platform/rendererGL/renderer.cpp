@@ -9,15 +9,25 @@
 #include "Vertice.h"
 #include "VAO.h"
 #include "VBO.h"
+#include "IBO.h"
 #include "Shader.h"
 
 void keyEvent(WindowGL* window, int key, int scanCode, int action, int modifier)
 {
 	Key keyStroke(scanCode);
-	std::cout << "Key is: " << keyStroke << " " << keyStroke.toString() << keyStroke.isNumberKey() << keyStroke.numberKeyToInt() << std::endl;
-	if (key == GLFW_KEY_ESCAPE)
+	static bool wireFrameMode = false;
+	std::cout << "Key is: " << keyStroke << " " << keyStroke.toString() << std::endl;
+	if (keyStroke == Key::ESCAPE)
 	{
 		window->shutdownWindow();
+	}
+	else if (keyStroke == Key::W && action == GLFW_PRESS)
+	{
+		wireFrameMode = !wireFrameMode;
+		if(wireFrameMode) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		else glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+		
 	}
 }
 void resizeEvent(WindowGL* window, int width, int height)
@@ -85,10 +95,13 @@ int main()
 	window.registerMouseEnteredCallback(mouseEntered);
 	window.registerCloseWindowEventCallback(windowClosed);
 
-	std::vector<Vertice> vertices = {Vertice(),Vertice(),Vertice()};
+	std::vector<Vertice> vertices = {Vertice(),Vertice(),Vertice(),Vertice()};
 	vertices[0].position = glm::vec3(-0.5f,-0.5f,0.0f);
-	vertices[1].position = glm::vec3(0.5f, -0.5f, 0.0f);
-	vertices[2].position = glm::vec3(0.0f, 0.5f, 0.0f);
+	vertices[1].position = glm::vec3(-0.5f, 0.5f, 0.0f);
+	vertices[2].position = glm::vec3(0.5f, 0.5f, 0.0f);
+	vertices[3].position = glm::vec3(0.5f, -0.5f, 0.0f);
+
+	std::vector<GLuint> indices = { 0,1,2,2,3,0 };
 
 	Shader shader;
 
@@ -96,11 +109,13 @@ int main()
 
 	VBO vbo;
 	VAO vao;
+	IBO ibo;
 
 	vbo.init(vertices);
+	ibo.init(indices);
 	vao.init();
 	vao.bind();
-	vao.link(vbo,0,3,GL_FLOAT,sizeof(Vertice), (void*)0);
+	vao.link(vbo,0,vertices.size(), GL_FLOAT, sizeof(Vertice), (void*)0);
 
 
 	glClearColor(0.0f,0.0f,0.5f,1.0f);
@@ -112,7 +127,8 @@ int main()
 
 		shader.useProgram();
 		vao.bind();
-		glDrawArrays(GL_TRIANGLES,0,3);
+		ibo.bind();
+		glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 		vao.unbind();
 		window.swapBuffers();
 		window.pollWindowEvents();
