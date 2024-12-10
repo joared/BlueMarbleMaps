@@ -81,7 +81,7 @@ namespace BlueMarble
                 return Point(m_x*other, m_y*other);
             }
 
-            inline std::string toString()
+            inline std::string toString() const
             {
                 return "Point(" + std::to_string(m_x) + ", " + std::to_string(m_y);
             }
@@ -305,6 +305,14 @@ namespace BlueMarble
                 return points;
             }
 
+            inline void floor() 
+            {
+                m_xMin = (int)m_xMin;
+                m_yMin = (int)m_yMin;
+                m_xMax = (int)m_xMax;
+                m_yMax = (int)m_yMax;
+            }
+
             inline double xMin() const { return m_xMin; }
             inline double yMin() const { return m_yMin; }
             inline double xMax() const { return m_xMax; }
@@ -322,7 +330,7 @@ namespace BlueMarble
             inline double width() const { return m_xMax-m_xMin; }
             inline double height() const { return m_yMax-m_yMin; }
 
-            inline std::string toString()
+            inline std::string toString() const
             {
                 return "Rectangle(" + std::to_string(m_xMin) + ", " + std::to_string(m_yMin) + ", " + std::to_string(m_xMax) + ", " + std::to_string(m_yMax) + ")";
             }

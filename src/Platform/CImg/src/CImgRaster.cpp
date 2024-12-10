@@ -130,10 +130,8 @@ void Raster::blur(double sigmaX, double sigmaY, double sigmaZ, bool isGaussian)
 
 Raster Raster::getCrop(int x0, int y0, int x1, int y1)
 {
-    auto crop = m_img;
-    crop = crop.get_crop(x0, y0, x1, y1);
     auto raster = Raster(0,0,0,0); // prevent warning
-    raster.m_img = crop;
+    raster.m_img = m_img.get_crop(x0, y0, x1, y1);;
     raster.m_data = raster.m_img.data();
     raster.m_width = raster.m_img.width();
     raster.m_height = raster.m_img.height();

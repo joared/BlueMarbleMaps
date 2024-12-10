@@ -93,6 +93,42 @@ BlueMarble::RasterGeometry::RasterGeometry(const Raster& raster, const Rectangle
 {
 }
 
+RasterGeometryPtr RasterGeometry::getSubRasterGeometry(const Rectangle& subBounds)
+{
+    if (!subBounds.overlap(bounds()))
+    {
+        std::cout << "RasterGeometry::getSubRasterGeometry() Bounds do not overlap: " << bounds().toString() << "(this), " << subBounds.toString() << " (other)\n";
+        throw std::exception();
+    }
+
+    double cellWidth = m_cellWidth;
+    double cellHeight = m_cellHeight;
+    auto& raster = m_raster;
+
+    // Retrie the crop that is inside the update area
+    int x0 = std::max((int)(subBounds.xMin()/cellWidth), 0);
+    int y0 = std::max((int)(subBounds.yMin()/cellHeight), 0);
+    int x1 = std::min((int)(subBounds.xMax()/cellWidth), (int)(raster.width()-1));
+    int y1 = std::min((int)(subBounds.yMax()/cellHeight), (int)(raster.height()-1));
+
+    // New bounds of sub/cropped raster. Assuming 0 at the very left pixel
+    Rectangle rasterBounds(x0*cellWidth, 
+                           y0*cellHeight, 
+                           (x1+1)*cellWidth, 
+                           (y1+1)*cellHeight);
+
+    // Create new sub geometry
+    // auto subGeometry =  std::make_shared<RasterGeometry>();
+    // subGeometry->m_cellWidth = cellWidth;
+    // subGeometry->m_cellHeight = cellHeight;
+    // subGeometry->m_bounds = rasterBounds;
+    // subGeometry->m_raster = raster.getCrop(minPixelX, minPixelY, maxPixelX, maxPixelY);
+
+    // return subGeometry;
+    auto cropped = raster.getCrop(x0, y0, x1, y1);
+    return std::make_shared<RasterGeometry>(cropped, rasterBounds, cellWidth, cellHeight);
+}
+
 MultiPolygonGeometry::MultiPolygonGeometry()
 {
 }

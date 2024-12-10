@@ -195,6 +195,8 @@ namespace BlueMarble
     typedef std::shared_ptr<MultiPolygonGeometry> MultiPolygonGeometryPtr;
 
 
+    class RasterGeometry;
+    typedef std::shared_ptr<RasterGeometry> RasterGeometryPtr;
     class RasterGeometry : public Geometry
     {
         public:
@@ -215,13 +217,13 @@ namespace BlueMarble
             double cellHeight() { return m_cellWidth; };
             double cellWidth() { return m_cellHeight; };
             Raster& raster() { return m_raster; }
+            RasterGeometryPtr getSubRasterGeometry(const Rectangle& bounds);
         private:
             Raster m_raster;
             Rectangle m_bounds;
             double m_cellWidth;
             double m_cellHeight;
     };
-    typedef std::shared_ptr<RasterGeometry> RasterGeometryPtr;
 
 
     void convertGeometry(GeometryPtr from, GeometryType toType);

@@ -66,10 +66,9 @@ namespace BlueMarble
             void init() override final;
             void generateOverViews();
 
-            std::string             m_filePath;
-            Raster                  m_raster;
-            Raster                  m_rasterPrev; // used if scale has not changed;
-            std::map<int, Raster>   m_overViews;
+            std::string                        m_filePath;
+            RasterGeometryPtr                  m_rasterGeometry;
+            std::map<int, RasterGeometryPtr>   m_overViews;
     };
 
 

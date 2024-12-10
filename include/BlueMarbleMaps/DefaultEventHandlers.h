@@ -208,7 +208,11 @@ namespace BlueMarble
                 m_map.drawable()->drawText(0, 15, pixelColor.toString(), Color::red());
 
                 if (!m_rectangle.isUndefined())
-                    drawRect(m_map.mapToScreen(m_rectangle));
+                {
+                    auto screenRect = m_map.mapToScreen(m_rectangle);
+                    screenRect.floor();
+                    drawRect(screenRect);
+                }
             }
 
             void OnUpdated(BlueMarble::Map& /*map*/) override final 
@@ -476,6 +480,7 @@ namespace BlueMarble
                     {
                         auto rect = m_map.lngLatToMap(f->bounds());
                         m_map.zoomToArea(rect, true);
+                        m_map.update();
                         return true;
                     }
                     mapPoint = m_map.lngLatToMap(hitFeatures[0]->center());
@@ -600,6 +605,7 @@ namespace BlueMarble
                     auto bottomRight = m_map.screenToMap(BlueMarble::Point(dragEndEvent.pos.x, dragEndEvent.pos.y));
                     auto rect = BlueMarble::Rectangle(topLeft.x(), topLeft.y(), bottomRight.x(), bottomRight.y());
                     m_map.zoomToArea(rect, true);
+                    m_map.update();
                     m_rectangle = BlueMarble::Rectangle::undefined();
                     
                     return true;
