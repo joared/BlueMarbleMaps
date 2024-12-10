@@ -95,7 +95,6 @@ namespace BlueMarble
                 double scale = m_transform.scale();
                 double rotaiton = m_transform.rotation();
                 
-
                 Raster& raster = geometry->raster();
                 
                 int screenWidth = geometry->bounds().width()*scale;
@@ -106,12 +105,9 @@ namespace BlueMarble
                 auto delta = minCorner - center;
                 int x = delta.x()*scale + screenC.x();
                 int y = delta.y()*scale + screenC.y();
-
-                std::cout << "Before: " << raster.width() << ", " << raster.height() << "\n";
+                
                 raster.resize(screenWidth, screenHeight, Raster::ResizeInterpolation::NearestNeighbor);
-                std::cout << "After: " << raster.width() << ", " << raster.height() << "\n";
 
-                std::cout << "Offset: " << Point(x,y).toString() << "\n";
                 m_renderer->drawRaster(x, y, raster, alpha);
             }
 
