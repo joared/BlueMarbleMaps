@@ -135,9 +135,21 @@ int main()
     // Set up Map view
     auto backgroundDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/geodata/NE1_50M_SR_W/NE1_50M_SR_W.tif");
     backgroundDataSet->initialize(BlueMarble::DataSetInitializationType::RightHereRightNow);
-    auto backgroundLayer = BlueMarble::Layer();
+    auto backgroundLayer = BlueMarble::Layer(false);
+    auto rasterVis1 = std::make_shared<RasterVisualizer>();
+    rasterVis1->alpha(DirectDoubleAttributeVariable(1.0));
+    backgroundLayer.visualizers().push_back(rasterVis1);
     backgroundLayer.addUpdateHandler(backgroundDataSet.get());
     map->addLayer(&backgroundLayer);
+
+    auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/geodata/elevation/LARGE_elevation.jpg");
+    elevationDataSet->initialize(BlueMarble::DataSetInitializationType::RightHereRightNow);
+    auto elevationLayer = BlueMarble::Layer(false);
+    elevationLayer.addUpdateHandler(elevationDataSet.get());
+    auto rasterVis = std::make_shared<RasterVisualizer>();
+    rasterVis->alpha(DirectDoubleAttributeVariable(0.5));
+    elevationLayer.visualizers().push_back(rasterVis);
+    map->addLayer(&elevationLayer);
 
     // Setup MapControl and event handlers
     CImgMapControlPtr mapControl = std::make_shared<CImgMapControl>(display);

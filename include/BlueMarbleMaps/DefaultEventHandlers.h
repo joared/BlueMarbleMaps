@@ -662,7 +662,7 @@ namespace BlueMarble
 
                 double scale = 1.0 + abs(wheelEvent.delta)/WHEEL_DELTA;
                 double zoomFactor = wheelEvent.delta > 0 ? scale : 1.0/scale;
-                bool animate = false; //abs(wheelEvent.delta) > 1; // only animate if wheel delta is large enough
+                bool animate = true; //abs(wheelEvent.delta) > 1; // only animate if wheel delta is large enough
                 if (!animate)
                 {
                     m_map.stopAnimation(); // Need to stop animation for this to have an affect when not animating

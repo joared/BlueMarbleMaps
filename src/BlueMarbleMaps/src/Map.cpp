@@ -142,7 +142,7 @@ void Map::renderLayers()
     auto rect = mapToScreen(updateArea);
     rect.floor(); // Needs to be done to get correct pixel values
 
-    std::cout << "Screen rect: " << rect.toString() << "\n";
+    std::cout << "Area: " << updateArea.toString() << "\n";
 
     auto line = rect.corners();
     line.push_back(line[0]);

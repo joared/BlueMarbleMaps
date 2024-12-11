@@ -355,6 +355,7 @@ void PolygonVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feat
 
 RasterVisualizer::RasterVisualizer()
     : Visualizer()
+    , m_alphaEval([](auto, auto) { return 1.0; })
 {
 }
 
@@ -369,5 +370,11 @@ void RasterVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& featu
     // auto& newImage = geometry->raster();
     // auto offset = geometry->bounds().minCorner();
     // drawable.drawRaster(offset.x(), offset.y(), newImage, 1.0);
-    drawable.drawRaster(geometry, 1.0);
+    double alpha = m_alphaEval(feature, updateAttributes);
+    drawable.drawRaster(geometry, alpha);
+}
+
+void RasterVisualizer::alpha(const DoubleEvaluation& alphaEval)
+{
+    m_alphaEval = alphaEval;
 }

@@ -270,8 +270,11 @@ namespace BlueMarble
         public:
             RasterVisualizer();
             void renderFeature(Drawable& drawable, const FeaturePtr& feature, const FeaturePtr& source, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs) override final;
+            void alpha(const DoubleEvaluation& alphaEval);
         protected:
             bool isValidGeometry(GeometryType type) override final;
+        private:
+            DoubleEvaluation m_alphaEval;
     };
     typedef std::shared_ptr<RasterVisualizer> RasterVisualizerPtr;
     
