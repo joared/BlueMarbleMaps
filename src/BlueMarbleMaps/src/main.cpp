@@ -132,7 +132,7 @@ int main()
     CImgDisplay display(cimg_library::CImg<unsigned char>(), "BlueMarbleMaps Demo", normalization, true, true); //*static_cast<CImgDisplay*>(map->drawable()->getDisplay());
     display.resize(500, 500, true);
 
-    // Set up Map view
+    // Test RasterVisualizer
     auto backgroundDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/geodata/NE1_50M_SR_W/NE1_50M_SR_W.tif");
     backgroundDataSet->initialize(BlueMarble::DataSetInitializationType::RightHereRightNow);
     auto backgroundLayer = BlueMarble::Layer(false);
@@ -142,14 +142,26 @@ int main()
     backgroundLayer.addUpdateHandler(backgroundDataSet.get());
     map->addLayer(&backgroundLayer);
 
-    auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/geodata/elevation/LARGE_elevation.jpg");
-    elevationDataSet->initialize(BlueMarble::DataSetInitializationType::RightHereRightNow);
-    auto elevationLayer = BlueMarble::Layer(false);
-    elevationLayer.addUpdateHandler(elevationDataSet.get());
-    auto rasterVis = std::make_shared<RasterVisualizer>();
-    rasterVis->alpha(DirectDoubleAttributeVariable(0.5));
-    elevationLayer.visualizers().push_back(rasterVis);
-    map->addLayer(&elevationLayer);
+    // auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/geodata/elevation/LARGE_elevation.jpg");
+    // elevationDataSet->initialize(BlueMarble::DataSetInitializationType::RightHereRightNow);
+    // auto elevationLayer = BlueMarble::Layer(false);
+    // elevationLayer.addUpdateHandler(elevationDataSet.get());
+    // auto rasterVis = std::make_shared<RasterVisualizer>();
+    // rasterVis->alpha(DirectDoubleAttributeVariable(0.5));
+    // elevationLayer.visualizers().push_back(rasterVis);
+    // map->addLayer(&elevationLayer);
+
+    // Test Polygon/Line/Symbol visualizers
+    auto vectorDataSet = std::make_shared<BlueMarble::MemoryDataSet>();
+    vectorDataSet->initialize(BlueMarble::DataSetInitializationType::RightHereRightNow);
+    auto vectorLayer = BlueMarble::Layer(true);
+    vectorLayer.addUpdateHandler(vectorDataSet.get());
+    
+    std::vector<Point> points({{16, 56}, {17, 57}, {15, 58}});
+    auto poly = std::make_shared<PolygonGeometry>(points);
+    vectorDataSet->addFeature(vectorDataSet->createFeature(poly));
+
+    map->addLayer(&vectorLayer);
 
     // Setup MapControl and event handlers
     CImgMapControlPtr mapControl = std::make_shared<CImgMapControl>(display);

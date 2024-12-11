@@ -85,8 +85,9 @@ void Layer::onFeatureInput(Map& map, const std::vector<FeaturePtr>& features)
 
         // Always apply standard visualization for now
         for (auto vis : m_visualizers)
+        {
             vis->attachFeature(f, sourceFeature, map.updateAttributes());
-
+        }
         if (map.isSelected(sourceFeature))
         {
             for (auto sVis : m_selectionVisualizers)
@@ -284,6 +285,12 @@ void Layer::createDefaultVisualizers()
     pointVis->condition([](FeaturePtr f, auto) { return f->geometryType() == GeometryType::Point; });
     pointVis->isLabelOrganized(true);
     
+    // Node visualizers
+    auto nodeVis = std::make_shared<SymbolVisualizer>();
+    nodeVis->condition([](FeaturePtr f, auto) { return f->geometryType() == GeometryType::Polygon; });
+    nodeVis->color(DirectColorAttributeVariable(Color(255, 175, 60)));
+    nodeVis->size(DirectDoubleAttributeVariable(4.0));
+
     // Line visualizer
     auto lineVis = std::make_shared<LineVisualizer>();
     lineVis->color(ColorEvaluation([](FeaturePtr, Attributes&) { return Color(50,50,50,0.25); }));
@@ -316,6 +323,7 @@ void Layer::createDefaultVisualizers()
     m_visualizers.push_back(polVis);
     m_visualizers.push_back(pointVis);
     m_visualizers.push_back(lineVis);
+    m_visualizers.push_back(nodeVis);
     m_visualizers.push_back(rasterVis);
     m_visualizers.push_back(textVis);
 
