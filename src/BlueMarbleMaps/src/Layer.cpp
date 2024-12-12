@@ -11,7 +11,7 @@ Layer::Layer(bool createdefaultVisualizers)
     , m_maxScale(std::numeric_limits<double>::infinity())
     , m_minScale(0)
     , m_effects()
-    , m_drawable(1,1,4)
+    , m_drawable(nullptr)
 {
     // TODO: remove, this is a temporary solution
     if (createdefaultVisualizers)
@@ -100,20 +100,18 @@ void Layer::onFeatureInput(Map& map, const std::vector<FeaturePtr>& features)
         }
     }
 
-    auto drawable = map.drawable().get();
+    auto drawable = map.drawable();
     if (!m_effects.empty())
     {
-        if (map.drawable()->width() != m_drawable.width() ||
-            map.drawable()->height() != m_drawable.height())
+        // TODO: Not implemented. m_drawable is null
+        if (map.drawable()->width() != m_drawable->width() ||
+            map.drawable()->height() != m_drawable->height())
         {
             // Resize
-            m_drawable.resize(map.drawable()->width(), map.drawable()->height());
+            m_drawable->resize(map.drawable()->width(), map.drawable()->height());
         }
-        m_drawable.fill(0);
-        
-        //m_drawable.getRaster() = Raster(drawable->width(), drawable->height(), 4, 0);
-        //m_drawable.drawRaster(0,0,map.drawable().getRaster(), 1);
-        drawable = &m_drawable;
+        m_drawable->fill(0);
+        drawable = m_drawable;
     }
     // TODO: Selection and hover visualizer should render after other layers normal visualizers
     for (auto vis : m_visualizers)

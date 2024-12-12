@@ -3,6 +3,7 @@
 #include "Utils.h"
 #include "DataSet.h"
 #include "MapControl.h"
+#include "SoftwareDrawable.h"
 
 #include <cmath>
 #include <iostream>
@@ -14,7 +15,7 @@ using namespace BlueMarble;
 Map::Map()
     : MapEventPublisher()
     , m_backgroundRaster("/home/joar/BlueMarbleMaps/geodata/NE1_LR_LC_SR_W/NE1_LR_LC_SR_W.tif")
-    , m_drawable(std::make_shared<BitmapDrawable>(500, 500))
+    
     //, m_center(Point((m_backgroundRaster.width()-1)*0.5, (m_backgroundRaster.height()-1)*0.5))
     , m_center(lngLatToMap(Point(0, 0)))
     , m_scale(1.0)
@@ -36,6 +37,7 @@ Map::Map()
     , m_isUpdating(false)
     
 {   
+    m_drawable = std::make_shared<SoftwareBitmapDrawable>(500, 500, 4);
     m_presentationObjects.reserve(100000); // Reserve a good amount for efficiency
     resetUpdateFlags();
     m_constraints.bounds().scale(3.0);

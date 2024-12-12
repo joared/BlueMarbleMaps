@@ -14,9 +14,9 @@ set(SOURCES
     ${SRC_DIR}/Animation.cpp
     ${SRC_DIR}/EventHandler.cpp
     ${SRC_DIR}/Event.cpp
-    ${SRC_DIR}/Drawable.cpp
     ${SRC_DIR}/Layer.cpp
     ${SRC_DIR}/DataSet.cpp
+    ${SRC_DIR}/SoftwareDrawable.cpp
     ${SRC_DIR}/Geometry.cpp
     ${SRC_DIR}/Feature.cpp
     ${SRC_DIR}/UpdateInterfaces.cpp

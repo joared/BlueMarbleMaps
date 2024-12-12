@@ -1,4 +1,5 @@
 #include "MapControl.h"
+#include "SoftwareDrawable.h"
 #include <exception>
 
 using namespace BlueMarble;
@@ -15,7 +16,7 @@ void MapControl::setView(MapPtr mapView)
     if (!mapView)
     {
         std::cout << "MapControl::setView() Detaching view, setting Bitmap drawable\n";
-        auto drawable = std::make_shared<BitmapDrawable>(500, 500, 4);
+        auto drawable = std::make_shared<SoftwareBitmapDrawable>(500, 500, 4);
         mapView->drawable(drawable);
         m_mapView = mapView;
         m_mapView->onDetachedFromMapControl();
@@ -23,7 +24,7 @@ void MapControl::setView(MapPtr mapView)
     else if (auto window = getWindow())
     {
         std::cout << "MapControl::setView() Attaching Window drawable\n";
-        auto drawable = std::make_shared<WindowDrawable>(500, 500, 4);
+        auto drawable = std::make_shared<SoftwareWindowDrawable>(500, 500, 4);
         drawable->setWindow(window);
         mapView->drawable(drawable);
         m_mapView = mapView;

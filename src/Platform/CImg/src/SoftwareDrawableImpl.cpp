@@ -1,10 +1,10 @@
-#include "Drawable.h"
+#include "SoftwareDrawable.h"
 #include "SoftwareRenderer.h"
 #include <CImg.h>
 
 namespace BlueMarble
 {
-    class Drawable::Impl
+    class SoftwareDrawable::Impl
     {
         public:
             Impl(int width, int height, int channels)

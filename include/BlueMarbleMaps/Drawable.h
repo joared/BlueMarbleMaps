@@ -18,51 +18,44 @@ namespace BlueMarble
     class Drawable
     {
         public:
-            Drawable(int width, int height, int colorDepth=4);
-            Drawable(const Drawable& drawable) = delete;
+            //Drawable(const Drawable& drawable) = delete;
             virtual ~Drawable() = default;
             // Properties
-            int width() const;
-            int height() const;
-            const Color& backgroundColor();
-            void backgroundColor(const Color& color);
+            virtual int width() const = 0;
+            virtual int height() const = 0;
+            virtual const Color& backgroundColor() = 0;
+            virtual void backgroundColor(const Color& color) = 0;
             
             // Methods
-            const Transform& getTransform();
-            void setTransform(const Transform& transform);
-            void resize(int width, int height);
-            void fill(int val);
-            void drawCircle(int x, int y, double radius, const Color& color);
-            void drawLine(const std::vector<Point>& points, const Color& color, double width=1.0);
-            void drawPolygon(const std::vector<Point>& points, const Color& color);
-            void drawRect(const Rectangle& rect, const Color& color); // Utility method
-            void drawRect(const Point& topLeft, const Point& bottomRight, const Color& color);
-            void drawRaster(int x, int y, const Raster& raster, double alpha);
-            void drawRaster(const RasterGeometryPtr& raster, double alpha);
-            void drawText(int x, int y, const std::string& text, const Color& color, int fontSize=20, const Color& backgroundColor=Color::transparent());
-            void swapBuffers();
-            RendererImplementation renderer();
-
-            Color readPixel(int x, int y);
-            void setPixel(int x, int y, const Color& color);
-        protected:
-            class Impl;   // Forward declaration
-            Impl* m_impl; // Using "pimpl" design pattern for fun
+            virtual const Transform& getTransform() = 0;
+            virtual void setTransform(const Transform& transform) = 0;
+            virtual void resize(int width, int height) = 0;
+            virtual void fill(int val) = 0;
+            virtual void drawCircle(int x, int y, double radius, const Color& color) = 0;
+            virtual void drawLine(const std::vector<Point>& points, const Color& color, double width=1.0) = 0;
+            virtual void drawPolygon(const std::vector<Point>& points, const Color& color) = 0;
+            virtual void drawRect(const Point& topLeft, const Point& bottomRight, const Color& color) = 0;
+            virtual void drawRect(const Rectangle& rect, const Color& color) = 0; // Utility method, should call the above
+            virtual void drawRaster(int x, int y, const Raster& raster, double alpha) = 0;
+            virtual void drawRaster(const RasterGeometryPtr& raster, double alpha) = 0;
+            virtual void drawText(int x, int y, const std::string& text, const Color& color, int fontSize=20, const Color& backgroundColor=Color::transparent()) = 0;
+            virtual Color readPixel(int x, int y) = 0;
+            virtual void setPixel(int x, int y, const Color& color) = 0;
+            virtual void swapBuffers() = 0;
+            virtual RendererImplementation renderer() = 0;
     };
     typedef std::shared_ptr<Drawable> DrawablePtr;
 
-    class BitmapDrawable : public Drawable
+    class BitmapDrawable : public virtual Drawable
     {
-        public:
-            using Drawable::Drawable;
+
     };
     typedef std::shared_ptr<BitmapDrawable> BitmapDrawablePtr;
 
-    class WindowDrawable : public Drawable
+    class WindowDrawable : public virtual Drawable
     {
         public:
-            using Drawable::Drawable;
-            void setWindow(void* window);
+            virtual void setWindow(void* window) = 0;
     };
     typedef std::shared_ptr<WindowDrawable> WindowDrawablePtr;
 }
