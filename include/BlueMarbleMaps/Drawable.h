@@ -40,7 +40,6 @@ namespace BlueMarble
             void drawRaster(int x, int y, const Raster& raster, double alpha);
             void drawRaster(const RasterGeometryPtr& raster, double alpha);
             void drawText(int x, int y, const std::string& text, const Color& color, int fontSize=20, const Color& backgroundColor=Color::transparent());
-            Raster& getRaster();
             void swapBuffers();
             RendererImplementation renderer();
 

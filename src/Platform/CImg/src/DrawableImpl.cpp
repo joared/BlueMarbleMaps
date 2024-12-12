@@ -7,17 +7,17 @@ namespace BlueMarble
     class Drawable::Impl
     {
         public:
-            Impl(int width, int height, int colorDepth)
-                : m_raster(width, height, colorDepth)
+            Impl(int width, int height, int channels)
+                : m_img(width, height, 1, channels, 0)
                 , m_backGroundColor(Color::blue(0.0))
                 , m_disp(nullptr)
                 , m_renderer(nullptr)
                 , m_transform(Point(), 0, 0)
             {
                 //m_disp.resize(width, height, true);
-                auto data = m_raster.data();
+                auto data = m_img.data();
                 m_renderer = std::make_shared<SoftwareRenderer>();
-                m_renderer->setFrameBuffer(data, width, height, colorDepth);
+                m_renderer->setFrameBuffer(data, width, height, channels);
             }
 
             const Transform& getTransform()
@@ -32,20 +32,20 @@ namespace BlueMarble
 
             void resize(int width, int height)
             {
-                m_raster.resize(width, height);
-                auto data = m_raster.data();
-                int channels = m_raster.colorDepth();
+                m_img.resize(width, height);
+                auto data = m_img.data();
+                int channels = m_img.spectrum();
                 m_renderer->setFrameBuffer(data, width, height, channels);
             }
 
             int width() const
             {
-                return m_raster.width();
+                return m_img.width();
             }
 
             int height() const
             {
-                return m_raster.height();
+                return m_img.height();
             }
 
             const Color& backgroundColor() const
@@ -60,32 +60,26 @@ namespace BlueMarble
 
             void fill(int val)
             {
-                m_raster.fill(val);
+                m_img.fill(val);
             }
 
             void drawCircle(int x, int y, double radius, const Color& color)
             {
-                //m_raster.drawCircle(x, y,radius,color);
                 m_renderer->drawCircle(x, y,radius,color);
             }
 
             void drawLine(const std::vector<Point>& points, const Color& color, double width)
             {
-                //m_raster.drawLine(points, color, width);
-                
                 m_renderer->drawLine(points, color, width);
             }
 
             void drawPolygon(const std::vector<Point>& points, const Color& color)
             {
-                //auto rotated = Utils::rotatePoints(points, m_transform.rotation(), screenCenter());
-                //m_raster.drawPolygon(points,color);
                 m_renderer->drawPolygon(points,color);
             }
 
             void drawRect(const Point& topLeft, const Point& bottomRight, const Color& color)
             {
-                //m_raster.drawRect(topLeft, bottomRight, color);
                 m_renderer->drawRect(topLeft, bottomRight, color);
             }
 
@@ -93,7 +87,7 @@ namespace BlueMarble
             {
                 auto center = m_transform.translation();
                 double scale = m_transform.scale();
-                double rotaiton = m_transform.rotation();
+                double rotation = m_transform.rotation();
                 
                 Raster& raster = geometry->raster();
                 
@@ -118,20 +112,13 @@ namespace BlueMarble
 
             void drawText(int x, int y, const std::string& text, const Color& color, int fontSize, const Color& bcolor)
             {
-                //m_raster.drawText(x,y,text,color,fontSize,bcolor);
                 m_renderer->drawText(x, y, text, color, fontSize, bcolor);
-            }
-
-            Raster& getRaster()
-            {
-                return m_raster;
             }
 
             void swapBuffers()
             {
                 // Update the image and save new black draw image
-                
-                auto drawImg = cimg_library::CImg<unsigned char>(m_raster.data(), m_raster.width(), m_raster.height(), 1, m_raster.colorDepth(), true);
+                auto drawImg = cimg_library::CImg<unsigned char>(m_img.data(), m_img.width(), m_img.height(), 1, m_img.spectrum(), true);
 
                 cimg_library::CImg<unsigned char> fixed_size_canvas(drawImg.width(), drawImg.height(), 1, drawImg.spectrum(), 0);
 
@@ -160,12 +147,12 @@ namespace BlueMarble
 
             Color readPixel(int x, int y)
             {
-                if (x < 0 || y < 0 || x >= m_raster.width() || y >= m_raster.height())
+                if (x < 0 || y < 0 || x >= m_img.width() || y >= m_img.height())
                 {
                     std::cout << "Warning: Trying to read pixel outside buffer: " << x << ", " << y << "\n";
                     return Color::black();
                 }
-                auto img = cimg_library::CImg<unsigned char>(m_raster.data(), m_raster.width(), m_raster.height(), 1, m_raster.colorDepth(), true);
+                auto img = cimg_library::CImg<unsigned char>(m_img.data(), m_img.width(), m_img.height(), 1, m_img.spectrum(), true);
                 unsigned char r = img(x, y, 0, 0);
                 unsigned char g = img(x, y, 0, 1);
                 unsigned char b = img(x, y, 0, 2);
@@ -176,12 +163,12 @@ namespace BlueMarble
 
             void setPixel(int x, int y, const Color& color)
             {
-                if (x < 0 || y < 0 || x >= m_raster.width() || y >= m_raster.height())
+                if (x < 0 || y < 0 || x >= m_img.width() || y >= m_img.height())
                 {
                     std::cout << "Warning: Trying to set pixel outside buffer: " << x << ", " << y << "\n";
                     return;
                 }
-                auto img = cimg_library::CImg<unsigned char>(m_raster.data(), m_raster.width(), m_raster.height(), 1, m_raster.colorDepth(), true);
+                auto img = cimg_library::CImg<unsigned char>(m_img.data(), m_img.width(), m_img.height(), 1, m_img.spectrum(), true);
                 img(x, y, 0, 0) = (unsigned char)color.r();
                 img(x, y, 0, 1) = (unsigned char)color.g();
                 img(x, y, 0, 2) = (unsigned char)color.b();
@@ -194,10 +181,9 @@ namespace BlueMarble
                 return Point(width() / 2.0, height() / 2.0);
             }
             Transform m_transform;
-            Raster m_raster;
+            cimg_library::CImg<unsigned char> m_img;
             Color  m_backGroundColor;
             cimg_library::CImgDisplay* m_disp;
             SoftwareRendererPtr m_renderer;
-
     };
 }

@@ -125,7 +125,7 @@ void Layer::onFeatureInput(Map& map, const std::vector<FeaturePtr>& features)
 
     for (const auto& e : m_effects)
     {
-        e->apply(*map.drawable(), m_drawable.getRaster());
+        e->apply(*map.drawable());
     }
 }
 

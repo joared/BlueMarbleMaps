@@ -107,10 +107,6 @@ namespace BlueMarble
         m_impl->drawText(x, y, text, color, fontSize, backgroundColor);
     }
 
-    Raster& Drawable::getRaster()
-    {
-        return m_impl->getRaster();
-    }
     void Drawable::swapBuffers()
     {
         m_impl->swapBuffers();

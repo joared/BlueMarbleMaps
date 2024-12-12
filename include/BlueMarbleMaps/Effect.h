@@ -12,7 +12,7 @@ namespace BlueMarble
     {
         public:
             virtual ~IEffect() = default;
-            virtual void apply(Drawable& drawable, Raster& raster) = 0;
+            virtual void apply(Drawable& drawable) = 0;
     };
     typedef std::shared_ptr<IEffect> EffectPtr;
 
@@ -20,7 +20,7 @@ namespace BlueMarble
     {
         public:
             DropShadowEffect(double blurRadius=3, int offsetX=10, int offsetY=10, double strength=2.0);
-            void apply(Drawable& drawable, Raster& raster);
+            void apply(Drawable& drawable);
         private:
             double  m_blurRadius;
             int     m_offsetX;

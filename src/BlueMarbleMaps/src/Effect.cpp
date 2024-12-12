@@ -11,7 +11,7 @@ DropShadowEffect::DropShadowEffect(double blurRadius, int offsetX, int offsetY, 
 {
 }
 
-void DropShadowEffect::apply(Drawable& drawable, Raster &raster)
+void DropShadowEffect::apply(Drawable& drawable)
 {
     // auto& img = raster;
 
