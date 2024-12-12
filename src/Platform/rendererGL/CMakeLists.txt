@@ -9,6 +9,8 @@ find_package(GLFW3 REQUIRED)
 file(GLOB_RECURSE RENDERER_SOURCES 
     "*.cpp"
     "${CMAKE_SOURCE_DIR}/src/Application/WindowGL.cpp"
+    "${CMAKE_SOURCE_DIR}/external/stb_image/stb_image.h"
+    "${CMAKE_SOURCE_DIR}/external/stb_image/stb_image.cpp"
     "${CMAKE_SOURCE_DIR}/include/Application/WindowGL.h"
     "${CMAKE_SOURCE_DIR}/include/RendererGL/*.h"
 )

@@ -3,6 +3,7 @@
 #include <fstream>
 #include <streambuf>
 #include <iostream>
+#include <gtc/type_ptr.hpp>
 Shader::Shader()
 	:m_id(0)
 {
@@ -93,4 +94,37 @@ bool Shader::getProgramLog(GLuint programId, char* info)
 		glGetShaderInfoLog(programId, 512, NULL, info);
 	}
 	return success;
+}
+
+void Shader::setMat4(const char* uniform, glm::mat4& mat)
+{
+	glUniformMatrix4fv(glGetUniformLocation(m_id,uniform),1,false,glm::value_ptr(mat));
+}
+void Shader::setMat3(const char* uniform, glm::mat3& mat)
+{
+	glUniformMatrix3fv(glGetUniformLocation(m_id, uniform), 1, false, glm::value_ptr(mat));
+}
+void Shader::setMat2(const char* uniform, glm::mat2& mat)
+{
+	glUniformMatrix2fv(glGetUniformLocation(m_id, uniform), 1, false, glm::value_ptr(mat));
+}
+void Shader::setvec4(const char* uniform, glm::vec4& vec)
+{
+	glUniform4fv(glGetUniformLocation(m_id, uniform), 1, glm::value_ptr(vec));
+}
+void Shader::setVec3(const char* uniform, glm::vec3& vec)
+{
+	glUniform3fv(glGetUniformLocation(m_id, uniform), 1, glm::value_ptr(vec));
+}
+void Shader::setVec2(const char* uniform, glm::vec2& vec)
+{
+	glUniform2fv(glGetUniformLocation(m_id, uniform), 1, glm::value_ptr(vec));
+}
+void Shader::setFloat(const char* uniform, GLfloat& f)
+{
+	glUniform1fv(glGetUniformLocation(m_id, uniform), 1, &f);
+}
+void Shader::setInt(const char* uniform, GLint& i)
+{
+	glUniform1iv(glGetUniformLocation(m_id, uniform), 1, &i);
 }
