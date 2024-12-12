@@ -111,6 +111,7 @@ void Raster::resize(float scaleRatio, ResizeInterpolation interpolation)
     m_img.resize(width()*scaleRatio, height()*scaleRatio, -100, -100, interpolationType);
     takeCImgData(m_img, &m_data, m_width, m_height, m_channels);
 }
+
 void Raster::rotate(double angle, int cx, int cy, ResizeInterpolation interpolation)
 {
     int interpolationType = (int)interpolation;

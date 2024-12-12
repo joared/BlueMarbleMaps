@@ -132,7 +132,7 @@ void Map::renderLayers()
 {
     m_presentationObjects.clear(); // Clear presentation objects, layers will add new
     auto updateArea = area();
-    //updateArea.scale(.7);
+    updateArea.scale(.5);
     for (auto l : m_layers)
     {
         l->onUpdateRequest(*this, updateArea, nullptr);
@@ -140,10 +140,10 @@ void Map::renderLayers()
 
     auto color = Color(200, 75, 150);
     auto rect = mapToScreen(updateArea);
+    std::cout << "Screen: " << rect.toString() << "\n";
     rect.floor(); // Needs to be done to get correct pixel values
-
-    std::cout << "Area: " << updateArea.toString() << "\n";
-
+    std::cout << "Screen Floor: " << rect.toString() << "\n";
+    
     auto line = rect.corners();
     line.push_back(line[0]);
     m_drawable->drawLine(line, color, 3.0);

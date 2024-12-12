@@ -133,7 +133,8 @@ int main()
     display.resize(500, 500, true);
 
     // Test RasterVisualizer
-    auto backgroundDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/geodata/NE1_50M_SR_W/NE1_50M_SR_W.tif");
+    //auto backgroundDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/geodata/NE1_50M_SR_W/NE1_50M_SR_W.tif");
+    auto backgroundDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/geodata/nasa/eo_base_2020_clean_geo.tif");
     backgroundDataSet->initialize(BlueMarble::DataSetInitializationType::RightHereRightNow);
     auto backgroundLayer = BlueMarble::Layer(false);
     auto rasterVis1 = std::make_shared<RasterVisualizer>();
