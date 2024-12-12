@@ -19,19 +19,15 @@ void VAO::bind()
 }
 void VAO::link(VBO& vbo, GLuint layout, GLuint nrOfComponents, GLenum type, GLsizeiptr stride, GLvoid* offset)
 {
-	vbo.bind();
 	glEnableVertexAttribArray(layout);
 	glVertexAttribPointer(layout,nrOfComponents,type,GL_FALSE,stride,offset);
 	glEnableVertexAttribArray(0);
-	vbo.unbind();
 }
 void VAO::linkInt(VBO& vbo, GLuint layout, GLuint nrOfComponents, GLenum type, GLsizeiptr stride, GLvoid* offset)
 {
-	vbo.bind();
 	glEnableVertexAttribArray(layout);
 	glVertexAttribIPointer(layout, nrOfComponents, type, stride, offset);
 	glEnableVertexAttribArray(0);
-	vbo.unbind();
 }
 void VAO::unbind()
 {

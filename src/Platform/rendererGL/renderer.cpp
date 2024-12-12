@@ -25,9 +25,7 @@ void keyEvent(WindowGL* window, int key, int scanCode, int action, int modifier)
 	{
 		wireFrameMode = !wireFrameMode;
 		if(wireFrameMode) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		else glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-		
+		else			  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	}
 }
 void resizeEvent(WindowGL* window, int width, int height)
@@ -97,11 +95,20 @@ int main()
 
 	std::vector<Vertice> vertices = {Vertice(),Vertice(),Vertice(),Vertice()};
 	vertices[0].position = glm::vec3(-0.5f,-0.5f,0.0f);
+	vertices[0].color = glm::vec4(0.1f, 0.7f, 0.0f,1.0f);
+	vertices[0].texCoord = glm::vec2(0.0f,0.0f);
 	vertices[1].position = glm::vec3(-0.5f, 0.5f, 0.0f);
+	vertices[1].color = glm::vec4(0.9f, 0.1f, 0.9f, 1.0f);
+	vertices[1].texCoord = glm::vec2(1.0f, 0.0f);
 	vertices[2].position = glm::vec3(0.5f, 0.5f, 0.0f);
+	vertices[2].color = glm::vec4(0.5f, 0.2f, 0.9f, 1.0f);
+	vertices[2].texCoord = glm::vec2(1.0f, 1.0f);
 	vertices[3].position = glm::vec3(0.5f, -0.5f, 0.0f);
+	vertices[3].color = glm::vec4(0.5f, 0.8f, 0.3f, 1.0f);
+	vertices[3].texCoord = glm::vec2(0.0f, 1.0f);
 
-	std::vector<GLuint> indices = { 0,1,2,2,3,0 };
+	std::vector<GLuint> indices = { 0,1,2,
+									2,3,0 };
 
 	Shader shader;
 
@@ -114,11 +121,15 @@ int main()
 	vbo.init(vertices);
 	ibo.init(indices);
 	vao.init();
+
 	vao.bind();
-	vao.link(vbo,0,vertices.size(), GL_FLOAT, sizeof(Vertice), (void*)0);
+	vbo.bind();
+	vao.link(vbo,0, vertices.size(), GL_FLOAT, sizeof(Vertice), (void*)0);
+	vao.link(vbo,1, vertices.size(), GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, color));
+	vao.link(vbo,2, vertices.size(), GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, texCoord));
+	vbo.unbind();
 
-
-	glClearColor(0.0f,0.0f,0.5f,1.0f);
+	glClearColor(0.1f,0.3f,0.2f,1.0f);
 	
 	while (!window.windowShouldClose())
 	{
