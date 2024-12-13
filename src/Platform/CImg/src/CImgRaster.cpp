@@ -75,7 +75,7 @@ int Raster::height() const
     return m_img.height();
 }
 
-int BlueMarble::Raster::colorDepth() const
+int BlueMarble::Raster::channels() const
 {
     return m_img.spectrum();
 }

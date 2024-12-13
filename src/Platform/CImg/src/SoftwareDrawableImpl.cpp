@@ -151,7 +151,7 @@ namespace BlueMarble
             void drawRaster(int x, int y, const Raster& raster, double alpha)
             {
                 // m_renderer->drawRaster(x, y, raster, alpha);
-                auto rasterImg = cimg_library::CImg<unsigned char>(raster.data(), raster.width(), raster.height(), 1, raster.colorDepth(), true);
+                auto rasterImg = cimg_library::CImg<unsigned char>(raster.data(), raster.width(), raster.height(), 1, raster.channels(), true);
                 if (rasterImg.spectrum() == 4)
                 {
                     //img.draw_image(x, y, rasterImg.get_shared_channels(0,2), rasterImg.get_shared_channel(3), 1.0, 255);

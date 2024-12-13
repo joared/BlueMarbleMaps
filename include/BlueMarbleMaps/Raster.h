@@ -36,7 +36,7 @@ namespace BlueMarble
             Raster(const std::string& filePath);
             int width() const;
             int height() const;
-            int colorDepth() const;
+            int channels() const;
             void resize(int width, int height, ResizeInterpolation interpolation = ResizeInterpolation::NearestNeighbor);
             void resize(float scaleRatio, ResizeInterpolation interpolation = ResizeInterpolation::NearestNeighbor);
             void rotate(double angle, int cx, int cy, ResizeInterpolation interpolation = ResizeInterpolation::NearestNeighbor);
