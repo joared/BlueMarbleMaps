@@ -1,11 +1,9 @@
-#ifndef RASTER
-#define RASTER
+#ifndef BLUEMARBLE_RASTER
+#define BLUEMARBLE_RASTER
 
 #include "Color.h"
-
 #include <string>
-
-#include <CImg.h> // TODO: remove this dependency when implementing pimpl
+#include <memory>
 
 namespace BlueMarble
 {
@@ -13,15 +11,8 @@ namespace BlueMarble
     {
         public:
             enum class ResizeInterpolation
-            {
-                // - 0 = no interpolation: additional space is filled according to \p boundary_conditions.
-                // - 1 = nearest-neighbor interpolation.
-                // - 2 = moving average interpolation.
-                // - 3 = linear interpolation.
-                // - 4 = grid interpolation.
-                // - 5 = cubic interpolation.
-                // - 6 = lanczos interpolation.
-                NoInterpolation = 0,
+            {                
+                NoInterpolation = 0, 
                 NearestNeighbor,
                 MovingAverage,
                 Linear,
@@ -34,6 +25,7 @@ namespace BlueMarble
             Raster(int width, int height, int channels, int fill=0);
             Raster(unsigned char* data, int width, int height, int channels);
             Raster(const std::string& filePath);
+            ~Raster();
             int width() const;
             int height() const;
             int channels() const;
@@ -44,16 +36,13 @@ namespace BlueMarble
             void blur(double sigmaX, double sigmaY, double sigmaZ, bool isGaussian=false);
             Raster getCrop(int x0, int y0, int x1, int y1);
 
-            const unsigned char* data() const; // Specific implementation for used framework (e.g. CImg)
+            const unsigned char* data() const;
 
             void operator=(const Raster& raster);
         private:
-            cimg_library::CImg<unsigned char> m_img; // TODO: remove this dependency when implementing pimpl
-            unsigned char* m_data;
-            int m_width;
-            int m_height;
-            int m_channels;
+            class Impl;
+            std::unique_ptr<Impl> m_impl;
     };
 }
 
-#endif /* RASTER */
+#endif /* BLUEMARBLE_RASTER */

@@ -10,6 +10,7 @@ set(SOURCES
     ${SRC_DIR}/Core.cpp
     ${SRC_DIR}/Animation.cpp
     ${SRC_DIR}/EventHandler.cpp
+    ${SRC_DIR}/Raster.cpp
     ${SRC_DIR}/Event.cpp
     ${SRC_DIR}/Layer.cpp
     ${SRC_DIR}/DataSet.cpp
@@ -36,10 +37,7 @@ target_include_directories(BlueMarbleMapsLib
 )
 
 if(BLUEMARBLE_USE_CIMG_WINDOW)
-    #add_subdirectory(implementations/cimg)
-    message("Linking to CImgLib")
-    target_link_libraries(BlueMarbleMapsLib CImgLib) # TODO: this should be removed
-    message("Linking to CImgImplementation")
-    target_link_libraries(BlueMarbleMapsLib CImgImplementation)
+    message("Linking BlueMarbleMapsLib to CImgImplementation")
+    target_link_libraries(BlueMarbleMapsLib PRIVATE CImgImplementation)
 endif()
 
