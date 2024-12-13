@@ -37,11 +37,11 @@ add_executable(BlueMarbleMaps ${SRC_DIR}/${SRC_MAIN} ${SOURCES})
 target_include_directories(BlueMarbleMaps
   PRIVATE ${CMAKE_SOURCE_DIR}/include/BlueMarbleMaps
 )
-option(USE_CIMG "Enable CImg-based implementation" ON)
-if(USE_CIMG)
+
+if(BLUEMARBLE_USE_CIMG)
     #add_subdirectory(implementations/cimg)
     message("Linking to CImgLib")
-    target_link_libraries(BlueMarbleMaps CImgLib)
+    target_link_libraries(BlueMarbleMaps CImgLib) # TODO: this should be removed
     message("Linking to CImgImplementation")
     target_link_libraries(BlueMarbleMaps CImgImplementation)
 endif()
