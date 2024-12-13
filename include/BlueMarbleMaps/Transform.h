@@ -8,6 +8,13 @@ namespace BlueMarble
     class Transform
     {
         public:
+            inline Transform() 
+                : m_translation(Point(0,0))
+                , m_scale(1.0)
+                , m_rotation(0.0)
+            {
+            }
+
             inline Transform(const Point& translation, double scale, double rotation) 
                 : m_translation(translation)
                 , m_scale(scale)
