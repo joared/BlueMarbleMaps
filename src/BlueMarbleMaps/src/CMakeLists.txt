@@ -1,8 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
 
-# Define the path to the main source file
-set(SRC_MAIN main.cpp)
-
 # Define the path to the source directory
 set(SRC_DIR ".")
 
@@ -32,17 +29,17 @@ set(SOURCES
 )
 
 # Add the executable
-add_executable(BlueMarbleMaps ${SRC_DIR}/${SRC_MAIN} ${SOURCES})
+add_library(BlueMarbleMapsLib STATIC ${SOURCES})
 # Add include folder as a private include directory for BlueMarbleEngine
-target_include_directories(BlueMarbleMaps
-  PRIVATE ${CMAKE_SOURCE_DIR}/include/BlueMarbleMaps
+target_include_directories(BlueMarbleMapsLib
+  PUBLIC ${CMAKE_SOURCE_DIR}/include/BlueMarbleMaps
 )
 
-if(BLUEMARBLE_USE_CIMG)
+if(BLUEMARBLE_USE_CIMG_WINDOW)
     #add_subdirectory(implementations/cimg)
     message("Linking to CImgLib")
-    target_link_libraries(BlueMarbleMaps CImgLib) # TODO: this should be removed
+    target_link_libraries(BlueMarbleMapsLib CImgLib) # TODO: this should be removed
     message("Linking to CImgImplementation")
-    target_link_libraries(BlueMarbleMaps CImgImplementation)
+    target_link_libraries(BlueMarbleMapsLib CImgImplementation)
 endif()
 
