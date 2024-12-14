@@ -103,6 +103,9 @@ int main()
 	
 	glDebugMessageCallback(MessageCallback,0);
 
+	const unsigned char* version = glGetString(GL_VERSION);
+	std::cout << "opengl version: " << version << "\n";
+
 	window.registerKeyEventCallback(keyEvent);
 	window.registerResizeEventCallback(resizeEvent);
 	window.registerResizeFrameBufferEventCallback(resizeFrameBuffer);

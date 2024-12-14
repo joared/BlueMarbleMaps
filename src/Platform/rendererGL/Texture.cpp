@@ -24,7 +24,7 @@ bool Texture::init(unsigned char* data, int width, int height, GLenum format, GL
 
 	glGenTextures(1,&m_id);
 	//TODO use glbindTextureUnit instead of shitty GL_TEXTURE enums...
-	glActiveTexture(GL_TEXTURE0);
+	glActiveTexture(GL_TEXTURE0+activeIndex);
 	glBindTexture(GL_TEXTURE_2D, m_id);
 	//glBindTextureUnit(activeIndex, m_id);
 	
