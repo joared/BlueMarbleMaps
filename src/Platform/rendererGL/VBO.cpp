@@ -7,7 +7,7 @@ VBO::VBO()
 }
 VBO::~VBO()
 {
-
+	glDeleteBuffers(1, &m_id);
 }
 
 void VBO::init(std::vector<Vertice>& vertices)

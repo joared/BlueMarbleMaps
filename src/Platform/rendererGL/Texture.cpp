@@ -9,7 +9,7 @@ Texture::Texture()
 }
 Texture::~Texture()
 {
-
+	glDeleteTextures(1, &m_id);
 }
 bool Texture::init(unsigned char* data, int width, int height, GLenum format, GLenum pixelType, GLuint activeIndex)
 {
@@ -23,10 +23,9 @@ bool Texture::init(unsigned char* data, int width, int height, GLenum format, GL
 	}
 
 	glGenTextures(1,&m_id);
-	//TODO use glbindTextureUnit instead of shitty GL_TEXTURE enums...
-	glActiveTexture(GL_TEXTURE0+activeIndex);
+
 	glBindTexture(GL_TEXTURE_2D, m_id);
-	//glBindTextureUnit(activeIndex, m_id);
+	glBindTextureUnit(activeIndex, m_id);
 	
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);

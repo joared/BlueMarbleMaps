@@ -7,7 +7,7 @@ IBO::IBO()
 }
 IBO::~IBO()
 {
-
+	glDeleteBuffers(1, &m_id);
 }
 void IBO::init(std::vector<GLuint> indicies)
 {
