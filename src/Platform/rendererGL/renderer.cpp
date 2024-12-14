@@ -5,12 +5,15 @@
 #include <iostream>
 #include "Application/WindowGL.h"
 #include "Keys.h"
+#include "stb_image.h"
+#include <filesystem>
 
 #include "Vertice.h"
 #include "VAO.h"
 #include "VBO.h"
 #include "IBO.h"
 #include "Shader.h"
+#include "Texture.h"
 
 void keyEvent(WindowGL* window, int key, int scanCode, int action, int modifier)
 {
@@ -19,7 +22,7 @@ void keyEvent(WindowGL* window, int key, int scanCode, int action, int modifier)
 	std::cout << "Key is: " << keyStroke << " " << keyStroke.toString() << std::endl;
 	if (keyStroke == Key::ESCAPE)
 	{
-		window->shutdownWindow();
+		window->shutdownWindow();	
 	}
 	else if (keyStroke == Key::W && action == GLFW_PRESS)
 	{
@@ -61,6 +64,21 @@ void windowClosed(WindowGL* window)
 {
 	std::cout << "he's dead..." << std::endl;
 }
+
+unsigned char* readImage(std::string path, int* width, int* height, int* nrOfChannels)
+{
+	stbi_set_flip_vertically_on_load(true);
+
+	unsigned char* imgBytes = stbi_load(path.c_str(), width, height, nrOfChannels, STBI_rgb_alpha);
+
+	if (imgBytes == NULL)
+	{
+		std::cout << "couldn't load texture: " << stbi_failure_reason() << std::endl;
+		return nullptr;
+	}
+	return imgBytes;
+}
+
 void GLAPIENTRY
 MessageCallback(GLenum source,
 	GLenum type,
@@ -76,8 +94,9 @@ MessageCallback(GLenum source,
 }
 int main()
 {
+	stbi_set_flip_vertically_on_load(true);
 	WindowGL window;
-	if (!window.init(200, 200, "Hello World"))
+	if (!window.init(1000, 1000, "Hello World"))
 	{
 		std::cout << "Could not initiate window..." << std::endl;
 	}
@@ -99,13 +118,13 @@ int main()
 	vertices[0].texCoord = glm::vec2(0.0f,0.0f);
 	vertices[1].position = glm::vec3(-0.5f, 0.5f, 0.0f);
 	vertices[1].color = glm::vec4(0.9f, 0.1f, 0.9f, 1.0f);
-	vertices[1].texCoord = glm::vec2(1.0f, 0.0f);
+	vertices[1].texCoord = glm::vec2(0.0f, 1.0f);
 	vertices[2].position = glm::vec3(0.5f, 0.5f, 0.0f);
 	vertices[2].color = glm::vec4(0.5f, 0.2f, 0.9f, 1.0f);
 	vertices[2].texCoord = glm::vec2(1.0f, 1.0f);
 	vertices[3].position = glm::vec3(0.5f, -0.5f, 0.0f);
 	vertices[3].color = glm::vec4(0.5f, 0.8f, 0.3f, 1.0f);
-	vertices[3].texCoord = glm::vec2(0.0f, 1.0f);
+	vertices[3].texCoord = glm::vec2(1.0f, 0.0f);
 
 	std::vector<GLuint> indices = { 0,1,2,
 									2,3,0 };
@@ -113,6 +132,17 @@ int main()
 	Shader shader;
 
 	shader.linkProgram("shaders\\basic.vert","shaders\\basic.frag");
+
+	int imgWidth, imgHeight, imgChannels;
+
+	unsigned char* image = readImage("goat.jpg", &imgWidth, &imgHeight, &imgChannels);
+
+	GLint texIndex = 0;
+	Texture tex;
+	tex.init(image, imgWidth, imgHeight, GL_RGBA, GL_UNSIGNED_BYTE, texIndex);
+
+	shader.useProgram();
+	shader.setInt("texture0", texIndex);
 
 	VBO vbo;
 	VAO vao;
@@ -133,14 +163,18 @@ int main()
 	
 	while (!window.windowShouldClose())
 	{
-		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT);
 		// Keep running
 
 		shader.useProgram();
 		vao.bind();
 		ibo.bind();
+		tex.bind();
 		glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 		vao.unbind();
+		vbo.unbind();
+		ibo.unbind();
+		tex.unbind();
 		window.swapBuffers();
 		window.pollWindowEvents();
 	}

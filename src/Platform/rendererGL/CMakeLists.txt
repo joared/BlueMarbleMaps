@@ -36,6 +36,9 @@ message(STATUS "Looking for GLM")
 
 target_link_libraries(GraphicsRendererGL glm)
 
+message(STATUS "looking for stb_image")
+target_include_directories(GraphicsRendererGL PRIVATE "${CMAKE_SOURCE_DIR}/external/stb_image")
+
 set_source_files_properties(${SHADER_SOURCES} PROPERTIES LANGUAGE GLSL)
 
 source_group("shaders" FILES ${SHADER_SOURCES})
