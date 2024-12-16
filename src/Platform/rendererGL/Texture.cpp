@@ -11,7 +11,7 @@ Texture::~Texture()
 {
 	glDeleteTextures(1, &m_id);
 }
-bool Texture::init(unsigned char* data, int width, int height, GLenum format, GLenum pixelType, GLuint activeIndex)
+bool Texture::init(unsigned char* data, int width, int height, int format, GLenum pixelType, GLuint activeIndex)
 {
 	int maxNrOfTextures;
 	glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &maxNrOfTextures);
@@ -20,6 +20,15 @@ bool Texture::init(unsigned char* data, int width, int height, GLenum format, GL
 	{
 		std::cout << "active index is larger than the max nr of texture limit; " << maxNrOfTextures << "\n";
 		return false;
+	}
+	GLenum glFormat;
+	switch (format)
+	{
+	case 1: glFormat = GL_R;    break;
+	case 2: glFormat = GL_RG;   break;
+	case 3: glFormat = GL_RGB;  break;
+	case 4: glFormat = GL_RGBA; break;
+	default:glFormat = GL_RGBA;
 	}
 
 	glGenTextures(1,&m_id);
@@ -33,7 +42,7 @@ bool Texture::init(unsigned char* data, int width, int height, GLenum format, GL
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 	//TODO assign the mipmap images from data read from the image as well, this could suffice as the lod cache entirely
-	glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, pixelType, data);
+	glTexImage2D(GL_TEXTURE_2D, 0, glFormat, width, height, 0, GL_RGBA, pixelType, data);
 	glGenerateMipmap(GL_TEXTURE_2D);
 
 	glBindTexture(GL_TEXTURE_2D, 0);

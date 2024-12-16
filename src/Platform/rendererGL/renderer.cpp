@@ -142,7 +142,7 @@ int main()
 
 	GLint texIndex = 0;
 	Texture tex;
-	tex.init(image, imgWidth, imgHeight, GL_RGBA, GL_UNSIGNED_BYTE, texIndex);
+	tex.init(image, imgWidth, imgHeight, imgChannels, GL_UNSIGNED_BYTE, texIndex);
 
 	shader.useProgram();
 	shader.setInt("texture0", texIndex);
