@@ -6,9 +6,11 @@ layout (location = 2) in vec2 texCoords;
 out vec4 givenColor;
 out vec2 fragTexCoords;
 
+uniform mat4 viewMatrix;
+
 void main()
 {
-	gl_Position = vec4(pos, 1.0f);
+	gl_Position = viewMatrix * vec4(pos, 1.0f);
 	givenColor = color;
 	fragTexCoords = texCoords;
 }

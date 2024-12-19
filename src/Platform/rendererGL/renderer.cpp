@@ -14,30 +14,53 @@
 #include "IBO.h"
 #include "Shader.h"
 #include "Texture.h"
+#include "Camera.h"
+
+static Camera cam = Camera(glm::vec3(0, 0, -100), glm::vec3(0.0f,0.0f,1.0f));
 
 void keyEvent(WindowGL* window, int key, int scanCode, int action, int modifier)
 {
 	Key keyStroke(scanCode);
 	static bool wireFrameMode = false;
-	std::cout << "Key is: " << keyStroke << " " << keyStroke.toString() << std::endl;
+	std::cout << "Key is: " << keyStroke << " " << keyStroke.toString() << "\n";
 	if (keyStroke == Key::ESCAPE)
 	{
 		window->shutdownWindow();	
 	}
-	else if (keyStroke == Key::W && action == GLFW_PRESS)
+	else if (keyStroke == Key::F && action == GLFW_PRESS)
 	{
 		wireFrameMode = !wireFrameMode;
 		if(wireFrameMode) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		else			  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	}
+	else if (keyStroke == Key::W)
+	{
+		cam.pan(0,5,0);
+		cam.calculateTranslations();
+	}
+	else if (keyStroke == Key::D)
+	{
+		cam.pan(5,0,0);
+		cam.calculateTranslations();
+	}
+	else if (keyStroke == Key::S)
+	{
+		cam.pan(0,-5,0);
+		cam.calculateTranslations();
+	}
+	else if (keyStroke == Key::A)
+	{
+		cam.pan(-5,0,0);
+		cam.calculateTranslations();
+	}
 }
 void resizeEvent(WindowGL* window, int width, int height)
 {
-	std::cout << "resize finished" << std::endl;
+	std::cout << "resize finished" << "\n";
 }
 void resizeFrameBuffer(WindowGL* window, int width, int height)
 {
-	std::cout << "I shalle be doing a glViewPort resize yes" << std::endl;
+	std::cout << "I shalle be doing a glViewPort resize yes" << "\n";
 	glViewport(0, 0, width, height);
 
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -46,23 +69,23 @@ void resizeFrameBuffer(WindowGL* window, int width, int height)
 }
 void mouseButtonEvent(WindowGL* window, int button, int action, int modifier)
 {
-	std::cout << "received button event :)" << std::endl;
+	std::cout << "received button event :)" << "\n";
 }
 void mousePositionEvent(WindowGL* window, double x, double y)
 {
-	std::cout << "received mouse pos event" << std::endl;
+	std::cout << "received mouse pos event" << "\n";
 }
 void mouseScrollEvent(WindowGL* window, double xOffs, double yOffs)
 {
-	std::cout << "received scroll event" << std::endl;
+	std::cout << "received scroll event" << "\n";
 }
 void mouseEntered(WindowGL* window, int entered)
 {
-	std::cout << "received mouse entered event" << std::endl;
+	std::cout << "received mouse entered event" << "\n";
 }
 void windowClosed(WindowGL* window)
 {
-	std::cout << "he's dead..." << std::endl;
+	std::cout << "he's dead..." << "\n";
 }
 
 unsigned char* readImage(std::string path, int* width, int* height, int* nrOfChannels)
@@ -73,7 +96,7 @@ unsigned char* readImage(std::string path, int* width, int* height, int* nrOfCha
 
 	if (imgBytes == NULL)
 	{
-		std::cout << "couldn't load texture: " << stbi_failure_reason() << std::endl;
+		std::cout << "couldn't load texture: " << stbi_failure_reason() << "\n";
 		return nullptr;
 	}
 	return imgBytes;
@@ -98,7 +121,7 @@ int main()
 	WindowGL window;
 	if (!window.init(1000, 1000, "Hello World"))
 	{
-		std::cout << "Could not initiate window..." << std::endl;
+		std::cout << "Could not initiate window..." << "\n";
 	}
 	
 	glDebugMessageCallback(MessageCallback,0);
@@ -116,16 +139,16 @@ int main()
 	window.registerCloseWindowEventCallback(windowClosed);
 
 	std::vector<Vertice> vertices = {Vertice(),Vertice(),Vertice(),Vertice()};
-	vertices[0].position = glm::vec3(-0.5f,-0.5f,0.0f);
+	vertices[0].position = glm::vec3(-50.0f,-50.0f,0.0f);
 	vertices[0].color = glm::vec4(0.1f, 0.7f, 0.0f,1.0f);
 	vertices[0].texCoord = glm::vec2(0.0f,0.0f);
-	vertices[1].position = glm::vec3(-0.5f, 0.5f, 0.0f);
+	vertices[1].position = glm::vec3(-50.0f, 50.0f, 0.0f);
 	vertices[1].color = glm::vec4(0.9f, 0.1f, 0.9f, 1.0f);
 	vertices[1].texCoord = glm::vec2(0.0f, 1.0f);
-	vertices[2].position = glm::vec3(0.5f, 0.5f, 0.0f);
+	vertices[2].position = glm::vec3(50.0f, 50.0f, 0.0f);
 	vertices[2].color = glm::vec4(0.5f, 0.2f, 0.9f, 1.0f);
 	vertices[2].texCoord = glm::vec2(1.0f, 1.0f);
-	vertices[3].position = glm::vec3(0.5f, -0.5f, 0.0f);
+	vertices[3].position = glm::vec3(50.0f, -50.0f, 0.0f);
 	vertices[3].color = glm::vec4(0.5f, 0.8f, 0.3f, 1.0f);
 	vertices[3].texCoord = glm::vec2(1.0f, 0.0f);
 
@@ -164,12 +187,18 @@ int main()
 
 	glClearColor(0.1f,0.3f,0.2f,1.0f);
 	
+	cam.setProjectionPerspective(45.0f, 1.0f, 0.1f, 1000.0f);
+	//cam.setProjectionOrtographic(1000, 1000, 0.1f, 1000);
+	cam.setDirectional(true);
+	cam.calculateTranslations();
+
 	while (!window.windowShouldClose())
 	{
 		glClear(GL_COLOR_BUFFER_BIT);
 		// Keep running
 
 		shader.useProgram();
+		shader.setMat4("viewMatrix",cam.getViewMatrix());
 		vao.bind();
 		ibo.bind();
 		tex.bind();
