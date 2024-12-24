@@ -15,7 +15,7 @@ if(BLUEMARBLE_USE_CIMG_RASTER_IMPL)
     )
     # Specify include directories for this implementation
     # Need to have them public such that BlueMarbleMaps can include them
-    target_include_directories(CImgImplementation PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/RasterImpl)
+    target_include_directories(CImgImplementation PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include/RasterImpl)
     target_compile_definitions(CImgImplementation PUBLIC BLUEMARBLE_USE_CIMG_RASTER_IMPL)
 endif()
 
@@ -24,7 +24,7 @@ if(BLUEMARBLE_USE_CIMG_SOFTWARE_DRAWABLE_IMPL)
     target_sources(CImgImplementation PRIVATE 
         SoftwareDrawableImpl.cpp
     )
-    target_include_directories(CImgImplementation PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/SoftwareDrawableImpl)
+    target_include_directories(CImgImplementation PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include/SoftwareDrawableImpl)
     target_compile_definitions(CImgImplementation PUBLIC BLUEMARBLE_USE_CIMG_SOFTWARE_DRAWABLE_IMPL)
 endif()
 
