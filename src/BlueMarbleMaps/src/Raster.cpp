@@ -1,5 +1,5 @@
 #include "Raster.h"
-#include "RasterImpl.cpp"
+#include "RasterImpl.h"
 
 using namespace BlueMarble;
 

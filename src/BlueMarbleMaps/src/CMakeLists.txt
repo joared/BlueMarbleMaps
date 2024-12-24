@@ -36,7 +36,7 @@ target_include_directories(BlueMarbleMapsLib
   PUBLIC ${CMAKE_SOURCE_DIR}/include/BlueMarbleMaps
 )
 
-if(BLUEMARBLE_USE_CIMG_WINDOW)
+if(LINK_TO_CIMG)
     message("Linking BlueMarbleMapsLib to CImgImplementation")
     target_link_libraries(BlueMarbleMapsLib PRIVATE CImgImplementation)
 endif()

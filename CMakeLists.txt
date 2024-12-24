@@ -16,8 +16,14 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # Build options
-option(BLUEMARBLE_USE_CIMG_WINDOW "Enable CImg-based window implementation" ON)
-option(BLUEMARBLE_USE_CIMG_RASTER "Enable CImg-based raster implementation" ON)
+option(BLUEMARBLE_USE_CIMG_WINDOW "Enable CImg window implementation" ON)
+option(BLUEMARBLE_USE_CIMG_SOFTWARE_DRAWABLE_IMPL "Enable CImg Software drawable implementation" ON)
+option(BLUEMARBLE_USE_CIMG_RASTER_IMPL "Enable CImg Raster implementation" ON)
+
+set(LINK_TO_CIMG OFF)
+if (BLUEMARBLE_USE_CIMG_SOFTWARE_DRAWABLE_IMPL OR BLUEMARBLE_USE_CIMG_RASTER_IMPL)
+    set(LINK_TO_CIMG ON)
+endif()
 
 # Add a library to easy link test cases
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external)

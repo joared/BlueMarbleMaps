@@ -1,5 +1,5 @@
 #include "SoftwareDrawable.h"
-#include "SoftwareDrawableImpl.cpp" // TODO: rename to generic "DrawableImpl.cpp" to prevent need of ifdef
+#include "SoftwareDrawableImpl.h"
 
 
 namespace BlueMarble
