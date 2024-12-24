@@ -14,9 +14,11 @@
 #include "IBO.h"
 #include "Shader.h"
 #include "Texture.h"
-#include "Camera.h"
+#include "CameraOrthographic.h"
+#include "CameraPerspective.h"
 
-static Camera cam = Camera(glm::vec3(0, 0, -100), glm::vec3(0.0f,0.0f,1.0f));
+//static CameraOrthographic cam = CameraOrthographic(OrthographicCameraInformation());
+static CameraPerspective cam = CameraPerspective(PerspectiveCamerInformation());
 
 void keyEvent(WindowGL* window, int key, int scanCode, int action, int modifier)
 {
@@ -51,6 +53,56 @@ void keyEvent(WindowGL* window, int key, int scanCode, int action, int modifier)
 	else if (keyStroke == Key::A)
 	{
 		cam.pan(-5,0,0);
+		cam.calculateTranslations();
+	}
+	else if (keyStroke == Key::Z)
+	{
+		cam.pan(0, 0, 5);
+		cam.calculateTranslations();
+	}
+	else if (keyStroke == Key::X)
+	{
+		cam.pan(0, 0, -5);
+		cam.calculateTranslations();
+	}
+	else if (keyStroke == Key::Q)
+	{
+		cam.roll(10.0f);
+		cam.calculateTranslations();
+	}
+	else if (keyStroke == Key::E)
+	{
+		cam.roll(-10.0f);
+		cam.calculateTranslations();
+	}
+	else if (keyStroke == Key::K)
+	{
+		cam.yaw(5.0f);
+		cam.calculateTranslations();
+	}
+	else if (keyStroke == Key::L)
+	{
+		cam.yaw(-5.0f);
+		cam.calculateTranslations();
+	}
+	else if (keyStroke == Key::U)
+	{
+		cam.pitch(5.0f);
+		cam.calculateTranslations();
+	}
+	else if (keyStroke == Key::J)
+	{
+		cam.pitch(-5.0f);
+		cam.calculateTranslations();
+	}
+	else if (keyStroke == Key::O)
+	{
+		cam.zoom(5.0f);
+		cam.calculateTranslations();
+	}
+	else if (keyStroke == Key::P)
+	{
+		cam.zoom(-5.0f);
 		cam.calculateTranslations();
 	}
 }
@@ -187,9 +239,6 @@ int main()
 
 	glClearColor(0.1f,0.3f,0.2f,1.0f);
 	
-	cam.setProjectionPerspective(45.0f, 1.0f, 0.1f, 1000.0f);
-	//cam.setProjectionOrtographic(1000, 1000, 0.1f, 1000);
-	cam.setDirectional(true);
 	cam.calculateTranslations();
 
 	while (!window.windowShouldClose())
