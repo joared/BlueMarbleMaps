@@ -2,6 +2,59 @@
 
 using namespace BlueMarble;
 
+void convertCImgToOpenGL(cimg_library::CImg<unsigned char>& cimgImage, 
+                         unsigned char* openglData, 
+                         int width, int height, int channels) 
+{
+    cimgImage.mirror('y');
+    for (int c = 0; c < channels; ++c) {
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                // Compute OpenGL index (row-major order)
+                int openglIndex = (y * width + x) * channels + c;
+                
+                // Copy data
+                openglData[openglIndex] = cimgImage(x,y,0,c);
+            }
+        }
+    }
+}
+
+void convertOpenGLToCImg(cimg_library::CImg<unsigned char>& cimgImage, 
+                         const unsigned char* openglData, 
+                         int width, int height, int channels) 
+{
+    // for (int y = 0; y < height; ++y) {
+    //     int openglRowStart = (height - 1 - y) * width * channels; // OpenGL row index (flipped)
+    //     int cimgRowStart = y * width * channels;                  // CImg row index
+
+    //     // Copy an entire row at once for all channels
+    //     std::memcpy(cimgImage.data() + cimgRowStart, openglData + openglRowStart, width * channels);
+    // }
+
+    for (int c = 0; c < channels; ++c) {
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                // Compute OpenGL index (row-major order)
+                int openglIndex = (y * width + x) * channels + c;
+                
+                // Copy data
+                cimgImage(x,height-1-y,0,c) = openglData[openglIndex];
+            }
+        }
+    }
+
+    // int size = width*height*channels;
+    // for (int i(0); i<size; i++)
+    // {
+    //     int glX = (i / channels) % width;
+    //     int glY = i / (channels*width);
+    //     int glC = i % channels;
+
+    //     cimgImage(glX,height-1-glY,0,glC) = openglData[i];
+    // }
+}
+
 SoftwareDrawable::Impl::Impl(int width, int height, int channels)
     : m_img(width, height, 1, channels, 0)
     , m_backGroundColor(Color::blue(0.0))
@@ -146,8 +199,15 @@ void SoftwareDrawable::Impl::drawRaster(const RasterGeometryPtr& geometry, doubl
 
 void SoftwareDrawable::Impl::drawRaster(int x, int y, const Raster& raster, double alpha)
 {
-    // m_renderer->drawRaster(x, y, raster, alpha);
+    #ifdef BLUEMARBLE_USE_CIMG_RASTER_IMPL
     auto rasterImg = cimg_library::CImg<unsigned char>(raster.data(), raster.width(), raster.height(), 1, raster.channels(), true);
+    #else
+    // STB image
+    auto rasterImg = cimg_library::CImg<unsigned char>(raster.width(), raster.height(), 1, raster.channels());
+    //auto rasterImg = cimg_library::CImg<unsigned char>(raster.data(), raster.width(), raster.height(), 1, raster.channels(), true);
+    convertOpenGLToCImg(rasterImg, raster.data(), raster.width(), raster.height(), raster.channels());
+    #endif
+    
     if (rasterImg.spectrum() == 4)
     {
         //img.draw_image(x, y, rasterImg.get_shared_channels(0,2), rasterImg.get_shared_channel(3), 1.0, 255);

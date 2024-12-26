@@ -148,6 +148,7 @@ void ImageDataSet::onUpdateRequest(Map &map, const Rectangle& updateArea, Featur
     if(updateArea.overlap(rasterGeometry->bounds()))
     {
         auto feature = std::make_shared<Feature>(Id(0,0), rasterGeometry->getSubRasterGeometry(updateArea));
+        //auto feature = std::make_shared<Feature>(Id(0,0), rasterGeometry);
         handler->onFeatureInput(map, std::vector<FeaturePtr>({ feature }));
     }
 }
@@ -173,8 +174,10 @@ void ImageDataSet::generateOverViews()
         double factor = std::pow(0.5, s);
         std::cout << "Copy\n";
         Raster overview = rasterOrig;
-        std::cout << "Resize\n";
-        overview.resize((int)overview.width()*factor, (int)overview.height()*factor, Raster::ResizeInterpolation::NearestNeighbor);
+        std::cout << "Resize raster overview\n";
+        overview.resize((int)(overview.width()*factor), 
+                        (int)(overview.height()*factor), 
+                        Raster::ResizeInterpolation::NearestNeighbor);
         if (overview.width() < LIMIT || overview.height() < LIMIT)
         {
             break;

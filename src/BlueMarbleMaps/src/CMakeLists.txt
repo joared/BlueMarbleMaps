@@ -41,3 +41,8 @@ if(LINK_TO_CIMG)
     target_link_libraries(BlueMarbleMapsLib PRIVATE CImgImplementation)
 endif()
 
+if(LINK_TO_STB_IMAGE)
+    message("Linking BlueMarbleMapsLib to StbImageImplementation")
+    target_link_libraries(BlueMarbleMapsLib PRIVATE StbImageImplementation)
+endif()
+

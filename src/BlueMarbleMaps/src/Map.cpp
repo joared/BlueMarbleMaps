@@ -14,13 +14,10 @@ using namespace BlueMarble;
 
 Map::Map()
     : MapEventPublisher()
-    , m_backgroundRaster("/home/joar/BlueMarbleMaps/geodata/NE1_LR_LC_SR_W/NE1_LR_LC_SR_W.tif")
-    
-    //, m_center(Point((m_backgroundRaster.width()-1)*0.5, (m_backgroundRaster.height()-1)*0.5))
     , m_center(lngLatToMap(Point(0, 0)))
     , m_scale(1.0)
     , m_rotation(0.0)
-    , m_constraints(5000.0, 0.0001, Rectangle(0, 0, m_backgroundRaster.width()-1, m_backgroundRaster.height()-1))
+    , m_constraints(5000.0, 0.0001, Rectangle(0, 0, 100000, 100000))
     , m_updateRequired(true)
     , m_updateEnabled(true)
     , m_animation(nullptr)
@@ -142,9 +139,9 @@ void Map::renderLayers()
 
     auto color = Color(200, 75, 150);
     auto rect = mapToScreen(updateArea);
-    std::cout << "Screen: " << rect.toString() << "\n";
+    //std::cout << "Screen: " << rect.toString() << "\n";
     rect.floor(); // Needs to be done to get correct pixel values
-    std::cout << "Screen Floor: " << rect.toString() << "\n";
+    //std::cout << "Screen Floor: " << rect.toString() << "\n";
     
     auto line = rect.corners();
     line.push_back(line[0]);

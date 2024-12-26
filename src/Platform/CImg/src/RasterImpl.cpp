@@ -60,6 +60,7 @@ void Raster::Impl::resize(int width, int height, ResizeInterpolation interpolati
     int interpolationType = (int)interpolation;
     m_img.resize(width, height, -100, -100, interpolationType);
 }
+
 void Raster::Impl::resize(float scaleRatio, ResizeInterpolation interpolation)
 {
     int interpolationType = (int)interpolation;

@@ -18,11 +18,16 @@ endif()
 # Build options
 option(BLUEMARBLE_USE_CIMG_WINDOW "Enable CImg window implementation" ON)
 option(BLUEMARBLE_USE_CIMG_SOFTWARE_DRAWABLE_IMPL "Enable CImg Software drawable implementation" ON)
-option(BLUEMARBLE_USE_CIMG_RASTER_IMPL "Enable CImg Raster implementation" ON)
+option(BLUEMARBLE_USE_CIMG_RASTER_IMPL "Enable CImg Raster implementation" OFF)
 
 set(LINK_TO_CIMG OFF)
 if (BLUEMARBLE_USE_CIMG_SOFTWARE_DRAWABLE_IMPL OR BLUEMARBLE_USE_CIMG_RASTER_IMPL)
     set(LINK_TO_CIMG ON)
+endif()
+
+set(LINK_TO_STB_IMAGE OFF)
+if (NOT BLUEMARBLE_USE_CIMG_RASTER_IMPL)
+    set(LINK_TO_STB_IMAGE ON)
 endif()
 
 # Add a library to easy link test cases

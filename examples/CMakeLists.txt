@@ -5,3 +5,8 @@ target_include_directories(ExampleDropShadow
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 target_link_libraries(ExampleDropShadow PRIVATE CImgLib)
+
+add_executable(TestImageConversion test_image_conversion.cpp)
+target_link_libraries(TestImageConversion PRIVATE CImgLib)
+target_link_libraries(TestImageConversion PRIVATE StbImageLib)
+target_link_libraries(TestImageConversion PRIVATE BlueMarbleMapsLib)

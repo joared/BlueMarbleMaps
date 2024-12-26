@@ -182,7 +182,6 @@ namespace BlueMarble
             void drawDebugInfo(int elapsedMs);
 
             MapControl* m_mapControl;
-            Raster m_backgroundRaster;
             DrawablePtr m_drawable;
             
             Point m_center;
