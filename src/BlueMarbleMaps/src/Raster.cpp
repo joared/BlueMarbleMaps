@@ -1,6 +1,8 @@
 #include "Raster.h"
 #include "RasterImpl.h"
 
+#include <iostream>
+
 using namespace BlueMarble;
 
 Raster::Raster()
@@ -10,6 +12,11 @@ Raster::Raster()
 
 Raster::Raster(const Raster& raster)
     : m_impl(std::make_unique<Impl>(raster))
+{
+}
+
+BlueMarble::Raster::Raster(Raster&& raster)
+    : m_impl(std::move(raster.m_impl))
 {
 }
 
@@ -28,7 +35,12 @@ Raster::Raster(const std::string& filePath)
 {
 }
 
-Raster::~Raster() = default; // Needed for unique pointer to m_impl to work
+// Needed for unique pointer to m_impl to work
+Raster::~Raster()
+{
+    m_impl = nullptr;
+}
+ 
 
 int Raster::width() const
 {

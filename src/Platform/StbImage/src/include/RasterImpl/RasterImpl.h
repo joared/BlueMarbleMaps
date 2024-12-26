@@ -19,6 +19,7 @@ class Raster::Impl
         Impl(int width, int height, int channels, int fill);
         Impl(unsigned char* data, int width, int height, int channels);
         Impl(const std::string& filePath);
+        ~Impl();
         int width() const;
         int height() const;
         int channels() const;
@@ -32,11 +33,14 @@ class Raster::Impl
         void operator=(const Raster &raster);
 
     private:
-        void setData(unsigned char* data, int width, int height, int channels);
+        static unsigned char* allocateData(int size);
+        static void deallocateData(unsigned char* data);
+        static void copyData(unsigned char* dest, unsigned char* src, int size);
+
         int m_width;
         int m_height;
         int m_channels;
-        std::vector<unsigned char> m_data;
+        unsigned char* m_data;
 };
 
 }

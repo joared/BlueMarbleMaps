@@ -9,7 +9,7 @@ Raster::Impl::Impl()
     : m_width(0)
     , m_height(0)
     , m_channels(0)
-    , m_data()
+    , m_data(nullptr)
 {
     std::cout << "Raster::Raster() Warning: Raster not initialized\n";
 }
@@ -18,26 +18,32 @@ Raster::Impl::Impl(const Raster& raster)
     : m_width(raster.m_impl->m_width)
     , m_height(raster.m_impl->m_height)
     , m_channels(raster.m_impl->m_channels)
-    , m_data(raster.m_impl->m_data)
+    , m_data(nullptr)
 {
+    int size = m_width*m_height*m_channels;
+    m_data = allocateData(size);
+    copyData(m_data, raster.m_impl->m_data, size);
 }
 
 Raster::Impl::Impl(int width, int height, int channels, int fill)
     : m_width(width)
     , m_height(height)
     , m_channels(channels)
-    , m_data(width*height*channels)
+    , m_data(nullptr)
 {
+    int size = m_width*m_height*m_channels;
+    m_data = allocateData(size);
 }
 
 Raster::Impl::Impl(unsigned char* data, int width, int height, int channels)
     : m_width(width)
     , m_height(height)
     , m_channels(channels)
-    , m_data(width*height*channels)
+    , m_data(nullptr)
 {
-    // TODO: we shouldn't make a copy here?
-    m_data.assign(data, data+width*height*channels);
+    int size = m_width*m_height*m_channels;
+    m_data = allocateData(size);
+    copyData(m_data, data, size);
 }
 
 Raster::Impl::Impl(const std::string& filePath)
@@ -47,16 +53,12 @@ Raster::Impl::Impl(const std::string& filePath)
     // }
     stbi_set_flip_vertically_on_load(1);
     
-    unsigned char* data = stbi_load(filePath.c_str(), &m_width, &m_height, &m_channels, 0);
-    if (data == nullptr)
+    m_data = stbi_load(filePath.c_str(), &m_width, &m_height, &m_channels, 0);
+    if (m_data == nullptr)
     {
         std::cout << "Failed to load image: " << filePath << "\n";
         return;
     }
-
-    // TODO: ideally we would just move the data into our m_data, no need to free
-    m_data = std::vector<unsigned char>(data, data + m_width*m_height*m_channels);
-    stbi_image_free(data);
 
     std::cout << "Stb image raster loaded: " << m_width << ", " << m_height << ", " << m_channels << "\n";
 }
@@ -80,16 +82,15 @@ int Raster::Impl::channels() const
 
 void Raster::Impl::resize(int width, int height, ResizeInterpolation interpolation)
 {
-    std::cout << "Resize in: " << m_width << ", " << m_height << ", " << m_channels << "\n";
-    std::cout << "Resize out: " << width << ", " << height << ", " << m_channels << "\n";
-    //std::vector<unsigned char> resizedImage(width * height * m_channels);
-    //unsigned char* resizedImageData = new unsigned char[width * height * m_channels];
-    std::vector<unsigned char> resizedImageData(width * height * m_channels);
+    // std::cout << "Resize in: " << m_width << ", " << m_height << ", " << m_channels << "\n";
+    //std::cout << "Resize out: " << width << ", " << height << ", " << m_channels << "\n";
+    
+    unsigned char* resizedImageData = allocateData(width * height * m_channels);
     
     // Resize the image using the fastest interpolation
     int result = stbir_resize_uint8_generic(
-        m_data.data(), m_width, m_height, 0,                          // Source data and dimensions
-        resizedImageData.data(), width, height, 0,                  // Destination data and dimensions
+        m_data, m_width, m_height, 0,                          // Source data and dimensions
+        resizedImageData, width, height, 0,                  // Destination data and dimensions
         m_channels,                                             // Number of channels
         STBIR_ALPHA_CHANNEL_NONE,                                // No alpha channel handling
         0,                                                       // Default alpha value
@@ -102,19 +103,17 @@ void Raster::Impl::resize(int width, int height, ResizeInterpolation interpolati
     //     m_channels                                         // Number of channels
     // );
 
-    if (!result) {
+    if (!result) 
+    {
         std::cerr << "Failed to resize image!" << std::endl;
-        //stbi_image_free(inputImage);
+        deallocateData(resizedImageData);
         return;
     }
     
-    //m_data.assign(resizedImageData, resizedImageData+width*height*m_channels);
-    m_data = std::move(resizedImageData);
+    deallocateData(m_data);
+    m_data = resizedImageData;
     m_width = width;
     m_height = height;
-
-    //delete [] resizedImageData;
-
 }
 void Raster::Impl::resize(float scaleRatio, ResizeInterpolation interpolation)
 {
@@ -173,20 +172,38 @@ Raster Raster::Impl::getCrop(int x0, int y0, int x1, int y1)
 
 const unsigned char* Raster::Impl::data() const
 {
-    return m_data.data();
+    return m_data;
 }
 
 void Raster::Impl::operator=(const Raster &raster)
 {
-    m_data = raster.m_impl->m_data;
     m_width = raster.m_impl->m_width;
     m_height = raster.m_impl->m_height;
     m_channels = raster.m_impl->m_channels;
+
+    deallocateData(m_data);
+    int size = m_width*m_height*m_channels;
+    m_data = allocateData(size);
+    copyData(m_data, raster.m_impl->m_data, size);
 }
 
-void BlueMarble::Raster::Impl::setData(unsigned char *data, int width, int height, int channels)
+Raster::Impl::~Impl()
 {
-    // Takes ownership of data
-
+    delete [] m_data;
 }
 
+unsigned char* Raster::Impl::allocateData(int size)
+{
+    return (unsigned char *)malloc(sizeof(unsigned char) * size);
+}
+
+void Raster::Impl::deallocateData(unsigned char* data)
+{
+    free(data);
+    data = nullptr;
+}
+
+void Raster::Impl::copyData(unsigned char* dest, unsigned char* src, int size)
+{
+    std::memcpy(dest, src, size);
+}

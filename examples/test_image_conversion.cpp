@@ -101,6 +101,10 @@ int main()
     auto raster2 = raster;
     raster = raster2.getCrop(0, 0, 999, 999);
 
+    {
+        auto raster3 = raster;
+        raster2 = raster3;
+    }
 
     auto convertedImage = cimg_library::CImg<unsigned char>(raster.width(), raster.height(), 1, raster.channels());
     
