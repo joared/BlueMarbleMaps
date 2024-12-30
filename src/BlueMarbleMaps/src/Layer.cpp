@@ -321,7 +321,7 @@ void Layer::createDefaultVisualizers()
     m_visualizers.push_back(polVis);
     m_visualizers.push_back(pointVis);
     m_visualizers.push_back(lineVis);
-    m_visualizers.push_back(nodeVis);
+    //m_visualizers.push_back(nodeVis);
     m_visualizers.push_back(rasterVis);
     m_visualizers.push_back(textVis);
 

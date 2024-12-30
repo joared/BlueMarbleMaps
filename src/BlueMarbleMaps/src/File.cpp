@@ -123,7 +123,7 @@ JSONFile::JSONFile(const std::string& filePath)
 JSONFile::~JSONFile()
 {
     std::cout << "JSONFile::~JSONFile()\n";
-    //delete m_jsonData; // FIXME: this takes an insane amount of time
+    delete m_jsonData; // FIXME: this takes an insane amount of time
     std::cout << "JSONFile::~JSONFile() exit\n";
 }
 

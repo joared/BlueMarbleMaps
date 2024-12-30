@@ -12,6 +12,16 @@
 
 using namespace BlueMarble;
 
+constexpr double xPixLen = 0.02222222222222;
+constexpr double yPixLen = -0.02222222222222;
+constexpr double xTopLeft = -179.98888888888889;
+constexpr double yTopLeft = 89.98888888888889;
+
+// constexpr double xPixLen = 0.03333333333333;
+// constexpr double yPixLen = -0.03333333333333;
+// constexpr double xTopLeft = -179.98333333333333;
+// constexpr double yTopLeft = 89.98333333333333;
+
 Map::Map()
     : MapEventPublisher()
     , m_center(lngLatToMap(Point(0, 0)))
@@ -35,7 +45,7 @@ Map::Map()
     
 {   
     m_drawable = std::make_shared<SoftwareBitmapDrawable>(500, 500, 4);
-    m_presentationObjects.reserve(100000); // Reserve a good amount for efficiency
+    m_presentationObjects.reserve(1000000); // Reserve a good amount for efficiency
     resetUpdateFlags();
     m_constraints.bounds().scale(3.0);
 
@@ -131,7 +141,7 @@ void Map::renderLayers()
 {
     m_presentationObjects.clear(); // Clear presentation objects, layers will add new
     auto updateArea = area();
-    updateArea.scale(.5);
+    //updateArea.scale(.5);
     for (auto l : m_layers)
     {
         l->onUpdateRequest(*this, updateArea, nullptr);
@@ -736,34 +746,37 @@ bool BlueMarble::Map::undoCommand()
 
 void Map::drawDebugInfo(int elapsedMs)
 {
-    // auto mouseMapPos = screenToMap(m_disp.mouse_x(), m_disp.mouse_y());
-    // auto mouseLngLat = mapToLngLat(mouseMapPos);
-    // auto centerLngLat = mapToLngLat(center());
-    // auto screenPos = mapToScreen(mouseMapPos).round();
-    // auto screenError = Point(m_disp.mouse_x()-(int)screenPos.x(), m_disp.mouse_y()-(int)screenPos.y());
-    // std::string info = "Center: " + std::to_string(m_center.x()) + ", " + std::to_string(m_center.y());
-    // info += "\nCenter LngLat: " + std::to_string(centerLngLat.x()) + ", " + std::to_string(centerLngLat.y());
-    // info += "\nScale: " + std::to_string(m_scale);
-    // info += "\nScale inv: " + std::to_string(invertedScale());
+    ScreenPos mousePos;
+    m_mapControl->getMousePos(mousePos);
+    auto mouseMapPos = screenToMap(mousePos.x, mousePos.y);
+    auto mouseLngLat = mapToLngLat(mouseMapPos);
+    auto centerLngLat = mapToLngLat(center());
+    auto screenPos = mapToScreen(mouseMapPos).round();
+    auto screenError = Point(mousePos.x-(int)screenPos.x(), mousePos.y-(int)screenPos.y());
+    std::string info = "Center: " + std::to_string(m_center.x()) + ", " + std::to_string(m_center.y());
+    info += "\nCenter LngLat: " + std::to_string(centerLngLat.x()) + ", " + std::to_string(centerLngLat.y());
+    info += "\nScale: " + std::to_string(m_scale);
+    info += "\nScale inv: " + std::to_string(invertedScale());
     
-    // if (std::abs(screenError.x()) > 0 || std::abs(screenError.y()) > 0)
-    // {
-    //     // Only display this when error occurs
-    //     info += "\nMouse: " + std::to_string(m_disp.mouse_x()) + ", " + std::to_string(m_disp.mouse_y());
-    //     info += "\nMouseToMap: " + std::to_string(mouseMapPos.x()) + ", " + std::to_string(mouseMapPos.y());
-    //     info += "\nMouseToMapToMouse: " + std::to_string((int)screenPos.x()) + ", " + std::to_string((int)screenPos.y());
-    //     info += "\nScreen error: " + std::to_string(m_disp.mouse_x()-(int)screenPos.x()) + ", " + std::to_string(m_disp.mouse_y()-(int)screenPos.y());
-    //     info += "\nMouseLngLat: " + std::to_string(mouseLngLat.x()) + ", " + std::to_string(mouseLngLat.y());
-    // }
+    if (std::abs(screenError.x()) > 0 || std::abs(screenError.y()) > 0)
+    {
+        // Only display this when error occurs
+        info += "\nMouse: " + std::to_string(mousePos.x) + ", " + std::to_string(mousePos.y);
+        info += "\nMouseToMap: " + std::to_string(mouseMapPos.x()) + ", " + std::to_string(mouseMapPos.y());
+        info += "\nMouseToMapToMouse: " + std::to_string((int)screenPos.x()) + ", " + std::to_string((int)screenPos.y());
+        info += "\nScreen error: " + std::to_string(mousePos.x-(int)screenPos.x()) + ", " + std::to_string(mousePos.y-(int)screenPos.y());
+        info += "\nMouseLngLat: " + std::to_string(mouseLngLat.x()) + ", " + std::to_string(mouseLngLat.y());
+    }
 
-    // info += "\nUpdate time: " + std::to_string(elapsedMs);
-    // info += "\nPresentationObjects: " + std::to_string(m_presentationObjects.size());
+    info += "\nUpdate time: " + std::to_string(elapsedMs);
+    info += "\nPresentationObjects: " + std::to_string(m_presentationObjects.size());
     
-    // int fontSize = 16;
-    // m_drawable->drawText(0, 0, info.c_str(), Color(0, 0, 0), fontSize);
-    m_drawable->drawText(0,30, "Center: " + m_center.toString(), Color::black(0.5));
-    m_drawable->drawText(0,45, "Scale: " + std::to_string(m_scale), Color::black(0.5));
-    m_drawable->drawText(0,60, "Rotation: " + std::to_string(m_rotation), Color::black(0.5));
+    int fontSize = 16;
+    m_drawable->drawText(0, 0, info.c_str(), Color(0, 0, 0), fontSize);
+
+    // m_drawable->drawText(0,30, "Center: " + m_center.toString(), Color::black(0.5));
+    // m_drawable->drawText(0,45, "Scale: " + std::to_string(m_scale), Color::black(0.5));
+    // m_drawable->drawText(0,60, "Rotation: " + std::to_string(m_rotation), Color::black(0.5));
 }
 
 const Point Map::screenToLngLat(const Point& screenPoint)
@@ -783,10 +796,7 @@ const Point Map::mapToLngLat(const Point& mapPoint, bool normalize)
     // Line 4: negative length of a pixel in the y direction (vertical)
     // Line 5: x coordinate at the center of the pixel in the top left corner of the image
     // Line 6: y coordinate at the center of the pixel in the top left corner of the image
-    double xPixLen = 0.03333333333333;
-    double yPixLen = -0.03333333333333;
-    double xTopLeft = -179.98333333333333;
-    double yTopLeft = 89.98333333333333;
+    
 
     // The origin is defined at the center of the top left pixel.
     // Map coordinates (image coordinates) are currently center in the top left corner
@@ -807,11 +817,6 @@ const Point Map::mapToLngLat(const Point& mapPoint, bool normalize)
 
 const Point BlueMarble::Map::lngLatToMap(const Point &lngLat)
 {
-    double xPixLen = 0.03333333333333;
-    double yPixLen = -0.03333333333333;
-    double xTopLeft = -179.98333333333333;
-    double yTopLeft = 89.98333333333333;
-
     double x = (lngLat.x() - xTopLeft) / xPixLen + 0.5;
     double y = (lngLat.y() - yTopLeft) / yPixLen + 0.5;
 

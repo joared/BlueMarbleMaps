@@ -1,7 +1,8 @@
-#include <CImg.h>
+#include "CImg.h"
 #include "stb_image.h"
 #include "Raster.h"
 #include <vector>
+#include "ImageDataOperations.h"
 
 using namespace cimg_library;
 
@@ -14,11 +15,11 @@ void inline cimgIndexToXYC(int i,
     c = i / (width*height);
 }
 
-int cimgXYCToIndex(int x, int y, int c,
-                   int width, int height, int channels)
+inline int cimgXYCToIndex(int x, int y, int c,
+                          int width, int wh)
 {
     // Taken from operator() in CImg
-    return x + y*width + c*width*height*channels;
+    return x + y*width + c*wh;
 }
 
 void inline glIndexToXYC(int i,
@@ -52,14 +53,15 @@ void convertOpenGLToCImg(cimg_library::CImg<unsigned char>& cimgImage,
                          const unsigned char* openglData, 
                          int width, int height, int channels) 
 {
+    int wh = width*height;
     for (int c = 0; c < channels; ++c) {
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
                 // Compute OpenGL index (row-major order)
                 int openglIndex = (y * width + x) * channels + c;
-                
+                int cimgIndex = cimgXYCToIndex(x, height-1-y, c, width, wh);
                 // Copy data
-                cimgImage(x,height-1-y,0,c) = openglData[openglIndex];
+                cimgImage.data()[cimgIndex] = openglData[openglIndex];
             }
         }
     }
@@ -111,15 +113,15 @@ int main()
     int niterations = 1000;
 
     // Test performance for version 2
-    {
-        auto start = BlueMarble::getTimeStampMs();
-        for (int i(0); i < niterations; ++i)
-        {
-            convertOpenGLToCImg2(convertedImage, raster.data(), raster.width(), raster.height(), raster.channels());
-        }
-        auto elapsed = BlueMarble::getTimeStampMs() - start;
-        std::cout << "Elapsed V2: " << elapsed << " ms\n";
-    }
+    // {
+    //     auto start = BlueMarble::getTimeStampMs();
+    //     for (int i(0); i < niterations; ++i)
+    //     {
+    //         convertOpenGLToCImg2(convertedImage, raster.data(), raster.width(), raster.height(), raster.channels());
+    //     }
+    //     auto elapsed = BlueMarble::getTimeStampMs() - start;
+    //     std::cout << "Elapsed V2: " << elapsed << " ms\n";
+    // }
 
     // Test performance for version 1
     {
@@ -130,10 +132,37 @@ int main()
         }
         auto elapsed = BlueMarble::getTimeStampMs() - start;
         std::cout << "Elapsed V1: " << elapsed << " ms\n";
+        convertedImage.display();
     }
 
+    // Test performance for version 3
+    {
+        auto start = BlueMarble::getTimeStampMs();
+
+        for (int i(0); i < niterations; ++i)
+        {
+            BlueMarble::interleavedToPlanar(convertedImage.data(), raster.data(), raster.width(), raster.height(), raster.channels());
+            convertedImage.mirror('y');
+        }
+        auto elapsed = BlueMarble::getTimeStampMs() - start;
+        
+        std::cout << "Elapsed interleavedToPlanar: " << elapsed << " ms\n";
+        convertedImage.display();
+    }
+
+    // Test performance for version 3
+    {
+        auto start = BlueMarble::getTimeStampMs();
+        for (int i(0); i < niterations; ++i)
+        {
+            BlueMarble::interleavedToPlanarFlipY(convertedImage.data(), raster.data(), raster.width(), raster.height(), raster.channels());
+        }
+        auto elapsed = BlueMarble::getTimeStampMs() - start;
+        std::cout << "Elapsed interleavedToPlanarWithYFlip: " << elapsed << " ms\n";
+        convertedImage.display();
+    }
     
-    convertedImage.display();
+    
 
     // int width, height, channels;
     // stbi_set_flip_vertically_on_load(1);

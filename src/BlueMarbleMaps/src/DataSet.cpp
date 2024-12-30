@@ -43,10 +43,23 @@ void DataSet::restartVisualizationAnimation(FeaturePtr feature, int64_t timeStam
 void DataSet::initialize(DataSetInitializationType initType)
 {
     assert(!m_isInitialized);
+    dataSets[m_dataSetId] = shared_from_this();
+    
     auto initWork = [this]()
     {
-        init();
-        dataSets[m_dataSetId] = shared_from_this();
+        try
+        {
+            m_isInitializing = true;
+            init();
+            m_isInitializing = false;
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+            m_isInitialized = false;
+            return;
+        }
+        
         m_isInitialized = true;
     };
 
@@ -74,7 +87,12 @@ int64_t BlueMarble::DataSet::getVisualizationTimeStampForFeature(const Id& id)
 
 std::map<DataSetId, DataSetPtr> DataSet::dataSets;
 
-DataSetPtr DataSet::getDataSetById(const DataSetId& dataSetId)
+const std::map<DataSetId, DataSetPtr> &BlueMarble::DataSet::getDataSets()
+{
+    return dataSets;
+}
+
+DataSetPtr DataSet::getDataSetById(const DataSetId &dataSetId)
 {
     if (dataSets.find(dataSetId) == dataSets.end())
         return nullptr;
@@ -85,6 +103,7 @@ DataSetPtr DataSet::getDataSetById(const DataSetId& dataSetId)
 DataSet::DataSet()
     : m_dataSetId(DataSetId(this))
     , m_isInitialized(false)
+    , m_isInitializing(false)
     , m_idToVisualizationTimeStamp()
 {
 }

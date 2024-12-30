@@ -67575,3 +67575,4 @@ namespace cil = cimg_library;
 // Local Variables:
 // mode: c++
 // End:
+void dummy_function();

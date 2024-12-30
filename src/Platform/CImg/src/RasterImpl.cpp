@@ -18,8 +18,13 @@ Raster::Impl::Impl()
     std::cout << "Raster::Raster() Warning: Raster not initialized\n";
 }
 
-Raster::Impl::Impl(const Raster &raster)
-    : m_img(raster.m_impl->m_img)
+Raster::Impl::Impl(const Impl& impl)
+    : m_img(impl.m_img)
+{
+}
+
+Raster::Impl::Impl(Impl&& impl) noexcept
+    : m_img(std::move(impl.m_img))
 {
 }
 
@@ -97,7 +102,14 @@ const unsigned char* Raster::Impl::data() const
     return m_img.data();
 }
 
-void Raster::Impl::operator=(const Raster &raster)
+Raster::Impl& Raster::Impl::operator=(const Impl& impl)
 {
-    m_img = raster.m_impl->m_img;
+    m_img = impl.m_img;
+    return *this;
+}
+
+Raster::Impl& Raster::Impl::operator=(Impl&& impl) noexcept
+{
+    m_img = std::move(impl.m_img);
+    return *this;
 }

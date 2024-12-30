@@ -10,3 +10,8 @@ add_executable(TestImageConversion test_image_conversion.cpp)
 target_link_libraries(TestImageConversion PRIVATE CImgLib)
 target_link_libraries(TestImageConversion PRIVATE StbImageLib)
 target_link_libraries(TestImageConversion PRIVATE BlueMarbleMapsLib)
+
+add_executable(TestResizePerformance test_resize_performance.cpp)
+target_link_libraries(TestResizePerformance PRIVATE CImgLib)
+target_link_libraries(TestResizePerformance PRIVATE StbImageLib)
+target_link_libraries(TestResizePerformance PRIVATE BlueMarbleMapsLib)

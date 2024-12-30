@@ -11,11 +11,11 @@ Raster::Raster()
 }
 
 Raster::Raster(const Raster& raster)
-    : m_impl(std::make_unique<Impl>(raster))
+    : m_impl(std::make_unique<Impl>(*raster.m_impl))
 {
 }
 
-BlueMarble::Raster::Raster(Raster&& raster)
+Raster::Raster(Raster&& raster) noexcept
     : m_impl(std::move(raster.m_impl))
 {
 }
@@ -36,10 +36,7 @@ Raster::Raster(const std::string& filePath)
 }
 
 // Needed for unique pointer to m_impl to work
-Raster::~Raster()
-{
-    m_impl = nullptr;
-}
+Raster::~Raster() = default;
  
 
 int Raster::width() const
@@ -92,7 +89,21 @@ const unsigned char* Raster::data() const
     return m_impl->data();
 }
 
-void Raster::operator=(const Raster& raster)
+Raster& Raster::operator=(const Raster& raster)
 {
-    m_impl->operator=(raster);
+    if (this != &raster) // Protect against self-assignment
+    { 
+        m_impl = std::make_unique<Impl>(*raster.m_impl);
+    }
+    return *this;
+}
+
+Raster& Raster::operator=(Raster&& raster) noexcept
+{
+    //*m_impl = std::move(*raster.m_impl);
+    if (this != &raster) // Protect against self-assignment
+    { 
+        m_impl = std::move(raster.m_impl); // Transfer ownership of the unique_ptr
+    }
+    return *this;
 }

@@ -1,59 +1,16 @@
 #include "SoftwareDrawableImpl.h"
 
+#ifndef BLUEMARBLE_USE_CIMG_RASTER_IMPL
+// If opengl compatible raster implementation is used,
+// we need ImageDataOperations to convert image data in e.g.
+// drawRaster.
+#include "ImageDataOperations.h"
+#define OPENGL_TO_CIMG interleavedToPlanarFlipY
+#endif
+ 
+
 using namespace BlueMarble;
 
-void convertCImgToOpenGL(cimg_library::CImg<unsigned char>& cimgImage, 
-                         unsigned char* openglData, 
-                         int width, int height, int channels) 
-{
-    cimgImage.mirror('y');
-    for (int c = 0; c < channels; ++c) {
-        for (int y = 0; y < height; ++y) {
-            for (int x = 0; x < width; ++x) {
-                // Compute OpenGL index (row-major order)
-                int openglIndex = (y * width + x) * channels + c;
-                
-                // Copy data
-                openglData[openglIndex] = cimgImage(x,y,0,c);
-            }
-        }
-    }
-}
-
-void convertOpenGLToCImg(cimg_library::CImg<unsigned char>& cimgImage, 
-                         const unsigned char* openglData, 
-                         int width, int height, int channels) 
-{
-    // for (int y = 0; y < height; ++y) {
-    //     int openglRowStart = (height - 1 - y) * width * channels; // OpenGL row index (flipped)
-    //     int cimgRowStart = y * width * channels;                  // CImg row index
-
-    //     // Copy an entire row at once for all channels
-    //     std::memcpy(cimgImage.data() + cimgRowStart, openglData + openglRowStart, width * channels);
-    // }
-
-    for (int c = 0; c < channels; ++c) {
-        for (int y = 0; y < height; ++y) {
-            for (int x = 0; x < width; ++x) {
-                // Compute OpenGL index (row-major order)
-                int openglIndex = (y * width + x) * channels + c;
-                
-                // Copy data
-                cimgImage(x,height-1-y,0,c) = openglData[openglIndex];
-            }
-        }
-    }
-
-    // int size = width*height*channels;
-    // for (int i(0); i<size; i++)
-    // {
-    //     int glX = (i / channels) % width;
-    //     int glY = i / (channels*width);
-    //     int glC = i % channels;
-
-    //     cimgImage(glX,height-1-glY,0,glC) = openglData[i];
-    // }
-}
 
 SoftwareDrawable::Impl::Impl(int width, int height, int channels)
     : m_img(width, height, 1, channels, 0)
@@ -185,6 +142,12 @@ void SoftwareDrawable::Impl::drawRaster(const RasterGeometryPtr& geometry, doubl
     
     int screenWidth = geometry->bounds().width()*scale;
     int screenHeight = geometry->bounds().height()*scale;
+    if (screenWidth == 0 || screenHeight == 0)
+    {
+        std::cout << "SoftwareDrawable::Impl::drawRaster - Raster resize dimensions are too small, ignoring draw (" << screenWidth << ", " << screenHeight << ")\n";
+        return;
+    }
+
     auto minCorner = geometry->bounds().minCorner();
 
     auto screenC = screenCenter();
@@ -200,12 +163,12 @@ void SoftwareDrawable::Impl::drawRaster(const RasterGeometryPtr& geometry, doubl
 void SoftwareDrawable::Impl::drawRaster(int x, int y, const Raster& raster, double alpha)
 {
     #ifdef BLUEMARBLE_USE_CIMG_RASTER_IMPL
+    // CImg raster implementation
     auto rasterImg = cimg_library::CImg<unsigned char>(raster.data(), raster.width(), raster.height(), 1, raster.channels(), true);
     #else
-    // STB image
-    auto rasterImg = cimg_library::CImg<unsigned char>(raster.width(), raster.height(), 1, raster.channels());
-    //auto rasterImg = cimg_library::CImg<unsigned char>(raster.data(), raster.width(), raster.height(), 1, raster.channels(), true);
-    convertOpenGLToCImg(rasterImg, raster.data(), raster.width(), raster.height(), raster.channels());
+    // stb_image Raster implementation, need to convert
+    auto rasterImg = cimg_library::CImg<unsigned char>(raster.data(), raster.width(), raster.height(), 1, raster.channels());
+    OPENGL_TO_CIMG(rasterImg.data(), raster.data(), raster.width(), raster.height(), raster.channels());
     #endif
     
     if (rasterImg.spectrum() == 4)
@@ -244,24 +207,34 @@ void SoftwareDrawable::Impl::swapBuffers()
     // Update the image and save new black draw image
     auto drawImg = cimg_library::CImg<unsigned char>(m_img.data(), m_img.width(), m_img.height(), 1, m_img.spectrum(), true);
 
-    cimg_library::CImg<unsigned char> fixed_size_canvas(drawImg.width(), drawImg.height(), 1, drawImg.spectrum(), 0);
+    if (m_transform.rotation() != 0)
+    {
+        cimg_library::CImg<unsigned char> fixed_size_canvas(drawImg.width(), drawImg.height(), 1, drawImg.spectrum(), 0);
 
-    // Rotate the image by 45 degrees, centered at the middle of the canvas
-    cimg_library::CImg<unsigned char> rotated = drawImg.get_rotate(m_transform.rotation(), drawImg.width() / 2.0f, drawImg.height() / 2.0f);
-    //cimg_library::CImg<unsigned char> rotated = drawImg.get_rotate(m_transform.rotation(), 0, 0);
+        // Rotate the image by 45 degrees, centered at the middle of the canvas
+        cimg_library::CImg<unsigned char> rotated = drawImg.get_rotate(m_transform.rotation(), drawImg.width() / 2.0f, drawImg.height() / 2.0f);
+        //cimg_library::CImg<unsigned char> rotated = drawImg.get_rotate(m_transform.rotation(), 0, 0);
 
-    auto center1 = Point(drawImg.width() / 2.0, drawImg.height() / 2.0);
-    auto center2 = Point(rotated.width() / 2.0, rotated.height() / 2.0);
-    auto offset = center1 - center2;
-    // Draw the rotated image onto the fixed-size canvas
-    fixed_size_canvas.draw_image(offset.x(), offset.y(), 0, 0, rotated, 1.0f);
+        auto center1 = Point(drawImg.width() / 2.0, drawImg.height() / 2.0);
+        auto center2 = Point(rotated.width() / 2.0, rotated.height() / 2.0);
+        auto offset = center1 - center2;
+        // Draw the rotated image onto the fixed-size canvas
+        fixed_size_canvas.draw_image(offset.x(), offset.y(), 0, 0, rotated, 1.0f);
+        m_disp->display(fixed_size_canvas);
+        return;
+    }
 
-    m_disp->display(fixed_size_canvas);
+    m_disp->display(drawImg);
 }
 
 void SoftwareDrawable::Impl::setWindow(void* window)
 {
+    #ifdef BLUEMARBLE_USE_CIMG_WINDOW
     m_disp = static_cast<cimg_library::CImgDisplay*>(window);
+    #else
+    // GLFW
+    m_disp = static_cast<cimg_library::CImgDisplay*>(window);
+    #endif
 }
 
 RendererImplementation SoftwareDrawable::Impl::renderer()

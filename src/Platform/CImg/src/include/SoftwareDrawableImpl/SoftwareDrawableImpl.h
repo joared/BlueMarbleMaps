@@ -3,7 +3,7 @@
 #endif
 
 #include "SoftwareDrawable.h"
-#include <CImg.h>
+#include "CImg.h"
 
 namespace BlueMarble
 {

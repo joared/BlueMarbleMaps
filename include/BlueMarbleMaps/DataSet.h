@@ -31,6 +31,7 @@ namespace BlueMarble
         private:
             static std::map<DataSetId, DataSetPtr> dataSets;
         public:
+            static const std::map<DataSetId, DataSetPtr>& getDataSets(); 
             static DataSetPtr getDataSetById(const DataSetId& dataSetId);
             DataSet();
             virtual ~DataSet();
@@ -40,6 +41,7 @@ namespace BlueMarble
             FeaturePtr createFeature(GeometryPtr geometry);
             const DataSetId& dataSetId() { return m_dataSetId; }
             bool isInitialized() { return m_isInitialized; }
+            bool isInitializing() { return m_isInitializing; }
             void initialize(DataSetInitializationType initType = DataSetInitializationType::BackgroundThread);
             int64_t getVisualizationTimeStampForFeature(const Id& id);
             void restartVisualizationAnimation(FeaturePtr feature, int64_t timeStamp = -1);
@@ -48,6 +50,7 @@ namespace BlueMarble
         private:
             DataSetId        m_dataSetId;
             std::atomic_bool m_isInitialized;
+            std::atomic_bool m_isInitializing;
             std::map<Id, int64_t> m_idToVisualizationTimeStamp;
     };
 

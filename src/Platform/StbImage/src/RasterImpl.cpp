@@ -1,7 +1,7 @@
 #include "RasterImpl.h"
 #include <iostream>
 #include <cstring> // For memcpy
-#include "stb_image_resize.h"
+#include "stb_image_resize2.h"
 
 using namespace BlueMarble;
 
@@ -14,15 +14,23 @@ Raster::Impl::Impl()
     std::cout << "Raster::Raster() Warning: Raster not initialized\n";
 }
 
-Raster::Impl::Impl(const Raster& raster)
-    : m_width(raster.m_impl->m_width)
-    , m_height(raster.m_impl->m_height)
-    , m_channels(raster.m_impl->m_channels)
+Raster::Impl::Impl(const Impl& impl)
+    : m_width(impl.m_width)
+    , m_height(impl.m_height)
+    , m_channels(impl.m_channels)
     , m_data(nullptr)
 {
     int size = m_width*m_height*m_channels;
     m_data = allocateData(size);
-    copyData(m_data, raster.m_impl->m_data, size);
+    copyData(m_data, impl.m_data, size);
+}
+
+Raster::Impl::Impl(Impl&& impl) noexcept
+    : m_width(impl.m_width)
+    , m_height(impl.m_height)
+    , m_channels(impl.m_channels)
+    , m_data(impl.m_data)
+{
 }
 
 Raster::Impl::Impl(int width, int height, int channels, int fill)
@@ -57,12 +65,16 @@ Raster::Impl::Impl(const std::string& filePath)
     if (m_data == nullptr)
     {
         std::cout << "Failed to load image: " << filePath << "\n";
-        return;
+        throw std::exception();
     }
 
     std::cout << "Stb image raster loaded: " << m_width << ", " << m_height << ", " << m_channels << "\n";
 }
 
+Raster::Impl::~Impl()
+{
+    deallocateData(m_data);
+}
 
 int Raster::Impl::width() const
 {
@@ -82,39 +94,52 @@ int Raster::Impl::channels() const
 
 void Raster::Impl::resize(int width, int height, ResizeInterpolation interpolation)
 {
-    // std::cout << "Resize in: " << m_width << ", " << m_height << ", " << m_channels << "\n";
-    //std::cout << "Resize out: " << width << ", " << height << ", " << m_channels << "\n";
-    
-    unsigned char* resizedImageData = allocateData(width * height * m_channels);
-    
-    // Resize the image using the fastest interpolation
-    int result = stbir_resize_uint8_generic(
-        m_data, m_width, m_height, 0,                          // Source data and dimensions
-        resizedImageData, width, height, 0,                  // Destination data and dimensions
-        m_channels,                                             // Number of channels
-        STBIR_ALPHA_CHANNEL_NONE,                                // No alpha channel handling
-        0,                                                       // Default alpha value
-        STBIR_EDGE_CLAMP, STBIR_FILTER_BOX, STBIR_COLORSPACE_LINEAR, // Fastest filter type
-        nullptr); 
-
-    // int result = stbir_resize_uint8(
-    //     m_data.data(), m_width, m_height, 0,                     // Input image and dimensions
-    //     resizedImageData.data(), width, height, 0,     // Output image and dimensions
-    //     m_channels                                         // Number of channels
-    // );
-
-    if (!result) 
+    if (m_width == width && m_height == height) 
     {
-        std::cerr << "Failed to resize image!" << std::endl;
-        deallocateData(resizedImageData);
+        // TODO: should be part of Raster?
         return;
     }
+
+    // Resize the image using the fastest interpolation
+    stbir_pixel_layout pixelLayout; 
     
+    switch (m_channels)
+    {
+    case 1:
+        pixelLayout = stbir_pixel_layout::STBIR_1CHANNEL;
+        break;
+    case 2:
+        pixelLayout = stbir_pixel_layout::STBIR_2CHANNEL;
+        break;
+    case 3:
+        pixelLayout = stbir_pixel_layout::STBIR_RGB;
+        break;
+    case 4:
+        pixelLayout = stbir_pixel_layout::STBIR_RGBA;
+        //stbir_pixel_layout::STBIR_4CHANNEL
+        break;
+    default:
+        std::cout << "Erronous number of channels: " << m_channels << "\n";
+        throw std::exception();
+        break;
+    }
+
+    auto newData = stbir_resize_uint8_linear(m_data, m_width, m_height, 0, 
+                                             nullptr, width, height, 0, 
+                                             pixelLayout);
+
+    if (!newData) {
+        std::cerr << "Failed to resize image! (" << width << ", " << height << ")" << std::endl;
+        return;
+    }
+
+    // Update dimensions
     deallocateData(m_data);
-    m_data = resizedImageData;
+    m_data = newData;
     m_width = width;
     m_height = height;
 }
+
 void Raster::Impl::resize(float scaleRatio, ResizeInterpolation interpolation)
 {
     resize(width()*scaleRatio, height()*scaleRatio, interpolation);
@@ -175,21 +200,28 @@ const unsigned char* Raster::Impl::data() const
     return m_data;
 }
 
-void Raster::Impl::operator=(const Raster &raster)
+Raster::Impl& Raster::Impl::operator=(const Impl& impl)
 {
-    m_width = raster.m_impl->m_width;
-    m_height = raster.m_impl->m_height;
-    m_channels = raster.m_impl->m_channels;
+    m_width = impl.m_width;
+    m_height = impl.m_height;
+    m_channels = impl.m_channels;
 
     deallocateData(m_data);
     int size = m_width*m_height*m_channels;
     m_data = allocateData(size);
-    copyData(m_data, raster.m_impl->m_data, size);
+    copyData(m_data, impl.m_data, size);
+
+    return *this;
 }
 
-Raster::Impl::~Impl()
+Raster::Impl& Raster::Impl::operator=(Impl&& impl) noexcept
 {
-    delete [] m_data;
+    m_width = impl.m_width;
+    m_height = impl.m_height;
+    m_channels = impl.m_channels;
+    m_data = impl.m_data;
+
+    return *this;
 }
 
 unsigned char* Raster::Impl::allocateData(int size)

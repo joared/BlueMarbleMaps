@@ -26,6 +26,10 @@ if(BLUEMARBLE_USE_CIMG_SOFTWARE_DRAWABLE_IMPL)
     )
     target_include_directories(CImgImplementation PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include/SoftwareDrawableImpl)
     target_compile_definitions(CImgImplementation PUBLIC BLUEMARBLE_USE_CIMG_SOFTWARE_DRAWABLE_IMPL)
+    if(BLUEMARBLE_USE_CIMG_WINDOW)
+        # The CImg Software drawable can work with glfw, using Texture (so not really software) 
+        target_compile_definitions(CImgImplementation PUBLIC BLUEMARBLE_USE_CIMG_WINDOW)
+    endif()
 endif()
 
 

@@ -22,7 +22,7 @@ namespace BlueMarble
             };
             Raster();
             Raster(const Raster& raster);
-            Raster(Raster&& raster);
+            Raster(Raster&& raster) noexcept;
             Raster(int width, int height, int channels, int fill=0);
             Raster(unsigned char* data, int width, int height, int channels);
             Raster(const std::string& filePath);
@@ -39,7 +39,8 @@ namespace BlueMarble
 
             const unsigned char* data() const;
 
-            void operator=(const Raster& raster);
+            Raster& operator=(const Raster& raster);
+            Raster& operator=(Raster&& raster) noexcept;
         private:
             class Impl;
             std::unique_ptr<Impl> m_impl;

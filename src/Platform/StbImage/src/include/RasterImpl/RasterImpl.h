@@ -15,7 +15,8 @@ class Raster::Impl
 {
     public:
         Impl();
-        Impl(const Raster &raster);
+        Impl(const Impl& impl);
+        Impl(Impl&& impl) noexcept;
         Impl(int width, int height, int channels, int fill);
         Impl(unsigned char* data, int width, int height, int channels);
         Impl(const std::string& filePath);
@@ -30,8 +31,9 @@ class Raster::Impl
         void blur(double sigmaX, double sigmaY, double sigmaZ, bool isGaussian);
         Raster getCrop(int x0, int y0, int x1, int y1);
         const unsigned char* data() const;
-        void operator=(const Raster &raster);
 
+        Impl& operator=(const Impl& impl);
+        Impl& operator=(Impl&& impl) noexcept;
     private:
         static unsigned char* allocateData(int size);
         static void deallocateData(unsigned char* data);

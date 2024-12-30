@@ -1,5 +1,5 @@
 #include <iostream>
-#include <CImg.h>
+#include "CImg.h"
 
 #include "Map.h"
 #include "DataSet.h"
@@ -8,6 +8,8 @@
 #include "MapControl.h"
 
 #include "DefaultEventHandlers.h"
+
+#include "map_configuration.h"
 
 using namespace cimg_library;
 using namespace BlueMarble;
@@ -164,6 +166,9 @@ int main()
     vectorDataSet->addFeature(vectorDataSet->createFeature(poly));
 
     map->addLayer(&vectorLayer);
+
+    // Stress test by adding more layers and visualization using this
+    configureMap(map); 
 
     // Setup MapControl and event handlers
     CImgMapControlPtr mapControl = std::make_shared<CImgMapControl>(display);

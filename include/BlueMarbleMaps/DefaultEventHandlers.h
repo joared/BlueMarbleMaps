@@ -161,6 +161,7 @@ namespace BlueMarble
                 , m_inertiaOption{0.002, 0.1}
                 , m_dataSetsInitialized(false)
                 , m_funnyDudeRaster(0,0,0,0) // Prevent warning
+                , m_drawDataSetInfo(false)
             {
                 m_cutoff = 150;
                 int reserveAmount = (int)(m_cutoff / 16.0) + 1;
@@ -204,14 +205,29 @@ namespace BlueMarble
                 auto pixelColor = m_map.drawable()->readPixel(pos.x, pos.y-offset);
                 m_map.drawable()->setPixel(pos.x, pos.y-offset, Color::red());
                 std::string posString = std::to_string(pos.x) + ", " + std::to_string(pos.y);
-                m_map.drawable()->drawText(0, 0, posString, Color::red());
-                m_map.drawable()->drawText(0, 15, pixelColor.toString(), Color::red());
+                m_map.drawable()->drawText(0, m_map.drawable()->height()-45, posString, Color::red());
+                m_map.drawable()->drawText(0, m_map.drawable()->height()-30, pixelColor.toString(), Color::red());
 
                 if (!m_rectangle.isUndefined())
                 {
                     auto screenRect = m_map.mapToScreen(m_rectangle);
                     screenRect.floor();
                     drawRect(screenRect);
+                }
+
+                if (m_drawDataSetInfo)
+                {
+                    std::cout << "Draw data set info\n";
+                    auto dataSets = DataSet::getDataSets();
+                    int offset = 0;
+                    for (auto it : dataSets)
+                    {
+                        auto dataSet = it.second;
+                        std::string str = !dataSet->name().empty() ? dataSet->name() : "DataSet";
+                        str = dataSet->isInitialized() ? str : str + " (initializing)"; 
+                        m_map.drawable()->drawText(0, offset, str, Color::red(), 20, Color::white());
+                        offset += 15;
+                    }
                 }
             }
 
@@ -316,6 +332,12 @@ namespace BlueMarble
                 case KeyButton::Enter:
                 {   
                     //m_map.update();
+                    std::cout << "Enter, modkey: " << event.modificationKey << "\n";
+                    if (event.modificationKey & ModificationKeyCtrl)
+                    {
+                        m_drawDataSetInfo = true;
+                        m_map.update();
+                    }
                     return true;
                 }
 
@@ -390,6 +412,21 @@ namespace BlueMarble
                 }
                 
 
+                return true;
+            }
+
+            bool OnKeyUp(const BlueMarble::KeyUpEvent& event)
+            {
+                switch (event.keyButton)
+                {
+                    case KeyButton::Enter:
+                    {
+                        m_drawDataSetInfo = false;
+                        m_map.update();
+                    }
+                    default:
+                        break;
+                }
                 return true;
             }
 
@@ -732,6 +769,7 @@ namespace BlueMarble
             bool m_zoomToRect;
             Raster m_funnyDudeRaster;
             bool m_dataSetsInitialized;
+            bool m_drawDataSetInfo;
     };
 
 }
