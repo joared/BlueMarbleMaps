@@ -73,15 +73,15 @@ void configureMap(const MapPtr& map)
     markerDataSet->initialize();
     
     airPlaneDataSet->initialize(DataSetInitializationType::RightHereRightNow); 
-    // // Populate airplanes and start animations
-    // for (int i=0; i < 10000; i++)
-    // {
-    //     auto from = Point(std::rand() % 360 - 180, std::rand() % 180 - 90);
-    //     auto to = Point(std::rand() % 360 - 180, std::rand() % 180 - 90);
-    //     auto airPlaneFeature = airPlaneDataSet->createFeature(std::make_shared<PointGeometry>(from));
-    //     airPlaneFeature->attributes().set("Name", "Aircraft #" + std::to_string(i+1));
-    //     airPlaneDataSet->addFeature(airPlaneFeature); airPlaneDataSet->startFeatureAnimation(airPlaneFeature, from, to);
-    // }
+    // Populate airplanes and start animations
+    for (int i=0; i < 10000; i++)
+    {
+        auto from = Point(std::rand() % 360 - 180, std::rand() % 180 - 90);
+        auto to = Point(std::rand() % 360 - 180, std::rand() % 180 - 90);
+        auto airPlaneFeature = airPlaneDataSet->createFeature(std::make_shared<PointGeometry>(from));
+        airPlaneFeature->attributes().set("Name", "Aircraft #" + std::to_string(i+1));
+        airPlaneDataSet->addFeature(airPlaneFeature); airPlaneDataSet->startFeatureAnimation(airPlaneFeature, from, to);
+    }
 
     static auto backgroundLayer = BlueMarble::Layer();
     static auto backgroundLayer2 = BlueMarble::Layer();

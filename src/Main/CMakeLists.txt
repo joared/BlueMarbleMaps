@@ -5,10 +5,14 @@ if(BLUEMARBLE_USE_CIMG_WINDOW)
     add_executable(BlueMarbleMapsCImg main_cimg.cpp)
     target_link_libraries(BlueMarbleMapsCImg CImgLib)
     target_link_libraries(BlueMarbleMapsCImg BlueMarbleMapsLib)
-else
+else()
     message("Using GLFW window main")
-    add_executable(BlueMarbleMapsGLFW main_glfw.cpp)
-    target_link_libraries(BlueMarbleMapsCImg CImgLib)
-    target_link_libraries(BlueMarbleMapsCImg BlueMarbleMapsLib)
+    add_executable(BlueMarbleMapsGLFW main_glfw.cpp OpenGLTexture.cpp)
+    target_link_libraries(BlueMarbleMapsGLFW CImgLib)
+    target_link_libraries(BlueMarbleMapsGLFW BlueMarbleMapsLib)
+    find_package(GLFW3 REQUIRED)
+    target_include_directories(BlueMarbleMapsGLFW PRIVATE ${GLFW3_INCLUDE_DIR})
+    target_link_libraries(BlueMarbleMapsGLFW ${GLFW3_LIBRARY}) #OpenGL::GL
+    target_link_libraries(BlueMarbleMapsGLFW Glad)
 endif()
 
