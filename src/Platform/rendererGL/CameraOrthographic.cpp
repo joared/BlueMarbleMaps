@@ -17,7 +17,14 @@ CameraOrthographic::~CameraOrthographic()
 
 void CameraOrthographic::pan(float x, float y, float z)
 {
-	m_cameraInfo.m_pos += glm::vec3(x, y, z) * m_cameraInfo.m_sensitivity;
+	m_cameraInfo.m_pos += x * m_cameraInfo.m_right;
+	m_cameraInfo.m_pivot += x * m_cameraInfo.m_right;
+
+	m_cameraInfo.m_pos += y * m_cameraInfo.m_up;
+	m_cameraInfo.m_pivot += y * m_cameraInfo.m_up;
+
+	m_cameraInfo.m_pos += z * -m_cameraInfo.m_cameraFace;
+	m_cameraInfo.m_pivot += z * -m_cameraInfo.m_cameraFace;
 }
 void CameraOrthographic::zoom(float zoomFactor)
 {
@@ -42,29 +49,64 @@ void CameraOrthographic::zoom(float zoomFactor)
 }
 void CameraOrthographic::roll(float rotation)
 {
-	m_cameraInfo.m_roll += rotation * m_cameraInfo.m_sensitivity;
-	glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(m_cameraInfo.m_roll), m_cameraInfo.m_cameraFace);
+	float rot = rotation * m_cameraInfo.m_sensitivity;
+	m_cameraInfo.m_roll += rot;
+	if (m_cameraInfo.m_roll >= 360.0f)
+		m_cameraInfo.m_roll -= 360.0f;
+	else if (m_cameraInfo.m_roll <= -360.0f)
+		m_cameraInfo.m_roll += 360.0f;
+	glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(rot), m_cameraInfo.m_cameraFace);
 	m_cameraInfo.m_up = glm::mat3(rotationMatrix) * m_cameraInfo.m_up;
+	m_cameraInfo.m_right = glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), -m_cameraInfo.m_cameraFace));
 }
 
 void CameraOrthographic::pitch(float rotation)
 {
+	if (m_cameraInfo.m_pivot != m_cameraInfo.m_pos) return;
+
 	glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(rotation), m_cameraInfo.m_right);
-	m_cameraInfo.m_cameraFace = glm::mat3(rotationMatrix) * m_cameraInfo.m_cameraFace;
+	m_cameraInfo.m_cameraFace = glm::normalize(glm::mat3(rotationMatrix) * m_cameraInfo.m_cameraFace);
+	m_cameraInfo.m_up = glm::cross(-m_cameraInfo.m_cameraFace, m_cameraInfo.m_right);
 }
 void CameraOrthographic::yaw(float rotation)
 {
+	if (m_cameraInfo.m_pivot != m_cameraInfo.m_pos) return;
+
 	glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(rotation), m_cameraInfo.m_up);
-	m_cameraInfo.m_cameraFace = glm::mat3(rotationMatrix) * m_cameraInfo.m_cameraFace;
+	m_cameraInfo.m_cameraFace = glm::normalize(glm::mat3(rotationMatrix) * m_cameraInfo.m_cameraFace);
+	m_cameraInfo.m_right = glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), -m_cameraInfo.m_cameraFace));
+}
+
+void CameraOrthographic::orbit(float xRot, float yRot)
+{
+	if (m_cameraInfo.m_pos == m_cameraInfo.m_pivot) return;
+	glm::mat4 xRotMatrix = glm::mat4(1.0f);
+	glm::mat4 yRotMatrix = glm::mat4(1.0f);
+	glm::vec4 tempPos = glm::vec4(m_cameraInfo.m_pos, 1.0f);
+	if (xRot != 0)
+	{
+		xRotMatrix = glm::rotate(xRotMatrix, xRot, glm::vec3(0.0f, 1.0f, 0.0f));
+		tempPos = xRotMatrix * (tempPos - glm::vec4(m_cameraInfo.m_pivot, 1.0f)) + glm::vec4(m_cameraInfo.m_pivot, 1.0f);
+	}
+	if (yRot != 0)
+	{
+		yRotMatrix = glm::rotate(yRotMatrix, yRot, m_cameraInfo.m_right);
+		tempPos = yRotMatrix * (tempPos - glm::vec4(m_cameraInfo.m_pivot, 1.0f)) + glm::vec4(m_cameraInfo.m_pivot, 1.0f);;
+	}
+	float diff = glm::length(glm::vec3(tempPos) - m_cameraInfo.m_pivot);
+	m_cameraInfo.m_pos = glm::vec3(tempPos);
+	if (xRot != 0 || yRot != 0)
+	{
+		m_cameraInfo.m_cameraFace = glm::normalize(m_cameraInfo.m_pivot - m_cameraInfo.m_pos);
+		m_cameraInfo.m_right = glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), -m_cameraInfo.m_cameraFace));
+		m_cameraInfo.m_up = glm::cross(-m_cameraInfo.m_cameraFace, m_cameraInfo.m_right);
+	}
 }
 
 glm::mat4 CameraOrthographic::calculateTranslations()
 {
-	m_projMatrix = glm::ortho(m_cameraInfo.m_width, 0.0f, 0.0f, m_cameraInfo.m_height, -m_cameraInfo.m_near, -m_cameraInfo.m_far);
-	if(m_cameraInfo.m_directional) 
-		m_viewMatrix = m_projMatrix * glm::lookAt(m_cameraInfo.m_pos, m_cameraInfo.m_pos+ m_cameraInfo.m_cameraFace, m_cameraInfo.m_up);
-	else
-		m_viewMatrix = m_projMatrix * glm::lookAt(m_cameraInfo.m_pos, m_cameraInfo.m_cameraFace, m_cameraInfo.m_up);
+	m_projMatrix = glm::ortho(m_cameraInfo.m_width, 0.0f, 0.0f, m_cameraInfo.m_height, m_cameraInfo.m_near, m_cameraInfo.m_far);
+	m_viewMatrix = m_projMatrix * glm::lookAt(m_cameraInfo.m_pos, m_cameraInfo.m_cameraFace + m_cameraInfo.m_pivot, m_cameraInfo.m_up);
 	return m_viewMatrix;
 }
 

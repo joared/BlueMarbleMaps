@@ -25,6 +25,7 @@ public:
 	void roll(float rotation) override;
 	void pitch(float rotation) override;
 	void yaw(float rotation) override;
+	void orbit(float xRot, float yRot) override;
 
 	glm::mat4 calculateTranslations() override;
 

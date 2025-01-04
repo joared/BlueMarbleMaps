@@ -27,6 +27,7 @@ public:
 	virtual void roll(float rotation) = 0;
 	virtual void pitch(float rotation) = 0;
 	virtual void yaw(float rotation) = 0;
+	virtual void orbit(float xRot, float yRot) = 0;
 
 	virtual glm::mat4 calculateTranslations() = 0;
 
