@@ -11,8 +11,8 @@ public:
 	bool init(int width, int height, std::string windowTitle);
 	bool windowShouldClose();
 	void shutdownWindow();
-	void resize(int width, int height);
-	void getMousePosition(double *xPos, double *yPos);
+	void resizeWindow(int width, int height);
+	void getMousePosition(double *xPos, double *yPos) const;
 	void swapBuffers();
 	/*
 	* Registers a key event callback by taking in a callback function
@@ -41,7 +41,7 @@ public:
 	void waitWindowEvents();
 	//timeout expressed in number of seconds.
 	void waitWindowEventsTimeout(double timeout);
-
+	GLFWwindow* getGLFWWindowHandle();
 private:
 	int m_width;
 	int m_height;

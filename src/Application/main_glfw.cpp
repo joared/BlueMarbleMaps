@@ -2,7 +2,6 @@
 #include <glfw3.h>
 #include "CImg.h"
 #include <iostream>
-#include "OpenGLTexture.h"
 
 #include "Map.h"
 #include "DataSet.h"
@@ -10,8 +9,10 @@
 #include "Feature.h"
 #include "MapControl.h"
 #include "DefaultEventHandlers.h"
+#include "Application/WindowGL.h"
 
 #include "map_configuration.h"
+#include <Keys.h>
 
 using namespace cimg_library;
 using namespace BlueMarble;
@@ -54,102 +55,145 @@ void main()
 }
 )";
 
-class GLFWMapControl : public MapControl
+class GLFWMapControl :public WindowGL, public MapControl
 {
 public:
-    GLFWMapControl(GLFWwindow* window)
-        : m_window(window)
+    GLFWMapControl()
     {
-        glfwSetWindowUserPointer(window, this);
+        static auto key_static = [this](WindowGL* window, int key, int scancode, int action, int mods) {
+                // because we have a this pointer we are now able to call a non-static member method:
+            keyEvent(window, key, scancode, action, mods);
+        };
+        static auto resize_static = [this](WindowGL * window, int width, int height) {
+            resizeEvent(window, width, height);
+        };
+        static auto resizeFrame_static = [this](WindowGL* window, int width, int height) {
+            resizeFrameBuffer(window, width, height);
+        };
+        static auto mouseButton_static = [this](WindowGL* window, int button, int action, int modifier) {
+            mouseButtonEvent(window,button,action,modifier);
+        };
+        static auto mousePosition_static = [this](WindowGL* window, double x, double y) {
+            mousePositionEvent(window, x, y);
+        };
+        static auto mouseScroll_static = [this](WindowGL* window, double xOffs, double yOffs) {
+            mouseScrollEvent(window, xOffs, yOffs);
+        };
+        static auto mouseEntered_static = [this](WindowGL* window, int entered) {
+            mouseEntered(window, entered);
+        };
+        static auto windowClose_static = [this](WindowGL* window) {
+            windowClosed(window);
+        };
+        registerKeyEventCallback([](WindowGL* window, int key, int scancode, int action, int mods) {key_static(window, key, scancode, action, mods); });
+        registerResizeEventCallback([](WindowGL* window, int width, int height) {resize_static(window, width, height); });
+        registerResizeFrameBufferEventCallback([](WindowGL* window, int width, int height) {resizeFrame_static(window, width, height); });
+        registerMouseButtonEventCallback([](WindowGL* window, int button, int action, int modifier) {mouseButton_static(window, button, action, modifier); });
+        registerMousePositionEventCallback([](WindowGL* window, double x, double y) { mousePosition_static(window,x,y);});
+        registerMouseScrollEventCallback([](WindowGL* window, double xOffs, double yOffs) { mouseScroll_static(window,xOffs,yOffs);});
+        registerMouseEnteredCallback([](WindowGL* window, int entered) { mouseEntered_static(window, entered);});
+        registerCloseWindowEventCallback([](WindowGL* window) { windowClose_static(window);});
+    }
+    void keyEvent(WindowGL* window, int key, int scanCode, int action, int modifier)
+    {
+        Key keyStroke(scanCode);
 
-        glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int width, int height)
-            {
-                auto* instance = static_cast<GLFWMapControl*>(glfwGetWindowUserPointer(window));
-                instance->resize(width, height, getGinotonicTimeStampMs());
-            });
-
-        glfwSetScrollCallback(window, [](GLFWwindow* window, double xOffset, double yOffset)
-            {
-                auto* instance = static_cast<GLFWMapControl*>(glfwGetWindowUserPointer(window));
-                ScreenPos mousePos; instance->getMousePos(mousePos);
-                instance->mouseWheel(yOffset, mousePos.x, mousePos.y, ModificationKeyNone, getGinotonicTimeStampMs());
-            });
-
-        glfwSetMouseButtonCallback(window, [](GLFWwindow* window, int button, int action, int mods)
-            {
-                auto* instance = static_cast<GLFWMapControl*>(glfwGetWindowUserPointer(window));
-                int x, y = 0;
-                switch (action)
-                {
-                case GLFW_PRESS:
-                {
-                    instance->mouseDown(MouseButtonLeft, x, y, ModificationKeyNone, getGinotonicTimeStampMs());
-                    break;
-                }
-                case GLFW_RELEASE:
-                {
-                    instance->mouseUp(MouseButtonLeft, x, y, ModificationKeyNone, getGinotonicTimeStampMs());
-                    break;
-                }
-                }
-            });
-
-        glfwSetCursorPosCallback(window, [](GLFWwindow* window, double xPos, double yPos)
-            {
-                auto* instance = static_cast<GLFWMapControl*>(glfwGetWindowUserPointer(window));
-                instance->mouseMove(MouseButtonLeft, xPos, yPos, ModificationKeyNone, getGinotonicTimeStampMs());
-            });
     }
 
+    void resizeEvent(WindowGL* window, int width, int height)
+    {
+        GLFWMapControl::resize(width, height, getGinotonicTimeStampMs());
+    }
 
+    void resizeFrameBuffer(WindowGL* window, int width, int height)
+    {
+        glViewport(0, 0, width, height);
+
+        glClear(GL_COLOR_BUFFER_BIT);
+        window->swapBuffers();
+        window->pollWindowEvents();
+    }
 
     void getMousePos(ScreenPos& pos) const override final
     {
         double x, y;
-        glfwGetCursorPos(m_window, &x, &y);
+        getMousePosition(&x, &y);
         pos.x = (int)x;
         pos.y = (int)y;
     }
 
+    void mouseButtonEvent(WindowGL* window, int button, int action, int modifier)
+    {
+        int x = 0, y = 0;
+        switch (action)
+        {
+        case GLFW_PRESS:
+        {
+            mouseDown(MouseButtonLeft, x, y, ModificationKeyNone, getGinotonicTimeStampMs());
+            break;
+        }
+        case GLFW_RELEASE:
+        {
+            mouseUp(MouseButtonLeft, x, y, ModificationKeyNone, getGinotonicTimeStampMs());
+            break;
+        }
+        }
+    }
+    void mousePositionEvent(WindowGL* window, double x, double y)
+    {
+        mouseMove(MouseButtonLeft, x, y, ModificationKeyNone, getGinotonicTimeStampMs());
+    }
+    void mouseScrollEvent(WindowGL* window, double xOffs, double yOffs)
+    {
+        ScreenPos mousePos; getMousePos(mousePos);
+        mouseWheel(yOffs, mousePos.x, mousePos.y, ModificationKeyNone, getGinotonicTimeStampMs());
+    }
+    void mouseEntered(WindowGL* window, int entered)
+    {
+        
+    }
+    void windowClosed(WindowGL* window)
+    {
+        std::cout << "Window will close\n";
+    }
+
     void* getWindow() override final
     {
-        return (void*)m_window;
+        return (void*)getGLFWWindowHandle();
     }
-private:
-    GLFWwindow* m_window;
 };
 typedef std::shared_ptr<GLFWMapControl> GLFWMapControlPtr;
 
 
+
+
+void GLAPIENTRY
+MessageCallback(GLenum source,
+    GLenum type,
+    GLuint id,
+    GLenum severity,
+    GLsizei length,
+    const GLchar* message,
+    const void* userParam)
+{
+    fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+        (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
+        type, severity, message);
+}
+
 int main() {
-    // Initialize GLFW
-    if (!glfwInit()) {
-        std::cerr << "Failed to initialize GLFW" << std::endl;
-        return -1;
+    //glDebugMessageCallback(MessageCallback, 0);
+    //MapControlStuff
+    auto mapControl = std::make_shared<GLFWMapControl>();
+    if (!mapControl->init(1000, 1000, "Hello World"))
+    {
+        std::cout << "Could not initiate window..." << "\n";
     }
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-    // Create a GLFW window
-    GLFWwindow* window = glfwCreateWindow(800, 600, "OpenGL Texture Example", nullptr, nullptr);
-    if (!window) {
-        std::cerr << "Failed to create GLFW window" << std::endl;
-        glfwTerminate();
-        return -1;
-    }
-    glfwMakeContextCurrent(window);
-
-    // Initialize GLAD
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        std::cerr << "Failed to initialize GLAD" << std::endl;
-        return -1;
-    }
-
-    auto mapControl = std::make_shared<GLFWMapControl>(window);
+    const unsigned char* version = glGetString(GL_VERSION);
+    std::cout << "opengl version: " << version << "\n";
     auto view = std::make_shared<Map>();
 
-    auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("C:/Users/Ottop/desktop/goat.jpg");
+    auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("C:/Users/Ottop/Onedrive/skrivbord/goat.jpg");
     elevationDataSet->initialize(BlueMarble::DataSetInitializationType::RightHereRightNow);
     auto elevationLayer = BlueMarble::Layer(false);
     elevationLayer.addUpdateHandler(elevationDataSet.get());
@@ -170,120 +214,17 @@ int main() {
 
     view->addLayer(&vectorLayer);
 
-    // Stress test by adding more layers and visualization using this
-    //configureMap(view); 
-
-    // Load image using CImg
-    // CImg<unsigned char> image("/home/joar/git-repos/BlueMarbleMaps/geodata/NE1_50M_SR_W/NE1_50M_SR_W.tif");
-    // int format = (image.spectrum() == 4) ? GL_RGBA : GL_RGB;
-    //auto texture = BlueMarble::OpenGLTexture("/home/joar/git-repos/BlueMarbleMaps/geodata/blue_marble_256.jpg");
-    //auto texture = BlueMarble::OpenGLTexture("/home/joar/git-repos/BlueMarbleMaps/geodata/elevation/LARGE_elevation.jpg");
-    auto texture = BlueMarble::OpenGLTexture("C:/Users/Ottop/desktop/goat.jpg");
-
-    glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_BLEND);
 
-    // Build and compile shader program
-    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexShaderSource, nullptr);
-    glCompileShader(vertexShader);
-
-    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, nullptr);
-    glCompileShader(fragmentShader);
-
-    GLuint shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
-
-    static float centerX = 0.0f;
-    static float centerY = 0.0f;
-    static float scale = 1.0f;
-
-    GLuint texOffsetLocation = glGetUniformLocation(shaderProgram, "texOffset");
-    GLuint texScaleLocation = glGetUniformLocation(shaderProgram, "texScale");
-
-    // Set up vertex data and buffers
-    float vertices[] = {
-        // positions   // texture coords
-        -.5f,  .5f,  0.0f, 1.0f, // top-left
-        -.5f, -.5f,  0.0f, 0.0f, // bottom-left
-         .5f, -.5f,  1.0f, 0.0f, // bottom-right
-         .5f,  .5f,  1.0f, 1.0f  // top-right
-    };
-    unsigned int indices[] = { 0, 1, 2, 0, 2, 3 };
-
-    GLuint VAO, VBO, EBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-
-    glBindVertexArray(VAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-    // Position attribute
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    // Texture coord attribute
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    // Render loop
-    while (!glfwWindowShouldClose(window)) {
-        // Clear the color buffer
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        // Bind texture and shader
-        glUseProgram(shaderProgram);
-
-
-        // Calculate some offset
-        // int width, height;
-        // glfwGetWindowSize(window, &width, &height);
-        // double xpos, ypos;
-        // glfwGetCursorPos(window, &xpos, &ypos);
-
-        // double xNorm = xpos/(double)width*2.0 - 1.0;
-        // double yNorm = 1.0 - ypos/(double)height*2.0;
-        // //std::cout << "x: " << xNorm << ", y:" << yNorm << "\n";
-
-        // centerX = xNorm; //cos(glfwGetTime()*0.5) * 0.15f;; // Example: move texture to the right
-        // centerY = yNorm; //sin(glfwGetTime()) * 0.5f;
-
-        // Set the texture offset uniform
-        glUniform2f(texOffsetLocation, -centerX, -centerY);
-        glUniform1f(texScaleLocation, scale);
-
-        // TODO: Bind texture here
-        //glBindTexture(GL_TEXTURE_2D, texture);
-        texture.Bind();
-
-        // Draw the rectangle
-        glBindVertexArray(VAO);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-        // Swap buffers and poll IO events
-        glfwSwapBuffers(window);
-        glfwPollEvents();
+    while (!mapControl->windowShouldClose())
+    {
+        
+        mapControl->swapBuffers();
+        mapControl->pollWindowEvents();
     }
-
-    // Clean up
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
-    glDeleteProgram(shaderProgram);
-
-    glfwDestroyWindow(window);
     glfwTerminate();
+
     return 0;
 }
 /*

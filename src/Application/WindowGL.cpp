@@ -106,12 +106,12 @@ void WindowGL::waitWindowEventsTimeout(double timeout)
 	glfwWaitEventsTimeout(timeout);
 }
 
-void WindowGL::resize(int width, int height)
+void WindowGL::resizeWindow(int width, int height)
 {
 	glfwSetWindowSize(m_window, width, height);
 }
 
-void WindowGL::getMousePosition(double* xPos, double* yPos)
+void WindowGL::getMousePosition(double* xPos, double* yPos) const
 {
 	glfwGetCursorPos(m_window,xPos,yPos);
 }
@@ -195,4 +195,9 @@ void WindowGL::internalCloseWindowEventCallback(GLFWwindow* window)
 		std::cout << "I am going to die" << std::endl;
 		owner->externalCloseWindowEventCallback(owner);
 	}
+}
+
+GLFWwindow* WindowGL::getGLFWWindowHandle()
+{
+	return m_window;
 }

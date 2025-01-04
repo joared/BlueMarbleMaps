@@ -104,9 +104,9 @@
     X(DOWN_ARROW, 0x0150, "Down Arrow") \
     X(PAGE_DOWN, 0x0151, "Page Down") \
     X(INSERT, 0x0152, "Insert") \
-    X(DELETE, 0x0153, "Delete") \
+    X(DEL_KEY, 0x0153, "Delete") \
     X(LEFT_WINDOWS, 0x015B, "Left Windows") \
-    X(RIGHT_WINDOW, 0x015C, "Right Windows")\
+    X(RIGHT_WINDOW, 0x015C, "Right Windows") \
     X(PROGRAMME, 0x015D, "Programme")
 
 struct Key
