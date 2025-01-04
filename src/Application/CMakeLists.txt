@@ -9,7 +9,7 @@ file(GLOB_RECURSE APPLICATION_SOURCES
 )
 
 add_executable(Application ${APPLICATION_SOURCES}) 
-
+target_include_directories(Application PRIVATE"${CMAKE_SOURCE_DIR}/include/Common")
 target_include_directories(Application PRIVATE "${CMAKE_SOURCE_DIR}/include/Application")
 target_link_libraries(Application PRIVATE BlueMarbleMapsLib)
 

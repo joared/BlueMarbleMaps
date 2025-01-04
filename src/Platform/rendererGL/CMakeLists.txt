@@ -20,6 +20,7 @@ file(GLOB SHADER_SOURCES
 )
 
 add_executable(GraphicsRendererGL ${RENDERER_SOURCES} ${SHADER_SOURCES}) 
+target_include_directories(GraphicsRendererGL PRIVATE "${CMAKE_SOURCE_DIR}/include/Common")
 
 target_include_directories(GraphicsRendererGL PRIVATE "${CMAKE_SOURCE_DIR}/include/RendererGL/")
 
@@ -37,7 +38,7 @@ message(STATUS "Looking for GLM")
 target_link_libraries(GraphicsRendererGL glm)
 
 message(STATUS "looking for stb_image")
-target_include_directories(GraphicsRendererGL PRIVATE "${CMAKE_SOURCE_DIR}/external/stb_image")
+target_link_libraries(GraphicsRendererGL StbImageLib)
 
 set_source_files_properties(${SHADER_SOURCES} PROPERTIES LANGUAGE GLSL)
 

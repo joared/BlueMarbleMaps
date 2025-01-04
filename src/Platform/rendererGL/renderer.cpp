@@ -236,7 +236,7 @@ int main()
 
 	int imgWidth, imgHeight, imgChannels;
 
-	unsigned char* image = readImage("goat.jpg", &imgWidth, &imgHeight, &imgChannels);
+	unsigned char* image = readImage("C:/Users/Ottop/Onedrive/Skrivbord/goat.jpg", &imgWidth, &imgHeight, &imgChannels);
 
 	GLint texIndex = 0;
 	Texture tex;
