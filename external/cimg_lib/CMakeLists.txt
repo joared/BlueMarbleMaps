@@ -14,6 +14,7 @@ set(YOU_NEED_TIFF 0)
 set(YOU_NEED_THREADS 0)
 set(YOU_NEED_OPENMP 0)
 
+
 if(${YOU_NEED_THREADS} EQUAL 1)
     message(STATUS "Looking for Threads...")
     find_package(Threads REQUIRED)
