@@ -105,6 +105,26 @@ void keyEvent(WindowGL* window, int key, int scanCode, int action, int modifier)
 		cam.zoom(-5.0f);
 		cam.calculateTranslations();
 	}
+	else if (keyStroke == Key::LEFT_ARROW)
+	{
+		cam.orbit(-0.1f,0.0f);
+		cam.calculateTranslations();
+	}
+	else if (keyStroke == Key::RIGHT_ARROW)
+	{
+		cam.orbit(0.1f, 0.0f);
+		cam.calculateTranslations();
+	}
+	else if (keyStroke == Key::DOWN_ARROW)
+	{
+		cam.orbit(0.0f, -0.1f);
+		cam.calculateTranslations();
+	}
+	else if (keyStroke == Key::UP_ARROW)
+	{
+		cam.orbit(0.0f, 0.1f);
+		cam.calculateTranslations();
+	}
 }
 void resizeEvent(WindowGL* window, int width, int height)
 {

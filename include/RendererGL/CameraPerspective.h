@@ -25,6 +25,8 @@ public:
 	void pitch(float rotation) override;
 	void yaw(float rotation) override;
 
+	void orbit(float xRot, float yRot);
+
 	glm::mat4 calculateTranslations() override;
 
 	PerspectiveCamerInformation getCameraInfo();

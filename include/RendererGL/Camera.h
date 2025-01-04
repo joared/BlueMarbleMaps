@@ -3,10 +3,11 @@
 
 struct CameraInformation
 {
-	glm::vec3 m_pos = glm::vec3(0.0f,0.0f,1.0f);
+	glm::vec3 m_pos = glm::vec3(0.0f,0.0f,100.0f);
 	glm::vec3 m_right = glm::vec3(1.0f, 0.0f, 0.0f);
 	glm::vec3 m_up = glm::vec3(0.0f,1.0f,0.0f);
-	glm::vec3 m_cameraFace = glm::vec3(0.0f,0.0f,1.0f);
+	glm::vec3 m_cameraFace = glm::vec3(0.0f,0.0f,-1.0f);
+	glm::vec3 m_pivot = glm::vec3(0.0f, 0.0f, 0.0f);
 
 	float m_zoom = 1.0f;
 	float m_roll = 0.0f;
