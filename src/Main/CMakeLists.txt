@@ -12,7 +12,7 @@ else()
     target_link_libraries(BlueMarbleMapsGLFW BlueMarbleMapsLib)
     find_package(GLFW3 REQUIRED)
     target_include_directories(BlueMarbleMapsGLFW PRIVATE ${GLFW3_INCLUDE_DIR})
-    target_link_libraries(BlueMarbleMapsGLFW ${GLFW3_LIBRARY}) #OpenGL::GL
+    target_link_libraries(BlueMarbleMapsGLFW ${GLFW3_LIBRARY})
     target_link_libraries(BlueMarbleMapsGLFW Glad)
 endif()
 

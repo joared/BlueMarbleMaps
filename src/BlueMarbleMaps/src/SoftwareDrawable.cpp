@@ -54,7 +54,7 @@ namespace BlueMarble
 
     const Color& SoftwareDrawable::backgroundColor()
     {
-        m_impl->backgroundColor();
+        return m_impl->backgroundColor();
     }
 
     void SoftwareDrawable::backgroundColor(const Color &color)

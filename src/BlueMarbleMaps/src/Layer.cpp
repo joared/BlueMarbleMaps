@@ -1,7 +1,8 @@
 #include "Layer.h"
 #include "Map.h"
 #include "DataSet.h"
-
+#define _USE_MATH_DEFINES
+#include <math.h>
 using namespace BlueMarble;
 
 Layer::Layer(bool createdefaultVisualizers)

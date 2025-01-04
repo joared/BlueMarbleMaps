@@ -249,6 +249,7 @@ namespace BlueMarble
             bool OnResize(const BlueMarble::ResizeEvent& event) override
             {
                 std::cout << "Fucking resize!: " << event.width << ", " << event.height << "\n";
+                return false;
             }
 
             bool OnKeyDown(const BlueMarble::KeyDownEvent& event)
@@ -695,9 +696,9 @@ namespace BlueMarble
 
             bool OnMouseWheel(const BlueMarble::MouseWheelEvent& wheelEvent) override final
             {
-                const double WHEEL_DELTA = 5;
+                const double wheelDelta = 5;
 
-                double scale = 1.0 + abs(wheelEvent.delta)/WHEEL_DELTA;
+                double scale = 1.0 + abs(wheelEvent.delta)/wheelDelta;
                 double zoomFactor = wheelEvent.delta > 0 ? scale : 1.0/scale;
                 bool animate = true; //abs(wheelEvent.delta) > 1; // only animate if wheel delta is large enough
                 if (!animate)

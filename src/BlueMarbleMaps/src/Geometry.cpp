@@ -156,7 +156,7 @@ void MultiPolygonGeometry::moveTo(const Point& point)
 
 PointGeometryPtr polygonToPoint(PolygonGeometryPtr polygon)
 {
-
+    return nullptr;
 }
 
 void BlueMarble::convertGeometry(GeometryPtr from, GeometryType toType)

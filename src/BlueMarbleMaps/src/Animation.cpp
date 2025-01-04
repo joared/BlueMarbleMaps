@@ -138,6 +138,7 @@ bool AnimationController::update(int timeStamp)
             
         }
     }
+    return false;
 }
 
 void AnimationController::addAnimation(AbstractAnimationPtr animation)

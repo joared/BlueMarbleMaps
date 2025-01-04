@@ -24,7 +24,7 @@ constexpr double yTopLeft = 89.98888888888889;
 
 Map::Map()
     : MapEventPublisher()
-    , m_center(lngLatToMap(Point(0, 0)))
+    , m_center(lngLatToMap(Point(16, 56)))
     , m_scale(1.0)
     , m_rotation(0.0)
     , m_constraints(5000.0, 0.0001, Rectangle(0, 0, 100000, 100000))
@@ -510,9 +510,10 @@ std::vector<PresentationObject> BlueMarble::Map::hitTest(int x, int y, double po
     // std::cout << "Map::hitTest\n";
     std::vector<PresentationObject> hitObjects;
     // Iterate in reverse order such that the first rendered presentation objects are first
-    for (auto it=m_presentationObjects.end()-1; it!=m_presentationObjects.begin()-1; it--)
+    //for (auto it=m_presentationObjects.end()-1; it!=m_presentationObjects.begin()-1; it--)
+    for (int i=m_presentationObjects.size()-1; i>=0; --i)
     {
-        auto& p = *it;
+        auto& p = m_presentationObjects[i];
         if (p.hitTest(x, y, pointerRadius))
         {
             hitObjects.push_back(p);
