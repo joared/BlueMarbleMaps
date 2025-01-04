@@ -103,14 +103,14 @@ void CameraOrthographic::orbit(float xRot, float yRot)
 	}
 }
 
-glm::mat4 CameraOrthographic::calculateTranslations()
+glm::mat4& CameraOrthographic::calculateTranslations()
 {
 	m_projMatrix = glm::ortho(m_cameraInfo.m_width, 0.0f, 0.0f, m_cameraInfo.m_height, m_cameraInfo.m_near, m_cameraInfo.m_far);
 	m_viewMatrix = m_projMatrix * glm::lookAt(m_cameraInfo.m_pos, m_cameraInfo.m_cameraFace + m_cameraInfo.m_pivot, m_cameraInfo.m_up);
 	return m_viewMatrix;
 }
 
-glm::mat4 CameraOrthographic::getViewMatrix()
+glm::mat4& CameraOrthographic::getViewMatrix()
 {
 	return m_viewMatrix;
 }

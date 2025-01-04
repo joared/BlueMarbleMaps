@@ -29,7 +29,7 @@ public:
 	virtual void yaw(float rotation) = 0;
 	virtual void orbit(float xRot, float yRot) = 0;
 
-	virtual glm::mat4 calculateTranslations() = 0;
+	virtual glm::mat4& calculateTranslations() = 0;
 
-	virtual glm::mat4 getViewMatrix() = 0;
+	virtual glm::mat4& getViewMatrix() = 0;
 };

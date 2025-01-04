@@ -27,12 +27,12 @@ public:
 	void yaw(float rotation) override;
 	void orbit(float xRot, float yRot) override;
 
-	glm::mat4 calculateTranslations() override;
+	glm::mat4& calculateTranslations() override;
 
 	OrthographicCameraInformation getCameraInfo();
 	void setCameraInfo(OrthographicCameraInformation);
 
 	//not allowed to set view matrix, must be calculated
 
-	glm::mat4 getViewMatrix() override;
+	glm::mat4& getViewMatrix() override;
 };

@@ -42,6 +42,7 @@ bool Texture::init(unsigned char* data, int width, int height, int format, GLenu
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 	//TODO assign the mipmap images from data read from the image as well, this could suffice as the lod cache entirely
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glTexImage2D(GL_TEXTURE_2D, 0, glFormat, width, height, 0, GL_RGBA, pixelType, data);
 	glGenerateMipmap(GL_TEXTURE_2D);
 

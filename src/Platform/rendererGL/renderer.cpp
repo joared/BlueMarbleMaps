@@ -210,6 +210,9 @@ int main()
 	window.registerMouseEnteredCallback(mouseEntered);
 	window.registerCloseWindowEventCallback(windowClosed);
 
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_BLEND);
+
 	std::vector<Vertice> vertices = {Vertice(),Vertice(),Vertice(),Vertice()};
 	vertices[0].position = glm::vec3(-50.0f,-50.0f,0.0f);
 	vertices[0].color = glm::vec4(0.1f, 0.7f, 0.0f,1.0f);
@@ -229,7 +232,7 @@ int main()
 
 	Shader shader;
 
-	shader.linkProgram("shaders\\basic.vert","shaders\\basic.frag");
+	shader.linkProgram("shaders/basic.vert","shaders/basic.frag");
 
 	int imgWidth, imgHeight, imgChannels;
 

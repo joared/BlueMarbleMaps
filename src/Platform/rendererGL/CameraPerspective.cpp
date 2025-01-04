@@ -100,7 +100,7 @@ void CameraPerspective::orbit(float xRot, float yRot)
 	}
 }
 
-glm::mat4 CameraPerspective::calculateTranslations()
+glm::mat4& CameraPerspective::calculateTranslations()
 {
 	m_projMatrix = glm::perspective(glm::radians(m_cameraInfo.m_fov), m_cameraInfo.m_aspectRatio, m_cameraInfo.m_near, m_cameraInfo.m_far);
 	m_viewMatrix = m_projMatrix * glm::lookAt(m_cameraInfo.m_pos, m_cameraInfo.m_cameraFace + m_cameraInfo.m_pivot, m_cameraInfo.m_up);
@@ -118,7 +118,7 @@ void CameraPerspective::setCameraInfo(PerspectiveCamerInformation cameraInfo)
 
 //not allowed to set view matrix, must be calculated
 
-glm::mat4 CameraPerspective::getViewMatrix()
+glm::mat4& CameraPerspective::getViewMatrix()
 {
 	return m_viewMatrix;
 }
