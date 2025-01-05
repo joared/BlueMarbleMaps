@@ -11,9 +11,12 @@ set(YOU_NEED_X11 0)
 set(YOU_NEED_PNG 0)
 set(YOU_NEED_JPG 0)
 set(YOU_NEED_TIFF 0)
-set(YOU_NEED_THREADS 0)
+set(YOU_NEED_THREADS 1)
 set(YOU_NEED_OPENMP 0)
 
+if(WIN32)
+    target_compile_definitions(CImgLib PUBLIC cimg_display=2)
+endif()
 
 if(${YOU_NEED_THREADS} EQUAL 1)
     message(STATUS "Looking for Threads...")
@@ -30,7 +33,7 @@ if(${YOU_NEED_X11} EQUAL 1)
     target_include_directories(CImgLib PUBLIC ${X11_INCLUDE_DIR})
     target_link_libraries(CImgLib PRIVATE ${X11_LIBRARIES})
 else()
-    target_compile_definitions(CImgLib PUBLIC cimg_display=2)
+    target_compile_definitions(CImgLib PUBLIC cimg_display=0)
 endif()
 
 

@@ -16,7 +16,7 @@ bool Texture::init(const unsigned char* data, int width, int height, int format,
 	int maxNrOfTextures;
 	glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &maxNrOfTextures);
 
-	if (activeIndex > maxNrOfTextures)
+	if (activeIndex > (GLuint)maxNrOfTextures)
 	{
 		std::cout << "active index is larger than the max nr of texture limit; " << maxNrOfTextures << "\n";
 		return false;
@@ -36,15 +36,19 @@ bool Texture::init(const unsigned char* data, int width, int height, int format,
 	glBindTexture(GL_TEXTURE_2D, m_id);
 	glBindTextureUnit(activeIndex, m_id);
 	
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 	//TODO assign the mipmap images from data read from the image as well, this could suffice as the lod cache entirely
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-	glTexImage2D(GL_TEXTURE_2D, 0, glFormat, width, height, 0, GL_RGBA, pixelType, data);
-	glGenerateMipmap(GL_TEXTURE_2D);
+	//glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glTexImage2D(GL_TEXTURE_2D, 0, glFormat, width, height, 0, glFormat, pixelType, data);
+	//glGenerateMipmap(GL_TEXTURE_2D);
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 	return true;

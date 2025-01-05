@@ -20,6 +20,7 @@ Raster::Impl::Impl(const Impl& impl)
     , m_channels(impl.m_channels)
     , m_data(nullptr)
 {
+    std::cout << "Raster::Impl::Impl(const Impl& impl)\n";
     int size = m_width*m_height*m_channels;
     m_data = allocateData(size);
     copyData(m_data, impl.m_data, size);
@@ -31,6 +32,7 @@ Raster::Impl::Impl(Impl&& impl) noexcept
     , m_channels(impl.m_channels)
     , m_data(impl.m_data)
 {
+    std::cout << "Raster::Impl::Impl(const Impl&& impl)\n";
 }
 
 Raster::Impl::Impl(int width, int height, int channels, int fill)
@@ -61,7 +63,7 @@ Raster::Impl::Impl(const std::string& filePath)
     // }
     stbi_set_flip_vertically_on_load(true);
 
-    m_data = stbi_load(filePath.c_str(), &m_width, &m_height, &m_channels, STBI_rgb_alpha);
+    m_data = stbi_load(filePath.c_str(), &m_width, &m_height, &m_channels, 0);
 
     if (m_data == NULL)
     {
@@ -242,7 +244,8 @@ unsigned char* Raster::Impl::allocateData(int size)
 
 void Raster::Impl::deallocateData(unsigned char* data)
 {
-    free(data);
+    stbi_image_free(data);
+    //free(data);
     data = nullptr;
 }
 

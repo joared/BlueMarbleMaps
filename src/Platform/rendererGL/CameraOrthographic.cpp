@@ -35,11 +35,11 @@ void CameraOrthographic::zoom(float zoomFactor)
 		m_cameraInfo.m_width = 10.0f;
 		m_cameraInfo.m_height = 10.0f;
 	}
-	else if (m_cameraInfo.m_width - zoomFactor > 10000.0f
-		|| m_cameraInfo.m_height - zoomFactor > 10000.0f)
+	else if (m_cameraInfo.m_width + zoomFactor > 1000000.0f
+		|| m_cameraInfo.m_height + zoomFactor > 1000000.0f)
 	{
-		m_cameraInfo.m_width = 10000.0f;
-		m_cameraInfo.m_height = 10000.0f;
+		m_cameraInfo.m_width = 1000000.0f;
+		m_cameraInfo.m_height = 1000000.0f;
 	}
 	else
 	{
@@ -105,7 +105,7 @@ void CameraOrthographic::orbit(float xRot, float yRot)
 
 glm::mat4& CameraOrthographic::calculateTranslations()
 {
-	m_projMatrix = glm::ortho(m_cameraInfo.m_width, 0.0f, 0.0f, m_cameraInfo.m_height, m_cameraInfo.m_near, m_cameraInfo.m_far);
+	m_projMatrix = glm::ortho(0.0f, m_cameraInfo.m_width, 0.0f, m_cameraInfo.m_height, m_cameraInfo.m_near, m_cameraInfo.m_far);
 	m_viewMatrix = m_projMatrix * glm::lookAt(m_cameraInfo.m_pos, m_cameraInfo.m_cameraFace + m_cameraInfo.m_pivot, m_cameraInfo.m_up);
 	return m_viewMatrix;
 }

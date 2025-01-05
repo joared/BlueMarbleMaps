@@ -41,7 +41,7 @@ target_link_libraries(GraphicsRendererGL glm)
 message(STATUS "looking for stb_image")
 target_link_libraries(GraphicsRendererGL StbImageLib)
 
-set_source_files_properties(${SHADER_SOURCES} PROPERTIES LANGUAGE GLSL)
+#set_source_files_properties(${SHADER_SOURCES} PROPERTIES LANGUAGE GLSL)
 
 source_group("shaders" FILES ${SHADER_SOURCES})
 
@@ -74,7 +74,7 @@ target_link_libraries(GraphicsRendererGLLib PUBLIC glm)
 message(STATUS "looking for stb_image")
 target_link_libraries(GraphicsRendererGLLib PUBLIC StbImageLib)
 
-set_source_files_properties(${SHADER_SOURCES} PROPERTIES LANGUAGE GLSL)
+#set_source_files_properties(${SHADER_SOURCES} PROPERTIES LANGUAGE GLSL)
 
 source_group("shaders" FILES ${SHADER_SOURCES})
 

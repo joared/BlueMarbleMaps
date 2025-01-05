@@ -39,7 +39,8 @@ namespace BlueMarble
         std::set<BMID> m_idSet;
         GLFWwindow* m_window;
         Transform m_transform;
-
+        int m_width;
+        int m_height;
     };
     typedef std::shared_ptr<OpenGLDrawable> OpenGLDrawablePtr;
 

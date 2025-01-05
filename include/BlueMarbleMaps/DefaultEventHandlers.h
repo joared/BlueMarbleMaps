@@ -431,17 +431,17 @@ namespace BlueMarble
                 return true;
             }
 
-            bool OnMouseDown(const BlueMarble::MouseDownEvent& /*mouseDownEvent*/) override final
+            bool OnMouseDown(const BlueMarble::MouseDownEvent& event) override final
             {
                 m_map->stopAnimation();
                 m_map->update();
+                m_lastX = event.pos.x;
+                m_lastY = event.pos.y;
                 return true;
             }
 
             bool OnMouseMove(const BlueMarble::MouseMoveEvent& event) override final
             {
-                
-
                 auto pObjs = m_map->hitTest(event.pos.x, event.pos.y, 10.0);
                 BlueMarble::FeaturePtr hoverFeature(nullptr);
                 if (pObjs.size() > 0)
@@ -455,6 +455,16 @@ namespace BlueMarble
                     m_map->hover(hoverFeature);
                     m_map->update();
                 }
+
+                if (event.mouseButton == MouseButtonLeft)
+                {
+                    m_map->panBy({(double)(m_lastX - event.pos.x), 
+                              (double)(m_lastY - event.pos.y)});
+                    m_map->update();
+                    m_lastX = event.pos.x;
+                    m_lastY = event.pos.y;
+                }
+
                 return true;
             }
 
@@ -771,6 +781,8 @@ namespace BlueMarble
             Raster m_funnyDudeRaster;
             bool m_dataSetsInitialized;
             bool m_drawDataSetInfo;
+            int m_lastX;
+            int m_lastY;
     };
 
 }

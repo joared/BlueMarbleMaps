@@ -149,7 +149,7 @@ void WindowGL::internalMouseButtonEventCallback(GLFWwindow* window, int button, 
 void WindowGL::internalMousePositionEventCallback(GLFWwindow* window, double xPos, double yPos)
 {
 	WindowGL* owner = reinterpret_cast<WindowGL*>(glfwGetWindowUserPointer(window));
-	std::cout << "mouse position x: " << xPos << " y: " << yPos << " on my balls" << std::endl;
+	//std::cout << "mouse position x: " << xPos << " y: " << yPos << " on my balls" << std::endl;
 	owner->mousePositionEvent(owner, xPos, yPos);
 }
 void WindowGL::internalMouseScrollEventCallback(GLFWwindow* window, double xOffs, double yOffs)

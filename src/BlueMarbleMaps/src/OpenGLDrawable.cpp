@@ -5,24 +5,30 @@
 #include "Shader.h"
 #include "Texture.h"
 #include "stb_image.h"
+#include "glm.hpp"
+#include "gtc/matrix_transform.hpp"
+#include "CameraPerspective.h"
+#include "CameraOrthographic.h"
 
 using namespace BlueMarble;
 
 BlueMarble::OpenGLDrawable::OpenGLDrawable(int width, int height, int colorDepth)
-    :m_idSet()
-    ,m_transform()
+    : m_idSet()
+    , m_transform()
+    , m_width(width)
+    , m_height(height)
 {
-
+    glViewport(0, 0, m_width, m_height);
 }
 
 int BlueMarble::OpenGLDrawable::width() const
 {
-    return 155;
+    return m_width;
 }
 
 int BlueMarble::OpenGLDrawable::height() const
 {
-    return 155;
+    return m_height;
 }
 
 const Color& BlueMarble::OpenGLDrawable::backgroundColor()
@@ -48,6 +54,8 @@ void BlueMarble::OpenGLDrawable::setTransform(const Transform& transform)
 
 void BlueMarble::OpenGLDrawable::resize(int width, int height)
 {
+    m_width = width;
+    m_height = height;
     std::cout << "I shalle be doing a glViewPort resize yes" << "\n";
     glViewport(0, 0, width, height);
 
@@ -90,7 +98,7 @@ unsigned char* readImage(std::string path, int* width, int* height, int* nrOfCha
 {
     stbi_set_flip_vertically_on_load(true);
 
-    unsigned char* imgBytes = stbi_load(path.c_str(), width, height, nrOfChannels, STBI_rgb_alpha);
+    unsigned char* imgBytes = stbi_load(path.c_str(), width, height, nrOfChannels, 0);
 
     if (imgBytes == NULL)
     {
@@ -107,27 +115,37 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, dou
     static IBO ibo;
     static Shader shader;
     static Texture texture;
-    static std::vector<Vertice> vertices = { Vertice{glm::vec3(-1.0f,1.0f,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(0,0)},
-                                          Vertice{glm::vec3(1.0f,1.0f,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(0,1)},
-                                          Vertice{glm::vec3(1.0f,-1.0f,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(1,1)},
-                                          Vertice{glm::vec3(-1.0f,-1.0f,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(1,0)} };
-    static std::vector<GLuint> indices = { 0,1,2,
-                                           2,3,0 };
+    
+    static std::vector<Vertice> vertices;
+    static std::vector<GLuint> indices; 
+
+    
+
     if (!m_idSet.count(raster->getID()))
     {
         Raster& r = raster->raster();
-        
+        int w = r.width();
+        int h = r.height();
+              
+        // vertices = { Vertice{glm::vec3(-w*0.5f,h*0.5f,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(0,0)},
+        //              Vertice{glm::vec3(w*0.5f,h*0.5f,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(0,1)},
+        //              Vertice{glm::vec3(w*0.5f,-h*0.5f,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(1,1)},
+        //              Vertice{glm::vec3(-w*0.5f,-h*0.5f,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(1,0)} };
+        vertices = { Vertice{glm::vec3(0.0f,(float)h,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(0,0)},
+                     Vertice{glm::vec3((float)w,(float)h,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(0,1)},
+                     Vertice{glm::vec3((float)w,0.0f,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(1,1)},
+                     Vertice{glm::vec3(0.0f,0.0f,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(1,0)} };
+        indices = { 0,1,2,
+                    2,3,0 };
 
-        shader.linkProgram("shaders/basic.vert", "shaders/basic.frag");
+        shader.linkProgram("Shaders/basic.vert", "Shaders/basic.frag");
 
         GLint texIndex = 0;
-        int width, height, channels;
-        const unsigned char* data = readImage("C:/Users/Ottop/Onedrive/Skrivbord/goat.jpg", &width, &height, &channels);
-
         texture.init(r.data(), r.width(), r.height(), r.channels(), GL_UNSIGNED_BYTE, texIndex);
 
         shader.useProgram();
         shader.setInt("texture0", texIndex);
+
 
         vbo.init(vertices);
         ibo.init(indices);
@@ -143,9 +161,23 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, dou
     }
     else
     {
-        shader.useProgram();
-        shader.setMat4("viewMatrix", glm::mat4(1.0f));
+        auto center = m_transform.translation();
+        double scale = m_transform.scale();
+        // auto info = PerspectiveCamerInformation();
+        // info.m_far = 100000000000000000.0;
+        // CameraPerspective cam = CameraPerspective(info);
+        // cam.pan(center.x(), -center.y(), 1000.0/scale);
+        auto info = OrthographicCameraInformation();
+        info.m_far = 100000000000000000.0;
+        info.m_height = m_height/scale;
+        info.m_width = m_width/scale;
+        CameraOrthographic cam = CameraOrthographic(info);
+        cam.pan(center.x(), -center.y(), 1.0);
+
+        //cam.zoom(1.0 / scale);
+        shader.setMat4("viewMatrix", cam.calculateTranslations());
         vao.bind();
+        vbo.bind();
         ibo.bind();
         texture.bind();
         glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
@@ -182,4 +214,6 @@ RendererImplementation BlueMarble::OpenGLDrawable::renderer()
 void BlueMarble::WindowOpenGLDrawable::setWindow(void* window)
 {
     m_window = reinterpret_cast<GLFWwindow*>(window);
+    glfwGetWindowSize(m_window, &m_width, &m_height);
+    glViewport(0, 0, m_width, m_height);
 }

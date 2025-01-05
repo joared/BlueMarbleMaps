@@ -27,7 +27,7 @@ void MapControl::setView(MapPtr mapView)
         std::cout << "MapControl::setView() Attaching Window drawable\n";
         //Create Opengl Drawable
 
-        auto drawable = std::make_shared<WindowOpenGLDrawable>(500, 500, 4);
+        auto drawable = std::make_shared<WindowOpenGLDrawable>(1000, 1000, 4);
         drawable->setWindow(window);
         mapView->drawable(drawable);
         m_mapView = mapView;
