@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <cstdint>
 
 /*#define BLUEMARBLE_OBJECT_PROPERTY(propertyName, propertyType) \
     private: \
@@ -13,6 +14,7 @@
         */
 namespace BlueMarble
 {
+    typedef int64_t BMID;
     class EngineObject
     {
         public:
@@ -38,11 +40,15 @@ namespace BlueMarble
                         c->findChildren(foundObjects, true);
                 }
             }
+            BMID getID() const { return m_id; }
         protected:
             virtual void onChildAdded(EngineObject* child) {}; // TODO: should be pure virtual
         private:
+            static BMID generateUUID();
             std::string m_name;
             std::vector<EngineObject*> m_children;
+            BMID m_id;
+            static int64_t newestID;
     };
 }
 

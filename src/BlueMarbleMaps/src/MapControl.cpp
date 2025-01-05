@@ -1,5 +1,6 @@
 #include "MapControl.h"
 #include "SoftwareDrawable.h"
+#include "OpenGLDrawable.h"
 #include <exception>
 
 using namespace BlueMarble;
@@ -25,7 +26,8 @@ void MapControl::setView(MapPtr mapView)
     {
         std::cout << "MapControl::setView() Attaching Window drawable\n";
         //Create Opengl Drawable
-        auto drawable = std::make_shared<SoftwareWindowDrawable>(500, 500, 4);
+
+        auto drawable = std::make_shared<WindowOpenGLDrawable>(500, 500, 4);
         drawable->setWindow(window);
         mapView->drawable(drawable);
         m_mapView = mapView;
@@ -69,5 +71,5 @@ bool MapControl::resize(int width, int height, int64_t timeStampMs)
 void MapControl::handleResize(int width, int height)
 {
     m_mapView->drawable()->resize(width, height);
-    m_mapView->update();
+    updateViewInternal();
 }

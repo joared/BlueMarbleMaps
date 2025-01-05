@@ -60,6 +60,7 @@ class GLFWMapControl :public WindowGL, public MapControl
 public:
     GLFWMapControl()
     {
+        /*
         static auto key_static = [this](WindowGL* window, int key, int scancode, int action, int mods) {
                 // because we have a this pointer we are now able to call a non-static member method:
             keyEvent(window, key, scancode, action, mods);
@@ -93,25 +94,22 @@ public:
         registerMouseScrollEventCallback([](WindowGL* window, double xOffs, double yOffs) { mouseScroll_static(window,xOffs,yOffs);});
         registerMouseEnteredCallback([](WindowGL* window, int entered) { mouseEntered_static(window, entered);});
         registerCloseWindowEventCallback([](WindowGL* window) { windowClose_static(window);});
+        */
     }
-    void keyEvent(WindowGL* window, int key, int scanCode, int action, int modifier)
+    void keyEvent(WindowGL* window, int key, int scanCode, int action, int modifier) override
     {
         Key keyStroke(scanCode);
 
     }
 
-    void resizeEvent(WindowGL* window, int width, int height)
+    void resizeEvent(WindowGL* window, int width, int height) override
     {
         GLFWMapControl::resize(width, height, getGinotonicTimeStampMs());
     }
 
-    void resizeFrameBuffer(WindowGL* window, int width, int height)
+    void resizeFrameBuffer(WindowGL* window, int width, int height) override
     {
-        glViewport(0, 0, width, height);
-
-        glClear(GL_COLOR_BUFFER_BIT);
-        window->swapBuffers();
-        window->pollWindowEvents();
+        
     }
 
     void getMousePos(ScreenPos& pos) const override final
@@ -122,7 +120,7 @@ public:
         pos.y = (int)y;
     }
 
-    void mouseButtonEvent(WindowGL* window, int button, int action, int modifier)
+    void mouseButtonEvent(WindowGL* window, int button, int action, int modifier) override
     {
         int x = 0, y = 0;
         switch (action)
@@ -139,20 +137,20 @@ public:
         }
         }
     }
-    void mousePositionEvent(WindowGL* window, double x, double y)
+    void mousePositionEvent(WindowGL* window, double x, double y) override
     {
         mouseMove(MouseButtonLeft, x, y, ModificationKeyNone, getGinotonicTimeStampMs());
     }
-    void mouseScrollEvent(WindowGL* window, double xOffs, double yOffs)
+    void mouseScrollEvent(WindowGL* window, double xOffs, double yOffs) override
     {
         ScreenPos mousePos; getMousePos(mousePos);
         mouseWheel(yOffs, mousePos.x, mousePos.y, ModificationKeyNone, getGinotonicTimeStampMs());
     }
-    void mouseEntered(WindowGL* window, int entered)
+    void mouseEntered(WindowGL* window, int entered) override
     {
         
     }
-    void windowClosed(WindowGL* window)
+    void windowClosed(WindowGL* window) override
     {
         std::cout << "Window will close\n";
     }
@@ -189,10 +187,12 @@ int main() {
     {
         std::cout << "Could not initiate window..." << "\n";
     }
+    glDebugMessageCallback(MessageCallback, 0);
     const unsigned char* version = glGetString(GL_VERSION);
     std::cout << "opengl version: " << version << "\n";
-    auto view = std::make_shared<Map>();
 
+    auto view = std::make_shared<Map>();
+    view->center(Point(0,0));
     auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("C:/Users/Ottop/Onedrive/skrivbord/goat.jpg");
     elevationDataSet->initialize(BlueMarble::DataSetInitializationType::RightHereRightNow);
     auto elevationLayer = BlueMarble::Layer(false);
@@ -201,6 +201,10 @@ int main() {
     rasterVis->alpha(DirectDoubleAttributeVariable(0.5));
     elevationLayer.visualizers().push_back(rasterVis);
     view->addLayer(&elevationLayer);
+
+    PanEventHandler eventHandler(view, mapControl);
+    mapControl->addSubscriber(&eventHandler);
+    mapControl->setView(view);
 
     // Test Polygon/Line/Symbol visualizers
     auto vectorDataSet = std::make_shared<BlueMarble::MemoryDataSet>();
@@ -214,14 +218,18 @@ int main() {
 
     view->addLayer(&vectorLayer);
 
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_BLEND);
-
     while (!mapControl->windowShouldClose())
     {
-        
-        mapControl->swapBuffers();
-        mapControl->pollWindowEvents();
+        if (mapControl->updateRequired())
+        {
+            mapControl->updateViewInternal();
+            mapControl->pollWindowEvents();
+        }
+        else
+        {
+            mapControl->waitWindowEvents();
+        }
+        //mapControl->swapBuffers();
     }
     glfwTerminate();
 

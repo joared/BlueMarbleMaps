@@ -7,7 +7,7 @@ struct Texture
 
 	Texture();
 	~Texture();
-	bool init(unsigned char* data, int width, int height, int format, GLenum pixelType, GLuint activeIndex);
+	bool init(const unsigned char* data, int width, int height, int format, GLenum pixelType, GLuint activeIndex);
 	void bind();
 	void unbind();
 };

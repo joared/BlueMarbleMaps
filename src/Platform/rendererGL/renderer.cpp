@@ -189,6 +189,7 @@ MessageCallback(GLenum source,
 }
 int main()
 {
+	/*
 	stbi_set_flip_vertically_on_load(true);
 	WindowGL window;
 	if (!window.init(1000, 1000, "Hello World"))
@@ -283,4 +284,5 @@ int main()
 		window.pollWindowEvents();
 	}
 	glfwTerminate();
+	*/
 }

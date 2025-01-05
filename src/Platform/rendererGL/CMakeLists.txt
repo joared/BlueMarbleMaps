@@ -20,6 +20,7 @@ file(GLOB SHADER_SOURCES
 )
 
 add_executable(GraphicsRendererGL ${RENDERER_SOURCES} ${SHADER_SOURCES}) 
+
 target_include_directories(GraphicsRendererGL PRIVATE "${CMAKE_SOURCE_DIR}/include/Common")
 
 target_include_directories(GraphicsRendererGL PRIVATE "${CMAKE_SOURCE_DIR}/include/RendererGL/")
@@ -49,4 +50,37 @@ add_custom_command(
         COMMAND ${CMAKE_COMMAND} -E copy_directory
             "$<TARGET_PROPERTY:GraphicsRendererGL,SOURCE_DIR>/shaders"
             "$<TARGET_PROPERTY:GraphicsRendererGL,BINARY_DIR>/shaders"
+    )
+
+add_library(GraphicsRendererGLLib ${RENDERER_SOURCES} ${SHADER_SOURCER})
+
+target_include_directories(GraphicsRendererGLLib PRIVATE "${CMAKE_SOURCE_DIR}/include/Common")
+
+target_include_directories(GraphicsRendererGLLib PUBLIC "${CMAKE_SOURCE_DIR}/include/RendererGL/")
+
+message(STATUS "Looking for GLFW")
+
+target_include_directories(GraphicsRendererGLLib PUBLIC ${GLFW3_INCLUDE_DIR})
+target_link_libraries(GraphicsRendererGLLib PUBLIC ${GLFW3_LIBRARY})
+
+message(STATUS "Looking for GLAD")
+
+target_link_libraries(GraphicsRendererGLLib PUBLIC Glad)
+
+message(STATUS "Looking for GLM")
+
+target_link_libraries(GraphicsRendererGLLib PUBLIC glm)
+
+message(STATUS "looking for stb_image")
+target_link_libraries(GraphicsRendererGLLib PUBLIC StbImageLib)
+
+set_source_files_properties(${SHADER_SOURCES} PROPERTIES LANGUAGE GLSL)
+
+source_group("shaders" FILES ${SHADER_SOURCES})
+
+add_custom_command(
+        TARGET GraphicsRendererGLLib POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "$<TARGET_PROPERTY:GraphicsRendererGLLib,SOURCE_DIR>/shaders"
+            "$<TARGET_PROPERTY:GraphicsRendererGLLib,BINARY_DIR>/shaders"
     )

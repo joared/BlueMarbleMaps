@@ -2,8 +2,15 @@
 
 using namespace BlueMarble;
 
+Geometry::Geometry()
+    : EngineObject()
+{
+    
+}
+
 PointGeometry::PointGeometry()
-    : m_point()
+    : Geometry()
+    , m_point()
 {
 }
 
@@ -13,7 +20,8 @@ PointGeometry::PointGeometry(const Point& point)
 }
 
 LineGeometry::LineGeometry()
-    : m_points()
+    : Geometry()
+    , m_points()
 {
 }
 
@@ -33,25 +41,29 @@ void LineGeometry::moveTo(const Point& point)
 }
 
 PolygonGeometry::PolygonGeometry()
-    : m_rings()
+    : Geometry()
+    , m_rings()
     , m_cachedBounds([&] () { return Rectangle::fromPoints(outerRing());})
 {
 }
 
 PolygonGeometry::PolygonGeometry(const PolygonGeometry &other)
-    : m_rings(other.m_rings)
+    : Geometry()
+    , m_rings(other.m_rings)
     , m_cachedBounds([&] () { return Rectangle::fromPoints(outerRing());})
 {
 }
 
 PolygonGeometry::PolygonGeometry(const std::vector<Point>& ring)
-    : m_cachedBounds([&] () { return Rectangle::fromPoints(outerRing());})
+    : Geometry()
+    , m_cachedBounds([&] () { return Rectangle::fromPoints(outerRing());})
 {
     m_rings.push_back(ring);
 }
 
 PolygonGeometry::PolygonGeometry(const std::vector<std::vector<Point>>& rings)
-    : m_rings(rings)
+    : Geometry()
+    , m_rings(rings)
     , m_cachedBounds([&] () { return Rectangle::fromPoints(outerRing());})
 {
 }
@@ -81,7 +93,8 @@ void PolygonGeometry::moveTo(const Point& point)
 }
 
 RasterGeometry::RasterGeometry()
-    : m_raster()
+    : Geometry()
+    , m_raster()
 {
 }
 
@@ -130,11 +143,13 @@ RasterGeometryPtr RasterGeometry::getSubRasterGeometry(const Rectangle& subBound
 }
 
 MultiPolygonGeometry::MultiPolygonGeometry()
+    :Geometry()
 {
 }
 
 MultiPolygonGeometry::MultiPolygonGeometry(const std::vector<PolygonGeometry>& polygons)
-    : m_polygons(polygons)
+    : Geometry()
+    , m_polygons(polygons)
 {
 }
 

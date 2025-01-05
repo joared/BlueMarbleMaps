@@ -2,6 +2,7 @@
 #include <string>
 #include "glad/glad.h"
 #include <glfw3.h>
+#include <functional>
 class WindowGL
 {
 public:
@@ -18,13 +19,16 @@ public:
 	* Registers a key event callback by taking in a callback function
 	* function needs the integer parameters; key, scancode, action and modifier bits
 	*/
+	/*
 	void registerKeyEventCallback(void callback(WindowGL* window,int key, int scanCode, int action, int modifier));
 	//Resize callback which can be used by anyone who's interested in the window
 	void registerResizeEventCallback(void callback(WindowGL* window, int width, int height));
+	*/
 	/*
 	* This callback is only for the renderer. It is used to give the renderer a callback to when the windows framebuffer has been resized
 	* This can be used to draw to the framebuffer while resizing
 	*/
+	/*
 	void registerResizeFrameBufferEventCallback(void callback(WindowGL* window, int width, int height));
 	//Click event for anyone interested in the window
 	void registerMouseButtonEventCallback(void callback(WindowGL* window, int button, int action, int mods));
@@ -36,7 +40,7 @@ public:
 	void registerMouseEnteredCallback(void callback(WindowGL* window, int entered));
 	//Event for window closing
 	void registerCloseWindowEventCallback(void callback(WindowGL* window));
-
+	*/
 	void pollWindowEvents();
 	void waitWindowEvents();
 	//timeout expressed in number of seconds.
@@ -48,6 +52,16 @@ private:
 	std::string m_windowTitle;
 	GLFWwindow* m_window;
 
+	virtual void keyEvent(WindowGL* window, int key, int scanCode, int action, int modifier) = 0;
+	virtual void resizeEvent(WindowGL* window, int width, int height) = 0;
+	virtual void resizeFrameBuffer(WindowGL* window, int width, int height) = 0;
+	virtual void mouseButtonEvent(WindowGL* window, int button, int action, int modifier) = 0;
+	virtual void mousePositionEvent(WindowGL* window, double x, double y) = 0;
+	virtual void mouseScrollEvent(WindowGL* window, double xOffs, double yOffs) = 0;
+	virtual void mouseEntered(WindowGL* window, int entered) = 0;
+	virtual void windowClosed(WindowGL* window) = 0;
+	
+	/*std::function<void(WindowGL*, int, int, int, int)> externalKeyEventCallback;
 	void (*externalKeyEventCallback)(WindowGL*,int,int,int,int);
 	void (*externalResizeEventCallback)(WindowGL*,int,int);
 	void (*externalResizeFrameBufferEventCallback)(WindowGL*,int,int);
@@ -55,7 +69,7 @@ private:
 	void (*externalMousePositionEventCallback)(WindowGL*,double,double);
 	void (*externalMouseScrollEventCallback)(WindowGL*,double,double);
 	void (*externalMouseEnteredEventCallback)(WindowGL*,int);
-	void (*externalCloseWindowEventCallback)(WindowGL*);
+	void (*externalCloseWindowEventCallback)(WindowGL*);*/
 
 	static void internalKeyEventCallback(GLFWwindow* window, int key, int scanCode, int action, int modifier);
 	static void internalResizeEventCallback(GLFWwindow* window, int width, int height);

@@ -29,6 +29,7 @@ set(SOURCES
     ${SRC_DIR}/FeatureAnimation.cpp
     ${SRC_DIR}/Effect.cpp
     ${SRC_DIR}/MapControl.cpp
+    ${SRC_DIR}/OpenGLDrawable.cpp
     ${BBM_SOURCES}
 )
 
@@ -47,6 +48,10 @@ endif()
 if(LINK_TO_STB_IMAGE)
     message("Linking BlueMarbleMapsLib to StbImageImplementation")
     target_link_libraries(BlueMarbleMapsLib PRIVATE StbImageImplementation)
+endif()
+
+if(LINK_TO_GL)
+    target_link_libraries(BlueMarbleMapsLib PRIVATE GraphicsRendererGLLib)
 endif()
 
 

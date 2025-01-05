@@ -11,7 +11,7 @@ Texture::~Texture()
 {
 	glDeleteTextures(1, &m_id);
 }
-bool Texture::init(unsigned char* data, int width, int height, int format, GLenum pixelType, GLuint activeIndex)
+bool Texture::init(const unsigned char* data, int width, int height, int format, GLenum pixelType, GLuint activeIndex)
 {
 	int maxNrOfTextures;
 	glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &maxNrOfTextures);

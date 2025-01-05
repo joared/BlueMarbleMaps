@@ -4,10 +4,13 @@
 
 using namespace BlueMarble;
 
+BMID BlueMarble::EngineObject::newestID = 0;
+
 BlueMarble::EngineObject::EngineObject()
     : m_name()
     , m_children()
 {
+    m_id = generateUUID();
 }
 
 BlueMarble::EngineObject::EngineObject(const std::string &name)
@@ -50,4 +53,9 @@ EngineObject* EngineObject::findChild(const std::string &name, bool recursive)
     }
 
     return nullptr;
+}
+
+BMID BlueMarble::EngineObject::generateUUID()
+{
+    return ++newestID;
 }

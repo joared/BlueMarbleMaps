@@ -5,6 +5,7 @@
 #include "Raster.h"
 #include "Utils.h"
 #include "Transform.h"
+#include "EngineObject.h"
 
 #include <memory>
 #include <vector>
@@ -44,7 +45,7 @@ namespace BlueMarble
 
     class Geometry; // Forward declaration
     typedef std::shared_ptr<Geometry> GeometryPtr;
-    class Geometry
+    class Geometry : public EngineObject
     {
         public:
             virtual GeometryPtr clone() = 0;
@@ -58,6 +59,7 @@ namespace BlueMarble
             const Transform& getTransForm() { std::cout << "Geometry::getTransForm() Not implemented\n"; throw std::exception(); };
             void setTransForm(const Transform& transform) { std::cout << "Geometry::getTransForm() Not implemented\n"; throw std::exception(); };
         protected:
+            Geometry();
             virtual ~Geometry() = default; // { std::cout << "~Geometry()\n"; };
     };
 

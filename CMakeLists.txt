@@ -30,6 +30,8 @@ if (NOT BLUEMARBLE_USE_CIMG_RASTER_IMPL)
     set(LINK_TO_STB_IMAGE ON)
 endif()
 
+set(LINK_TO_GL ON)
+
 # Add a library to easy link test cases
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/examples)

@@ -59,9 +59,19 @@ Raster::Impl::Impl(const std::string& filePath)
     // if (!std::filesystem::exists(filePath)) { // C++17 filesystem
     // std::cerr << "File does not exist: " << filePath << std::endl;
     // }
-    stbi_set_flip_vertically_on_load(1);
+    stbi_set_flip_vertically_on_load(true);
+
+    m_data = stbi_load(filePath.c_str(), &m_width, &m_height, &m_channels, STBI_rgb_alpha);
+
+    if (m_data == NULL)
+    {
+        std::cout << "couldn't load texture: " << stbi_failure_reason() << "\n";
+        return;
+    }
+    /*
+    stbi_set_flip_vertically_on_load(true);
     
-    m_data = stbi_load(filePath.c_str(), &m_width, &m_height, &m_channels, 0);
+    m_data = stbi_load(filePath.c_str(), &m_width, &m_height, &m_channels, STBI_rgb_alpha);
     if (m_data == nullptr)
     {
         std::cout << "Failed to load image: " << filePath << "\n";
@@ -69,6 +79,7 @@ Raster::Impl::Impl(const std::string& filePath)
     }
 
     std::cout << "Stb image raster loaded: " << m_width << ", " << m_height << ", " << m_channels << "\n";
+    */
 }
 
 Raster::Impl::~Impl()
