@@ -21,6 +21,7 @@ namespace BlueMarble
 
     bool EventDispatcher::dispatchEvent(Event &event, int timeStampMs)
     {
+        std::cout << event.toString() << " (timestamp: " << timeStampMs << ")\n";
         event.timeStampMs = timeStampMs; // TODO: should not be here??
         for (auto eventHandler : m_eventHandlers)
         {
@@ -54,29 +55,38 @@ namespace BlueMarble
 
     bool EventManager::mouseDown(MouseButton button, int x, int y, ModificationKey modKeys, int64_t timeStampMs)
     {
-        MouseDownEvent event;
-        event.pos = ScreenPos{x,y};
-        event.modificationKey = modKeys;
-        event.mouseButton = button;
-        return dispatchEvent(event, timeStampMs);
+        m_timeStampMs = timeStampMs;
+        handleMouseButtonChanged(button, ScreenPos{x,y}, modKeys);
+        // MouseDownEvent event;
+        // event.pos = ScreenPos{x,y};
+        // event.modificationKey = modKeys;
+        // event.mouseButton = button;
+        // return dispatchEvent(event, timeStampMs);
+        return true;
     }
 
     bool EventManager::mouseMove(MouseButton button, int x, int y, ModificationKey modKeys, int64_t timeStampMs)
     {
-        MouseMoveEvent event;
-        event.pos = ScreenPos{x,y};
-        event.modificationKey = modKeys;
-        event.mouseButton = button;
-        return dispatchEvent(event, timeStampMs);
+        m_timeStampMs = timeStampMs;
+        handlePosChanged(button, ScreenPos{x,y}, modKeys);
+        // MouseMoveEvent event;
+        // event.pos = ScreenPos{x,y};
+        // event.modificationKey = modKeys;
+        // event.mouseButton = button;
+        // return dispatchEvent(event, timeStampMs);
+        return true;
     }
 
     bool EventManager::mouseUp(MouseButton button, int x, int y, ModificationKey modKeys, int64_t timeStampMs)
     {
-        MouseUpEvent event;
-        event.pos = ScreenPos{x,y};
-        event.modificationKey = modKeys;
-        event.mouseButton = button;
-        return dispatchEvent(event, timeStampMs);
+        m_timeStampMs = timeStampMs;
+        handleMouseButtonChanged(MouseButton::MouseButtonNone, ScreenPos{x,y}, modKeys);
+        // MouseUpEvent event;
+        // event.pos = ScreenPos{x,y};
+        // event.modificationKey = modKeys;
+        // event.mouseButton = button;
+        // return dispatchEvent(event, timeStampMs);
+        return true;
     }
 
     bool EventManager::mouseWheel(int delta, int x, int y, ModificationKey modKeys, int64_t timeStampMs)
@@ -147,9 +157,8 @@ namespace BlueMarble
         return !(currPos.x == -1 || currPos.y == -1) && (lastPos.x != currPos.x || lastPos.y != currPos.y);
     }
 
-    void EventManager::handlePosChanged(MouseButton lastDown, const ScreenPos &currPos)
+    void EventManager::handlePosChanged(MouseButton lastDown, const ScreenPos& currPos, ModificationKey modKeys)
     {
-        ModificationKey modKey = getModificationKeyMask();
         if (!m_isDragging)
         {
             if (lastDown != MouseButtonNone && detectDrag(m_downPos, currPos, m_configration.dragThresh))
@@ -159,7 +168,7 @@ namespace BlueMarble
                 beginEvent.startPos = m_downPos;
                 beginEvent.lastPos = m_downPos;
                 beginEvent.pos = m_downPos;
-                beginEvent.modificationKey = modKey;
+                beginEvent.modificationKey = modKeys;
                 beginEvent.mouseButton = lastDown;
                 dispatchEvent(beginEvent, m_previousMouseDownEvent.timeStampMs); // Use the timestamp of the mouse down event
 
@@ -168,7 +177,7 @@ namespace BlueMarble
                 event.startPos = m_downPos;
                 event.lastPos = m_downPos;
                 event.pos = currPos;
-                event.modificationKey = modKey;
+                event.modificationKey = modKeys;
                 event.mouseButton = m_lastDown;
                 dispatchEvent(event, m_timeStampMs);
 
@@ -177,7 +186,11 @@ namespace BlueMarble
             else 
             {
                 // Mouse move
-                mouseMove(lastDown, currPos.x, currPos.y, modKey, m_timeStampMs);
+                MouseMoveEvent event;
+                event.pos = currPos;
+                event.modificationKey = modKeys;
+                event.mouseButton = lastDown;
+                dispatchEvent(event, m_timeStampMs);
             }
         }
         else
@@ -187,17 +200,18 @@ namespace BlueMarble
             event.startPos = m_downPos;
             event.lastPos = m_lastPos;
             event.pos = currPos;
-            event.modificationKey = modKey;
+            event.modificationKey = modKeys;
             event.mouseButton = lastDown;     // We use the last down button
             dispatchEvent(event, m_timeStampMs);
         }
+        m_lastPos = currPos;
     }
 
-    void EventManager::handleMouseButtonChanged(MouseButton currButton, const ScreenPos &currPos)
+    void EventManager::handleMouseButtonChanged(MouseButton currButton, const ScreenPos& currPos, ModificationKey modKeys)
     {
-        ModificationKey modKey = getModificationKeyMask();
         if (m_lastDown == MouseButtonNone)
         {
+            std::cout << "Screen: " << currPos.x << ", " << currPos.y << "\n";
             m_downPos = currPos; // Store down position for drag detection
             m_lastDown = currButton; // Store last down button for mouse up
 
@@ -209,7 +223,7 @@ namespace BlueMarble
                 // TODO: Double click drag
                 DoubleClickEvent clickEvent;
                 clickEvent.pos = currPos;
-                clickEvent.modificationKey = modKey;
+                clickEvent.modificationKey = modKeys;
                 clickEvent.mouseButton = currButton;
                 dispatchEvent(clickEvent, m_timeStampMs);
 
@@ -220,7 +234,7 @@ namespace BlueMarble
                 // Mouse down
                 MouseDownEvent event;
                 event.pos = currPos;
-                event.modificationKey = modKey;
+                event.modificationKey = modKeys;
                 event.mouseButton = currButton;
                 dispatchEvent(event, m_timeStampMs);
 
@@ -234,7 +248,7 @@ namespace BlueMarble
                 // Mouse up TOOD: should we dispatch mouse up?
                 MouseUpEvent event;
                 event.pos = currPos;
-                event.modificationKey = modKey;
+                event.modificationKey = modKeys;
                 event.mouseButton = m_lastDown; // We use the last down button
                 dispatchEvent(event, m_timeStampMs);
 
@@ -243,7 +257,7 @@ namespace BlueMarble
                 {
                     ClickEvent clickEvent;
                     clickEvent.pos = currPos;
-                    clickEvent.modificationKey = modKey;
+                    clickEvent.modificationKey = modKeys;
                     clickEvent.mouseButton = m_lastDown; // We use the last down button
                     dispatchEvent(clickEvent, m_timeStampMs);
                 }
@@ -255,7 +269,7 @@ namespace BlueMarble
                 event.startPos = m_downPos;
                 event.lastPos = m_lastPos;
                 event.pos = currPos;
-                event.modificationKey = modKey;
+                event.modificationKey = modKeys;
                 event.mouseButton = m_lastDown; // We use the last down button
                 dispatchEvent(event, m_timeStampMs);
 
@@ -282,6 +296,7 @@ namespace BlueMarble
         
         ScreenPos currScreenPos;
         getMousePos(currScreenPos);
+        ModificationKey modKeys = getModificationKeyMask();
         bool posChanged = mousePosChanged(m_lastPos, currScreenPos);
 
         // We need to handle button changes first, since CImg
@@ -291,13 +306,13 @@ namespace BlueMarble
         // bool first = m_lastDown != MouseButtonNone;
         if (mButtonChanged)
         {
-            handleMouseButtonChanged(mouseButton, currScreenPos);
+            handleMouseButtonChanged(mouseButton, currScreenPos, modKeys);
         }
 
         // Handle move event first
         if (posChanged)
         {
-            handlePosChanged(m_lastDown, currScreenPos);
+            handlePosChanged(m_lastDown, currScreenPos, modKeys);
             m_lastPos = currScreenPos;
         }
 

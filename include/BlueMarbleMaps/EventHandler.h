@@ -82,8 +82,8 @@ namespace BlueMarble
             bool captureMouseEvents();
             bool mouseButtonChanged(MouseButton lastDown, MouseButton current);
             bool mousePosChanged(const ScreenPos& lastPos, const ScreenPos& currPos);
-            void handlePosChanged(MouseButton lastDown, const ScreenPos& currPos);
-            void handleMouseButtonChanged(MouseButton curr, const ScreenPos& currPos);
+            void handlePosChanged(MouseButton lastDown, const ScreenPos& currPos, ModificationKey modKeys);
+            void handleMouseButtonChanged(MouseButton curr, const ScreenPos& currPos, ModificationKey modKeys);
             bool detectDrag(const ScreenPos& startPos, const ScreenPos& currPos, int thresh);
             
 

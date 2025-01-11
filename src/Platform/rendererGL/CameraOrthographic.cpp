@@ -105,8 +105,12 @@ void CameraOrthographic::orbit(float xRot, float yRot)
 
 glm::mat4& CameraOrthographic::calculateTranslations()
 {
-	m_projMatrix = glm::ortho(0.0f, m_cameraInfo.m_width, 0.0f, m_cameraInfo.m_height, m_cameraInfo.m_near, m_cameraInfo.m_far);
-	m_viewMatrix = m_projMatrix * glm::lookAt(m_cameraInfo.m_pos, m_cameraInfo.m_cameraFace + m_cameraInfo.m_pivot, m_cameraInfo.m_up);
+	float w = (float)m_cameraInfo.m_width;
+	float h = (float)m_cameraInfo.m_height;
+	m_projMatrix = glm::ortho(-w*0.5f, w*0.5f, -h*0.5f, h*0.5f, -(float)m_cameraInfo.m_near, (float)m_cameraInfo.m_far);
+	m_viewMatrix = m_projMatrix * glm::lookAt(m_cameraInfo.m_pos, 
+											  m_cameraInfo.m_cameraFace + m_cameraInfo.m_pivot, 
+											  m_cameraInfo.m_up);
 	return m_viewMatrix;
 }
 

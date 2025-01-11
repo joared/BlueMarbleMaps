@@ -124,17 +124,17 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, dou
     if (!m_idSet.count(raster->getID()))
     {
         Raster& r = raster->raster();
-        int w = r.width();
-        int h = r.height();
+        float w = (float)r.width();
+        float h = (float)r.height();
               
         // vertices = { Vertice{glm::vec3(-w*0.5f,h*0.5f,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(0,0)},
         //              Vertice{glm::vec3(w*0.5f,h*0.5f,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(0,1)},
         //              Vertice{glm::vec3(w*0.5f,-h*0.5f,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(1,1)},
         //              Vertice{glm::vec3(-w*0.5f,-h*0.5f,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(1,0)} };
-        vertices = { Vertice{glm::vec3(0.0f,(float)h,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(0,0)},
-                     Vertice{glm::vec3((float)w,(float)h,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(0,1)},
-                     Vertice{glm::vec3((float)w,0.0f,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(1,1)},
-                     Vertice{glm::vec3(0.0f,0.0f,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(1,0)} };
+        vertices = { Vertice{glm::vec3(0.0f,0.0f,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(0.0f,1.0f)},
+                     Vertice{glm::vec3(w,0.0f,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(1.0f,1.0f)},
+                     Vertice{glm::vec3(w,-h,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(1.0f,0.0f)},
+                     Vertice{glm::vec3(0.0f,-h,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(0.0f,0.0f)} };
         indices = { 0,1,2,
                     2,3,0 };
 
@@ -146,16 +146,15 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, dou
         shader.useProgram();
         shader.setInt("texture0", texIndex);
 
-
         vbo.init(vertices);
         ibo.init(indices);
         vao.init();
 
         vao.bind();
         vbo.bind();
-        vao.link(vbo, 0, vertices.size(), GL_FLOAT, sizeof(Vertice), (void*)0);
-        vao.link(vbo, 1, vertices.size(), GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, color));
-        vao.link(vbo, 2, vertices.size(), GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, texCoord));
+        vao.link(vbo, 0, 3, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, position));
+        vao.link(vbo, 1, 4, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, color));
+        vao.link(vbo, 2, 2, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, texCoord));
         vbo.unbind();
         m_idSet.insert(raster->getID());
     }
@@ -168,14 +167,17 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, dou
         // CameraPerspective cam = CameraPerspective(info);
         // cam.pan(center.x(), -center.y(), 1000.0/scale);
         auto info = OrthographicCameraInformation();
+        
         info.m_far = 100000000000000000.0;
         info.m_height = m_height/scale;
         info.m_width = m_width/scale;
         CameraOrthographic cam = CameraOrthographic(info);
         cam.pan(center.x(), -center.y(), 1.0);
+        auto& viewMatrix = cam.calculateTranslations();
 
         //cam.zoom(1.0 / scale);
-        shader.setMat4("viewMatrix", cam.calculateTranslations());
+        shader.useProgram();
+        shader.setMat4("viewMatrix", viewMatrix);
         vao.bind();
         vbo.bind();
         ibo.bind();

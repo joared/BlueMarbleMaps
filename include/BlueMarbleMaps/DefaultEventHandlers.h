@@ -435,8 +435,8 @@ namespace BlueMarble
             {
                 m_map->stopAnimation();
                 m_map->update();
-                m_lastX = event.pos.x;
-                m_lastY = event.pos.y;
+                // m_lastX = event.pos.x;
+                // m_lastY = event.pos.y;
                 return true;
             }
 
@@ -456,14 +456,14 @@ namespace BlueMarble
                     m_map->update();
                 }
 
-                if (event.mouseButton == MouseButtonLeft)
-                {
-                    m_map->panBy({(double)(m_lastX - event.pos.x), 
-                              (double)(m_lastY - event.pos.y)});
-                    m_map->update();
-                    m_lastX = event.pos.x;
-                    m_lastY = event.pos.y;
-                }
+                // if (event.mouseButton == MouseButtonLeft)
+                // {
+                //     m_map->panBy({(double)(m_lastX - event.pos.x), 
+                //               (double)(m_lastY - event.pos.y)});
+                //     m_map->update();
+                //     m_lastX = event.pos.x;
+                //     m_lastY = event.pos.y;
+                // }
 
                 return true;
             }

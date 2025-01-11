@@ -89,17 +89,35 @@ public:
     void mouseButtonEvent(WindowGL* window, int button, int action, int modifier) override
     {
         ScreenPos mousePos; getMousePos(mousePos);
+        MouseButton bmmButton;
+
+        switch (button)
+        {
+            case GLFW_MOUSE_BUTTON_LEFT:
+                bmmButton = MouseButtonLeft;
+                break;
+            case GLFW_MOUSE_BUTTON_RIGHT:
+                bmmButton = MouseButtonRight;
+                break;
+            case GLFW_MOUSE_BUTTON_MIDDLE:
+                bmmButton = MouseButtonMiddle;
+                break;
+            default:
+                std::cout << "Unknown mouse button: " << button << "\n";
+                return;
+        }
+
         switch (action)
         {
         case GLFW_PRESS:
         {
-            mouseDown(MouseButtonLeft, mousePos.x, mousePos.y, ModificationKeyNone, getGinotonicTimeStampMs());
+            mouseDown(bmmButton, mousePos.x, mousePos.y, ModificationKeyNone, getGinotonicTimeStampMs());
             m_mouseDown = true;
             break;
         }
         case GLFW_RELEASE:
         {
-            mouseUp(MouseButtonLeft, mousePos.x, mousePos.y, ModificationKeyNone, getGinotonicTimeStampMs());
+            mouseUp(bmmButton, mousePos.x, mousePos.y, ModificationKeyNone, getGinotonicTimeStampMs());
             m_mouseDown = false;
             break;
         }
@@ -150,19 +168,20 @@ MessageCallback(GLenum source,
 }
 
 int main() {
-    //glDebugMessageCallback(MessageCallback, 0);
+    glDebugMessageCallback(MessageCallback, 0);
     //MapControlStuff
     auto mapControl = std::make_shared<GLFWMapControl>();
     if (!mapControl->init(1000, 1000, "Hello World"))
     {
         std::cout << "Could not initiate window..." << "\n";
     }
-    glDebugMessageCallback(MessageCallback, 0);
+    //glDebugMessageCallback(MessageCallback, 0);
     const unsigned char* version = glGetString(GL_VERSION);
     std::cout << "opengl version: " << version << "\n";
 
     auto view = std::make_shared<Map>();
-    view->center(Point(0,0));
+    view->center(Point(0, 0));
+    view->scale(0.1);
     auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/geodata/elevation/LARGE_elevation.jpg");
     elevationDataSet->initialize(BlueMarble::DataSetInitializationType::RightHereRightNow);
     auto elevationLayer = BlueMarble::Layer(false);
@@ -201,6 +220,7 @@ int main() {
         {
             mapControl->waitWindowEvents();
         }
+        std::cout << view->center().toString() << "\n";
         //mapControl->swapBuffers();
     }
     glfwTerminate();

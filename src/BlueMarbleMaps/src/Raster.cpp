@@ -13,13 +13,11 @@ Raster::Raster()
 Raster::Raster(const Raster& raster)
     : m_impl(std::make_unique<Impl>(*raster.m_impl))
 {
-    std::cout << "Raster(const Raster& raster)\n";
 }
 
 Raster::Raster(Raster&& raster) noexcept
     : m_impl(std::move(raster.m_impl))
 {
-    std::cout << "Raster(const Raster&& raster)\n";
 }
 
 Raster::Raster(int width, int height, int channels, int fill)
