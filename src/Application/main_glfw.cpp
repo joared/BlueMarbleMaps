@@ -18,43 +18,6 @@ using namespace cimg_library;
 using namespace BlueMarble;
 
 
-class ImageView
-{
-public:
-    Point center;
-    double scale;
-};
-
-const char* vertexShaderSource = R"(
-#version 330 core
-layout(location = 0) in vec2 aPos;
-layout(location = 1) in vec2 aTexCoord;
-
-out vec2 TexCoord;
-
-uniform vec2 texOffset;
-uniform float texScale;
-
-void main()
-{
-    gl_Position = vec4(aPos*texScale + texOffset, 0.0, 1.0);
-    TexCoord = aTexCoord;
-}
-)";
-
-const char* fragmentShaderSource = R"(
-#version 330 core
-out vec4 FragColor;
-
-in vec2 TexCoord;
-uniform sampler2D texture1;
-
-void main()
-{
-    FragColor = texture(texture1, TexCoord);
-}
-)";
-
 class GLFWMapControl :public WindowGL, public MapControl
 {
 public:
@@ -151,24 +114,8 @@ public:
 typedef std::shared_ptr<GLFWMapControl> GLFWMapControlPtr;
 
 
-
-
-void GLAPIENTRY
-MessageCallback(GLenum source,
-    GLenum type,
-    GLuint id,
-    GLenum severity,
-    GLsizei length,
-    const GLchar* message,
-    const void* userParam)
+int main() 
 {
-    fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
-        (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
-        type, severity, message);
-}
-
-int main() {
-    glDebugMessageCallback(MessageCallback, 0);
     //MapControlStuff
     auto mapControl = std::make_shared<GLFWMapControl>();
     if (!mapControl->init(1000, 1000, "Hello World"))

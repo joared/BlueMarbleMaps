@@ -4,6 +4,21 @@
 
 //Public functions
 
+// void GLAPIENTRY
+// MessageCallback(GLenum source,
+//     GLenum type,
+//     GLuint id,
+//     GLenum severity,
+//     GLsizei length,
+//     const GLchar* message,
+//     const void* userParam)
+// {
+//     fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+//         (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
+//         type, severity, message);
+// }
+
+
 WindowGL::WindowGL()
 	:m_width(0),
 	m_height(0),
@@ -27,7 +42,7 @@ bool WindowGL::init(int width, int height, std::string windowTitle)
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
+	//glDebugMessageCallback(MessageCallback, 0);
 	m_window = glfwCreateWindow(width, height, windowTitle.c_str(), nullptr, nullptr);
 	glfwMakeContextCurrent(m_window);
 	gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
