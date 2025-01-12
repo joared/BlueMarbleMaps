@@ -8,6 +8,7 @@
 #include "Layer.h"
 #include "PresentationObject.h"
 #include "EngineObject.h"
+#include "CoordinateSystem/Crs.h"
 
 #include <map>
 #include <functional>
@@ -96,7 +97,8 @@ namespace BlueMarble
             double height() const;
             Rectangle area() const;
             MapConstraints& mapConstraints() { return m_constraints; };
-
+            const CrsPtr& getCrs() { return m_crs; }
+            void setCrs(const CrsPtr& crs) { m_crs = crs; }
             // Operations
             void panBy(const Point& deltaScreen, bool animate=false);
             void panTo(const Point& mapPoint, bool animate=false);
@@ -187,6 +189,8 @@ namespace BlueMarble
             Point m_center;
             double m_scale;
             double m_rotation;
+
+            CrsPtr m_crs;
 
             MapConstraints m_constraints;
 

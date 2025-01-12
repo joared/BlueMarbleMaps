@@ -5,41 +5,50 @@
 #include "Geometry.h"
 #include "Identity.h"
 #include "Attributes.h"
+#include "CoordinateSystem/Crs.h"
 
 #include <memory>
 
 namespace BlueMarble
 {
-    class Feature; // Forward declaration
+    // Forward declaration
+    class Feature;
     typedef std::shared_ptr<Feature> FeaturePtr;
+
+    class FeatureCollection;
+    typedef std::shared_ptr<FeatureCollection> FeatureCollectionPtr;
+
     class Feature
     {
         public:
-            Feature(const Id& id, GeometryPtr geometry);
-            Feature(const Id& id, GeometryPtr geometry, const Attributes& attributes);
+            Feature(const Id& id, const CrsPtr& crs, const GeometryPtr& geometry);
+            Feature(const Id& id, const CrsPtr& crs, const GeometryPtr& geometry, const Attributes& attributes);
             FeaturePtr clone();
             Id id() const;
             void id(const Id& id) { m_id = id; }; // TODO: remove, temporary fix for setting id
+            const CrsPtr& crs() { return m_crs; }
             void move(const Point& delta);
             void moveTo(const Point& point);
             Rectangle bounds() const;
             Point center() const;
+            FeatureCollectionPtr projectTo(const CrsPtr& crs);
             bool isInside(const Rectangle& bounds) const; // TODO: change name to overlap?
             bool isStrictlyInside(const Rectangle& bounds) const;
             GeometryType geometryType() const;
-            GeometryPtr& geometry();
-            PointGeometryPtr geometryAsPoint();
-            LineGeometryPtr geometryAsLine();
-            PolygonGeometryPtr geometryAsPolygon();
-            MultiPolygonGeometryPtr geometryAsMultiPolygon();
-            RasterGeometryPtr geometryAsRaster();
+            const GeometryPtr& geometry() const;
+            PointGeometryPtr geometryAsPoint() const;
+            LineGeometryPtr geometryAsLine() const;
+            PolygonGeometryPtr geometryAsPolygon() const;
+            MultiPolygonGeometryPtr geometryAsMultiPolygon() const;
+            RasterGeometryPtr geometryAsRaster() const;
             Attributes& attributes();
-            std::string prettyString();
+            std::string prettyString() const;
         private:
             Feature(const Feature&) = default; // Make copy constructor private. Call clone() to copy.
             Id          m_id;
             GeometryPtr m_geometry;
             Attributes  m_attributes;
+            CrsPtr      m_crs;
     };
 
 
@@ -79,7 +88,7 @@ namespace BlueMarble
                     }
                 }
 
-                return nullptr;
+                return FeaturePtr();
             }
 
             Rectangle bounds() const 

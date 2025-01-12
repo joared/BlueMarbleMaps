@@ -2,23 +2,25 @@
 
 using namespace BlueMarble;
 
-Feature::Feature(const Id& id, GeometryPtr geometry)
+Feature::Feature(const Id& id, const CrsPtr& crs, const GeometryPtr& geometry)
     : m_id(id)
     , m_geometry(geometry)
     , m_attributes()
+    , m_crs(crs)
 {
 }
 
-BlueMarble::Feature::Feature(const Id &id, GeometryPtr geometry, const Attributes &attributes)
+BlueMarble::Feature::Feature(const Id& id, const CrsPtr& crs, const GeometryPtr& geometry, const Attributes &attributes)
     : m_id(id)
     , m_geometry(geometry)
     , m_attributes(attributes)
+    , m_crs(crs)
 {
 }
 
 FeaturePtr BlueMarble::Feature::clone()
 {
-    return std::make_shared<Feature>(id(), m_geometry->clone(), attributes());
+    return std::make_shared<Feature>(m_id, m_crs, m_geometry->clone(), m_attributes);
 }
 
 Id Feature::id() const
@@ -46,6 +48,12 @@ Point Feature::center() const
     return m_geometry->center();
 }
 
+FeatureCollectionPtr BlueMarble::Feature::projectTo(const CrsPtr &crs)
+{
+    // TODO
+    return FeatureCollectionPtr();
+}
+
 bool Feature::isInside(const Rectangle& bounds) const
 {
     return m_geometry->isInside(bounds);
@@ -61,12 +69,12 @@ GeometryType Feature::geometryType() const
     return m_geometry->type();
 }
 
-GeometryPtr& Feature::geometry()
+const GeometryPtr& Feature::geometry() const
 {
     return m_geometry;
 }
 
-PointGeometryPtr Feature::geometryAsPoint()
+PointGeometryPtr Feature::geometryAsPoint() const
 {
     if (m_geometry->type() == GeometryType::Point)
         return std::static_pointer_cast<PointGeometry>(m_geometry);
@@ -74,15 +82,15 @@ PointGeometryPtr Feature::geometryAsPoint()
     return nullptr;
 }
 
-LineGeometryPtr Feature::geometryAsLine()
+LineGeometryPtr Feature::geometryAsLine() const
 {
     if (m_geometry->type() == GeometryType::Line)
         return std::static_pointer_cast<LineGeometry>(m_geometry);
     
-    return nullptr;
+    return LineGeometryPtr();
 }
 
-PolygonGeometryPtr Feature::geometryAsPolygon()
+PolygonGeometryPtr Feature::geometryAsPolygon() const
 {
     if (m_geometry->type() == GeometryType::Polygon)
         return std::static_pointer_cast<PolygonGeometry>(m_geometry);
@@ -90,7 +98,7 @@ PolygonGeometryPtr Feature::geometryAsPolygon()
     return nullptr;
 }
 
-MultiPolygonGeometryPtr BlueMarble::Feature::geometryAsMultiPolygon()
+MultiPolygonGeometryPtr BlueMarble::Feature::geometryAsMultiPolygon() const
 {
     if (m_geometry->type() == GeometryType::MultiPolygon)
         return std::static_pointer_cast<MultiPolygonGeometry>(m_geometry);
@@ -98,7 +106,7 @@ MultiPolygonGeometryPtr BlueMarble::Feature::geometryAsMultiPolygon()
     return nullptr;
 }
 
-RasterGeometryPtr Feature::geometryAsRaster()
+RasterGeometryPtr Feature::geometryAsRaster() const
 {
     if (m_geometry->type() == GeometryType::Raster)
         return std::static_pointer_cast<RasterGeometry>(m_geometry);
@@ -111,7 +119,7 @@ Attributes& Feature::attributes()
     return m_attributes;
 }
 
-std::string BlueMarble::Feature::prettyString()
+std::string BlueMarble::Feature::prettyString() const
 {
     std::string s = "Feature (" + std::to_string(m_id.dataSetId()) + ", " + std::to_string(m_id.featureId()) + "):\n";
     s += "\tGeometry: " + typeToString(m_geometry->type());

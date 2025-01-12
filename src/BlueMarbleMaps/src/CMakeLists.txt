@@ -30,6 +30,9 @@ set(SOURCES
     ${SRC_DIR}/Effect.cpp
     ${SRC_DIR}/MapControl.cpp
     ${SRC_DIR}/OpenGLDrawable.cpp
+    ${SRC_DIR}/CoordinateSystem/Crs.cpp
+    ${SRC_DIR}/CoordinateSystem/GeodeticDatum.cpp
+    ${SRC_DIR}/CoordinateSystem/Projection.cpp
     ${BBM_SOURCES}
 )
 

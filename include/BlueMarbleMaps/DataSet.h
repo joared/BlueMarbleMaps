@@ -6,6 +6,7 @@
 #include "Algorithm.h"
 #include "EngineObject.h"
 #include "FeatureAnimation.h"
+#include "CoordinateSystem/Crs.h"
 
 #include <atomic>
 #include <memory>
@@ -40,6 +41,8 @@ namespace BlueMarble
             Id generateId();
             FeaturePtr createFeature(GeometryPtr geometry);
             const DataSetId& dataSetId() { return m_dataSetId; }
+            const CrsPtr& getCrs() { return m_crs; }
+            void setCrs(const CrsPtr& crs) { m_crs = crs; }
             bool isInitialized() { return m_isInitialized; }
             bool isInitializing() { return m_isInitializing; }
             void initialize(DataSetInitializationType initType = DataSetInitializationType::BackgroundThread);
@@ -49,6 +52,7 @@ namespace BlueMarble
             virtual void init() = 0;
         private:
             DataSetId        m_dataSetId;
+            CrsPtr           m_crs;
             std::atomic_bool m_isInitialized;
             std::atomic_bool m_isInitializing;
             std::map<Id, int64_t> m_idToVisualizationTimeStamp;

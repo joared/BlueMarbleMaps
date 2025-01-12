@@ -143,6 +143,7 @@ void Layer::toScreen(Map& map, const std::vector<FeaturePtr>& features, std::vec
             auto newF = std::make_shared<Feature>
             (
                 f->id(),
+                f->crs(),
                 std::make_shared<PointGeometry>(screenPoint)
             );
             newF->attributes() = f->attributes();
@@ -157,6 +158,7 @@ void Layer::toScreen(Map& map, const std::vector<FeaturePtr>& features, std::vec
             auto newF = std::make_shared<Feature>
             (
                 f->id(),
+                f->crs(),
                 std::make_shared<LineGeometry>(screenPoints)
             );
             newF->attributes() = f->attributes();
@@ -176,6 +178,7 @@ void Layer::toScreen(Map& map, const std::vector<FeaturePtr>& features, std::vec
             auto newF = std::make_shared<Feature>
             (
                 f->id(),
+                f->crs(),
                 std::make_shared<PolygonGeometry>(screenRings)
             );
             newF->attributes() = f->attributes();

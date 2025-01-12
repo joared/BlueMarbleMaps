@@ -20,9 +20,12 @@ Id BlueMarble::DataSet::generateId()
 
 FeaturePtr DataSet::createFeature(GeometryPtr geometry)
 {
+    assert(m_crs);
+
     auto feature = std::make_shared<Feature>
     (
         generateId(),
+        m_crs,
         geometry
     );
 
@@ -102,6 +105,7 @@ DataSetPtr DataSet::getDataSetById(const DataSetId &dataSetId)
 
 DataSet::DataSet()
     : m_dataSetId(DataSetId(this))
+    , m_crs(Crs::wgs84LngLat()) // TODO: should be nullptr?
     , m_isInitialized(false)
     , m_isInitializing(false)
     , m_idToVisualizationTimeStamp()
@@ -166,7 +170,7 @@ void ImageDataSet::onUpdateRequest(Map &map, const Rectangle& updateArea, Featur
     if(updateArea.overlap(m_rasterGeometry->bounds()))
     {
         //auto feature = std::make_shared<Feature>(Id(0,0), rasterGeometry); // TODO: overviews improves performance for software implementation
-        auto feature = std::make_shared<Feature>(Id(0,0), m_rasterGeometry);
+        auto feature = std::make_shared<Feature>(Id(0,0), getCrs(), m_rasterGeometry);
         handler->onFeatureInput(map, std::vector<FeaturePtr>({ feature }));
     }
 }
@@ -478,6 +482,7 @@ void ShapeFileDataSet::read(const std::string& /*filePath*/)
     auto stockholm = std::make_shared<Feature>
     (
         Id(0, 1), 
+        getCrs(),
         std::make_shared<PointGeometry>(Point(18.063240, 59.334591))
     );
     stockholm->attributes().set("NAME", "Stockholm");
@@ -486,6 +491,7 @@ void ShapeFileDataSet::read(const std::string& /*filePath*/)
     auto goteborg = std::make_shared<Feature>
     (
         Id(0, 2), 
+        getCrs(),
         std::make_shared<PointGeometry>(Point(11.954, 57.706))
     );
     goteborg->attributes().set("NAME", "Goteborg");

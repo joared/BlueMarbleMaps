@@ -187,7 +187,7 @@ void PointVisualizer::toPointFeature(const FeaturePtr& feature, Attributes& upda
         int offsetY = m_offsetXEval(feature, updateAttributes);
         p += Point(offsetX, offsetY);
         auto geometry = std::make_shared<PointGeometry>(p);
-        outPointFeatures.push_back(std::make_shared<Feature>(feature->id(), geometry, feature->attributes()));
+        outPointFeatures.push_back(std::make_shared<Feature>(feature->id(), feature->crs(), geometry, feature->attributes()));
     }
 }
 
