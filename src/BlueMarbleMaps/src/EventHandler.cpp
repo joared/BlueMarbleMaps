@@ -21,7 +21,6 @@ namespace BlueMarble
 
     bool EventDispatcher::dispatchEvent(Event &event, int timeStampMs)
     {
-        std::cout << event.toString() << " (timestamp: " << timeStampMs << ")\n";
         event.timeStampMs = timeStampMs; // TODO: should not be here??
         for (auto eventHandler : m_eventHandlers)
         {
@@ -211,7 +210,6 @@ namespace BlueMarble
     {
         if (m_lastDown == MouseButtonNone)
         {
-            std::cout << "Screen: " << currPos.x << ", " << currPos.y << "\n";
             m_downPos = currPos; // Store down position for drag detection
             m_lastDown = currButton; // Store last down button for mouse up
 

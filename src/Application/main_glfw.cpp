@@ -167,8 +167,6 @@ int main()
         {
             mapControl->waitWindowEvents();
         }
-        std::cout << view->center().toString() << "\n";
-        //mapControl->swapBuffers();
     }
     glfwTerminate();
 

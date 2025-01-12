@@ -11,7 +11,6 @@
 
 using namespace BlueMarble;
 
-
 SoftwareDrawable::Impl::Impl(int width, int height, int channels)
     : m_img(width, height, 1, channels, 0)
     , m_backGroundColor(Color::blue(0.0))
@@ -137,27 +136,40 @@ void SoftwareDrawable::Impl::drawRaster(const RasterGeometryPtr& geometry, doubl
     auto center = m_transform.translation();
     double scale = m_transform.scale();
     double rotation = m_transform.rotation();
-    
-    Raster& raster = geometry->raster();
-    
-    int screenWidth = geometry->bounds().width()*scale;
-    int screenHeight = geometry->bounds().height()*scale;
+
+    // TODO: This is the entire screen and might not be the update area that the view provided during the update.
+    // This will result in raster features that have info outside the update area provided by the view will be visible
+    Rectangle updateArea
+    (
+        center.x() - (width() / scale)*0.5,
+        center.y() - (height() / scale)*0.5,
+        center.x() + (width() / scale)*0.5,
+        center.y() + (height() / scale)*0.5
+    );
+
+    auto subGeometry = geometry->getSubRasterGeometry(updateArea);
+
+    Raster& subRaster = subGeometry->raster();
+
+    int screenWidth = subGeometry->bounds().width()*scale;
+    int screenHeight = subGeometry->bounds().height()*scale;
+
     if (screenWidth == 0 || screenHeight == 0)
     {
         std::cout << "SoftwareDrawable::Impl::drawRaster - Raster resize dimensions are too small, ignoring draw (" << screenWidth << ", " << screenHeight << ")\n";
         return;
     }
 
-    auto minCorner = geometry->bounds().minCorner();
+    auto minCorner = subGeometry->bounds().minCorner();
 
     auto screenC = screenCenter();
     auto delta = minCorner - center;
     int x = delta.x()*scale + screenC.x();
     int y = delta.y()*scale + screenC.y();
     
-    raster.resize(screenWidth, screenHeight, Raster::ResizeInterpolation::NearestNeighbor);
+    subRaster.resize(screenWidth, screenHeight, Raster::ResizeInterpolation::NearestNeighbor);
 
-    drawRaster(x, y, raster, alpha);
+    drawRaster(x, y, subRaster, alpha);
 }
 
 void SoftwareDrawable::Impl::drawRaster(int x, int y, const Raster& raster, double alpha)
@@ -274,5 +286,5 @@ void SoftwareDrawable::Impl::setPixel(int x, int y, const Color& color)
 
 Point SoftwareDrawable::Impl::screenCenter()
 {
-    return Point(width() / 2.0, height() / 2.0);
+    return Point((width()-1)*0.5, (height()-1)*0.5);
 }

@@ -163,10 +163,9 @@ void ImageDataSet::onUpdateRequest(Map &map, const Rectangle& updateArea, Featur
     }
 
     auto& rasterGeometry = m_overViews[invScaleIndex];
-
-    if(updateArea.overlap(rasterGeometry->bounds()))
+    if(updateArea.overlap(m_rasterGeometry->bounds()))
     {
-        //auto feature = std::make_shared<Feature>(Id(0,0), rasterGeometry->getSubRasterGeometry(updateArea));
+        //auto feature = std::make_shared<Feature>(Id(0,0), rasterGeometry); // TODO: overviews improves performance for software implementation
         auto feature = std::make_shared<Feature>(Id(0,0), m_rasterGeometry);
         handler->onFeatureInput(map, std::vector<FeaturePtr>({ feature }));
     }
