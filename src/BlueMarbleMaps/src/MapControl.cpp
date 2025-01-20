@@ -71,5 +71,6 @@ bool MapControl::resize(int width, int height, int64_t timeStampMs)
 void MapControl::handleResize(int width, int height)
 {
     m_mapView->drawable()->resize(width, height);
+    updateView();
     updateViewInternal();
 }

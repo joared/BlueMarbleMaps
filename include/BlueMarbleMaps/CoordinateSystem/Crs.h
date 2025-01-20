@@ -20,8 +20,8 @@ namespace BlueMarble
             void projectTo(const CrsPtr& crs, const Point& point);
             void projectTo(const CrsPtr& crs, const Rectangle& rect);
         private:
-            GeodeticDatum m_datum;
-            Projection m_projection;
+            GeodeticDatumPtr m_datum;
+            ProjectionPtr    m_projection;
     };
 
 } // namespace BlueMarble

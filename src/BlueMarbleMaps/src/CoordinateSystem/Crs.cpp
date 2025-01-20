@@ -11,10 +11,10 @@ Crs::Crs()
 {
 }
 
-void Crs::projectTo(const CrsPtr &crs, const Point &point)
+void Crs::projectTo(const CrsPtr& crs, const Point& point)
 {
 }
 
-void Crs::projectTo(const CrsPtr &crs, const Rectangle &rect)
+void Crs::projectTo(const CrsPtr& crs, const Rectangle& rect)
 {
 }

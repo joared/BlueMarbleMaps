@@ -18,7 +18,7 @@ using namespace cimg_library;
 using namespace BlueMarble;
 
 
-class GLFWMapControl :public WindowGL, public MapControl
+class GLFWMapControl : public WindowGL, public MapControl
 {
 public:
     GLFWMapControl()
@@ -86,19 +86,23 @@ public:
         }
         }
     }
+
     void mousePositionEvent(WindowGL* window, double x, double y) override
     {
         mouseMove(m_mouseDown ? MouseButtonLeft : MouseButtonNone, x, y, ModificationKeyNone, getGinotonicTimeStampMs());
     }
+    
     void mouseScrollEvent(WindowGL* window, double xOffs, double yOffs) override
     {
         ScreenPos mousePos; getMousePos(mousePos);
         mouseWheel(yOffs, mousePos.x, mousePos.y, ModificationKeyNone, getGinotonicTimeStampMs());
     }
+
     void mouseEntered(WindowGL* window, int entered) override
     {
         
     }
+
     void windowClosed(WindowGL* window) override
     {
         std::cout << "Window will close\n";
@@ -129,7 +133,8 @@ int main()
     auto view = std::make_shared<Map>();
     view->center(Point(0, 0));
     view->scale(0.1);
-    auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/geodata/elevation/LARGE_elevation.jpg");
+    //auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/geodata/elevation/LARGE_elevation.jpg");
+    auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/geodata/aeroplane.png");
     elevationDataSet->initialize(BlueMarble::DataSetInitializationType::RightHereRightNow);
     auto elevationLayer = BlueMarble::Layer(false);
     elevationLayer.addUpdateHandler(elevationDataSet.get());
@@ -154,8 +159,7 @@ int main()
     mapControl->addSubscriber(&eventHandler);
     mapControl->setView(view);
 
-    glDisable(GL_CULL_FACE);
-    mapControl->updateViewInternal();
+    view->update();
     while (!mapControl->windowShouldClose())
     {
         if (mapControl->updateRequired())
