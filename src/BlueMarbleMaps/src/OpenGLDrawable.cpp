@@ -19,6 +19,8 @@ BlueMarble::OpenGLDrawable::OpenGLDrawable(int width, int height, int colorDepth
     , m_height(height)
 {
     glViewport(0, 0, m_width, m_height);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_BLEND);
 }
 
 int BlueMarble::OpenGLDrawable::width() const
