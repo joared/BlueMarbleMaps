@@ -36,24 +36,18 @@ bool Texture::init(const unsigned char* data, int width, int height, int format,
 	glBindTexture(GL_TEXTURE_2D, m_id);
 	glBindTextureUnit(activeIndex, m_id);
 	
-	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
+	//TODO assign the mipmap images from data read from the image as well, this could suffice as the lod cache entirely
 	if (glFormat == GL_RGBA)
 		glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 	else
 		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-
-	//TODO assign the mipmap images from data read from the image as well, this could suffice as the lod cache entirely
 	glTexImage2D(GL_TEXTURE_2D, 0, glFormat, width, height, 0, glFormat, pixelType, data);
-	//glGenerateMipmap(GL_TEXTURE_2D);
+	glGenerateMipmap(GL_TEXTURE_2D);
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 	return true;

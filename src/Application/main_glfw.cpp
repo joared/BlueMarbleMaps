@@ -23,12 +23,18 @@ class GLFWMapControl : public WindowGL, public MapControl
 public:
     GLFWMapControl()
         : m_mouseDown(false)
+        , m_wireFrameMode(false)
     {
     }
     void keyEvent(WindowGL* window, int key, int scanCode, int action, int modifier) override
     {
         Key keyStroke(scanCode);
-
+        if (keyStroke == Key::F && action == GLFW_PRESS)
+        {
+            m_wireFrameMode = !m_wireFrameMode;
+            if (m_wireFrameMode) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            else			  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }
     }
 
     void resizeEvent(WindowGL* window, int width, int height) override
@@ -114,6 +120,7 @@ public:
     }
     private:
         bool m_mouseDown;
+        bool m_wireFrameMode;
 };
 typedef std::shared_ptr<GLFWMapControl> GLFWMapControlPtr;
 
@@ -133,8 +140,7 @@ int main()
     auto view = std::make_shared<Map>();
     view->center(Point(0, 0));
     view->scale(0.1);
-    //auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/geodata/elevation/LARGE_elevation.jpg");
-    auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/geodata/aeroplane.png");
+    auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("C:/ML/BlueMarbleMaps/geodata/aeroplane.png");
     elevationDataSet->initialize(BlueMarble::DataSetInitializationType::RightHereRightNow);
     auto elevationLayer = BlueMarble::Layer(false);
     elevationLayer.addUpdateHandler(elevationDataSet.get());
