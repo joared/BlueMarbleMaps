@@ -43,7 +43,6 @@ Map::Map()
     , m_commmand(nullptr)
     , m_showDebugInfo(true)
     , m_isUpdating(false)
-    
 {   
     m_drawable = std::make_shared<SoftwareBitmapDrawable>(500, 500, 4);
     m_presentationObjects.reserve(1000000); // Reserve a good amount for efficiency
