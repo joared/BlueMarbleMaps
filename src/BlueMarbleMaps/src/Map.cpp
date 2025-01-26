@@ -437,14 +437,13 @@ void BlueMarble::Map::stopAnimation()
     quickUpdateEnabled(false);
 }
 
-void BlueMarble::Map::addLayer(Layer *layer)
+void BlueMarble::Map::addLayer(const LayerPtr& layer)
 {
     assert(layer != nullptr);
     m_layers.push_back(layer);
-    addChild(layer);
 }
 
-std::vector<Layer *> &BlueMarble::Map::layers()
+std::vector<LayerPtr> &BlueMarble::Map::layers()
 {
     return m_layers;
 }

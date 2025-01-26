@@ -61,6 +61,7 @@ namespace BlueMarble
             std::vector<EffectPtr> m_effects;
             DrawablePtr m_drawable; // Needed if we need to draw on our own buffer
     };
+    typedef std::shared_ptr<Layer> LayerPtr;
 
 }
 

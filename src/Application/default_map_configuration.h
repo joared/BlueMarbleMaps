@@ -1,3 +1,5 @@
+#ifndef MAP_CONFIGURATION_20COPY
+#define MAP_CONFIGURATION_20COPY
 #ifndef MAP_CONFIGURATION
 #define MAP_CONFIGURATION
 
@@ -5,7 +7,7 @@
 
 using namespace BlueMarble;
 
-void setupAirPlaneLayerVisualization(const BlueMarble::LayerPtr& layer)
+void setupAirPlaneLayerVisualization(BlueMarble::Layer& layer)
 {
     auto symVis1 = std::make_shared<BlueMarble::SymbolVisualizer>();
     
@@ -35,9 +37,9 @@ void setupAirPlaneLayerVisualization(const BlueMarble::LayerPtr& layer)
     textSelViz->backgroundColor(DirectColorAttributeVariable(Color::white(0.5)));
 
 
-    layer->visualizers().push_back(symVis1);
-    layer->hoverVisualizers().push_back(textSelHoverViz);
-    layer->selectionVisualizers().push_back(textSelViz);
+    layer.visualizers().push_back(symVis1);
+    layer.hoverVisualizers().push_back(textSelHoverViz);
+    layer.selectionVisualizers().push_back(textSelViz);
     //layer.effects().push_back(std::make_shared<BlueMarble::DropShadowEffect>(0.0, 10, 10, 0.5));
 }
 
@@ -83,44 +85,47 @@ void configureMap(const MapPtr& map)
         airPlaneDataSet->addFeature(airPlaneFeature); airPlaneDataSet->startFeatureAnimation(airPlaneFeature, from, to);
     }
 
-    auto backgroundLayer = BlueMarble::LayerPtr(new BlueMarble::Layer());
-    auto backgroundLayer2 = BlueMarble::LayerPtr(new BlueMarble::Layer());
-    auto geoJsonLayer = BlueMarble::LayerPtr(new BlueMarble::Layer());
-    auto continentsLayer = BlueMarble::LayerPtr(new BlueMarble::Layer());
-    auto roadsGeoJsonLayer = BlueMarble::LayerPtr(new BlueMarble::Layer());
-    auto shapeFileLayer = BlueMarble::LayerPtr(new BlueMarble::Layer());
-    auto airPlaneLayer = BlueMarble::LayerPtr(new BlueMarble::Layer(false));; setupAirPlaneLayerVisualization(airPlaneLayer);
-    auto csvLayer = BlueMarble::LayerPtr(new BlueMarble::Layer());
-    auto sverigeLayer = BlueMarble::LayerPtr(new BlueMarble::Layer());
-    auto debugLayer = BlueMarble::LayerPtr(new BlueMarble::Layer());
-    backgroundLayer->addUpdateHandler(backgroundDataSet.get());
-    backgroundLayer2->addUpdateHandler(backgroundDataSet2.get());
+    static auto backgroundLayer = BlueMarble::Layer();
+    static auto backgroundLayer2 = BlueMarble::Layer();
+    static auto geoJsonLayer = BlueMarble::Layer();
+    static auto continentsLayer = BlueMarble::Layer();
+    static auto roadsGeoJsonLayer = BlueMarble::Layer();
+    static auto shapeFileLayer = BlueMarble::Layer();
+    static auto airPlaneLayer = BlueMarble::Layer(false); setupAirPlaneLayerVisualization(airPlaneLayer);
+    static auto csvLayer = BlueMarble::Layer();
+    static auto sverigeLayer = BlueMarble::Layer();
+    static auto debugLayer = BlueMarble::Layer();
+    backgroundLayer.addUpdateHandler(backgroundDataSet.get());
+    backgroundLayer2.addUpdateHandler(backgroundDataSet2.get());
     
     double minScaleCountries = 0.25;
-    geoJsonLayer->minScale(minScaleCountries);
-    geoJsonLayer->addUpdateHandler(northAmerica.get()); geoJsonLayer->addUpdateHandler(southAmerica.get()); geoJsonLayer->addUpdateHandler(world.get());
+    geoJsonLayer.minScale(minScaleCountries);
+    geoJsonLayer.addUpdateHandler(northAmerica.get()); geoJsonLayer.addUpdateHandler(southAmerica.get()); geoJsonLayer.addUpdateHandler(world.get());
 
-    continentsLayer->maxScale(minScaleCountries);
-    continentsLayer->addUpdateHandler(continents.get());
-    roadsGeoJsonLayer->addUpdateHandler(roadsDataSet.get());
-    roadsGeoJsonLayer->addUpdateHandler(sverigeRoadsDataSet.get());
-    roadsGeoJsonLayer->minScale(5.0);
-    roadsGeoJsonLayer->enabledDuringQuickUpdates(false);
-    csvLayer->addUpdateHandler(svenskaStader.get());
-    sverigeLayer->addUpdateHandler(svenskaLandskapDataSet.get());
-    airPlaneLayer->addUpdateHandler(airPlaneDataSet.get());
+    continentsLayer.maxScale(minScaleCountries);
+    continentsLayer.addUpdateHandler(continents.get());
+    roadsGeoJsonLayer.addUpdateHandler(roadsDataSet.get());
+    roadsGeoJsonLayer.addUpdateHandler(sverigeRoadsDataSet.get());
+    roadsGeoJsonLayer.minScale(5.0);
+    roadsGeoJsonLayer.enabledDuringQuickUpdates(false);
+    csvLayer.addUpdateHandler(svenskaStader.get());
+    sverigeLayer.addUpdateHandler(svenskaLandskapDataSet.get());
+    airPlaneLayer.addUpdateHandler(airPlaneDataSet.get());
     
     
-    map->addLayer(backgroundLayer);
-    map->addLayer(backgroundLayer2);
-    map->addLayer(geoJsonLayer);
-    map->addLayer(continentsLayer);
-    map->addLayer(sverigeLayer);
-    map->addLayer(roadsGeoJsonLayer);
-    map->addLayer(csvLayer);
-    map->addLayer(airPlaneLayer);
-    map->addLayer(debugLayer);
+    map->addLayer(&backgroundLayer);
+    map->addLayer(&backgroundLayer2);
+    map->addLayer(&geoJsonLayer);
+    map->addLayer(&continentsLayer);
+    map->addLayer(&sverigeLayer);
+    map->addLayer(&roadsGeoJsonLayer);
+    map->addLayer(&csvLayer);
+    map->addLayer(&airPlaneLayer);
+    map->addLayer(&debugLayer);
     ////////////////////////////////////////////////////////OLD
 }
 
 #endif /* MAP_CONFIGURATION */
+
+
+#endif /* MAP_CONFIGURATION_20COPY */

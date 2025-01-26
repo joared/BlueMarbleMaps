@@ -136,8 +136,8 @@ namespace BlueMarble
             const Attributes& updateAttributes() const { return m_updateAttributes; };
             Attributes& updateAttributes() { return m_updateAttributes; };
 
-            void addLayer(Layer* layer);
-            std::vector<Layer*>& layers();
+            void addLayer(const LayerPtr& layer);
+            std::vector<LayerPtr>& layers();
             
             FeaturePtr getFeature(const Id& id);
             void getFeatures(const Attributes& attributes, std::vector<FeaturePtr>& features);
@@ -207,7 +207,7 @@ namespace BlueMarble
             int m_animationStartTimeStamp;
             Attributes m_updateAttributes;
 
-            std::vector<Layer*> m_layers;
+            std::vector<LayerPtr> m_layers;
             std::vector<PresentationObject> m_presentationObjects;
             std::vector<Id>                 m_selectedFeatures;
             std::vector<Id>                 m_hoveredFeatures;

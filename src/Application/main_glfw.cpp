@@ -140,26 +140,26 @@ int main()
     auto view = std::make_shared<Map>();
     view->center(Point(0, 0));
     view->scale(0.1);
-    auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("C:/ML/BlueMarbleMaps/geodata/aeroplane.png");
+    auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/geodata/elevation/LARGE_elevation.jpg");
     elevationDataSet->initialize(BlueMarble::DataSetInitializationType::RightHereRightNow);
-    auto elevationLayer = BlueMarble::Layer(false);
-    elevationLayer.addUpdateHandler(elevationDataSet.get());
+    auto elevationLayer = BlueMarble::LayerPtr(new BlueMarble::Layer(false));
+    elevationLayer->addUpdateHandler(elevationDataSet.get());
     auto rasterVis = std::make_shared<RasterVisualizer>();
     rasterVis->alpha(DirectDoubleAttributeVariable(0.5));
-    elevationLayer.visualizers().push_back(rasterVis);
-    view->addLayer(&elevationLayer);
+    elevationLayer->visualizers().push_back(rasterVis);
+    view->addLayer(elevationLayer);
 
     // Test Polygon/Line/Symbol visualizers
     auto vectorDataSet = std::make_shared<BlueMarble::MemoryDataSet>();
     vectorDataSet->initialize(BlueMarble::DataSetInitializationType::RightHereRightNow);
-    auto vectorLayer = BlueMarble::Layer(true);
-    vectorLayer.addUpdateHandler(vectorDataSet.get());
+    auto vectorLayer = BlueMarble::LayerPtr(new BlueMarble::Layer(true));
+    vectorLayer->addUpdateHandler(vectorDataSet.get());
 
     std::vector<Point> points({ {16, 56}, {17, 57}, {15, 58} });
     auto poly = std::make_shared<PolygonGeometry>(points);
     vectorDataSet->addFeature(vectorDataSet->createFeature(poly));
 
-    view->addLayer(&vectorLayer);
+    view->addLayer(vectorLayer);
 
     PanEventHandler eventHandler(view, mapControl);
     mapControl->addSubscriber(&eventHandler);

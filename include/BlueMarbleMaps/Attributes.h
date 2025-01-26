@@ -27,7 +27,7 @@ namespace BlueMarble
     // "contatins" method is convenient, maybe Attributes both should its own class still
     // TODO: big issue when introducing bool, where "hello" in "set" can be interpreted as bool in the template argument deduction
     using AttributeValue = std::variant<int, double, std::string, bool>;
-    enum class AttributeValyeType
+    enum class AttributeValueType
     {
         Integer,
         Double,
