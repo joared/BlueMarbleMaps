@@ -1,8 +1,8 @@
-#include "DataSet.h"
-#include "Map.h"
-#include "File.h"
-#include "Utils.h"
-#include "FeatureAnimation.h"
+#include "Core/DataSet.h"
+#include "Core/Map.h"
+#include "Core/FeatureAnimation.h"
+#include "System/File.h"
+#include "Utility/Utils.h"
 
 #include <cassert>
 #include <set>

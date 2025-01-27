@@ -1,7 +1,7 @@
 #ifndef BLUEMARBLE_EVENT
 #define BLUEMARBLE_EVENT
 
-#include "Core.h"
+#include "Core/Core.h"
 #include <functional>
 
 namespace BlueMarble 
@@ -31,6 +31,8 @@ namespace BlueMarble
 		X(Resize)						\
 		X(KeyDown)						\
 		X(KeyUp)						\
+		X(MouseEnter)					\
+		X(MouseLeave)					\
 		X(MouseDown)					\
 		X(MouseUp)						\
 		X(MouseMove)					\
@@ -46,7 +48,7 @@ namespace BlueMarble
 
 	#define DEFINE_EVENT(eventType) virtual EventType getType() const override { return EventType::eventType; }\
 									virtual std::string toString() const override { return #eventType; }\
-									virtual bool execute(EventCallbacks* handler) const override { return handler->On##eventType(*this); }
+									virtual bool dispatch(EventCallbacks* handler) const override { return handler->On##eventType(*this); }\
 
 	class Event
 	{
@@ -55,7 +57,7 @@ namespace BlueMarble
 		int timeStampMs = 0;
 		virtual EventType getType() const = 0;
 		virtual std::string toString() const = 0;
-		virtual bool execute(EventCallbacks* eventHandler) const = 0;
+		virtual bool dispatch(EventCallbacks* eventHandler) const = 0;
 	};
 
 }

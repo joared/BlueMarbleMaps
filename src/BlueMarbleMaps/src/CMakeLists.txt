@@ -11,9 +11,8 @@ set(SOURCES
     ${SRC_DIR}/MapConstraints.cpp
     ${SRC_DIR}/Core.cpp
     ${SRC_DIR}/Animation.cpp
-    ${SRC_DIR}/EventHandler.cpp
+    ${SRC_DIR}/Event/EventHandler.cpp
     ${SRC_DIR}/Raster.cpp
-    ${SRC_DIR}/Event.cpp
     ${SRC_DIR}/Layer.cpp
     ${SRC_DIR}/DataSet.cpp
     ${SRC_DIR}/SoftwareDrawable.cpp

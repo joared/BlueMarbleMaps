@@ -1,7 +1,7 @@
 #ifndef UTILS
 #define UTILS
 
-#include "Core.h"
+#include "Core/Core.h"
 
 #include <algorithm>
 #include <cmath>

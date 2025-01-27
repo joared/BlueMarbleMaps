@@ -1,6 +1,6 @@
-#include "Layer.h"
-#include "Map.h"
-#include "DataSet.h"
+#include "Core/Layer.h"
+#include "Core/Map.h"
+#include "Core/DataSet.h"
 #define _USE_MATH_DEFINES
 #include <math.h>
 using namespace BlueMarble;

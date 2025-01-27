@@ -1,11 +1,11 @@
 #include <iostream>
 #include "CImg.h"
 
-#include "Map.h"
-#include "DataSet.h"
-#include "Core.h"
-#include "Feature.h"
-#include "MapControl.h"
+#include "Core/Map.h"
+#include "Core/DataSet.h"
+#include "Core/Core.h"
+#include "Core/Feature.h"
+#include "Core/MapControl.h"
 
 #include "DefaultEventHandlers.h"
 
@@ -93,7 +93,7 @@ class CImgMapControl : public MapControl
             return keyMask;
 
         }
-        MouseButton getMouseButton() override final
+        MouseButton getMouseButton() const override final
         {
             unsigned int button = m_disp.button();
             MouseButton mouseButton = MouseButtonNone;
@@ -148,24 +148,23 @@ int main()
 
     auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/geodata/elevation/LARGE_elevation.jpg");
     elevationDataSet->initialize(BlueMarble::DataSetInitializationType::RightHereRightNow);
-    auto elevationLayer = BlueMarble::Layer(false);
-    elevationLayer.addUpdateHandler(elevationDataSet.get());
+    auto elevationLayer = LayerPtr(new Layer(false));
+    elevationLayer->addUpdateHandler(elevationDataSet.get());
     auto rasterVis = std::make_shared<RasterVisualizer>();
     rasterVis->alpha(DirectDoubleAttributeVariable(0.5));
-    elevationLayer.visualizers().push_back(rasterVis);
-    map->addLayer(&elevationLayer);
+    elevationLayer->visualizers().push_back(rasterVis);
+    map->addLayer(elevationLayer);
 
     // Test Polygon/Line/Symbol visualizers
     auto vectorDataSet = std::make_shared<BlueMarble::MemoryDataSet>();
     vectorDataSet->initialize(BlueMarble::DataSetInitializationType::RightHereRightNow);
-    auto vectorLayer = BlueMarble::Layer(true);
-    vectorLayer.addUpdateHandler(vectorDataSet.get());
+    auto vectorLayer = LayerPtr(new Layer(true));
+    vectorLayer->addUpdateHandler(vectorDataSet.get());
     
     std::vector<Point> points({{16, 56}, {17, 57}, {15, 58}});
     auto poly = std::make_shared<PolygonGeometry>(points);
     vectorDataSet->addFeature(vectorDataSet->createFeature(poly));
-
-    map->addLayer(&vectorLayer);
+    map->addLayer(vectorLayer);
 
     // Stress test by adding more layers and visualization using this
     configureMap(map); 

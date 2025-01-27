@@ -1,5 +1,5 @@
-#include "PresentationObject.h"
-#include "Utils.h"
+#include "Core/PresentationObject.h"
+#include "Utility/Utils.h"
 
 using namespace BlueMarble;
 

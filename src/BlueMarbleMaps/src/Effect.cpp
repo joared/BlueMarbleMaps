@@ -1,4 +1,4 @@
-#include "Effect.h"
+#include "Core/Effect.h"
 #include <CImg.h>
 
 using namespace BlueMarble;

@@ -1,9 +1,9 @@
-#include "Map.h"
-#include "MapConstraints.h"
-#include "Utils.h"
-#include "DataSet.h"
-#include "MapControl.h"
-#include "SoftwareDrawable.h"
+#include "Core/Map.h"
+#include "Core/MapConstraints.h"
+#include "Utility/Utils.h"
+#include "Core/DataSet.h"
+#include "Core/MapControl.h"
+#include "Core/SoftwareDrawable.h"
 
 #include <cmath>
 #include <iostream>

@@ -4,7 +4,7 @@
 // If opengl compatible raster implementation is used,
 // we need ImageDataOperations to convert image data in e.g.
 // drawRaster.
-#include "ImageDataOperations.h"
+#include "Utility/ImageDataOperations.h"
 #define OPENGL_TO_CIMG interleavedToPlanarFlipY
 #endif
  

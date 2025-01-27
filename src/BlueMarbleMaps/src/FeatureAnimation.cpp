@@ -1,5 +1,5 @@
-#include "FeatureAnimation.h"
-#include "DataSet.h"
+#include "Core/FeatureAnimation.h"
+#include "Core/DataSet.h"
 
 using namespace BlueMarble;
 

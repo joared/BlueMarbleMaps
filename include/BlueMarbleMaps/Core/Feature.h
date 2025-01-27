@@ -1,7 +1,7 @@
 #ifndef BLUEMARBLE_FEATURE
 #define BLUEMARBLE_FEATURE
 
-#include "Core.h"
+#include "Core/Core.h"
 #include "Geometry.h"
 #include "Identity.h"
 #include "Attributes.h"

@@ -1,6 +1,6 @@
-#include "EventHandler.h"
-#include "PointerEvent.h"
-#include "KeyEvent.h"
+#include "Event/EventHandler.h"
+#include "Event/PointerEvent.h"
+#include "Event/KeyEvent.h"
 
 #include <iostream>
 

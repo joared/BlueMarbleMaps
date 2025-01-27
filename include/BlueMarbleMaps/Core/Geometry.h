@@ -1,11 +1,11 @@
 #ifndef BLUEMARBLE_GEOMETRY
 #define BLUEMARBLE_GEOMETRY
 
-#include "Core.h"
-#include "Raster.h"
-#include "Utils.h"
-#include "Transform.h"
-#include "EngineObject.h"
+#include "Core/Core.h"
+#include "Core/Raster.h"
+#include "Utility/Utils.h"
+#include "Core/Transform.h"
+#include "Core/EngineObject.h"
 
 #include <memory>
 #include <vector>

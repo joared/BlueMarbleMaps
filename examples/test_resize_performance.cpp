@@ -1,8 +1,8 @@
 #include "CImg.h"
 #include "stb_image.h"
-#include "Raster.h"
+#include "Core/Raster.h"
 #include <vector>
-#include "ImageDataOperations.h"
+#include "Utility/ImageDataOperations.h"
 
 using namespace cimg_library;
 

@@ -1,11 +1,11 @@
 #ifndef DEFAULTEVENTHANDLERS
 #define DEFAULTEVENTHANDLERS
 
-#include "EventHandler.h"
-#include "Map.h"
-#include "Core.h"
-#include "PointerEvent.h"
-#include "KeyEvent.h"
+#include "Event/EventHandler.h"
+#include "Core/Map.h"
+#include "Core/Core.h"
+#include "Event/PointerEvent.h"
+#include "Event/KeyEvent.h"
 
 namespace BlueMarble
 {

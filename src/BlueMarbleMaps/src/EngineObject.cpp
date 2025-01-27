@@ -1,4 +1,4 @@
-#include "EngineObject.h"
+#include "Core/EngineObject.h"
 
 #include <iostream> // TODO: remove
 

@@ -192,7 +192,7 @@ void WindowGL::internalCloseWindowEventCallback(GLFWwindow* window)
 	owner->windowClosed(owner);
 }
 
-GLFWwindow* WindowGL::getGLFWWindowHandle()
+GLFWwindow* WindowGL::getGLFWWindowHandle() const
 {
 	return m_window;
 }

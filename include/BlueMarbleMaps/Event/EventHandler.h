@@ -1,9 +1,9 @@
 #ifndef EVENTHANDLER
 #define EVENTHANDLER
 
-#include "Event.h"
-#include "Buttons.h"
-#include "PointerEvent.h"
+#include "Event/Event.h"
+#include "Core/Buttons.h"
+#include "Event/PointerEvent.h"
 #include <vector>
 #include <map>
 
@@ -16,7 +16,7 @@ namespace BlueMarble
             EventHandler();
             virtual bool handleEvent(const Event& event)
             {
-                return event.execute(this);
+                return event.dispatch(this);
             }
     };
 
@@ -70,7 +70,7 @@ namespace BlueMarble
         
             virtual void getMousePos(ScreenPos& pos) const { throw std::exception(); }; // Window specific
             virtual ModificationKey getModificationKeyMask() const { throw std::exception(); }; // Window specific
-            virtual MouseButton getMouseButton() { throw std::exception(); }; // Window specific
+            virtual MouseButton getMouseButton() const { throw std::exception(); }; // Window specific
         protected:
             virtual int getWheelDelta() { throw std::exception(); }; // Window
             virtual bool getResize(int& width, int& height) { throw std::exception(); } // Window specific

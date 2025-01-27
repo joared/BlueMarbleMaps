@@ -1,7 +1,7 @@
 #ifndef MAP_CONFIGURATION
 #define MAP_CONFIGURATION
 
-#include "Map.h"
+#include "Core/Map.h"
 
 using namespace BlueMarble;
 

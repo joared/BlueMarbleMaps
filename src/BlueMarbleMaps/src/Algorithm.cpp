@@ -1,4 +1,4 @@
-#include "Algorithm.h"
+#include "Utility/Algorithm.h"
 
 using namespace BlueMarble::Algorithm;
 

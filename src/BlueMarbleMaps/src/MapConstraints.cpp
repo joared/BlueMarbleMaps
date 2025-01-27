@@ -1,6 +1,6 @@
-#include "MapConstraints.h"
-#include "Map.h"
-#include "Utils.h"
+#include "Core/MapConstraints.h"
+#include "Core/Map.h"
+#include "Utility/Utils.h"
 
 using namespace BlueMarble;
 

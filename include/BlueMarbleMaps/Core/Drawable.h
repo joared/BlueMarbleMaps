@@ -1,13 +1,13 @@
 #ifndef DRAWABLE
 #define DRAWABLE
 
-#include "Core.h"
-#include "Raster.h"
-#include "Utils.h"
-#include "Color.h"
-#include "Renderer.h"
-#include "Transform.h"
-#include "Geometry.h"
+#include "Core/Raster.h"
+#include "Core/Core.h"
+#include "Core/Color.h"
+#include "Core/Renderer.h"
+#include "Core/Transform.h"
+#include "Core/Geometry.h"
+#include "Utility/Utils.h"
 
 #include <string>
 #include <vector>

@@ -1,7 +1,7 @@
 #ifndef BLUEMARBLE_TRANSFORM
 #define BLUEMARBLE_TRANSFORM
 
-#include "Core.h"
+#include "Core/Core.h"
 
 namespace BlueMarble
 {

@@ -3,11 +3,11 @@
 #include "CImg.h"
 #include <iostream>
 
-#include "Map.h"
-#include "DataSet.h"
-#include "Core.h"
-#include "Feature.h"
-#include "MapControl.h"
+#include "Core/Map.h"
+#include "Core/DataSet.h"
+#include "Core/Core.h"
+#include "Core/Feature.h"
+#include "Core/MapControl.h"
 #include "DefaultEventHandlers.h"
 #include "Application/WindowGL.h"
 
@@ -55,6 +55,26 @@ public:
         pos.y = (int)y;
     }
 
+    MouseButton getMouseButton() const override final
+    {
+        MouseButton buttons = MouseButtonNone;
+        int leftButton = glfwGetMouseButton(getGLFWWindowHandle(), GLFW_MOUSE_BUTTON_LEFT);
+        int rightButton = glfwGetMouseButton(getGLFWWindowHandle(), GLFW_MOUSE_BUTTON_RIGHT);
+
+        if (leftButton == GLFW_PRESS)
+        {
+            buttons = buttons | MouseButtonLeft;
+        }
+
+        if (rightButton == GLFW_PRESS)
+        {
+            buttons = buttons | MouseButtonRight;
+        }
+
+        return buttons;
+    }
+
+
     void mouseButtonEvent(WindowGL* window, int button, int action, int modifier) override
     {
         ScreenPos mousePos; getMousePos(mousePos);
@@ -95,7 +115,7 @@ public:
 
     void mousePositionEvent(WindowGL* window, double x, double y) override
     {
-        mouseMove(m_mouseDown ? MouseButtonLeft : MouseButtonNone, x, y, ModificationKeyNone, getGinotonicTimeStampMs());
+        mouseMove(getMouseButton(), x, y, ModificationKeyNone, getGinotonicTimeStampMs());
     }
     
     void mouseScrollEvent(WindowGL* window, double xOffs, double yOffs) override

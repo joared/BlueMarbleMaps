@@ -1,7 +1,7 @@
 #ifndef BLUEMARBLE_COLOR
 #define BLUEMARBLE_COLOR
 
-#include "Utils.h"
+#include "Utility/Utils.h"
 #include <string>
 
 namespace BlueMarble

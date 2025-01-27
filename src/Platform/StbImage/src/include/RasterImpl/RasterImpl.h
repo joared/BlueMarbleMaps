@@ -5,7 +5,7 @@
 #ifndef BLUEMARBLE_RASTERIMPL
 #define BLUEMARBLE_RASTERIMPL
 
-#include "Raster.h"
+#include "Core/Raster.h"
 #include "stb_image.h"
 
 namespace BlueMarble

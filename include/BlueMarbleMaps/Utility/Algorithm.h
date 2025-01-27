@@ -1,7 +1,7 @@
 #ifndef BLUEMARBLE_ALGORITHM
 #define BLUEMARBLE_ALGORITHM
 
-#include "Feature.h"
+#include "Core/Feature.h"
 
 namespace BlueMarble
 {

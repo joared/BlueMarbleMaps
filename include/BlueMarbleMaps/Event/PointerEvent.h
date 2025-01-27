@@ -2,7 +2,7 @@
 #define BLUEMARBLE_POINTEREVENT
 
 #include "Event.h"
-#include "Buttons.h"
+#include "Core/Buttons.h"
 
 namespace BlueMarble
 {
@@ -19,6 +19,18 @@ namespace BlueMarble
 		public:
 			ScreenPos pos;
 			ModificationKey modificationKey = ModificationKeyNone;
+	};
+
+	class MouseEnterEvent : public PointerEvent
+	{
+		public:
+			DEFINE_EVENT(MouseEnter)
+	};
+
+	class MouseLeaveEvent : public PointerEvent
+	{
+		public:
+			DEFINE_EVENT(MouseLeave)
 	};
 
 	class MouseEvent : public PointerEvent

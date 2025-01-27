@@ -45,7 +45,7 @@ public:
 	void waitWindowEvents();
 	//timeout expressed in number of seconds.
 	void waitWindowEventsTimeout(double timeout);
-	GLFWwindow* getGLFWWindowHandle();
+	GLFWwindow* getGLFWWindowHandle() const;
 private:
 	int m_width;
 	int m_height;

@@ -1,7 +1,7 @@
 #ifndef MAP
 #define MAP
 
-#include "Core.h"
+#include "Core/Core.h"
 #include "MapConstraints.h"
 #include "Animation.h"
 #include "Drawable.h"
