@@ -48,7 +48,6 @@ namespace BlueMarble
     class Geometry : public EngineObject
     {
         public:
-            virtual GeometryPtr clone() = 0;
             virtual GeometryType type() = 0;
             virtual Rectangle calculateBounds() = 0;
             virtual Point center() = 0;
@@ -69,7 +68,7 @@ namespace BlueMarble
         public:
             PointGeometry();
             PointGeometry(const Point& point);
-            GeometryPtr clone() override final { return std::make_shared<PointGeometry>(*this); };
+            EngineObjectPtr clone() override final { return std::make_shared<PointGeometry>(*this); };
             GeometryType type() override final { return GeometryType::Point; };
             Rectangle calculateBounds() override final { return Rectangle::undefined(); };
             Point center() override final { return m_point; };
@@ -91,7 +90,7 @@ namespace BlueMarble
         public:
             LineGeometry();
             LineGeometry(const std::vector<Point>& points);
-            GeometryPtr clone() override final { return std::make_shared<LineGeometry>(*this); };
+            EngineObjectPtr clone() override final { return std::make_shared<LineGeometry>(*this); };
             GeometryType type() override final { return GeometryType::Line; };
             Rectangle calculateBounds() override final { return Rectangle::fromPoints(m_points); };
             Point center() override final { return m_points[m_points.size()%2]; }; // FIXME
@@ -116,7 +115,7 @@ namespace BlueMarble
             PolygonGeometry(const std::vector<std::vector<Point>>& rings);
             PolygonGeometry& operator=(const PolygonGeometry& other);
 
-            GeometryPtr clone() override final { return std::make_shared<PolygonGeometry>(*this); };
+            EngineObjectPtr clone() override final { return std::make_shared<PolygonGeometry>(*this); };
             GeometryType type() override final { return GeometryType::Polygon; };
             Rectangle calculateBounds() override final { return Rectangle::fromPoints(outerRing()); }; //{ return m_cachedBounds.get(); };
             Point center() override final { return Utils::centroid(outerRing()); };
@@ -166,7 +165,7 @@ namespace BlueMarble
             MultiPolygonGeometry();
             MultiPolygonGeometry(const std::vector<PolygonGeometry>& polygons);
 
-            GeometryPtr clone() override final { return std::make_shared<MultiPolygonGeometry>(*this); };
+            EngineObjectPtr clone() override final { return std::make_shared<MultiPolygonGeometry>(*this); };
             GeometryType type() override final { return GeometryType::MultiPolygon; };
             Rectangle calculateBounds() override final { return Rectangle(); };
             Point center() override final { return Point(); };
@@ -205,7 +204,7 @@ namespace BlueMarble
         public:
             RasterGeometry();
             RasterGeometry(const Raster& raster, const Rectangle& bounds, double cellWidth, double cellHeight);
-            GeometryPtr clone() override final { return std::make_shared<RasterGeometry>(*this); };
+            EngineObjectPtr clone() override final { return std::make_shared<RasterGeometry>(*this); };
             GeometryType type() override final { return GeometryType::Raster; };
             
             Rectangle calculateBounds() override final { return m_bounds; };

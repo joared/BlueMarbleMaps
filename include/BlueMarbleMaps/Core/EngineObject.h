@@ -1,10 +1,10 @@
 #ifndef BLUEMARBLE_ENGINEOBJECT
 #define BLUEMARBLE_ENGINEOBJECT
 
+#include <memory>
 #include <string>
 #include <vector>
 #include <cstdint>
-
 /*#define BLUEMARBLE_OBJECT_PROPERTY(propertyName, propertyType) \
     private: \
         propertyType m_##propertyName; \
@@ -14,6 +14,10 @@
         */
 namespace BlueMarble
 {
+    //forward decl
+    class EngineObject;
+
+    typedef std::shared_ptr<EngineObject> EngineObjectPtr;
     typedef int64_t BMID;
     class EngineObject
     {
@@ -41,6 +45,9 @@ namespace BlueMarble
                 }
             }
             BMID getID() const { return m_id; }
+            virtual EngineObjectPtr clone() { return nullptr; };
+            virtual EngineObjectPtr deepClone() { return nullptr; };
+            virtual bool equals(const EngineObjectPtr& other) { return m_id == other->getID(); };
         protected:
             virtual void onChildAdded(EngineObject* child) {}; // TODO: should be pure virtual
         private:

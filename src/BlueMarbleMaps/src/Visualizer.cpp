@@ -338,7 +338,7 @@ void PolygonVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feat
     {
         Utils::movePoints(polygonPoints, Point(offX, offY));
     }
-
+    
     // Draw the polygon
     auto color = m_colorEval(feature, updateAttributes);
     drawable.drawPolygon(polygonPoints, color);
