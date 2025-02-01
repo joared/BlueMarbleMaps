@@ -754,7 +754,7 @@ namespace BlueMarble
                 return deltaPos * (1.0/deltaTime);
             }
 
-            bool OnEvent(const BlueMarble::Event& event) override
+            bool onEvent(const BlueMarble::Event& event) override
             {
                 // Debug output event info
                 // const BlueMarble::PointerEvent& pointerEvent = static_cast<const BlueMarble::PointerEvent&>(event);
@@ -766,7 +766,7 @@ namespace BlueMarble
                     std::cout << "Resize!\n";
                 }
 
-                return EventHandler::OnEvent(event);
+                return EventHandler::onEvent(event);
             }
         private:
             

@@ -12,6 +12,7 @@ set(SOURCES
     ${SRC_DIR}/Core.cpp
     ${SRC_DIR}/Animation.cpp
     ${SRC_DIR}/Event/EventHandler.cpp
+    ${SRC_DIR}/Event/EventManager.cpp
     ${SRC_DIR}/Raster.cpp
     ${SRC_DIR}/Layer.cpp
     ${SRC_DIR}/DataSet.cpp

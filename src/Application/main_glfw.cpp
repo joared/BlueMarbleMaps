@@ -153,7 +153,7 @@ class EventObserver : public EventHandler
             , m_previousEventType(EventType::Invalid)
         {}
 
-        bool OnEventFilter(EventHandler* target, const Event& event) override final
+        bool onEventFilter(EventHandler* target, const Event& event) override final
         {
             if (m_previousEventType != EventType::Invalid 
                 && m_previousEventType != event.getType())
