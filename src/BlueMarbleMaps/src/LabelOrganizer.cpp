@@ -1,4 +1,4 @@
-#include "Core/LabelOrganizer.h"
+#include "BlueMarbleMaps/Core/LabelOrganizer.h"
 
 using namespace BlueMarble;
 

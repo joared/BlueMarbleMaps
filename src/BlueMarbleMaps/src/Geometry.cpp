@@ -1,4 +1,4 @@
-#include "Core/Geometry.h"
+#include "BlueMarbleMaps/Core/Geometry.h"
 
 using namespace BlueMarble;
 

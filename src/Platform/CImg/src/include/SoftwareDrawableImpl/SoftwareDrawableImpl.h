@@ -2,7 +2,7 @@
     #error "CImg SoftwareDrawableImpl.cpp has not been compiled. Define BLUEMARBLE_USE_CIMG_SOFTWARE_DRAWABLE_IMPL to compile it!";
 #endif
 
-#include "Core/SoftwareDrawable.h"
+#include "BlueMarbleMaps/Core/SoftwareDrawable.h"
 #include "CImg.h"
 
 namespace BlueMarble

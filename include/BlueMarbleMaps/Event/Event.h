@@ -1,7 +1,7 @@
 #ifndef BLUEMARBLE_EVENT
 #define BLUEMARBLE_EVENT
 
-#include "Core/Core.h"
+#include "BlueMarbleMaps/Core/Core.h"
 #include <functional>
 
 namespace BlueMarble 

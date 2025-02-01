@@ -1,4 +1,4 @@
-#include "CoordinateSystem/Projection.h"
+#include "BlueMarbleMaps/CoordinateSystem/Projection.h"
 
 using namespace BlueMarble;
 

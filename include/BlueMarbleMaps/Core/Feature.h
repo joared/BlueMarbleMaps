@@ -1,11 +1,11 @@
 #ifndef BLUEMARBLE_FEATURE
 #define BLUEMARBLE_FEATURE
 
-#include "Core/Core.h"
-#include "Geometry.h"
-#include "Identity.h"
-#include "Attributes.h"
-#include "CoordinateSystem/Crs.h"
+#include "BlueMarbleMaps/Core/Core.h"
+#include "BlueMarbleMaps/Core/Geometry.h"
+#include "BlueMarbleMaps/Core/Identity.h"
+#include "BlueMarbleMaps/Core/Attributes.h"
+#include "BlueMarbleMaps/CoordinateSystem/Crs.h"
 
 #include <memory>
 

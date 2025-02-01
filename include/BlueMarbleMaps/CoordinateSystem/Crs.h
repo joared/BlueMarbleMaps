@@ -1,9 +1,9 @@
 #ifndef BLUEMARBLE_CRS
 #define BLUEMARBLE_CRS
 
-#include "CoordinateSystem/GeodeticDatum.h"
-#include "CoordinateSystem/Projection.h"
-#include "Core/Core.h"
+#include "BlueMarbleMaps/CoordinateSystem/GeodeticDatum.h"
+#include "BlueMarbleMaps/CoordinateSystem/Projection.h"
+#include "BlueMarbleMaps/Core/Core.h"
 
 #include <memory>
 

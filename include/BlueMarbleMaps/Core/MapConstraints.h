@@ -1,7 +1,7 @@
 #ifndef MAPCONSTRAINTS
 #define MAPCONSTRAINTS
 
-#include "Core/Core.h"
+#include "BlueMarbleMaps/Core/Core.h"
 
 namespace BlueMarble
 {

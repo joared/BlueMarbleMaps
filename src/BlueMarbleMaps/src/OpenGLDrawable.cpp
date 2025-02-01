@@ -1,4 +1,4 @@
-#include "Core/OpenGLDrawable.h"
+#include "BlueMarbleMaps/Core/OpenGLDrawable.h"
 #include "VAO.h"
 #include "VBO.h"
 #include "IBO.h"

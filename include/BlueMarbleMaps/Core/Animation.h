@@ -1,7 +1,7 @@
 #ifndef ANIMATION
 #define ANIMATION
 
-#include "Core/Core.h"
+#include "BlueMarbleMaps/Core/Core.h"
 #include <memory>
 
 namespace BlueMarble

@@ -39,7 +39,7 @@ set(SOURCES
 add_library(BlueMarbleMapsLib STATIC ${SOURCES})
 # Add include folder as a private include directory for BlueMarbleEngine
 target_include_directories(BlueMarbleMapsLib
-  PUBLIC ${CMAKE_SOURCE_DIR}/include/BlueMarbleMaps
+  PUBLIC ${CMAKE_SOURCE_DIR}/include
 )
 
 if(LINK_TO_CIMG)

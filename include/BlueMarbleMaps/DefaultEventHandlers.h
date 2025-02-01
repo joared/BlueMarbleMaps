@@ -154,7 +154,8 @@ namespace BlueMarble
     {
         public:
             PanEventHandler(BlueMarble::MapPtr map, MapControlPtr mapControl) 
-                : m_map(map)
+                : EventHandler()
+                , m_map(map)
                 , m_mapControl(mapControl)
                 , m_rectangle(BlueMarble::Rectangle::undefined())
                 , m_zoomToRect(false)
@@ -753,7 +754,7 @@ namespace BlueMarble
                 return deltaPos * (1.0/deltaTime);
             }
 
-            bool handleEvent(const BlueMarble::Event& event) override
+            bool OnEvent(const BlueMarble::Event& event) override
             {
                 // Debug output event info
                 // const BlueMarble::PointerEvent& pointerEvent = static_cast<const BlueMarble::PointerEvent&>(event);
@@ -765,7 +766,7 @@ namespace BlueMarble
                     std::cout << "Resize!\n";
                 }
 
-                return EventHandler::handleEvent(event);
+                return EventHandler::OnEvent(event);
             }
         private:
             

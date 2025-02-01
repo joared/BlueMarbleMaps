@@ -1,7 +1,7 @@
 #ifndef BLUEMARBLE_RASTER
 #define BLUEMARBLE_RASTER
 
-#include "Core/Color.h"
+#include "BlueMarbleMaps/Core/Color.h"
 #include <string>
 #include <memory>
 

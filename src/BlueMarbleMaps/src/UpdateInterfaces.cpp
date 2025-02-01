@@ -1,5 +1,5 @@
-#include "Core/UpdateInterfaces.h"
-#include "Core/EngineObject.h"
+#include "BlueMarbleMaps/Core/UpdateInterfaces.h"
+#include "BlueMarbleMaps/Core/EngineObject.h"
 
 
 using namespace BlueMarble;

@@ -1,13 +1,13 @@
 #ifndef DRAWABLE
 #define DRAWABLE
 
-#include "Core/Raster.h"
-#include "Core/Core.h"
-#include "Core/Color.h"
-#include "Core/Renderer.h"
-#include "Core/Transform.h"
-#include "Core/Geometry.h"
-#include "Utility/Utils.h"
+#include "BlueMarbleMaps/Core/Raster.h"
+#include "BlueMarbleMaps/Core/Core.h"
+#include "BlueMarbleMaps/Core/Color.h"
+#include "BlueMarbleMaps/Core/Renderer.h"
+#include "BlueMarbleMaps/Core/Transform.h"
+#include "BlueMarbleMaps/Core/Geometry.h"
+#include "BlueMarbleMaps/Utility/Utils.h"
 
 #include <string>
 #include <vector>

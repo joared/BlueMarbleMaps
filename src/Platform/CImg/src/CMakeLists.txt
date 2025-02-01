@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.10)
 add_library(CImgImplementation STATIC "") #Explicit empty list to prevent warning from CMake
 
 # We need some headers from BlueMarbleMaps
-target_include_directories(CImgImplementation PRIVATE ${CMAKE_SOURCE_DIR}/include/BlueMarbleMaps)
+target_include_directories(CImgImplementation PRIVATE ${CMAKE_SOURCE_DIR}/include)
 # Link to Cimg. Using public so Bluemarble only needs link to CImgImplementation
 target_link_libraries(CImgImplementation PUBLIC CImgLib)
 

@@ -1,12 +1,12 @@
 #ifndef BLUEMARBLE_DATASET
 #define BLUEMARBLE_DATASET
 
-#include "Core/UpdateInterfaces.h"
-#include "Utility/Algorithm.h"
-#include "Core/EngineObject.h"
-#include "Core/FeatureAnimation.h"
-#include "CoordinateSystem/Crs.h"
-#include "System/File.h"
+#include "BlueMarbleMaps/Core/UpdateInterfaces.h"
+#include "BlueMarbleMaps/Utility/Algorithm.h"
+#include "BlueMarbleMaps/Core/EngineObject.h"
+#include "BlueMarbleMaps/Core/FeatureAnimation.h"
+#include "BlueMarbleMaps/CoordinateSystem/Crs.h"
+#include "BlueMarbleMaps/System/File.h"
 
 #include <atomic>
 #include <memory>

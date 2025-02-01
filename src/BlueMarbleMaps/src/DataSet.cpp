@@ -1,8 +1,8 @@
-#include "Core/DataSet.h"
-#include "Core/Map.h"
-#include "Core/FeatureAnimation.h"
-#include "System/File.h"
-#include "Utility/Utils.h"
+#include "BlueMarbleMaps/Core/DataSet.h"
+#include "BlueMarbleMaps/Core/Map.h"
+#include "BlueMarbleMaps/Core/FeatureAnimation.h"
+#include "BlueMarbleMaps/System/File.h"
+#include "BlueMarbleMaps/Utility/Utils.h"
 
 #include <cassert>
 #include <set>

@@ -1,9 +1,9 @@
 #ifndef BLUEMARBLE_MAPCONTROL
 #define BLUEMARBLE_MAPCONTROL
 
-#include "Map.h"
-#include "Event/EventHandler.h"
-#include "Core/Core.h"
+#include "BlueMarbleMaps/Core/Map.h"
+#include "BlueMarbleMaps/Event/EventHandler.h"
+#include "BlueMarbleMaps/Core/Core.h"
 
 namespace BlueMarble
 {

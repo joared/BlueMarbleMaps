@@ -1,12 +1,14 @@
-#include "Event/EventHandler.h"
-#include "Event/PointerEvent.h"
-#include "Event/KeyEvent.h"
+#include "BlueMarbleMaps/Event/EventHandler.h"
+#include "BlueMarbleMaps/Event/PointerEvent.h"
+#include "BlueMarbleMaps/Event/KeyEvent.h"
 
 #include <iostream>
 
 namespace BlueMarble
 {
     EventHandler::EventHandler()
+        : m_eventFilter(nullptr)
+        , m_handleEventRecursionGuard(false)
     {
     }
 
@@ -24,7 +26,7 @@ namespace BlueMarble
         event.timeStampMs = timeStampMs; // TODO: should not be here??
         for (auto eventHandler : m_eventHandlers)
         {
-            if (eventHandler->handleEvent(event))
+            if (eventHandler->handleEvent(nullptr, event))
                 return true;
         }
 

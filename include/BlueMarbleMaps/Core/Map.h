@@ -1,14 +1,14 @@
 #ifndef MAP
 #define MAP
 
-#include "Core/Core.h"
-#include "MapConstraints.h"
-#include "Animation.h"
-#include "Drawable.h"
-#include "Layer.h"
-#include "PresentationObject.h"
-#include "EngineObject.h"
-#include "CoordinateSystem/Crs.h"
+#include "BlueMarbleMaps/Core/Core.h"
+#include "BlueMarbleMaps/Core/MapConstraints.h"
+#include "BlueMarbleMaps/Core/Animation.h"
+#include "BlueMarbleMaps/Core/Drawable.h"
+#include "BlueMarbleMaps/Core/Layer.h"
+#include "BlueMarbleMaps/Core/PresentationObject.h"
+#include "BlueMarbleMaps/Core/EngineObject.h"
+#include "BlueMarbleMaps/CoordinateSystem/Crs.h"
 
 #include <map>
 #include <functional>

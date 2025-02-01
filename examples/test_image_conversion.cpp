@@ -1,8 +1,8 @@
 #include "CImg.h"
 #include "stb_image.h"
-#include "Core/Raster.h"
+#include "BlueMarbleMaps/Core/Raster.h"
 #include <vector>
-#include "Utility/ImageDataOperations.h"
+#include "BlueMarbleMaps/Utility/ImageDataOperations.h"
 
 using namespace cimg_library;
 

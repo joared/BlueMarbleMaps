@@ -1,4 +1,4 @@
-#include "Core/Feature.h"
+#include "BlueMarbleMaps/Core/Feature.h"
 
 using namespace BlueMarble;
 

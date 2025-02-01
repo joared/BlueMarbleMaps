@@ -1,4 +1,4 @@
-#include "Utility/Algorithm.h"
+#include "BlueMarbleMaps/Utility/Algorithm.h"
 
 using namespace BlueMarble::Algorithm;
 

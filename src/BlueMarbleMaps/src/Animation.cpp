@@ -1,6 +1,6 @@
 #include <cmath>
-#include "Core/Animation.h"
-#include "Core/Map.h"
+#include "BlueMarbleMaps/Core/Animation.h"
+#include "BlueMarbleMaps/Core/Map.h"
 
 using namespace BlueMarble;
 

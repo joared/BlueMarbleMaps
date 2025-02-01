@@ -1,4 +1,4 @@
-#include "Core/Visualizer.h"
+#include "BlueMarbleMaps/Core/Visualizer.h"
 
 using namespace BlueMarble;
 

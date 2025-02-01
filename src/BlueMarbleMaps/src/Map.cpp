@@ -1,9 +1,9 @@
-#include "Core/Map.h"
-#include "Core/MapConstraints.h"
-#include "Utility/Utils.h"
-#include "Core/DataSet.h"
-#include "Core/MapControl.h"
-#include "Core/SoftwareDrawable.h"
+#include "BlueMarbleMaps/Core/Map.h"
+#include "BlueMarbleMaps/Core/MapConstraints.h"
+#include "BlueMarbleMaps/Utility/Utils.h"
+#include "BlueMarbleMaps/Core/DataSet.h"
+#include "BlueMarbleMaps/Core/MapControl.h"
+#include "BlueMarbleMaps/Core/SoftwareDrawable.h"
 
 #include <cmath>
 #include <iostream>

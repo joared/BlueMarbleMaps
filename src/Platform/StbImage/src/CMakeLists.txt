@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.10)
 add_library(StbImageImplementation STATIC "") #Explicit empty list to prevent warning from CMake
 
 # We need some headers from BlueMarbleMaps
-target_include_directories(StbImageImplementation PRIVATE ${CMAKE_SOURCE_DIR}/include/BlueMarbleMaps)
+target_include_directories(StbImageImplementation PRIVATE ${CMAKE_SOURCE_DIR}/include)
 # Link to Cimg. Using public so Bluemarble only needs link to StbImageImplementation
 target_link_libraries(StbImageImplementation PUBLIC StbImageLib)
 

@@ -4,7 +4,7 @@
 // If opengl compatible raster implementation is used,
 // we need ImageDataOperations to convert image data in e.g.
 // drawRaster.
-#include "Utility/ImageDataOperations.h"
+#include "BlueMarbleMaps/Utility/ImageDataOperations.h"
 #define OPENGL_TO_CIMG interleavedToPlanarFlipY
 #endif
  

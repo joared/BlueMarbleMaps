@@ -1,4 +1,4 @@
-#include "CoordinateSystem/GeodeticDatum.h"
+#include "BlueMarbleMaps/CoordinateSystem/GeodeticDatum.h"
 
 using namespace BlueMarble;
 

@@ -1,6 +1,6 @@
-#include "Core/MapControl.h"
-#include "Core/SoftwareDrawable.h"
-#include "Core/OpenGLDrawable.h"
+#include "BlueMarbleMaps/Core/MapControl.h"
+#include "BlueMarbleMaps/Core/SoftwareDrawable.h"
+#include "BlueMarbleMaps/Core/OpenGLDrawable.h"
 #include <exception>
 
 using namespace BlueMarble;

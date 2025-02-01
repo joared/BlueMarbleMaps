@@ -2,7 +2,7 @@
 #define BLUEMARBLE_POINTEREVENT
 
 #include "Event.h"
-#include "Core/Buttons.h"
+#include "BlueMarbleMaps/Core/Buttons.h"
 
 namespace BlueMarble
 {

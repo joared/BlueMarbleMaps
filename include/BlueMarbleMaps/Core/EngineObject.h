@@ -1,5 +1,5 @@
-#ifndef BLUEMARBLE_ENGINEOBJECT
-#define BLUEMARBLE_ENGINEOBJECT
+#ifndef ENGINEOBJECT
+#define ENGINEOBJECT
 
 #include <string>
 #include <vector>
@@ -52,4 +52,4 @@ namespace BlueMarble
     };
 }
 
-#endif /* BLUEMARBLE_ENGINEOBJECT */
+#endif /* ENGINEOBJECT */

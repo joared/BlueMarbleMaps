@@ -3,12 +3,12 @@
 #include "CImg.h"
 #include <iostream>
 
-#include "Core/Map.h"
-#include "Core/DataSet.h"
-#include "Core/Core.h"
-#include "Core/Feature.h"
-#include "Core/MapControl.h"
-#include "DefaultEventHandlers.h"
+#include "BlueMarbleMaps/Core/Map.h"
+#include "BlueMarbleMaps/Core/DataSet.h"
+#include "BlueMarbleMaps/Core/Core.h"
+#include "BlueMarbleMaps/Core/Feature.h"
+#include "BlueMarbleMaps/Core/MapControl.h"
+#include "BlueMarbleMaps/DefaultEventHandlers.h"
 #include "Application/WindowGL.h"
 
 #include "map_configuration.h"
@@ -144,6 +144,35 @@ public:
 };
 typedef std::shared_ptr<GLFWMapControl> GLFWMapControlPtr;
 
+class EventObserver : public EventHandler
+{
+    public:
+        EventObserver(const std::string& name)
+            : EventHandler()
+            , m_name(name)
+            , m_previousEventType(EventType::Invalid)
+        {}
+
+        bool OnEventFilter(EventHandler* target, const Event& event) override final
+        {
+            if (m_previousEventType != EventType::Invalid 
+                && m_previousEventType != event.getType())
+            {
+                std::cout << m_name << ": " << event.toString() << "\n";
+            }
+
+            m_previousEventType = event.getType();
+
+            if (event.getType() == EventType::DoubleClick)
+            {
+                return true;
+            }
+            return false;
+        }
+    private:
+        std::string m_name;
+        EventType   m_previousEventType;
+};
 
 int main() 
 {
@@ -182,6 +211,11 @@ int main()
     view->addLayer(vectorLayer);
 
     PanEventHandler eventHandler(view, mapControl);
+    EventObserver eventObserver1("Observer1");
+    EventObserver eventObserver2("Observer2");
+    eventHandler.installEventFilter(&eventObserver1);
+    eventObserver1.installEventFilter(&eventObserver2);
+
     mapControl->addSubscriber(&eventHandler);
     mapControl->setView(view);
 

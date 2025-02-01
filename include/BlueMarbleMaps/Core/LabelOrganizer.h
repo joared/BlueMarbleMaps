@@ -1,7 +1,7 @@
 #ifndef BLUEMARBLE_LABELORGANIZER
 #define BLUEMARBLE_LABELORGANIZER
 
-#include "Feature.h"
+#include "BlueMarbleMaps/Core/Feature.h"
 
 namespace BlueMarble
 {

@@ -1,7 +1,7 @@
 #ifndef UTILS
 #define UTILS
 
-#include "Core/Core.h"
+#include "BlueMarbleMaps/Core/Core.h"
 
 #include <algorithm>
 #include <cmath>

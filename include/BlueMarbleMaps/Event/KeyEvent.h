@@ -1,9 +1,9 @@
 #ifndef KEYEVENT
 #define KEYEVENT
 
-#include "Event/Event.h"
-#include "Event/PointerEvent.h"
-#include "Core/Buttons.h"
+#include "BlueMarbleMaps/Event/Event.h"
+#include "BlueMarbleMaps/Event/PointerEvent.h"
+#include "BlueMarbleMaps/Core/Buttons.h"
 
 namespace BlueMarble
 {
