@@ -7,6 +7,7 @@
 #include "BlueMarbleMaps/Core/FeatureAnimation.h"
 #include "BlueMarbleMaps/CoordinateSystem/Crs.h"
 #include "BlueMarbleMaps/System/File.h"
+#include "BlueMarbleMaps/System/JsonFile.h"
 
 #include <atomic>
 #include <memory>

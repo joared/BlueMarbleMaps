@@ -20,7 +20,9 @@ set(SOURCES
     ${SRC_DIR}/Geometry.cpp
     ${SRC_DIR}/Feature.cpp
     ${SRC_DIR}/UpdateInterfaces.cpp
-    ${SRC_DIR}/File.cpp
+    ${SRC_DIR}/System/File.cpp
+    ${SRC_DIR}/System/CSVFile.cpp
+    ${SRC_DIR}/System/JsonFile.cpp
     ${SRC_DIR}/PresentationObject.cpp
     ${SRC_DIR}/Visualizer.cpp
     ${SRC_DIR}/Algorithm.cpp

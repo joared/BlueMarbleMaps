@@ -2,6 +2,7 @@
 #include "BlueMarbleMaps/Core/Map.h"
 #include "BlueMarbleMaps/Core/FeatureAnimation.h"
 #include "BlueMarbleMaps/System/File.h"
+#include "BlueMarbleMaps/System/CSVFile.h"
 #include "BlueMarbleMaps/Utility/Utils.h"
 
 #include <cassert>
