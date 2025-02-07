@@ -1,0 +1,10 @@
+{
+	"name" : "MyView",
+	"type" : "Map", "object" : 
+	{
+		"layers" : ["layer1", "layer2"],
+		"anInteger" : 1,
+		"aDouble" : 2.0,
+		"aString" : "Hello world!!!"
+	}
+}

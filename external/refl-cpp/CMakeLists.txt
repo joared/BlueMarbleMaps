@@ -1,0 +1,2 @@
+add_library(ReflectionCpp INTERFACE)
+target_include_directories(ReflectionCpp INTERFACE include)

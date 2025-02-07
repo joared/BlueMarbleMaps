@@ -1,11 +1,11 @@
 #ifndef BLUEMARBLE_LAYER
 #define BLUEMARBLE_LAYER
 
-#include "Feature.h"
-#include "UpdateInterfaces.h"
-#include "EngineObject.h"
-#include "Visualizer.h"
-#include "Effect.h"
+#include "BlueMarbleMaps/Core/Feature.h"
+#include "BlueMarbleMaps/Core/UpdateInterfaces.h"
+#include "BlueMarbleMaps/Core/ResourceObject.h"
+#include "BlueMarbleMaps/Core/Visualizer.h"
+#include "BlueMarbleMaps/Core/Effect.h"
 
 #include <vector>
 
@@ -15,7 +15,7 @@ namespace BlueMarble
     class Map;     // Forward declaration.
     
     class Layer 
-        : public EngineObject
+        : public ResourceObject
         , public IUpdateHandler
         , public FeatureHandler
     {

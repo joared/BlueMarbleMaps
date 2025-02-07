@@ -3,7 +3,7 @@
 
 #include "BlueMarbleMaps/Core/UpdateInterfaces.h"
 #include "BlueMarbleMaps/Utility/Algorithm.h"
-#include "BlueMarbleMaps/Core/EngineObject.h"
+#include "BlueMarbleMaps/Core/ResourceObject.h"
 #include "BlueMarbleMaps/Core/FeatureAnimation.h"
 #include "BlueMarbleMaps/CoordinateSystem/Crs.h"
 #include "BlueMarbleMaps/System/File.h"
@@ -27,7 +27,7 @@ namespace BlueMarble
     typedef std::shared_ptr<DataSet> DataSetPtr;
     class DataSet 
         : public std::enable_shared_from_this<DataSet>
-        , public EngineObject
+        , public ResourceObject
         , public IUpdateHandler
     {
         private:

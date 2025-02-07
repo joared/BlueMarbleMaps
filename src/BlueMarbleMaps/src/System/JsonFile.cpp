@@ -8,6 +8,7 @@ using namespace BlueMarble;
 JSONFile::JSONFile(const std::string& filePath)
     : File(filePath)
     , m_jsonData(nullptr)
+    , m_parseHandler(nullptr)
 {
     std::cout << "JSONFile(): " << filePath << "\n";
     int idx = 0;
@@ -35,6 +36,7 @@ JSONFile::JSONFile(const std::string& filePath)
     
 }
 
+
 JSONFile::~JSONFile()
 {
     std::cout << "JSONFile::~JSONFile()\n";
@@ -45,6 +47,46 @@ JSONFile::~JSONFile()
 JsonValue *BlueMarble::JSONFile::data()
 {
     return m_jsonData;
+}
+
+void JSONFile::parseData(JsonValue* data, JSONParseHandler* parseHandler)
+{
+    // std::variant<int, double, std::string, JsonList, JsonData> m_val;
+    assert(parseHandler != nullptr);
+
+    if (data->isType<int>())
+    {
+        parseHandler->onInteger(data->get<int>());
+    }
+    else if (data->isType<double>())
+    {
+        parseHandler->onDouble(data->get<double>());
+    }
+    else if (data->isType<std::string>())
+    {
+        parseHandler->onString(data->get<std::string>());
+    }
+    else if (data->isType<JsonList>())
+    {
+        auto jsonList = data->get<JsonList>();
+        parseHandler->onStartList(jsonList);
+        for (auto el : jsonList)
+        {
+            parseData(el, parseHandler);
+        }
+        parseHandler->onEndList(jsonList);
+    }
+    else if (data->isType<JsonData>())
+    {
+        auto jsonObject = data->get<JsonData>();
+        parseHandler->onStartObject(jsonObject);
+        for (auto it : jsonObject)
+        {
+            parseHandler->onKey(it.first);
+            parseData(it.second, parseHandler);
+        }
+        parseHandler->onEndObject(jsonObject);
+    }
 }
 
 std::string BlueMarble::JSONFile::prettyString()
@@ -165,6 +207,11 @@ JsonValue* JSONFile::parseJson(const std::string &text, int &idx, int level)
             const auto [key, value] = retrieveKeyValuePair(text, idx, level);
             jsonData[key] = value;
             parseWhiteSpace(text, idx);
+            // FIXME: this is needed if comma is forgotten, but parseValue should not step over ','
+            // if (text[idx] != '}')
+            // {
+            //     expect(',', text, idx);
+            // }
         }
         catch(const std::exception& e)
         {
@@ -188,12 +235,11 @@ JsonValue* JSONFile::parseJson(const std::string &text, int &idx, int level)
     {
         std::cout << "End of file, level: " << level << "\n";
     }
-
     
     return new JsonValue(jsonData);
 }
 
-std::pair<std::string, JsonValue*> JSONFile::retrieveKeyValuePair(const std::string &text, int &idx, int level)
+std::pair<std::string, JsonValue*> JSONFile::retrieveKeyValuePair(const std::string& text, int& idx, int level)
 {
     auto key = parseKey(text, idx);
     parseWhiteSpace(text, idx);
@@ -357,8 +403,9 @@ void BlueMarble::JSONFile::expect(const char &c, const std::string &text, int &i
 {
     if (c != text[idx])
     {
-        //std::cout << text.substr(idx-20, idx+1) << "<---\n";
+        
         std::cout << "Expected '" << c << "' but got '" << text[idx] << "'\n";
+        std::cout << text.substr(idx-20, idx+1) << "<---\n";
 
         throw std::exception();
     }

@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <cstdint>
+#include <memory>
 
 /*#define BLUEMARBLE_OBJECT_PROPERTY(propertyName, propertyType) \
     private: \
@@ -15,6 +16,9 @@
 namespace BlueMarble
 {
     typedef int64_t BMID;
+    
+    class EngineObject; typedef std::shared_ptr<EngineObject> EngineObjectPtr;
+
     class EngineObject
     {
         public:

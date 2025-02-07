@@ -5,6 +5,7 @@
 #include <map>
 #include <variant>
 #include <memory>
+#include <iostream>
 
 namespace BlueMarble
 {

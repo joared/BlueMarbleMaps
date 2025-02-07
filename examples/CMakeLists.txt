@@ -15,3 +15,7 @@ add_executable(TestResizePerformance test_resize_performance.cpp)
 target_link_libraries(TestResizePerformance PRIVATE CImgLib)
 target_link_libraries(TestResizePerformance PRIVATE StbImageLib)
 target_link_libraries(TestResizePerformance PRIVATE BlueMarbleMapsLib)
+
+add_executable(TestReflection test_reflection.cpp)
+target_link_libraries(TestReflection PRIVATE ReflectionCpp)
+target_link_libraries(TestReflection PRIVATE BlueMarbleMapsLib)

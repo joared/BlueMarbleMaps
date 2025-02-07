@@ -31,6 +31,7 @@ set(SOURCES
     ${SRC_DIR}/FeatureAnimation.cpp
     ${SRC_DIR}/Effect.cpp
     ${SRC_DIR}/MapControl.cpp
+    ${SRC_DIR}/BlueMarbleLayout.cpp
     ${SRC_DIR}/OpenGLDrawable.cpp
     ${SRC_DIR}/CoordinateSystem/Crs.cpp
     ${SRC_DIR}/CoordinateSystem/GeodeticDatum.cpp

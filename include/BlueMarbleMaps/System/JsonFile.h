@@ -80,7 +80,7 @@ namespace BlueMarble
                     case 3:
                         return "JsonList";
                     case 4:
-                        return "JasonData";
+                        return "JsonData";
                     default:
                         std::cerr << "JasonValue::typeAsString() Unknown type\n";
                         throw std::exception();
@@ -91,20 +91,37 @@ namespace BlueMarble
     };
 
 
-    // TODO: currenlty there are memory leaks/not implemented correctly. Use pointers and make sure JsonValues are freed
+    class JSONParseHandler
+    {
+        public:
+            virtual void onInteger(int value) {}
+            virtual void onDouble(double value) {}
+            virtual void onString(const std::string& value) {}
+            virtual void onNull() {}
+
+            virtual void onStartList(const JsonList& value) {}
+            virtual void onEndList(const JsonList& value) {}
+
+            virtual void onStartObject(const JsonData& value) {}
+            virtual void onEndObject(const JsonData& value) {}
+            
+            virtual void onKey(const std::string& key) {}
+    };
+
     class JSONFile : public File
     {
         public:
             JSONFile(const std::string& filePath);
             ~JSONFile();
+            
             JsonValue* data();
+            static void parseData(JsonValue* data, JSONParseHandler* parseHandler);
+
             static std::string prettyString();
             static void prettyString(JsonValue* jsonData, std::string& s, int indentation);
             std::string prettyKeys(JsonValue* jsonData);
             void prettyKeys(JsonValue* jsonData, std::string& s, int indentation);
         private:
-            JsonValue* m_jsonData;
-
             JsonValue* parseJson(const std::string& text, int& idx, int level);
             std::pair<std::string, JsonValue*> retrieveKeyValuePair(const std::string& text, int& idx, int level);
             std::string parseKey(const std::string& text, int& idx);
@@ -113,6 +130,9 @@ namespace BlueMarble
 
             void expect(const char& c, const std::string& text, int& idx);
             bool isEndOfValueChar(const char& c);
+
+            JsonValue*          m_jsonData;
+            JSONParseHandler*   m_parseHandler;
     };
 
 } // namespace BlueMarble

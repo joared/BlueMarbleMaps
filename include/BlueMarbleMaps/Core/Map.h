@@ -7,7 +7,7 @@
 #include "BlueMarbleMaps/Core/Drawable.h"
 #include "BlueMarbleMaps/Core/Layer.h"
 #include "BlueMarbleMaps/Core/PresentationObject.h"
-#include "BlueMarbleMaps/Core/EngineObject.h"
+#include "BlueMarbleMaps/Core/ResourceObject.h"
 #include "BlueMarbleMaps/CoordinateSystem/Crs.h"
 
 #include <map>
@@ -51,7 +51,7 @@ namespace BlueMarble
     };
 
     class Map 
-        : public EngineObject
+        : public ResourceObject
         , public MapEventPublisher
     {
         class MapCommand

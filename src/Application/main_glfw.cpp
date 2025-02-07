@@ -1,6 +1,5 @@
 #include "glad/glad.h"
 #include <glfw3.h>
-#include "CImg.h"
 #include <iostream>
 
 #include "BlueMarbleMaps/Core/Map.h"
@@ -9,12 +8,12 @@
 #include "BlueMarbleMaps/Core/Feature.h"
 #include "BlueMarbleMaps/Core/MapControl.h"
 #include "BlueMarbleMaps/DefaultEventHandlers.h"
+#include "BlueMarbleMaps/Core/BlueMarbleLayout.h"
 #include "Application/WindowGL.h"
 
 #include "map_configuration.h"
 #include <Keys.h>
 
-using namespace cimg_library;
 using namespace BlueMarble;
 
 
