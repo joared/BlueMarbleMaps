@@ -66,12 +66,12 @@ void SoftwareDrawable::Impl::drawCircle(int x, int y, double radius, const Color
     m_img.draw_circle(x, y, radius, c, color.a());
 }
 
-void SoftwareDrawable::Impl::drawLine(const std::vector<Point>& points, const Color& color, double width)
+void SoftwareDrawable::Impl::drawLine(const LineGeometryPtr& geometry, const Color& color, double width)
 {
     // m_renderer->drawLine(points, color, width);
     unsigned char c[] = {color.r(), color.g(), color.b(), (unsigned char)(color.a()*255)};
-    int size = points.size();
-    auto line = points;
+    int size = geometry->points().size();
+    auto line = geometry->points();
     for (int i(0); i < size-1; ++i)
     {
         auto& p1 = line[i];
@@ -95,17 +95,18 @@ void SoftwareDrawable::Impl::drawLine(const std::vector<Point>& points, const Co
             polygon.push_back(start - v2*width*0.5);
             polygon.push_back(end - v2*width*0.5);
             polygon.push_back(end + v2*width*0.5);
-            drawPolygon(polygon, color);
+            PolygonGeometryPtr polygonPtr = std::make_shared<PolygonGeometry>(PolygonGeometry(polygon));
+            drawPolygon(polygonPtr, color);
         }
     }
 }
 
-void SoftwareDrawable::Impl::drawPolygon(const std::vector<Point>& points, const Color& color)
+void SoftwareDrawable::Impl::drawPolygon(const PolygonGeometryPtr& geometry, const Color& color)
 {
     // m_renderer->drawPolygon(points,color);
-    assert(points.size() > 2);
-    auto iterator = points.begin();
-    cimg_library::CImg<int> pointsCImg(points.size(),2);
+    assert(geometry->outerRing().size() > 2);
+    auto iterator = geometry->outerRing().begin();
+    cimg_library::CImg<int> pointsCImg(geometry->outerRing().size(), 2);
     cimg_forX(pointsCImg,i) 
     { 
         auto& p = *(iterator++);
@@ -169,20 +170,15 @@ void SoftwareDrawable::Impl::drawRaster(const RasterGeometryPtr& geometry, doubl
     
     subRaster.resize(screenWidth, screenHeight, Raster::ResizeInterpolation::NearestNeighbor);
 
-    drawRaster(x, y, subRaster, alpha);
-}
-
-void SoftwareDrawable::Impl::drawRaster(int x, int y, const Raster& raster, double alpha)
-{
-    #ifdef BLUEMARBLE_USE_CIMG_RASTER_IMPL
+#ifdef BLUEMARBLE_USE_CIMG_RASTER_IMPL
     // CImg raster implementation
     auto rasterImg = cimg_library::CImg<unsigned char>(raster.data(), raster.width(), raster.height(), 1, raster.channels(), true);
-    #else
+#else
     // stb_image Raster implementation, need to convert
-    auto rasterImg = cimg_library::CImg<unsigned char>(raster.data(), raster.width(), raster.height(), 1, raster.channels());
-    OPENGL_TO_CIMG(rasterImg.data(), raster.data(), raster.width(), raster.height(), raster.channels());
-    #endif
-    
+    auto rasterImg = cimg_library::CImg<unsigned char>(subRaster.data(), subRaster.width(), subRaster.height(), 1, subRaster.channels());
+    OPENGL_TO_CIMG(rasterImg.data(), subRaster.data(), subRaster.width(), subRaster.height(), subRaster.channels());
+#endif
+
     if (rasterImg.spectrum() == 4)
     {
         //img.draw_image(x, y, rasterImg.get_shared_channels(0,2), rasterImg.get_shared_channel(3), 1.0, 255);

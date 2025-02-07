@@ -72,14 +72,14 @@ namespace BlueMarble
         m_impl->drawCircle(x, y, radius, color);
     }
 
-    void SoftwareDrawable::drawLine(const std::vector<Point>& points, const Color& color, double width)
+    void SoftwareDrawable::drawLine(const LineGeometryPtr& geometry, const Color& color, double width)
     {
-        m_impl->drawLine(points, color, width);
+        m_impl->drawLine(geometry, color, width);
     }
 
-    void SoftwareDrawable::drawPolygon(const std::vector<Point>& points, const Color& color)
+    void SoftwareDrawable::drawPolygon(const PolygonGeometryPtr& geometry, const Color& color)
     {
-        m_impl->drawPolygon(points, color);
+        m_impl->drawPolygon(geometry, color);
     }
 
     void SoftwareDrawable::drawRect(const Rectangle& rect, const Color& color)
@@ -90,11 +90,6 @@ namespace BlueMarble
     void SoftwareDrawable::drawRect(const Point& topLeft, const Point& bottomRight, const Color& color)
     {
         m_impl->drawRect(topLeft, bottomRight, color);
-    }
-
-    void SoftwareDrawable::drawRaster(int x, int y, const Raster& raster, double alpha)
-    {
-        m_impl->drawRaster(x, y, raster, alpha);
     }
 
     void SoftwareDrawable::drawRaster(const RasterGeometryPtr& raster, double alpha)

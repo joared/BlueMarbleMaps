@@ -44,7 +44,6 @@ namespace BlueMarble
             std::vector<EffectPtr>& effects() { return m_effects; }
 
         private:
-            void toScreen(Map& map, const std::vector<FeaturePtr>& features, std::vector<FeaturePtr>& screenFeatures);
 
             void createDefaultVisualizers();
             

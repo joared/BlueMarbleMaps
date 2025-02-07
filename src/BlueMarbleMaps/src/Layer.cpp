@@ -74,16 +74,15 @@ FeaturePtr Layer::onGetFeatureRequest(const Id &id)
 
 void Layer::onFeatureInput(Map& map, const std::vector<FeaturePtr>& features)
 {
-    auto screenFeatures = std::vector<FeaturePtr>();
-    toScreen(map, features, screenFeatures);
-
-    assert(features.size() == screenFeatures.size());
-
-    for (size_t i(0); i<screenFeatures.size(); i++)
+    for (size_t i(0); i< features.size(); i++)
     {
-        auto f = screenFeatures[i];
         auto sourceFeature = features[i];
-
+        auto f = std::make_shared<Feature>(
+            sourceFeature->id(),
+            sourceFeature->crs(),
+            std::static_pointer_cast<Geometry>(sourceFeature->geometry()->deepClone())
+        );
+        
         // Always apply standard visualization for now
         for (auto vis : m_visualizers)
         {
@@ -127,95 +126,6 @@ void Layer::onFeatureInput(Map& map, const std::vector<FeaturePtr>& features)
         e->apply(*map.drawable());
     }
 }
-
-
-void Layer::toScreen(Map& map, const std::vector<FeaturePtr>& features, std::vector<FeaturePtr>& screenFeatures)
-{
-    for (auto f : features)
-    {
-        switch (f->geometryType())
-        {
-        case GeometryType::Point:
-        {
-            auto& point = f->geometryAsPoint()->point();
-
-            auto screenPoint = map.lngLatToScreen(point).round();
-            auto newF = std::make_shared<Feature>
-            (
-                f->id(),
-                f->crs(),
-                std::make_shared<PointGeometry>(screenPoint)
-            );
-            newF->attributes() = f->attributes();
-            screenFeatures.push_back(newF);
-            break;
-        }
-
-        case GeometryType::Line:
-        {
-            auto& points = f->geometryAsLine()->points();
-            auto screenPoints = map.lngLatToScreen(points);
-            auto newF = std::make_shared<Feature>
-            (
-                f->id(),
-                f->crs(),
-                std::make_shared<LineGeometry>(screenPoints)
-            );
-            newF->attributes() = f->attributes();
-            screenFeatures.push_back(newF);
-            break;
-        }
-
-        case GeometryType::Polygon:
-        {
-
-            auto screenRings = std::vector<std::vector<Point>>();
-            for (auto& innerRing : f->geometryAsPolygon()->rings())
-            {
-                screenRings.push_back(map.lngLatToScreen(innerRing));
-            }
-
-            auto newF = std::make_shared<Feature>
-            (
-                f->id(),
-                f->crs(),
-                std::make_shared<PolygonGeometry>(screenRings)
-            );
-            newF->attributes() = f->attributes();
-            screenFeatures.push_back(newF);
-            break;
-        }
-
-        case GeometryType::MultiPolygon:
-        {
-            // auto geometry = std::make_shared<MultiPolygonGeometry>();
-            // auto newF = std::make_shared<Feature>
-            // (
-            //     f->id(),
-            //     geometry
-            // );
-            // newF->attributes() = f->attributes();
-            // auto& polygons = f->geometryAsMultiPolygon()->polygons();
-            // for (auto p : polygons)
-            // {
-            //     auto polGeo = PolygonGeometry(map.lngLatToScreen(p.points()));
-            //     geometry->polygons().push_back(polGeo);
-            // }
-            
-            // screenFeatures.push_back(newF);
-            std::cout << "WARNING: Layer::toScreen() MultiPolygon not supported.\n";
-            break;
-        }
-
-        case GeometryType::Raster:
-            screenFeatures.push_back(f);
-            break;
-        default:
-            std::cout << "Layer::toScreen() Unhandled geometry type: " << (int)f->geometryType() << "\n";
-        }
-    }
-}
-
 
 void Layer::createDefaultVisualizers()
 {

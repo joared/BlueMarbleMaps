@@ -46,7 +46,16 @@ namespace BlueMarble
             }
             BMID getID() const { return m_id; }
             virtual EngineObjectPtr clone() { return nullptr; };
-            virtual EngineObjectPtr deepClone() { return nullptr; };
+            virtual EngineObjectPtr deepClone() 
+            { 
+                EngineObjectPtr obj = clone();
+                if (obj == nullptr)
+                {
+                    return nullptr;
+                }
+                obj->m_id = this->m_id;
+                return obj;
+            };
             virtual bool equals(const EngineObjectPtr& other) { return m_id == other->getID(); };
         protected:
             virtual void onChildAdded(EngineObject* child) {}; // TODO: should be pure virtual
