@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <cassert>
+#include <string>
 
 using namespace BlueMarble;
 

@@ -6,7 +6,7 @@
 #include "Core/Core.h"
 #include "Event/PointerEvent.h"
 #include "Event/KeyEvent.h"
-#include <Core/MapControl.h>
+#include "BlueMarbleMaps/Core/MapControl.h"
 
 namespace BlueMarble
 {
