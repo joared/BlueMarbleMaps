@@ -286,7 +286,8 @@ void LineVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feature
 
     for (auto& line : lines)
     {
-        drawable.drawLine(line, m_colorEval(feature, updateAttributes), m_widthEval(feature, updateAttributes));
+        LineGeometryPtr linePtr = std::make_shared<LineGeometry>(line);
+        drawable.drawLine(linePtr, m_colorEval(feature, updateAttributes), m_widthEval(feature, updateAttributes));
     }
 }
 
@@ -308,8 +309,8 @@ bool PolygonVisualizer::isValidGeometry(GeometryType type)
 void PolygonVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feature, const FeaturePtr& source, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs)
 {
     auto geometry = feature->geometryAsPolygon();
-    auto polygonPoints = geometry->outerRing(); // Make a copy to prevent affecting hit testing
-
+    auto& polygonPoints = geometry->outerRing();
+    
     // FIXME: changing the geometry like this will mess with hittest of 
     // other presentation objects that in fact was rendered with 
     // a different geometry. Should probably not be done?
@@ -338,10 +339,9 @@ void PolygonVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feat
     {
         Utils::movePoints(polygonPoints, Point(offX, offY));
     }
-
     // Draw the polygon
     auto color = m_colorEval(feature, updateAttributes);
-    drawable.drawPolygon(polygonPoints, color);
+    drawable.drawPolygon(geometry, color);
     
     return; // TODO: remove, testing new visualization structure
 

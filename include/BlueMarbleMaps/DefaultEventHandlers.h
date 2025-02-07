@@ -6,6 +6,7 @@
 #include "Core/Core.h"
 #include "Event/PointerEvent.h"
 #include "Event/KeyEvent.h"
+#include <Core/MapControl.h>
 
 namespace BlueMarble
 {
@@ -87,15 +88,16 @@ namespace BlueMarble
                     {
                         // Draw line
                         auto& drawable = *m_map->drawable();
-
-                        drawable.drawLine(m_map->mapToScreen(polygon), Color(255, 255, 255));
+                        LineGeometryPtr polygonPtr = std::make_shared<LineGeometry>(m_map->mapToScreen(polygon));
+                        drawable.drawLine(polygonPtr, Color(255, 255, 255));
                     }
 
                     if (polygon.size() > 2)
                     {
                         // Draw polygon
                         auto& drawable = *m_map->drawable();
-                        drawable.drawPolygon(m_map->mapToScreen(polygon), Color(0, 0, 0, 0.5));
+                        PolygonGeometryPtr polygonPtr = std::make_shared<PolygonGeometry>(m_map->mapToScreen(polygon));
+                        drawable.drawPolygon(polygonPtr, Color(0, 0, 0, 0.5));
                     }
                 }
                 std::cout << "Drawing polygon\n";
@@ -195,7 +197,8 @@ namespace BlueMarble
 
                 auto line = bounds.corners();
                 line.push_back(line[0]);
-                drawable.drawLine(line, lineColor); 
+                LineGeometryPtr linePtr = std::make_shared<LineGeometry>(line);
+                drawable.drawLine(linePtr, lineColor); 
             }
 
             void OnCustomDraw(BlueMarble::Map& /*map*/) override final 

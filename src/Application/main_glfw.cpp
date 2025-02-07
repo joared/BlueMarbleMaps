@@ -188,7 +188,7 @@ int main()
     auto view = std::make_shared<Map>();
     view->center(Point(0, 0));
     view->scale(0.1);
-    auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/geodata/elevation/LARGE_elevation.jpg");
+    auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("C:\\ML\\BlueMarbleMaps\\geodata\\aeroplane.png");
     elevationDataSet->initialize(BlueMarble::DataSetInitializationType::RightHereRightNow);
     auto elevationLayer = BlueMarble::LayerPtr(new BlueMarble::Layer(false));
     elevationLayer->addUpdateHandler(elevationDataSet.get());

@@ -24,11 +24,10 @@ namespace BlueMarble
         void resize(int width, int height);
         void fill(int val);
         void drawCircle(int x, int y, double radius, const Color& color);
-        void drawLine(const std::vector<Point>& points, const Color& color, double width = 1.0);
-        void drawPolygon(const std::vector<Point>& points, const Color& color);
+        void drawLine(const LineGeometryPtr& geometry, const Color& color, double width = 1.0);
+        void drawPolygon(const PolygonGeometryPtr& geometry, const Color& color);
         void drawRect(const Point& topLeft, const Point& bottomRight, const Color& color);
         void drawRect(const Rectangle& rect, const Color& color); // Utility method, calls the above
-        void drawRaster(int x, int y, const Raster& raster, double alpha);
         void drawRaster(const RasterGeometryPtr& raster, double alpha);
         void drawText(int x, int y, const std::string& text, const Color& color, int fontSize = 20, const Color& backgroundColor = Color::transparent());
         Color readPixel(int x, int y);

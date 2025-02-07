@@ -1,4 +1,6 @@
 #include "BlueMarbleMaps/Core/OpenGLDrawable.h"
+#include "BlueMarbleMaps/Core/Geometry.h"
+
 #include "VAO.h"
 #include "VBO.h"
 #include "IBO.h"
@@ -76,12 +78,20 @@ void BlueMarble::OpenGLDrawable::drawCircle(int x, int y, double radius, const C
 {
 }
 
-void BlueMarble::OpenGLDrawable::drawLine(const std::vector<Point>& points, const Color& color, double width)
+void BlueMarble::OpenGLDrawable::drawLine(const LineGeometryPtr& geometry, const Color& color, double width)
 {
 }
 
-void BlueMarble::OpenGLDrawable::drawPolygon(const std::vector<Point>& points, const Color& color)
+void BlueMarble::OpenGLDrawable::drawPolygon(const PolygonGeometryPtr& geometry, const Color& color)
 {
+    if (m_idSet.find(geometry->getID()) == m_idSet.end())
+    {
+
+    }
+    else
+    {
+
+    }
 }
 
 void BlueMarble::OpenGLDrawable::drawRect(const Point& topLeft, const Point& bottomRight, const Color& color)
@@ -90,11 +100,6 @@ void BlueMarble::OpenGLDrawable::drawRect(const Point& topLeft, const Point& bot
 
 void BlueMarble::OpenGLDrawable::drawRect(const Rectangle& rect, const Color& color)
 {
-}
-
-void BlueMarble::OpenGLDrawable::drawRaster(int x, int y, const Raster& raster, double alpha)
-{
-    
 }
 
 unsigned char* readImage(std::string path, int* width, int* height, int* nrOfChannels)

@@ -172,13 +172,15 @@ namespace BlueMarble
                                 // Copy and rotate the copy
                                 auto raster = m_rasterCache[cacheIdx];
                                 raster.rotate(rotation, xHot, yHot);
-                                drawable.drawRaster(point.x()-xHot, point.y()-yHot, raster, color.a());
+                                //did some shit...
+                                //drawable.drawRaster(point.x()-xHot, point.y()-yHot, raster, color.a());
                             }
                             else 
                             {
                                 // Reference and no rotation
                                 auto& raster = m_rasterCache[cacheIdx];
-                                drawable.drawRaster(point.x()-xHot, point.y()-yHot, raster, color.a());
+                                //did some shit...
+                                //drawable.drawRaster(point.x()-xHot, point.y()-yHot, raster, color.a());
                             }
                             
                             //auto img = *static_cast<cimg_library::CImg<unsigned char>*>(m_rasterSymbol.data());

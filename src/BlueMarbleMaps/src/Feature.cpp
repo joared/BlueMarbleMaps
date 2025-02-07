@@ -20,7 +20,8 @@ BlueMarble::Feature::Feature(const Id& id, const CrsPtr& crs, const GeometryPtr&
 
 FeaturePtr BlueMarble::Feature::clone()
 {
-    return std::make_shared<Feature>(m_id, m_crs, m_geometry->clone(), m_attributes);
+    const GeometryPtr& geom = std::static_pointer_cast<Geometry>(m_geometry->clone());
+    return std::make_shared<Feature>(m_id, m_crs, geom, m_attributes);
 }
 
 Id Feature::id() const
