@@ -77,11 +77,20 @@ void Layer::onFeatureInput(Map& map, const std::vector<FeaturePtr>& features)
     for (size_t i(0); i< features.size(); i++)
     {
         auto sourceFeature = features[i];
-        auto f = std::make_shared<Feature>(
-            sourceFeature->id(),
-            sourceFeature->crs(),
-            std::static_pointer_cast<Geometry>(sourceFeature->geometry()->deepClone())
-        );
+
+        FeaturePtr f;
+        if (sourceFeature->geometryType() == GeometryType::Raster)
+        {
+            f = sourceFeature;
+        }
+        else
+        {
+            f = std::make_shared<Feature>(
+                sourceFeature->id(),
+                sourceFeature->crs(),
+                std::static_pointer_cast<Geometry>(sourceFeature->geometry()->deepClone())
+            );
+        }
         
         // Always apply standard visualization for now
         for (auto vis : m_visualizers)
