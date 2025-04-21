@@ -34,3 +34,6 @@ Effieciency and optimization:
 
 Safe programming using pointers:
 	- Features "owns" its geometry. It should not be possible to instantiate a Feature with a pointer to someone elses geometry.
+
+Reflection:
+	- How to parse containers (vector, map, etc)

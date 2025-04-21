@@ -19,3 +19,11 @@ target_link_libraries(TestResizePerformance PRIVATE BlueMarbleMapsLib)
 add_executable(TestReflection test_reflection.cpp)
 target_link_libraries(TestReflection PRIVATE ReflectionCpp)
 target_link_libraries(TestReflection PRIVATE BlueMarbleMapsLib)
+
+add_executable(TestBasicReflection test_reflection_basic.cpp)
+target_link_libraries(TestBasicReflection PRIVATE ReflectionCpp)
+target_link_libraries(TestBasicReflection PRIVATE BlueMarbleMapsLib)
+
+add_executable(TestMyReflection test_my_reflection.cpp)
+target_link_libraries(TestMyReflection PRIVATE ReflectionCpp)
+target_link_libraries(TestMyReflection PRIVATE BlueMarbleMapsLib)

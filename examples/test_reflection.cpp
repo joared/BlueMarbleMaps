@@ -25,7 +25,7 @@ enum class UiPropertyType
 };
 
 template <typename Parser>
-struct UiProperty : refl::attr::usage::field
+struct UiProperty : refl::attr::usage::member
 {
     const Parser parser;
     const UiPropertyType type;
@@ -205,11 +205,209 @@ UI_ELEMENT_REGISTER(StackPanel);
 
 const char* view_template = R"<?>(
     <StackPanel orientation="horizontal"> Hello, World! </StackPanel>
+    <MapView width="1337.0" height="13"> This is my width! </MapView>
 )<?>";
+
+
+
+
+// void debug_double(std::ostream& os, double value)
+// {
+//     os << "(double) " << value;
+// }
+
+// REFL_AUTO(type(double, debug{ debug_double }))
+
+#define BMM_REFLECTION(class, ...) REFL_AUTO(type(class), __VA_ARGS__)
+#define BMM_REFLECT_PROPERTY(getter, setter, name)\
+func(getter, property(name)),\
+func(setter, property(name))\
+
+#define BMM_REFLECT_FIELD(name) field(name)
+#define BMM_REFLECT_METHOD(name) func(name)
+
+class SomethingElse
+{
+    public:
+        double uno;
+        double dos;
+};
+
+BMM_REFLECTION(
+    SomethingElse,
+    BMM_REFLECT_FIELD(uno),
+    BMM_REFLECT_FIELD(dos)
+);
+
+class PointBase
+{
+    public:
+        double getId() { return m_id; }
+    private:
+        double m_id = 10.0;
+
+};
+
+class Point : public PointBase
+{
+    public:
+        double m_x = 1.0;
+        double m_y = 2.0;
+        SomethingElse m_s;
+
+        double getX() const
+        {
+            return m_x;
+        }
+
+        void setX(double value)
+        {
+            m_y = value;
+        }
+
+        double length() const
+        {
+            return std::sqrt(m_x * m_x + m_y * m_y);
+        }
+};
+
+
+
+BMM_REFLECTION
+(
+    PointBase,
+    BMM_REFLECT_METHOD(getId)
+);
+
+REFL_AUTO(
+    type(Point, bases<PointBase>),
+    field(m_x),
+    field(m_y),
+    field(m_s),
+    func(getX, property("xProperty")),
+    func(setX, property("xProperty")),
+    func(length)
+);
+
+// Same as above
+// BMM_REFLECTION(
+//     Point,
+//     BMM_REFLECT_FIELD(m_x),
+//     BMM_REFLECT_FIELD(m_y),
+//     BMM_REFLECT_FIELD(m_s),
+//     BMM_REFLECT_PROPERTY(getX, setX, "xProperty"),
+//     BMM_REFLECT_METHOD(length)
+// );
+
+class MapView
+{
+    public:
+        double& width() { return m_width; }
+        double width() const { return m_width; }
+        double height=0.0;
+    private:
+        double m_width;
+};
+typedef std::shared_ptr<MapView> MapViewPtr;
+
+double parse_double(std::string_view str)
+{
+    return std::stod(std::string(str)); 
+}
+
+REFL_AUTO
+(
+    type(MapView),
+    field(height, UiProperty(&parse_double)),
+    func(width, UiProperty(&parse_double))
+)
+
+UI_ELEMENT_REGISTER(MapView);
+
+template <typename T>
+void prettyReflectionString()
+{
+    constexpr auto type = refl::reflect<T>();
+
+    refl::const_string typeStr = type.name;
+    refl::const_string membersStr = REFL_MAKE_CONST_STRING("");
+    refl::const_string attributesStr = REFL_MAKE_CONST_STRING("");
+    
+    // Iterate over members
+    refl::util::for_each(type.members, [](auto member, auto& membersStr) 
+    {
+        if constexpr (refl::descriptor::is_function(member))
+        {
+            std::cout << REFL_MAKE_CONST_STRING("(method) ");
+            std::cout << refl::descriptor::get_name(member);
+
+            if constexpr (refl::descriptor::is_property(member))
+            {
+                std::cout << " aka '" << refl::descriptor::get_display_name(member) << "'";
+            }
+
+            std::cout << ": ";
+
+            if constexpr (refl::descriptor::is_resolved(member))
+            {
+                std::cout << "|Resolved|";
+            }
+        }
+        else if constexpr (refl::descriptor::is_field(member))
+        {
+            std::cout << "(field) ";
+            std::cout << refl::descriptor::get_name(member) << ": ";
+
+            if constexpr (refl::descriptor::is_static(member))
+            {
+                std::cout << "|Static|";
+            }
+        }
+        
+        if constexpr (refl::descriptor::is_type(member))
+        {
+            std::cout << "|Type|";
+        }
+        
+        if constexpr (refl::descriptor::is_readable(member))
+        {
+            std::cout << "|Readable|";
+        }
+        if constexpr (refl::descriptor::is_writable(member))
+        {
+            std::cout << "|Writable|";
+        }
+        // if constexpr (refl::descriptor::is_const(member))
+        // {
+        //     std::cout << "Const:";
+        // }
+        // if constexpr (refl::descriptor::is_resolved(member))
+        // {
+        //     std::cout << "Resolved:";
+        // }
+        // if constexpr (refl::descriptor::is_static(member))
+        // {
+        //     std::cout << "Static:";
+        // }
+        
+        std::cout << "\n";
+    });
+
+    // return ""REFL_MAKE_CONST_STRING("Type: ") + typeStr + REFL_MAKE_CONST_STRING("\n") + 
+    //        REFL_MAKE_CONST_STRING("Members: \n") + membersStr + 
+    //        REFL_MAKE_CONST_STRING("Attributes: \n") + attributesStr;""
+}
 
 int main()
 {
     std::basic_regex<char> xmlRegex(R"raw(<(\w+)([^>]*)>([\s\S]*)</\s*\1\s*>)raw");
+
+    prettyReflectionString<Point>();
+
+    auto instance = Point();
+    instance.m_x = 13;
+    instance.m_y = 37;
+    refl::runtime::debug(std::cout, instance);
 
     std::string view(view_template);
     std::replace(view.begin(), view.end(), '\n', ' ');
@@ -238,6 +436,11 @@ int main()
         std::any element = metadata.create_instance(props);
 
         if (StackPanel* sp = std::any_cast<StackPanel>(&element)) {
+            std::cout << "object at " << sp << " = ";
+            refl::runtime::debug(std::cout, *sp);
+        }
+        else
+        if (MapView* sp = std::any_cast<MapView>(&element)) {
             std::cout << "object at " << sp << " = ";
             refl::runtime::debug(std::cout, *sp);
         }

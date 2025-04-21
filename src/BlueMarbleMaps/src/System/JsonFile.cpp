@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cassert>
 #include <string>
+#include "BlueMarbleMaps/System/JsonFile.h"
 
 using namespace BlueMarble;
 
@@ -37,7 +38,6 @@ JSONFile::JSONFile(const std::string& filePath)
     
 }
 
-
 JSONFile::~JSONFile()
 {
     std::cout << "JSONFile::~JSONFile()\n";
@@ -48,6 +48,12 @@ JSONFile::~JSONFile()
 JsonValue *BlueMarble::JSONFile::data()
 {
     return m_jsonData;
+}
+
+JsonValue* BlueMarble::JSONFile::fromString(const std::string& str)
+{
+    int idx = 0;
+    return parseJson(str, idx, 0);
 }
 
 void JSONFile::parseData(JsonValue* data, JSONParseHandler* parseHandler)

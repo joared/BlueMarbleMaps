@@ -115,6 +115,7 @@ namespace BlueMarble
             ~JSONFile();
             
             JsonValue* data();
+            static JsonValue* fromString(const std::string& str);
             static void parseData(JsonValue* data, JSONParseHandler* parseHandler);
 
             static std::string prettyString();
@@ -122,14 +123,14 @@ namespace BlueMarble
             std::string prettyKeys(JsonValue* jsonData);
             void prettyKeys(JsonValue* jsonData, std::string& s, int indentation);
         private:
-            JsonValue* parseJson(const std::string& text, int& idx, int level);
-            std::pair<std::string, JsonValue*> retrieveKeyValuePair(const std::string& text, int& idx, int level);
-            std::string parseKey(const std::string& text, int& idx);
-            JsonValue* parseValue(const std::string& text, int& idx, int level);
-            void parseWhiteSpace(const std::string& text, int& idx);
+            static JsonValue* parseJson(const std::string& text, int& idx, int level);
+            static std::pair<std::string, JsonValue*> retrieveKeyValuePair(const std::string& text, int& idx, int level);
+            static std::string parseKey(const std::string& text, int& idx);
+            static JsonValue* parseValue(const std::string& text, int& idx, int level);
+            static void parseWhiteSpace(const std::string& text, int& idx);
 
-            void expect(const char& c, const std::string& text, int& idx);
-            bool isEndOfValueChar(const char& c);
+            static void expect(const char& c, const std::string& text, int& idx);
+            static bool isEndOfValueChar(const char& c);
 
             JsonValue*          m_jsonData;
             JSONParseHandler*   m_parseHandler;
