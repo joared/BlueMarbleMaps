@@ -32,6 +32,8 @@ set(SOURCES
     ${SRC_DIR}/CoordinateSystem/Crs.cpp
     ${SRC_DIR}/CoordinateSystem/GeodeticDatum.cpp
     ${SRC_DIR}/CoordinateSystem/Projection.cpp
+    ${SRC_DIR}/Brush.cpp
+    ${SRC_DIR}/Pen.cpp
     ${BBM_SOURCES}
 )
 

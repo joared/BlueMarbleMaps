@@ -117,7 +117,7 @@ unsigned char* readImage(std::string path, int* width, int* height, int* nrOfCha
     return imgBytes;
 }
 
-void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, double alpha)
+void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, const Brush& brush, const Pen& pen)
 {
     static VAO vao;
     static VBO vbo;
@@ -133,17 +133,46 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, dou
     if (!m_idSet.count(raster->getID()))
     {
         Raster& r = raster->raster();
-        float w = (float)r.width();
-        float h = (float)r.height();
+        int w = (float)r.width();
+        int h = (float)r.height();
+
+        std::vector<Point> bounds = raster->bounds().corners();
+        std::vector<Color> colors = brush.getColors();
+
+        double minX = raster->bounds().xMin();
+        double minY = raster->bounds().yMin();
+        
+        for (int i = 0; i < bounds.size(); i++)
+        {
+            glm::vec3 pos(bounds[i].x(), bounds[i].y(), 0);
+
+            Color bmColor;
+            if (i < colors.size())
+            {
+                bmColor = colors[i];
+            }
+            else if(colors.size())
+            {
+                bmColor = colors.back();
+            }
+            else
+            {
+                bmColor = Color(0,0,0,1.0f);
+            }
+            glm::vec4 glColor((float)bmColor.r()/255, (float)bmColor.g() / 255, (float)bmColor.b() / 255, bmColor.a());
+
+            float texCoordX = (pos.x - minX) / (float)w;
+            float texCoordY = (pos.y - minY) / (float)h;
+            glm::vec2 textureCoords(texCoordX, texCoordY);
+
+            vertices.push_back(Vertice{ pos, glColor, textureCoords});
+        }
               
-        // vertices = { Vertice{glm::vec3(-w*0.5f,h*0.5f,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(0,0)},
-        //              Vertice{glm::vec3(w*0.5f,h*0.5f,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(0,1)},
-        //              Vertice{glm::vec3(w*0.5f,-h*0.5f,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(1,1)},
-        //              Vertice{glm::vec3(-w*0.5f,-h*0.5f,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(1,0)} };
-        vertices = { Vertice{glm::vec3(0.0f,0.0f,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(0.0f,1.0f)},
-                     Vertice{glm::vec3(w,0.0f,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(1.0f,1.0f)},
-                     Vertice{glm::vec3(w,-h,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(1.0f,0.0f)},
-                     Vertice{glm::vec3(0.0f,-h,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)alpha), glm::vec2(0.0f,0.0f)} };
+        /* vertices = {Vertice{glm::vec3(0.0f,0.0f,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)1.0), glm::vec2(0.0f,1.0f)},
+                     Vertice{glm::vec3(w,0.0f,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)1.0), glm::vec2(1.0f,1.0f)},
+                     Vertice{glm::vec3(w,-h,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)1.0), glm::vec2(1.0f,0.0f)},
+                     Vertice{glm::vec3(0.0f,-h,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)1.0), glm::vec2(0.0f,0.0f)} };
+        */
         indices = { 0,1,2,
                     2,3,0 };
 

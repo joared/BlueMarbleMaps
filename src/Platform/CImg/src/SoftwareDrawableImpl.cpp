@@ -132,7 +132,7 @@ void SoftwareDrawable::Impl::drawRect(const Point& topLeft, const Point& bottomR
                             (float)color.a());
 }
 
-void SoftwareDrawable::Impl::drawRaster(const RasterGeometryPtr& geometry, double alpha)
+void SoftwareDrawable::Impl::drawRaster(const RasterGeometryPtr& geometry, const Brush& brush, const Pen& pen)
 {
     auto center = m_transform.translation();
     double scale = m_transform.scale();
@@ -183,11 +183,11 @@ void SoftwareDrawable::Impl::drawRaster(const RasterGeometryPtr& geometry, doubl
     {
         //img.draw_image(x, y, rasterImg.get_shared_channels(0,2), rasterImg.get_shared_channel(3), 1.0, 255);
         //img.draw_image(x, y, rasterImg, rasterImg.get_shared_channel(3), 1.0, 255);
-        m_img.draw_image(x, y, rasterImg, rasterImg.get_shared_channel(3), alpha, 255);
+        m_img.draw_image(x, y, rasterImg, rasterImg.get_shared_channel(3), 0, 255);
     }
     else
     {
-        m_img.draw_image(x, y, 0, 0, rasterImg, alpha);
+        m_img.draw_image(x, y, 0, 0, rasterImg, 0);
     }
 }
 
