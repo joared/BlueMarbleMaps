@@ -132,7 +132,7 @@ void SoftwareDrawable::Impl::drawRect(const Point& topLeft, const Point& bottomR
                             (float)color.a());
 }
 
-void SoftwareDrawable::Impl::drawRaster(const RasterGeometryPtr& geometry, const Brush& brush, const Pen& pen)
+void SoftwareDrawable::Impl::drawRaster(const RasterGeometryPtr& geometry, const Brush& brush)
 {
     auto center = m_transform.translation();
     double scale = m_transform.scale();

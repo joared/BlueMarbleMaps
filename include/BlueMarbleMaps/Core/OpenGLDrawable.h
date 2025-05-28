@@ -4,7 +4,9 @@
 #include "Drawable.h"
 #include "Brush.h"
 #include "Pen.h"
-#include <set>
+#include "Primitive.h"
+#include "Primitive2D.h"
+#include <map>
 
 namespace BlueMarble
 {
@@ -30,14 +32,15 @@ namespace BlueMarble
         void drawPolygon(const PolygonGeometryPtr& geometry, const Color& color);
         void drawRect(const Point& topLeft, const Point& bottomRight, const Color& color);
         void drawRect(const Rectangle& rect, const Color& color); // Utility method, calls the above
-        void drawRaster(const RasterGeometryPtr& raster, const Brush& brush, const Pen& pen);
+        void drawRaster(const RasterGeometryPtr& raster, const Brush& brush);
         void drawText(int x, int y, const std::string& text, const Color& color, int fontSize = 20, const Color& backgroundColor = Color::transparent());
         Color readPixel(int x, int y);
         void setPixel(int x, int y, const Color& color);
         void swapBuffers();
         RendererImplementation renderer();
     protected:
-        std::set<BMID> m_idSet;
+        std::map<BMID,Primitive2DPtr> m_primitives;
+        std::vector<ShaderPtr> m_shaders;
         GLFWwindow* m_window;
         Transform m_transform;
         int m_width;

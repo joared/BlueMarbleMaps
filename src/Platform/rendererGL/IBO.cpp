@@ -1,4 +1,5 @@
 #include "IBO.h"
+#include <iostream>
 
 IBO::IBO()
 	:m_id(0)
@@ -8,6 +9,7 @@ IBO::IBO()
 }
 IBO::~IBO()
 {
+	std::cout << "Deleting IBO with id: " << m_id << "\n";
 	glDeleteBuffers(1, &m_id);
 }
 void IBO::init(std::vector<GLuint> indicies)

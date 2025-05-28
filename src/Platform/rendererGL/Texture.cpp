@@ -9,6 +9,7 @@ Texture::Texture()
 }
 Texture::~Texture()
 {
+	std::cout << "Deleting Texture with id: " << m_id << "\n";
 	glDeleteTextures(1, &m_id);
 }
 bool Texture::init(const unsigned char* data, int width, int height, int format, GLenum pixelType, GLuint activeIndex)

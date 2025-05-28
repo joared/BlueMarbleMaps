@@ -16,7 +16,7 @@
 using namespace BlueMarble;
 
 BlueMarble::OpenGLDrawable::OpenGLDrawable(int width, int height, int colorDepth)
-    : m_idSet()
+    : m_primitives()
     , m_transform()
     , m_width(width)
     , m_height(height)
@@ -25,6 +25,9 @@ BlueMarble::OpenGLDrawable::OpenGLDrawable(int width, int height, int colorDepth
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
     glViewport(0, 0, m_width, m_height);
+    ShaderPtr shader = std::make_shared<Shader>();
+    shader->linkProgram("Shaders/basic.vert", "Shaders/basic.frag");
+    m_shaders.push_back(shader);
 }
 
 int BlueMarble::OpenGLDrawable::width() const
@@ -85,7 +88,7 @@ void BlueMarble::OpenGLDrawable::drawLine(const LineGeometryPtr& geometry, const
 
 void BlueMarble::OpenGLDrawable::drawPolygon(const PolygonGeometryPtr& geometry, const Color& color)
 {
-    if (m_idSet.find(geometry->getID()) == m_idSet.end())
+    if (m_primitives.find(geometry->getID()) == m_primitives.end())
     {
 
     }
@@ -117,21 +120,14 @@ unsigned char* readImage(std::string path, int* width, int* height, int* nrOfCha
     return imgBytes;
 }
 
-void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, const Brush& brush, const Pen& pen)
-{
-    static VAO vao;
-    static VBO vbo;
-    static IBO ibo;
-    static Shader shader;
-    static Texture texture;
-    
-    static std::vector<Vertice> vertices;
-    static std::vector<GLuint> indices; 
-
-    
-
-    if (!m_idSet.count(raster->getID()))
+void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, const Brush& brush)
+{ 
+    if (!m_primitives.count(raster->getID()))
     {
+        PrimitiveGeometryInfoPtr info =std::make_shared<PrimitiveGeometryInfo>();
+        std::vector<Vertice> vertices;
+        std::vector<GLuint> indices;
+
         Raster& r = raster->raster();
         int w = (float)r.width();
         int h = (float)r.height();
@@ -176,28 +172,31 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, con
         indices = { 0,1,2,
                     2,3,0 };
 
-        shader.linkProgram("Shaders/basic.vert", "Shaders/basic.frag");
+        info->m_shader = m_shaders.front();
 
         GLint texIndex = 0;
-        texture.init(r.data(), r.width(), r.height(), r.channels(), GL_UNSIGNED_BYTE, texIndex);
+        info->m_texture = std::make_shared<Texture>();
+        info->m_texture->init(r.data(), r.width(), r.height(), r.channels(), GL_UNSIGNED_BYTE, texIndex);
 
-        shader.useProgram();
-        shader.setInt("texture0", texIndex);
+        info->m_shader->useProgram();
+        info->m_shader->setInt("texture0", texIndex);
 
-        vbo.init(vertices);
-        ibo.init(indices);
-        vao.init();
+        info->m_vbo.init(vertices);
+        info->m_ibo.init(indices);
+        info->m_vao.init();
 
-        vao.bind();
-        vbo.bind();
-        vao.link(vbo, 0, 3, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, position));
-        vao.link(vbo, 1, 4, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, color));
-        vao.link(vbo, 2, 2, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, texCoord));
-        vbo.unbind();
-        m_idSet.insert(raster->getID());
+        info->m_vao.bind();
+        info->m_vbo.bind();
+        info->m_vao.link(info->m_vbo, 0, 3, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, position));
+        info->m_vao.link(info->m_vbo, 1, 4, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, color));
+        info->m_vao.link(info->m_vbo, 2, 2, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, texCoord));
+        info->m_vbo.unbind();
+        Primitive2DPtr primitive = std::make_shared<Primitive2D>(info);
+        m_primitives[raster->getID()] = primitive;
     }
     else
     {
+        Primitive2DPtr primitive = m_primitives[raster->getID()];
         auto center = m_transform.translation();
         double scale = m_transform.scale();
         // auto info = PerspectiveCamerInformation();
@@ -214,17 +213,10 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, con
         auto& viewMatrix = cam.calculateTranslations();
 
         //cam.zoom(1.0 / scale);
-        shader.useProgram();
-        shader.setMat4("viewMatrix", viewMatrix);
-        vao.bind();
-        vbo.bind();
-        ibo.bind();
-        texture.bind();
-        glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
-        vao.unbind();
-        vbo.unbind();
-        ibo.unbind();
-        texture.unbind();
+
+        primitive->getShader()->useProgram();
+        primitive->getShader()->setMat4("viewMatrix", viewMatrix);
+        primitive->draw();
     }
 }
 

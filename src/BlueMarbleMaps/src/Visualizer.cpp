@@ -371,9 +371,7 @@ void RasterVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& featu
     // auto offset = geometry->bounds().minCorner();
     // drawable.drawRaster(offset.x(), offset.y(), newImage, 1.0);
     double alpha = m_alphaEval(feature, updateAttributes);
-    drawable.drawRaster(geometry, 
-        Brush(std::vector<Color>{Color(255, 200, 210, 0.1f), Color(200,50,255,1.0f), Color(0, 250,10,0.5f), Color(10,100,170,0.3f)}), 
-        Pen(Color(0, 0, 0, 1.0f), 2));
+    drawable.drawRaster(geometry, Brush(std::vector<Color>{Color(255, 200, 210, 0.1f), Color(200,50,255,1.0f), Color(0, 250,10,0.5f), Color(10,100,170,0.3f)}));
 }
 
 void RasterVisualizer::alpha(const DoubleEvaluation& alphaEval)
