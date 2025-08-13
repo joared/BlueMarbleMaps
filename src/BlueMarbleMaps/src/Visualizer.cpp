@@ -15,6 +15,7 @@ Visualizer::Visualizer()
     , m_rotationEval([](auto, auto) { return 0.0; })
     , m_offsetXEval([](auto, auto) { return 0.0; })
     , m_offsetYEval([](auto, auto) { return 0.0; })
+    , m_lengthUnit(VisualizerLengtUnit::Pixels)
 {
 }
 
@@ -199,8 +200,9 @@ SymbolVisualizer::SymbolVisualizer()
 
 void SymbolVisualizer::renderPoints(Drawable& drawable, const std::vector<Point> &points, const FeaturePtr& feature, const FeaturePtr& source, Attributes& updateAttributes)
 {
-    double radius = m_sizeEval(feature, updateAttributes);
+    double radius = m_sizeEval(feature, updateAttributes) / updateAttributes.get<double>(UpdateAttributeKeys::UpdateViewScale);
     Color color = m_colorEval(feature, updateAttributes);
+    
     double rotation = m_rotationEval(feature, updateAttributes);
     for (auto& point : points)
     {
@@ -287,7 +289,11 @@ void LineVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feature
     for (auto& line : lines)
     {
         LineGeometryPtr linePtr = std::make_shared<LineGeometry>(line);
-        drawable.drawLine(linePtr, m_colorEval(feature, updateAttributes), m_widthEval(feature, updateAttributes));
+        linePtr->isClosed(true);
+        auto pen = Pen();
+        pen.setColor(m_colorEval(feature, updateAttributes));
+        pen.setWidth(m_widthEval(feature, updateAttributes));
+        drawable.drawLine(linePtr, pen);
     }
 }
 
@@ -309,25 +315,32 @@ bool PolygonVisualizer::isValidGeometry(GeometryType type)
 void PolygonVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feature, const FeaturePtr& source, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs)
 {
     auto geometry = feature->geometryAsPolygon();
-    auto& polygonPoints = geometry->outerRing();
+    
     
     // FIXME: changing the geometry like this will mess with hittest of 
     // other presentation objects that in fact was rendered with 
     // a different geometry. Should probably not be done?
     double scale = m_sizeEval(feature, updateAttributes);
+    double rotation = m_rotationEval(feature, updateAttributes);
+    double extend = m_sizeAddEval(feature, updateAttributes);
+
+    if (scale != 1.0 || extend != 1.0 || rotation != 0.0)
+    {
+        // Need to clone the geometry if we intent modify it, otherwise hittesting for previous visualizers will mess up
+        geometry = std::dynamic_pointer_cast<PolygonGeometry>(geometry->clone());
+    }
+    auto& polygonPoints = geometry->outerRing();
+
     if (scale != 1.0)
     {
         polygonPoints = Utils::scalePoints(polygonPoints, scale);
     }
 
-    double extend = m_sizeAddEval(feature, updateAttributes);
     if (extend != 1.0)
     {
-        std::vector<Point> newPoints;
         polygonPoints = Utils::extendPolygon(polygonPoints, extend);
     }
 
-    double rotation = m_rotationEval(feature, updateAttributes);
     if (rotation != 0.0)
     {
         polygonPoints = Utils::rotatePoints(polygonPoints, rotation);
@@ -337,19 +350,16 @@ void PolygonVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feat
     double offY = m_offsetYEval(feature, updateAttributes);
     if (offX != 0.0 || offY != 0.0)
     {
+        double incScale = 1.0 / updateAttributes.get<double>(UpdateAttributeKeys::UpdateViewScale);
+        offX *= incScale;
+        offY *= incScale;
         Utils::movePoints(polygonPoints, Point(offX, offY));
     }
     // Draw the polygon
-    auto color = m_colorEval(feature, updateAttributes);
-    drawable.drawPolygon(geometry, color);
-    
-    return; // TODO: remove, testing new visualization structure
+    auto brush = Brush();
+    brush.setColor(m_colorEval(feature, updateAttributes));
 
-    // TODO: inner rings should be "holes". How do we do that?
-    // for (auto innerRing : geometry->innerRings())
-    // {
-    //     drawable.drawPolygon(innerRing, Color::black(0.5));
-    // }
+    drawable.drawPolygon(geometry, Pen::transparent(), brush);
 }
 
 

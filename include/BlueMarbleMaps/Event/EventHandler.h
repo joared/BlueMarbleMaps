@@ -15,7 +15,9 @@ namespace BlueMarble
         public:
             EventDispatcher();
             void addSubscriber(EventHandler* eventHandler);
-            bool dispatchEvent(Event& event, int timeStampMs);
+            bool dispatchEvent(Event& event, int timeStampMs); // TODO: remove this?
+            bool dispatchEvent(const Event& event);
+            bool dispatchEventTo(const Event& event, EventHandler* eventHandler);
         private:
             std::vector<EventHandler*> m_eventHandlers;
     };
@@ -30,6 +32,8 @@ namespace BlueMarble
 
             // Only an event dispatcher is allowed to dispatch events (by calling handleEvent)
             friend bool EventDispatcher::dispatchEvent(Event&, int);
+            friend bool EventDispatcher::dispatchEvent(const Event&);
+            friend bool EventDispatcher::dispatchEventTo(const Event&, EventHandler*);
         protected:
             // Default behaviour return false
             virtual bool onEventFilter(EventHandler* target, const Event& event);

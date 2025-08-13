@@ -36,6 +36,7 @@ FeaturePtr DataSet::createFeature(GeometryPtr geometry)
 void DataSet::restartVisualizationAnimation(FeaturePtr feature, int64_t timeStamp)
 {
     assert(feature->id().dataSetId() == dataSetId());
+    
     if (timeStamp == -1)
         timeStamp = getTimeStampMs();
 
@@ -140,9 +141,15 @@ void ImageDataSet::init()
 {
     assert(!m_filePath.empty());
 
+    // FIXME: Hardcoded
+    constexpr double xPixLen = 0.02222222222222;
+    constexpr double yPixLen = -0.02222222222222;
+    constexpr double xTopLeft = -179.98888888888889;
+    constexpr double yTopLeft = 89.98888888888889;
+
     auto raster = Raster(m_filePath);
-    auto bounds = Rectangle(0, 0, raster.width(), raster.height());
-    m_rasterGeometry = std::make_shared<RasterGeometry>(raster, bounds, 1.0, 1.0);
+    auto bounds = Rectangle(xTopLeft, yTopLeft, raster.width()*xPixLen, raster.height()*yPixLen);
+    m_rasterGeometry = std::make_shared<RasterGeometry>(raster, bounds, xPixLen, yPixLen);
 
     generateOverViews();
     std::cout << "ImageDataSet: Data loaded!\n";

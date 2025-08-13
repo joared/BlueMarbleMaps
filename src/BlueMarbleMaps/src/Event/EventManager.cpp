@@ -5,8 +5,56 @@ using namespace BlueMarble;
 EventManager::EventManager()
         : m_timeStampMs(0)
         , m_downTimeStampMs(0)
+        , m_previousTimerEvent()
+        , m_timerEventHandlers()
 {
     reset();
+}
+
+bool EventManager::timer(int64_t id, int64_t timeStampMs)
+{
+    TimerEvent event;
+    event.timeStampMs = timeStampMs;
+    event.id = id;
+    event.deltaMs = timeStampMs - m_previousTimerEvent.timeStampMs;
+
+    auto it = m_timerEventHandlers.find(id);
+    if (it == m_timerEventHandlers.cend())
+    {
+        throw std::exception();
+    }
+
+    return dispatchEventTo(event, it->second);
+}
+
+void EventManager::setTimer(EventHandler* handler, int64_t interval)
+{
+    m_previousTimerEvent = TimerEvent();
+    m_previousTimerEvent.timeStampMs = getTimeStampMs();
+    
+    int64_t id = setTimer(interval);
+    
+    m_timerEventHandlers[id] = handler;
+}
+
+void EventManager::killTimer(EventHandler* handler)
+{
+    // Find the id for the handler
+    int64_t id = 0;
+    bool found = false;
+    for (auto it : m_timerEventHandlers)
+    {
+        if (it.second == handler)
+        {
+            id = it.first;
+            m_timerEventHandlers.erase(id);
+            found = true;
+        }
+    }
+    assert(found);
+    
+    bool success = killTimer(id);
+    assert(success);
 }
 
 bool EventManager::captureEvents()
@@ -71,6 +119,7 @@ bool EventManager::mouseWheel(int delta, int x, int y, ModificationKey modKeys, 
 bool EventManager::keyUp(int key, ModificationKey modKeys, int64_t timeStampMs)
 {
     KeyUpEvent event;
+    event.keyCode = key;
     event.modificationKey = modKeys;
     return dispatchEvent(event, timeStampMs);
 }

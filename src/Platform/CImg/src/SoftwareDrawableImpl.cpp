@@ -59,15 +59,23 @@ void SoftwareDrawable::Impl::fill(int val)
     m_img.fill(val);
 }
 
-void SoftwareDrawable::Impl::drawCircle(int x, int y, double radius, const Color& color)
+void SoftwareDrawable::Impl::drawArc(float cx, float cy, float rx, float ry, double theta, const Pen& pen, const Brush& brush)
+{
+    std::cout << "SoftwareDrawable::Impl::drawArc Not implemented\n";
+}
+
+void SoftwareDrawable::Impl::drawCircle(int x, int y, double radius, const Pen& pen, const Brush& brush)
 {
     // m_renderer->drawCircle(x, y,radius,color);
+    auto color = brush.getColor();
     unsigned char c[] = {color.r(), color.g(), color.b(), (unsigned char)(color.a()*255)};
     m_img.draw_circle(x, y, radius, c, color.a());
 }
 
-void SoftwareDrawable::Impl::drawLine(const LineGeometryPtr& geometry, const Color& color, double width)
+void SoftwareDrawable::Impl::drawLine(const LineGeometryPtr& geometry, const Pen& pen)
 {
+    auto color = pen.getColor();
+    double width = pen.getWidth();
     // m_renderer->drawLine(points, color, width);
     unsigned char c[] = {color.r(), color.g(), color.b(), (unsigned char)(color.a()*255)};
     int size = geometry->points().size();
@@ -96,14 +104,17 @@ void SoftwareDrawable::Impl::drawLine(const LineGeometryPtr& geometry, const Col
             polygon.push_back(end - v2*width*0.5);
             polygon.push_back(end + v2*width*0.5);
             PolygonGeometryPtr polygonPtr = std::make_shared<PolygonGeometry>(PolygonGeometry(polygon));
-            drawPolygon(polygonPtr, color);
+            auto brush = Brush();
+            brush.setColor(color);
+            drawPolygon(polygonPtr, Pen(), brush);
         }
     }
 }
 
-void SoftwareDrawable::Impl::drawPolygon(const PolygonGeometryPtr& geometry, const Color& color)
+void SoftwareDrawable::Impl::drawPolygon(const PolygonGeometryPtr& geometry, const Pen& pen, const Brush& brush)
 {
-    // m_renderer->drawPolygon(points,color);
+    auto color = brush.getColor();
+
     assert(geometry->outerRing().size() > 2);
     auto iterator = geometry->outerRing().begin();
     cimg_library::CImg<int> pointsCImg(geometry->outerRing().size(), 2);
@@ -135,25 +146,26 @@ void SoftwareDrawable::Impl::drawRect(const Point& topLeft, const Point& bottomR
 void SoftwareDrawable::Impl::drawRaster(const RasterGeometryPtr& geometry, double alpha)
 {
     auto center = m_transform.translation();
-    double scale = m_transform.scale();
+    double scaleX = m_transform.scaleX();
+    double scaleY = m_transform.scaleY();
     double rotation = m_transform.rotation();
 
     // TODO: This is the entire screen and might not be the update area that the view provided during the update.
     // This will result in raster features that have info outside the update area provided by the view will be visible
     Rectangle updateArea
     (
-        center.x() - (width() / scale)*0.5,
-        center.y() - (height() / scale)*0.5,
-        center.x() + (width() / scale)*0.5,
-        center.y() + (height() / scale)*0.5
+        center.x() - (width() / scaleX)*0.5,
+        center.y() - (height() / scaleY)*0.5,
+        center.x() + (width() / scaleX)*0.5,
+        center.y() + (height() / scaleY)*0.5
     );
 
     auto subGeometry = geometry->getSubRasterGeometry(updateArea);
 
     Raster& subRaster = subGeometry->raster();
 
-    int screenWidth = subGeometry->bounds().width()*scale;
-    int screenHeight = subGeometry->bounds().height()*scale;
+    int screenWidth = subGeometry->bounds().width()*scaleX;
+    int screenHeight = subGeometry->bounds().height()*scaleY;
 
     if (screenWidth == 0 || screenHeight == 0)
     {
@@ -165,8 +177,8 @@ void SoftwareDrawable::Impl::drawRaster(const RasterGeometryPtr& geometry, doubl
 
     auto screenC = screenCenter();
     auto delta = minCorner - center;
-    int x = delta.x()*scale + screenC.x();
-    int y = delta.y()*scale + screenC.y();
+    int x = delta.x()*scaleX + screenC.x();
+    int y = delta.y()*scaleY + screenC.y();
     
     subRaster.resize(screenWidth, screenHeight, Raster::ResizeInterpolation::NearestNeighbor);
 

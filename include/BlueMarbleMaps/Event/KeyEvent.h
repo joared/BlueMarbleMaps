@@ -11,6 +11,7 @@ namespace BlueMarble
     {
         public:
             KeyButton keyButton;
+            int keyCode;
     };
 
     class KeyDownEvent : public KeyEvent

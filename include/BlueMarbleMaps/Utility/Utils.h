@@ -2,6 +2,7 @@
 #define UTILS
 
 #include "BlueMarbleMaps/Core/Core.h"
+#include "BlueMarbleMaps/Logging/Logging.h"
 
 #include <algorithm>
 #include <cmath>
@@ -214,6 +215,7 @@ namespace BlueMarble
         inline bool pointInsidePolygon(const Point& point, const std::vector<Point>& polygon)
         {
             int num_vertices = polygon.size();
+            
             double x = point.x(), y = point.y();
             bool inside = false;
         
@@ -324,7 +326,7 @@ namespace BlueMarble
             angle *= DEG_TO_RAD;
             auto vec = p-fixPoint;
 
-            auto rotated = Point(std::cos(angle)*vec.x() + -std::sin(angle)*vec.y(),  
+            auto rotated = Point(std::cos(angle)*vec.x() - std::sin(angle)*vec.y(),  
                                  std::sin(angle)*vec.x() + std::cos(angle)*vec.y());
 
             return fixPoint + rotated;
@@ -334,7 +336,7 @@ namespace BlueMarble
         {
             auto vec = p-fixPoint;
 
-            auto rotated = Point(std::cos(angle)*vec.x() + -std::sin(angle)*vec.y(),  
+            auto rotated = Point(std::cos(angle)*vec.x() - std::sin(angle)*vec.y(),  
                                  std::sin(angle)*vec.x() + std::cos(angle)*vec.y());
 
             return fixPoint + rotated;

@@ -9,6 +9,7 @@
 #include "BlueMarbleMaps/Core/PresentationObject.h"
 #include "BlueMarbleMaps/Core/ResourceObject.h"
 #include "BlueMarbleMaps/CoordinateSystem/Crs.h"
+#include "BlueMarbleMaps/Event/Signal.h"
 
 #include <map>
 #include <functional>
@@ -18,7 +19,6 @@ namespace BlueMarble
 {
     // Forward declarations
     class MapControl;
-    class MapEventHandler;
 
     enum class SelectMode
     {
@@ -26,33 +26,8 @@ namespace BlueMarble
         Replace
     };
 
-    class MapEventHandler
-    {
-        public:
-            virtual void OnAreaChanged(Map& map) = 0;
-            virtual void OnUpdating(Map& map) = 0;
-            virtual void OnCustomDraw(Map& map) = 0;
-            virtual void OnUpdated(Map& map) = 0;
-    };
-
-    class MapEventPublisher
-    {
-        public:
-            MapEventPublisher();
-            void sendOnAreaChanged(Map& map);
-            void sendOnUpdating(Map& map);
-            void sendOnCustomDraw(Map& map);
-            void sendOnUpdated(Map& map);
-
-            void addMapEventHandler(MapEventHandler* handler);
-            void removeMapEventHandler(MapEventHandler* handler);
-        private:
-            std::vector<MapEventHandler*> m_eventHandlers;
-    };
-
     class Map 
         : public ResourceObject
-        , public MapEventPublisher
     {
         class MapCommand
         {
@@ -112,11 +87,12 @@ namespace BlueMarble
             Point mapToScreen(const Point& point) const;
             std::vector<Point> screenToMap(const std::vector<Point>& points) const;
             std::vector<Point> mapToScreen(const std::vector<Point>& points) const;
+            std::vector<Point> lngLatToMap(const std::vector<Point>& points) const;
             Rectangle screenToMap(const Rectangle& rect) const;
             Rectangle mapToScreen(const Rectangle& rect) const;
             const Point screenToLngLat(const Point& screenPoint);           // Temporary test, should be removed
             const Point mapToLngLat(const Point& mapPoint, bool normalize=true); // Temporary test, should be removed
-            const Point lngLatToMap(const Point& lngLat);                   // Temporary test, should be removed
+            const Point lngLatToMap(const Point& lngLat) const;                   // Temporary test, should be removed
             const Point lngLatToScreen(const Point& lngLat);                // Temporary test, should be removed
             std::vector<Point> lngLatToScreen(const std::vector<Point>& points);   // Temporary test, should be removed
             Rectangle lngLatToMap(const Rectangle& rect);                   // Temporary test, should be removed
@@ -174,6 +150,16 @@ namespace BlueMarble
             bool& showDebugInfo() { return m_showDebugInfo; }
             void onAttachedToMapControl(MapControl* mapControl) { m_mapControl = mapControl; };
             void onDetachedFromMapControl() { m_mapControl = nullptr; };
+
+            struct MapEvents
+            {
+                Signal<Map&> onAreaChanged;
+                Signal<Map&> onUpdating;
+                Signal<Map&> onCustomDraw;
+                Signal<Map&> onUpdated;
+                Signal<Map&> onIdle;
+            } events;
+
         private:
             void updateUpdateAttributes(int64_t timeStampMs);
             void beforeRender();

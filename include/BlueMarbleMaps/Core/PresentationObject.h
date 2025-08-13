@@ -21,13 +21,13 @@ namespace BlueMarble
     //     Raster
     // };
 
-    class Visualizer; // Forward declaration
+    class Visualizer; class Map; // Forward declaration
 
     class PresentationObject
     {
         public:
             PresentationObject(FeaturePtr feature, FeaturePtr sourceFeature, Visualizer* visualizer);
-            bool hitTest(int x, int y, double pointerRadius);
+            bool hitTest(const Map& map, int x, int y, double pointerRadius);
             bool hitTest(const Rectangle& bounds);
             FeaturePtr feature() { return m_feature; }
             FeaturePtr sourceFeature() { return m_sourceFeature; }
@@ -38,10 +38,10 @@ namespace BlueMarble
             Visualizer*             m_visualizer;
     };
 
-    bool hitTestPoint(int x, int y, double pointerRadius, PointGeometryPtr geometry);
-    bool hitTestLine(int x, int y, double pointerRadius, LineGeometryPtr geometry);
-    bool hitTestPolygon(int x, int y, double pointerRadius, PolygonGeometryPtr geometry);
-    bool hitTestRaster(int x, int y, double pointerRadius, RasterGeometryPtr geometry);
+    bool hitTestPoint(double x, double y, double pointerRadius, PointGeometryPtr geometry);
+    bool hitTestLine(double x, double y, double pointerRadius, LineGeometryPtr geometry);
+    bool hitTestPolygon(double x, double y, double pointerRadius, PolygonGeometryPtr geometry);
+    bool hitTestRaster(double x, double y, double pointerRadius, RasterGeometryPtr geometry);
 
 }
 

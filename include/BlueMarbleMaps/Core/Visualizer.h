@@ -24,6 +24,12 @@ namespace BlueMarble
 
     class Visualizer
     {
+        enum VisualizerLengtUnit
+        {
+            Pixels,
+            Meters
+        };
+
         public:
             Visualizer();
             void renderingEnabled(bool enabled);
@@ -54,6 +60,7 @@ namespace BlueMarble
             std::vector<FeaturePtr> m_attachedFeatures;
             std::vector<FeaturePtr> m_sourceFeatures;
             Condition               m_condition;
+            VisualizerLengtUnit     m_lengthUnit;
     };
     typedef std::shared_ptr<Visualizer> VisualizerPtr;
 
@@ -144,7 +151,9 @@ namespace BlueMarble
                         {
                         case BuiltInSymbol::Circle:
                         {
-                            drawable.drawCircle(point.x(), point.y(), size, color);
+                            Brush brush;
+                            brush.setColor(color);
+                            drawable.drawCircle(point.x(), point.y(), size, Pen::transparent(), brush);
                             break;
                         }
                         default:

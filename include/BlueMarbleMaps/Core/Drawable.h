@@ -15,6 +15,40 @@
 
 namespace BlueMarble
 {    
+    class Pen
+    {
+        public:
+            static Pen transparent() { return Pen(); }
+            Pen(bool antiAlias=false, const Color& color=Color::transparent(), double width=1.0) 
+                : m_antiAlias(antiAlias)
+                , m_color(color)
+                , m_width(width)
+            {}
+            const Color& getColor() const { return m_color; };
+            void setColor(const Color& color) { m_color = color; };
+            bool getAntiAlias() const { return m_antiAlias; };
+            void setAntiAlias(bool antiAlias) { m_antiAlias = antiAlias; };
+            double getWidth() const { return m_width; }
+            void setWidth(double width) { m_width = width; }
+        private:
+            bool m_antiAlias;
+            Color m_color;
+            double m_width;
+    };
+
+    class Brush
+    {
+        public:
+            static Brush transparent() { return Brush(); }
+            const Color& getColor() const { return m_color; };
+            void setColor(const Color& color) { m_color = color; };
+            bool getAntiAlias() const { return m_antiAlias; };
+            void setAntiAlias(bool antiAlias) { m_antiAlias = antiAlias; };
+        private:
+            bool m_antiAlias = false;
+            Color m_color = Color::transparent();
+    };
+
     class Drawable
     {
         public:
@@ -31,9 +65,10 @@ namespace BlueMarble
             virtual void setTransform(const Transform& transform) = 0;
             virtual void resize(int width, int height) = 0;
             virtual void fill(int val) = 0;
-            virtual void drawCircle(int x, int y, double radius, const Color& color) = 0;
-            virtual void drawLine(const LineGeometryPtr& geometry, const Color& color, double width = 1.0) = 0;
-            virtual void drawPolygon(const PolygonGeometryPtr& geometry, const Color& color) = 0;
+            virtual void drawArc(double cx, double cy, double rx, double ry, double theta, const Pen& pen, const Brush& brush) = 0;
+            virtual void drawCircle(double x, double y, double radius, const Pen& pen, const Brush& brush) = 0;
+            virtual void drawLine(const LineGeometryPtr& geometry, const Pen& pen) = 0;
+            virtual void drawPolygon(const PolygonGeometryPtr& geometry, const Pen& pen, const Brush& brush) = 0;
             virtual void drawRect(const Point& topLeft, const Point& bottomRight, const Color& color) = 0;
             virtual void drawRect(const Rectangle& rect, const Color& color) = 0; // Utility method, calls the above
             virtual void drawRaster(const RasterGeometryPtr& raster, double alpha) = 0;

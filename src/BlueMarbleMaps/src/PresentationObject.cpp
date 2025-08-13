@@ -1,5 +1,6 @@
 #include "BlueMarbleMaps/Core/PresentationObject.h"
 #include "BlueMarbleMaps/Utility/Utils.h"
+#include "BlueMarbleMaps/Core/Map.h"
 
 using namespace BlueMarble;
 
@@ -10,21 +11,25 @@ PresentationObject::PresentationObject(FeaturePtr feature, FeaturePtr sourceFeat
 {
 }
 
-bool PresentationObject::hitTest(int x, int y, double pointerRadius)
+bool PresentationObject::hitTest(const Map& map, int x, int y, double pointerRadius)
 {
     // std::cout << "PresentationObject::hitTest\n";
-    switch (m_feature->geometryType())
+    auto mapPoint = map.screenToMap(Point(x,y));
+    pointerRadius /= map.scale();
+
+    auto f = m_feature;
+    switch (f->geometryType())
     {
         case GeometryType::Point:
-            return hitTestPoint(x, y, pointerRadius, m_feature->geometryAsPoint());
+            return hitTestPoint(mapPoint.x(), mapPoint.y(), pointerRadius, f->geometryAsPoint());
         case GeometryType::Line:
-            return hitTestLine(x, y, pointerRadius, m_feature->geometryAsLine());
+            return hitTestLine(mapPoint.x(), mapPoint.y(), pointerRadius, f->geometryAsLine());
         case GeometryType::Polygon:
-            return hitTestPolygon(x, y, pointerRadius, m_feature->geometryAsPolygon());
+            return hitTestPolygon(mapPoint.x(), mapPoint.y(), pointerRadius, f->geometryAsPolygon());
         case GeometryType::Raster:
-            return hitTestRaster(x, y, pointerRadius, m_feature->geometryAsRaster());
+            return hitTestRaster(mapPoint.x(), mapPoint.y(), pointerRadius, f->geometryAsRaster());
         default:
-            std::cout << "PresentationObject::hitTest() Unhandled geometry type: " << (int)m_feature->geometryType() << "\n";
+            std::cout << "PresentationObject::hitTest() Unhandled geometry type: " << (int)f->geometryType() << "\n";
     }
 
     return false;
@@ -36,14 +41,14 @@ bool PresentationObject::hitTest(const Rectangle& bounds)
     return m_feature->isInside(bounds);
 }
 
-bool BlueMarble::hitTestPoint(int x, int y, double pointerRadius, PointGeometryPtr geometry)
+bool BlueMarble::hitTestPoint(double x, double y, double pointerRadius, PointGeometryPtr geometry)
 {
     // std::cout << "hitTestPoint\n";
     auto& point = geometry->point();
     return (Point(x,y)-point).length() < pointerRadius;
 }
 
-bool BlueMarble::hitTestLine(int x, int y, double pointerRadius, LineGeometryPtr geometry)
+bool BlueMarble::hitTestLine(double x, double y, double pointerRadius, LineGeometryPtr geometry)
 {
     // std::cout << "hitTestLine\n";
     auto& line = geometry->points();
@@ -59,26 +64,26 @@ bool BlueMarble::hitTestLine(int x, int y, double pointerRadius, LineGeometryPtr
     return false;
 }
 
-bool BlueMarble::hitTestPolygon(int x, int y, double pointerRadius, PolygonGeometryPtr geometry)
+bool BlueMarble::hitTestPolygon(double x, double y, double pointerRadius, PolygonGeometryPtr geometry)
 {
     // std::cout << "hitTestPolygon\n";
     // TOOD: take pointerRadius into account
 
     // First check if the point is inside the outer ring
-    auto& polygon = geometry->outerRing();
+    auto polygon = geometry->outerRing();
     if (!Utils::pointInsidePolygon(Point(x,y), polygon)) return false;
 
     // Then check that the point is not inside any of the inner rings
-    for (size_t i=1; i<geometry->rings().size(); i++)
-    {
-        if (Utils::pointInsidePolygon(Point(x,y), geometry->rings()[i]))
-            return false;
-    }
+    // for (size_t i=1; i<geometry->rings().size(); i++)
+    // {
+    //     if (Utils::pointInsidePolygon(Point(x,y), geometry->rings()[i]))
+    //         return false;
+    // }
 
     return true;
 }
 
-bool BlueMarble::hitTestRaster(int x, int y, double pointerRadius, RasterGeometryPtr geometry)
+bool BlueMarble::hitTestRaster(double x, double y, double pointerRadius, RasterGeometryPtr geometry)
 {
     // std::cout << "hitTestRaster\n";
     return false;

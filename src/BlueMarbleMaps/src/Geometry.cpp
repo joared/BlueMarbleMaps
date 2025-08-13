@@ -22,11 +22,13 @@ PointGeometry::PointGeometry(const Point& point)
 LineGeometry::LineGeometry()
     : Geometry()
     , m_points()
+    , m_isClosed(false)
 {
 }
 
 LineGeometry::LineGeometry(const std::vector<Point>& points)
     : m_points(points)
+    , m_isClosed(false)
 {
 }
 
@@ -45,6 +47,7 @@ PolygonGeometry::PolygonGeometry()
     , m_rings()
     , m_cachedBounds([&] () { return Rectangle::fromPoints(outerRing());})
 {
+    m_rings.push_back(std::vector<Point>());
 }
 
 PolygonGeometry::PolygonGeometry(const PolygonGeometry &other)

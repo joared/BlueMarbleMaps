@@ -46,26 +46,26 @@ namespace BlueMarble
         }
         m_handleEventRecursionGuard = true;
         
-        bool retVal = false;
+        bool handled = false;
         if (m_eventFilter && m_eventFilter->handleEvent(this, event))
         {
             // An installed event filter has handled the event
-            retVal = true;
+            handled = true;
         }
         else if (target != nullptr)
         {
             // We are an event filter for "target"
-            retVal = onEventFilter(target, event);
+            handled = onEventFilter(target, event);
         }
         else
         {
             // "Standard": we have received an event
-            retVal = onEvent(event);
+            handled = onEvent(event);
         }
         
         m_handleEventRecursionGuard = false;
 
-        return retVal;
+        return handled;
     }
 
 
@@ -78,9 +78,14 @@ namespace BlueMarble
         m_eventHandlers.push_back(eventHandler);
     }
 
-    bool EventDispatcher::dispatchEvent(Event &event, int timeStampMs)
+    bool EventDispatcher::dispatchEvent(Event& event, int timeStampMs)
     {
         event.timeStampMs = timeStampMs; // TODO: should not be here??
+        return dispatchEvent(event);
+    }
+
+    bool EventDispatcher::dispatchEvent(const Event &event)
+    {
         for (auto eventHandler : m_eventHandlers)
         {
             if (eventHandler->handleEvent(nullptr, event))
@@ -88,6 +93,11 @@ namespace BlueMarble
         }
 
         return false;
+    }
+
+    bool EventDispatcher::dispatchEventTo(const Event &event, EventHandler *eventHandler)
+    {
+        return eventHandler->handleEvent(nullptr, event);
     }
 
 } // namespace BlueMarble

@@ -6,6 +6,7 @@
 #include "BlueMarbleMaps/Core/Buttons.h"
 #include "BlueMarbleMaps/Event/PointerEvent.h"
 #include "BlueMarbleMaps/Event/KeyEvent.h"
+#include "BlueMarbleMaps/Event/TimerEvent.h"
 
 #include <vector>
 #include <map>
@@ -28,11 +29,23 @@ namespace BlueMarble
         public:
             EventManager();
 
+            // Timer event. TODO: Add support for multiple timers using id
+            bool timer(int64_t id, int64_t timeStamp);
+
+            void setTimer(EventHandler* handler, int64_t interval);
+            void killTimer(EventHandler* handler);
+            virtual int64_t setTimer(int64_t interval) = 0; // Window specific. Returns timer id.
+            virtual bool killTimer(int64_t id) = 0;
+
             // Mouse events
             bool mouseDown(MouseButton button, int x, int y, ModificationKey modKeys, int64_t timeStamp);
             bool mouseMove(MouseButton button, int x, int y, ModificationKey modKeys, int64_t timeStamp);
             bool mouseUp(MouseButton button, int x, int y, ModificationKey modKeys, int64_t timeStamp);
             bool mouseWheel(int delta, int x, int y, ModificationKey modKeys, int64_t timeStamp);
+
+            virtual void getMousePos(ScreenPos& pos) const { throw std::exception(); }; // Window specific
+            virtual ModificationKey getModificationKeyMask() const { throw std::exception(); }; // Window specific
+            virtual MouseButton getMouseButton() const { throw std::exception(); }; // Window specific
 
             // Key events
             bool keyUp(int key, ModificationKey modKeys, int64_t timeStamp);
@@ -51,9 +64,6 @@ namespace BlueMarble
             // Use this for polling events. NOTE: need to implement window specific (virtual) getters below
             bool captureEvents();
         
-            virtual void getMousePos(ScreenPos& pos) const { throw std::exception(); }; // Window specific
-            virtual ModificationKey getModificationKeyMask() const { throw std::exception(); }; // Window specific
-            virtual MouseButton getMouseButton() const { throw std::exception(); }; // Window specific
         protected:
             virtual int getWheelDelta() { throw std::exception(); }; // Window
             virtual bool getResize(int& width, int& height) { throw std::exception(); } // Window specific
@@ -69,10 +79,13 @@ namespace BlueMarble
             void handleMouseButtonChanged(MouseButton curr, const ScreenPos& currPos, ModificationKey modKeys);
             bool detectDrag(const ScreenPos& startPos, const ScreenPos& currPos, int thresh);
             
-
             EventConfiguration m_configration;
 
-            // For mouse events
+            // Timer event
+            TimerEvent m_previousTimerEvent;
+            std::map<int64_t, EventHandler*> m_timerEventHandlers;
+
+            // Mouse events
             int m_timeStampMs;
             int m_downTimeStampMs;
             ScreenPos m_downPos;

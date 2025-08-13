@@ -25,6 +25,17 @@ public:
         , m_wireFrameMode(false)
     {
     }
+
+    int64_t setTimer(int64_t interval) override final
+    {
+        // TODO, not tested
+    }
+
+    bool killTimer(int64_t id) override final
+    {
+        // TODO, not tested
+    }
+
     void keyEvent(WindowGL* window, int key, int scanCode, int action, int modifier) override
     {
         Key keyStroke(scanCode);
@@ -33,6 +44,15 @@ public:
             m_wireFrameMode = !m_wireFrameMode;
             if (m_wireFrameMode) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
             else			  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }
+
+        if (action == GLFW_PRESS)
+        {
+            keyUp(key, getModificationKeyMask(), getGinotonicTimeStampMs());
+        }
+        else
+        {
+            keyDown(key, getModificationKeyMask(), getGinotonicTimeStampMs());
         }
     }
 
@@ -59,7 +79,8 @@ public:
         MouseButton buttons = MouseButtonNone;
         int leftButton = glfwGetMouseButton(getGLFWWindowHandle(), GLFW_MOUSE_BUTTON_LEFT);
         int rightButton = glfwGetMouseButton(getGLFWWindowHandle(), GLFW_MOUSE_BUTTON_RIGHT);
-
+        int middleButton = glfwGetMouseButton(getGLFWWindowHandle(), GLFW_MOUSE_BUTTON_MIDDLE);
+        
         if (leftButton == GLFW_PRESS)
         {
             buttons = buttons | MouseButtonLeft;
@@ -70,9 +91,38 @@ public:
             buttons = buttons | MouseButtonRight;
         }
 
+        if (middleButton == GLFW_PRESS)
+        {
+            buttons = buttons | MouseButtonMiddle;
+        }
+
         return buttons;
     }
 
+    ModificationKey getModificationKeyMask() const override final
+    {
+        auto window = getGLFWWindowHandle();
+        ModificationKey modKeys = ModificationKeyNone;
+        if (glfwGetKey(window, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS ||
+            glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+        {
+            modKeys = modKeys | ModificationKey::ModificationKeyCtrl;
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS ||
+            glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+        {
+            modKeys = modKeys | ModificationKey::ModificationKeyShift;
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_RIGHT_ALT) == GLFW_PRESS ||
+            glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
+        {
+            modKeys = modKeys | ModificationKey::ModificationKeyAlt;
+        }
+
+        return modKeys;
+    }
 
     void mouseButtonEvent(WindowGL* window, int button, int action, int modifier) override
     {
@@ -99,13 +149,13 @@ public:
         {
         case GLFW_PRESS:
         {
-            mouseDown(bmmButton, mousePos.x, mousePos.y, ModificationKeyNone, getGinotonicTimeStampMs());
+            mouseDown(bmmButton, mousePos.x, mousePos.y, getModificationKeyMask(), getGinotonicTimeStampMs());
             m_mouseDown = true;
             break;
         }
         case GLFW_RELEASE:
         {
-            mouseUp(bmmButton, mousePos.x, mousePos.y, ModificationKeyNone, getGinotonicTimeStampMs());
+            mouseUp(bmmButton, mousePos.x, mousePos.y, getModificationKeyMask(), getGinotonicTimeStampMs());
             m_mouseDown = false;
             break;
         }
@@ -114,13 +164,13 @@ public:
 
     void mousePositionEvent(WindowGL* window, double x, double y) override
     {
-        mouseMove(getMouseButton(), x, y, ModificationKeyNone, getGinotonicTimeStampMs());
+        mouseMove(getMouseButton(), x, y, getModificationKeyMask(), getGinotonicTimeStampMs());
     }
     
     void mouseScrollEvent(WindowGL* window, double xOffs, double yOffs) override
     {
         ScreenPos mousePos; getMousePos(mousePos);
-        mouseWheel(yOffs, mousePos.x, mousePos.y, ModificationKeyNone, getGinotonicTimeStampMs());
+        mouseWheel(yOffs, mousePos.x, mousePos.y, getModificationKeyMask(), getGinotonicTimeStampMs());
     }
 
     void mouseEntered(WindowGL* window, int entered) override
@@ -173,6 +223,15 @@ class EventObserver : public EventHandler
         EventType   m_previousEventType;
 };
 
+class MySignalTester
+{
+    public:
+        void slot(std::string s, int num) 
+        {
+            std::cout << "Me got: " << s << " " <<  num << "\n";
+        };
+};
+
 int main() 
 {
     //MapControlStuff
@@ -187,8 +246,10 @@ int main()
 
     auto view = std::make_shared<Map>();
     view->center(Point(0, 0));
-    view->scale(0.1);
-    auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("C:\\ML\\BlueMarbleMaps\\geodata\\CompleteGeodata.png");
+    view->scale(1.0);
+    // auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/readme/CompleteGeodata.png");
+    auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/geodata/elevation/LARGE_elevation.jpg");
+    
     elevationDataSet->initialize(BlueMarble::DataSetInitializationType::RightHereRightNow);
     auto elevationLayer = BlueMarble::LayerPtr(new BlueMarble::Layer(false));
     elevationLayer->addUpdateHandler(elevationDataSet.get());
@@ -210,10 +271,10 @@ int main()
     view->addLayer(vectorLayer);
 
     PanEventHandler eventHandler(view, mapControl);
-    EventObserver eventObserver1("Observer1");
-    EventObserver eventObserver2("Observer2");
-    eventHandler.installEventFilter(&eventObserver1);
-    eventObserver1.installEventFilter(&eventObserver2);
+    // EventObserver eventObserver1("Observer1");
+    // EventObserver eventObserver2("Observer2");
+    // eventHandler.installEventFilter(&eventObserver1);
+    // eventObserver1.installEventFilter(&eventObserver2);
 
     mapControl->addSubscriber(&eventHandler);
     mapControl->setView(view);

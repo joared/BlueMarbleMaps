@@ -4,6 +4,7 @@
 #include "BlueMarbleMaps/Core/DataSet.h"
 #include "BlueMarbleMaps/Core/MapControl.h"
 #include "BlueMarbleMaps/Core/SoftwareDrawable.h"
+#include "BlueMarbleMaps/Logging/Logging.h"
 
 #include <cmath>
 #include <iostream>
@@ -23,8 +24,7 @@ constexpr double yTopLeft = 89.98888888888889;
 // constexpr double yTopLeft = 89.98333333333333;
 
 Map::Map()
-    : MapEventPublisher()
-    , m_center(lngLatToMap(Point(16, 56)))
+    : m_center(lngLatToMap(Point(30, 36)))
     , m_scale(1.0)
     , m_rotation(0.0)
     , m_constraints(5000.0, 0.0001, Rectangle(0, 0, 100000, 100000))
@@ -54,7 +54,7 @@ Map::Map()
 
 bool Map::update(bool forceUpdate)
 {   
-    //assert(!m_isUpdating);
+    assert(!m_isUpdating);
     if (!forceUpdate && m_mapControl)
     {
         // Let MapControl schedule update
@@ -72,7 +72,7 @@ bool Map::update(bool forceUpdate)
     }
     updateUpdateAttributes(timeStampMs); // Set update attributes that contains useful information about the update
 
-    sendOnUpdating(*this);
+    events.onUpdating.notify(*this);
 
     if(m_animation && m_animation->update(timeStampMs - m_animationStartTimeStamp))
     {
@@ -117,15 +117,18 @@ bool Map::update(bool forceUpdate)
     // m_drawable->drawPolygon(polyPoints, color);
 
 
+    // Reset transform for custom draw
+    
+    m_drawable->setTransform(Transform::screenTransform(m_drawable->width(), m_drawable->height()));
+    events.onCustomDraw.notify(*this);
 
-    sendOnCustomDraw(*this);
     if (m_showDebugInfo)
         drawDebugInfo(getTimeStampMs() - timeStampMs);
 
     afterRender();
 
     
-    sendOnUpdated(*this);
+    events.onUpdated.notify(*this);
     
     m_updateRequired = m_updateAttributes.get<bool>(UpdateAttributeKeys::UpdateRequired); // Someone in the operator chain needs more updates (e.g. Visualization evaluations)
     //m_updateRequired = m_updateRequired || m_animation != nullptr;
@@ -133,7 +136,13 @@ bool Map::update(bool forceUpdate)
 
     m_isUpdating = false;
 
-    return m_updateRequired || m_animation != nullptr;
+    bool updateRequired = m_updateRequired || m_animation != nullptr;
+    if (!updateRequired)
+    {
+        events.onIdle.notify(*this);
+    }
+
+    return updateRequired;
 }
 
 
@@ -147,7 +156,9 @@ void Map::renderLayers()
         l->onUpdateRequest(*this, updateArea, nullptr);
     }
 
-    auto color = Color(200, 75, 150);
+    auto pen = Pen();
+    pen.setColor(Color(200, 75, 150));
+    pen.setWidth(3.0);
     auto rect = mapToScreen(updateArea);
     //std::cout << "Screen: " << rect.toString() << "\n";
     rect.floor(); // Needs to be done to get correct pixel values
@@ -156,7 +167,7 @@ void Map::renderLayers()
     auto line = rect.corners();
     line.push_back(line[0]);
     LineGeometryPtr linePtr = std::make_shared<LineGeometry>(LineGeometry(line));
-    m_drawable->drawLine(linePtr, color, 3.0);
+    m_drawable->drawLine(linePtr, pen);
 
     // Debug when adjusting the update area to something else
     //drawable().drawRect(mapToScreen(updateArea), Color::red(0.1));
@@ -360,10 +371,10 @@ Point BlueMarble::Map::screenToMap(double x, double y) const
 {
     // NOTE: this methods treats screen coordinates as "pixel indexes", not the geometrical point
     auto sCenter = screenCenter();
-    double mapX = ((double)x - sCenter.x()) / m_scale + m_center.x();// + m_img.width() / 2.0;
-    double mapY = ((double)y - sCenter.y()) / m_scale + m_center.y();// + m_img.height() / 2.0;
+    double mapX = (x - sCenter.x()) / m_scale + m_center.x();// + m_img.width() / 2.0;
+    double mapY = -(y - sCenter.y()) / m_scale + m_center.y();// + m_img.height() / 2.0;
 
-    return Utils::rotatePointDegrees(Point(mapX, mapY), -m_rotation, m_center);
+    return Utils::rotatePointDegrees(Point(mapX, mapY), m_rotation, m_center);
 }
 
 Point Map::mapToScreen(const Point& point) const
@@ -374,7 +385,7 @@ Point Map::mapToScreen(const Point& point) const
 
     auto delta = Utils::rotatePointDegrees(point, -m_rotation, m_center) - m_center;
     double x = delta.x()*m_scale + screenC.x();
-    double y = delta.y()*m_scale + screenC.y();
+    double y = -delta.y()*m_scale + screenC.y();
 
     return Point(x, y);
 }
@@ -398,6 +409,17 @@ std::vector<Point> BlueMarble::Map::mapToScreen(const std::vector<Point> &points
         screenPoints.push_back(mapToScreen(p));
     }
     return screenPoints;
+}
+
+std::vector<Point> BlueMarble::Map::lngLatToMap(const std::vector<Point> &points) const
+{
+    std::vector<Point> mapPoints;
+    for (auto& p : points)
+    {
+        mapPoints.push_back(lngLatToMap(p));
+    }
+
+    return mapPoints;
 }
 
 Rectangle BlueMarble::Map::screenToMap(const Rectangle &rect) const
@@ -433,7 +455,11 @@ void BlueMarble::Map::startAnimation(AnimationPtr animation)
 
 void BlueMarble::Map::stopAnimation()
 {
-    std::cout << "Stoppped animation\n";
+    if (m_animation)
+    {
+        std::cout << "Stoppped animation\n";
+    }
+    
     m_animation = nullptr;
     quickUpdateEnabled(false);
 }
@@ -514,7 +540,7 @@ std::vector<PresentationObject> BlueMarble::Map::hitTest(int x, int y, double po
     for (int i=m_presentationObjects.size()-1; i>=0; --i)
     {
         auto& p = m_presentationObjects[i];
-        if (p.hitTest(x, y, pointerRadius))
+        if (p.hitTest(*this, x, y, pointerRadius))
         {
             hitObjects.push_back(p);
         }
@@ -617,21 +643,22 @@ void Map::hover(const Id& id)
 
 void Map::hover(FeaturePtr feature)
 {
-    Id featureId(0,0);
+    Id id(0,0);
     if (feature)
-        featureId = feature->id();
+    {
+        id = feature->id();
+    }
 
     // Testing visualization animation
-    if (!isHovered(featureId) && !isSelected(featureId))
+    if (!isHovered(id) && !isSelected(id))
     {
-        if (auto dataSet = DataSet::getDataSetById(featureId.dataSetId()))
+        if (auto dataSet = DataSet::getDataSetById(id.dataSetId()))
         {
             dataSet->restartVisualizationAnimation(feature, getTimeStampMs());
-            std::cout << "Hover restart\n";
+            BMM_DEBUG() << "Hover restart (id: " << id.toString() << ")\n";
         }
     }
-    hover(featureId);
-    
+    hover(id);
 }
 
 void Map::hover(const std::vector<Id>& ids)
@@ -661,7 +688,7 @@ bool BlueMarble::Map::isHovered(const Id& id)
 bool BlueMarble::Map::isHovered(FeaturePtr feature)
 {
     if (!feature)
-        return false;
+        return m_hoveredFeatures.empty();
     return isHovered(feature->id());
 }
 
@@ -699,7 +726,14 @@ void Map::updateUpdateAttributes(int64_t timeStampMs)
 void Map::beforeRender()
 {
     m_drawable->fill(0);
-    m_drawable->setTransform(Transform(m_center, m_scale, m_rotation));
+    auto sc = screenCenter();
+    sc = Point(sc.x(), sc.y());
+    
+    auto center = Point(
+        m_center.x(),// - (float)width()  / (2.0f * (float)m_scale),
+        m_center.y()// - (float)height() / (2.0f * (float)m_scale)
+    );
+    m_drawable->setTransform(Transform(center, m_scale, m_scale, m_rotation));
 }
 
 void Map::afterRender()
@@ -802,26 +836,28 @@ const Point Map::mapToLngLat(const Point& mapPoint, bool normalize)
     // The origin is defined at the center of the top left pixel.
     // Map coordinates (image coordinates) are currently center in the top left corner
     // of the top left pixel, so we subtract half a pixel to account for this.
-    auto imagePoint = Point(mapPoint.x()-0.5, mapPoint.y()-0.5);
+    // auto imagePoint = Point(mapPoint.x()-0.5, mapPoint.y()-0.5);
 
-    double lng = xTopLeft + xPixLen * imagePoint.x();
-    double lat = yTopLeft + yPixLen * imagePoint.y();
+    // double lng = xTopLeft + xPixLen * imagePoint.x();
+    // double lat = yTopLeft + yPixLen * imagePoint.y();
     
-    if (normalize)
-    {
-        lng = Utils::normalizeLongitude(lng);
-        lat = Utils::normalizeLatitude(lat); // FIXME: y will change sign
-    }
+    // if (normalize)
+    // {
+    //     lng = Utils::normalizeLongitude(lng);
+    //     lat = Utils::normalizeLatitude(lat); // FIXME: y will change sign
+    // }
 
-    return Point(lng, lat);
+    // return Point(lng, lat);
+    return mapPoint;
 }
 
-const Point BlueMarble::Map::lngLatToMap(const Point &lngLat)
+const Point BlueMarble::Map::lngLatToMap(const Point& lngLat) const
 {
-    double x = (lngLat.x() - xTopLeft) / xPixLen + 0.5;
-    double y = (lngLat.y() - yTopLeft) / yPixLen + 0.5;
+    // double x = (lngLat.x() - xTopLeft) / xPixLen + 0.5;
+    // double y = (lngLat.y() - yTopLeft) / yPixLen + 0.5;
 
-    return Point(x, y);
+    // return Point(x, y);
+    return lngLat;
 }
 
 const Point BlueMarble::Map::lngLatToScreen(const Point& lngLat)
@@ -867,53 +903,4 @@ Rectangle BlueMarble::Map::lngLatToScreen(const Rectangle &rect)
 const Point &Map::center() const
 {
     return m_center;
-}
-
-MapEventPublisher::MapEventPublisher()
-    : m_eventHandlers()
-{
-}
-
-void MapEventPublisher::sendOnAreaChanged(Map &map)
-{
-    for (auto h : m_eventHandlers) { h->OnAreaChanged(map); }
-}
-
-void MapEventPublisher::sendOnUpdating(Map &map)
-{
-    for (auto h : m_eventHandlers) { h->OnUpdating(map); }
-}
-
-void MapEventPublisher::sendOnCustomDraw(Map &map)
-{
-    for (auto h : m_eventHandlers) { h->OnCustomDraw(map); }
-}
-
-void MapEventPublisher::sendOnUpdated(Map &map)
-{
-    for (auto h : m_eventHandlers) { h->OnUpdated(map); }
-}
-
-void MapEventPublisher::addMapEventHandler(MapEventHandler *handler)
-{
-    for (auto h : m_eventHandlers)
-        assert(h != handler);
-
-    // insert such that performance monitor gets the events first
-    m_eventHandlers.insert(m_eventHandlers.begin(), handler);
-}
-
-void MapEventPublisher::removeMapEventHandler(MapEventHandler *handler)
-{
-    for (auto it=m_eventHandlers.begin(); it!=m_eventHandlers.end(); it++)
-    {
-        if (*it == handler)
-        {
-            m_eventHandlers.erase(it);
-            return;
-        }
-    }
-
-    std::cout << "MapEventPublisher::removeMapEventHandler() Handler does not exist!\n";
-    throw std::exception();
 }

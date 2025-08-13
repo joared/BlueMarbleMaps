@@ -98,7 +98,14 @@ bool Animation::update(double elapsed)
     {
         m_map.center(m_to);
         m_map.scale(m_toScale);
+
+        events.onAnimationFinished.notify(this);
         return true;
+    }
+
+    if (elapsed == 0)
+    {
+        events.onAnimationStarted.notify(this);
     }
 
     // TODO: special handling for inertial animation

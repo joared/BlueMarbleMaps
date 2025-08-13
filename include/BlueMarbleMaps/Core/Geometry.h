@@ -94,6 +94,8 @@ namespace BlueMarble
             GeometryType type() override final { return GeometryType::Line; };
             Rectangle calculateBounds() override final { return Rectangle::fromPoints(m_points); };
             Point center() override final { return m_points[m_points.size()%2]; }; // FIXME
+            bool isClosed() const { return m_isClosed; }
+            void isClosed(bool closed) { m_isClosed = closed; }
             void move(const Point& delta) override final;
             void moveTo(const Point& point) override final;
             bool isInside(const Rectangle& bounds) const override final { return bounds.isInside(m_points); }; // FIXME: points might not be inside
@@ -102,6 +104,7 @@ namespace BlueMarble
             std::vector<Point>& points() { return m_points; }
         private:
             std::vector<Point> m_points;
+            bool m_isClosed;
     };
     typedef std::shared_ptr<LineGeometry> LineGeometryPtr;
 
@@ -216,8 +219,8 @@ namespace BlueMarble
             bool isStrictlyInside(const Rectangle& /*bounds*/) const override final { return false; }; // TODO
 
             Rectangle bounds() { return m_bounds; };
-            double cellHeight() { return m_cellWidth; };
-            double cellWidth() { return m_cellHeight; };
+            double cellHeight() { return m_cellHeight; };
+            double cellWidth() { return m_cellWidth; };
             Raster& raster() { return m_raster; }
             RasterGeometryPtr getSubRasterGeometry(const Rectangle& bounds);
         private:

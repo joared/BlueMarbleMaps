@@ -1,4 +1,5 @@
 #include "Application/WindowGL.h"
+#include "BlueMarbleMaps/Logging/Logging.h"
 
 #include <iostream>
 
@@ -39,9 +40,24 @@ bool WindowGL::init(int width, int height, std::string windowTitle)
 	{
 		return false;
 	}
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+	bool useCoreProfile = false;
+	if (useCoreProfile)
+	{
+		std::cout << "Using OpenGL core profile\n";
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	}
+	else
+	{
+		std::cout << "WARNING: using OpenGL legacy profile\n";
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);  // 2.1 is guaranteed to support legacy
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_ANY_PROFILE);
+		glfwWindowHint(GLFW_SAMPLES, 4);
+	}
+
 	//glDebugMessageCallback(MessageCallback, 0);
 	m_window = glfwCreateWindow(width, height, windowTitle.c_str(), nullptr, nullptr);
 	glfwMakeContextCurrent(m_window);
@@ -49,6 +65,14 @@ bool WindowGL::init(int width, int height, std::string windowTitle)
 	//Sets the this pointer as the owner of the glfw window
 	glfwSetWindowUserPointer(m_window, reinterpret_cast<void*>(this));
 	glEnable(GL_DEBUG_OUTPUT);
+
+	if (!useCoreProfile)
+	{
+		glEnable(GL_MULTISAMPLE);
+		GLint samples = 0;
+		glGetIntegerv(GL_SAMPLES, &samples);
+		BMM_DEBUG() << "MSAA samples: " << samples << std::endl;
+	}
 
 	//bind internal callbacks
 	glfwSetKeyCallback(m_window, internalKeyEventCallback);

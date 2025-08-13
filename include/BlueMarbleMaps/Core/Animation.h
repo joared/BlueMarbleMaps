@@ -2,6 +2,7 @@
 #define ANIMATION
 
 #include "BlueMarbleMaps/Core/Core.h"
+#include "BlueMarbleMaps/Event/Signal.h"
 #include <memory>
 
 namespace BlueMarble
@@ -13,6 +14,8 @@ namespace BlueMarble
         EaseOut
     };
 
+    class AbstractAnimation;
+    typedef std::shared_ptr<AbstractAnimation> AbstractAnimationPtr;
     class AbstractAnimation
     {
         public:
@@ -26,6 +29,13 @@ namespace BlueMarble
             double duration() const { return m_duration; };
             double elapsed() const { return m_elapsed; };
             double progress() const { return m_elapsed/m_duration; };
+
+            struct AnimationEvents
+            {
+                Signal<AbstractAnimationPtr> onAnimationStarted;
+                Signal<AbstractAnimationPtr> onAnimationFinished;
+            };
+
         protected:
             virtual void onStarted() = 0;
             virtual void onUpdated(double progress) = 0;
@@ -35,7 +45,7 @@ namespace BlueMarble
             double             m_elapsed;
             int                m_startTimeStamp;
     };
-    typedef std::shared_ptr<AbstractAnimation> AbstractAnimationPtr;
+    
 
     class Map; // Forward declaration
 
@@ -62,6 +72,15 @@ namespace BlueMarble
             double toScale() { return m_toScale; }
 
             bool update(double elapsed);
+
+            struct AnimationEvents
+            {
+                Signal<Animation*> onAnimationStarted;
+                Signal<Animation*> onAnimationFinished;
+            };
+
+            AnimationEvents events;
+
         private:
             double easeOut(double ratio, double easeOutPower);
 

@@ -79,17 +79,30 @@ void Layer::onFeatureInput(Map& map, const std::vector<FeaturePtr>& features)
         auto sourceFeature = features[i];
 
         FeaturePtr f;
-        if (sourceFeature->geometryType() == GeometryType::Raster)
+        
+        switch (sourceFeature->geometryType())
         {
+        case GeometryType::Raster:
             f = sourceFeature;
-        }
-        else
-        {
+            break;
+        
+        case GeometryType::Polygon:
             f = std::make_shared<Feature>(
                 sourceFeature->id(),
                 sourceFeature->crs(),
                 std::static_pointer_cast<Geometry>(sourceFeature->geometry()->deepClone())
             );
+            //f->geometryAsPolygon()->outerRing() = map.lngLatToMap(f->geometryAsPolygon()->outerRing());
+            //f->projectTo(map.getCrs());
+            break;
+
+        default:
+            f = std::make_shared<Feature>(
+                sourceFeature->id(),
+                sourceFeature->crs(),
+                std::static_pointer_cast<Geometry>(sourceFeature->geometry()->deepClone())
+            );
+            break;
         }
         
         // Always apply standard visualization for now
@@ -215,7 +228,7 @@ void Layer::createDefaultVisualizers()
     // Line visualizer
     auto lineVis = std::make_shared<LineVisualizer>();
     lineVis->color(ColorEvaluation([](FeaturePtr, Attributes&) { return Color(50,50,50,0.25); }));
-    lineVis->width([](FeaturePtr, Attributes&) -> double { return 1; });
+    lineVis->width([](FeaturePtr, Attributes&) -> double { return 10.0; });
 
     // Polygon visualizer
     auto polVis = std::make_shared<PolygonVisualizer>();
@@ -244,7 +257,7 @@ void Layer::createDefaultVisualizers()
     m_visualizers.push_back(polVis);
     m_visualizers.push_back(pointVis);
     m_visualizers.push_back(lineVis);
-    //m_visualizers.push_back(nodeVis);
+    m_visualizers.push_back(nodeVis);
     m_visualizers.push_back(rasterVis);
     m_visualizers.push_back(textVis);
 

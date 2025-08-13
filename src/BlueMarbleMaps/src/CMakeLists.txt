@@ -31,11 +31,13 @@ set(SOURCES
     ${SRC_DIR}/FeatureAnimation.cpp
     ${SRC_DIR}/Effect.cpp
     ${SRC_DIR}/MapControl.cpp
+    ${SRC_DIR}/Tool.cpp
     ${SRC_DIR}/BlueMarbleLayout.cpp
     ${SRC_DIR}/OpenGLDrawable.cpp
     ${SRC_DIR}/CoordinateSystem/Crs.cpp
     ${SRC_DIR}/CoordinateSystem/GeodeticDatum.cpp
     ${SRC_DIR}/CoordinateSystem/Projection.cpp
+    ${SRC_DIR}/Logging/Logging.cpp
     ${BBM_SOURCES}
 )
 

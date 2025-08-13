@@ -3,6 +3,8 @@
 
 #include "BlueMarbleMaps/Core/Core.h"
 #include <functional>
+#include <iostream>
+#include <string>
 
 namespace BlueMarble 
 {
@@ -28,6 +30,7 @@ namespace BlueMarble
 	};									\
 
 	#define EVENT_LIST(X)				\
+		X(Timer)						\
 		X(Resize)						\
 		X(KeyDown)						\
 		X(KeyUp)						\
@@ -59,7 +62,6 @@ namespace BlueMarble
 		virtual std::string toString() const = 0;
 		virtual bool dispatch(EventCallbacks* eventHandler) const = 0;
 	};
-
 }
 
 #endif /* BLUEMARBLE_EVENT */
