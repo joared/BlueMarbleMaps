@@ -7,6 +7,7 @@ using namespace BlueMarble;
 
 MapControl::MapControl()
     : m_mapView(nullptr)
+    , m_tool(nullptr)
     , m_updateRequired(false)
 {
 
@@ -14,6 +15,13 @@ MapControl::MapControl()
 
 void MapControl::setView(MapPtr mapView)
 {
+    // First disconnect tool
+    auto tool = m_tool;
+    if (tool)
+    {
+        setTool(nullptr);
+    }
+
     if (!mapView)
     {
         std::cout << "MapControl::setView() Detaching view, setting Bitmap drawable\n";
@@ -38,11 +46,40 @@ void MapControl::setView(MapPtr mapView)
         std::cout << "No window provided in MapControl::getWindow()\n";
         throw std::exception();
     }
+
+    // Reinitialize whatever tool we have
+    if (tool)
+    {
+        setTool(tool);
+    }
 }
 
 MapPtr MapControl::getView()
 {
     return m_mapView;
+}
+
+void MapControl::setTool(const ToolPtr &tool)
+{
+    if (m_mapView == nullptr)
+    {
+        // For now, we are not allowed to attach a tool without a map view
+        BMM_DEBUG() << "MapControl::setTool() called when no map view is attached\n";
+        throw std::exception();
+    }
+
+    if (m_tool)
+    {
+        removeSubscriber(m_tool.get());
+        m_tool->onDisconnected();      
+    }
+
+    m_tool = tool;
+    if (m_tool)
+    {
+        addSubscriber(m_tool.get());
+        m_tool->onConnected(shared_from_this(), m_mapView);
+    }
 }
 
 void MapControl::updateView()

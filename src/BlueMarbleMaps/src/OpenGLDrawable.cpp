@@ -198,18 +198,22 @@ void BlueMarble::OpenGLDrawable::drawLine(const LineGeometryPtr &geometry, const
     if (geometry->isClosed())
     {
         glBegin(GL_LINE_LOOP);
+        for (const auto& point : geometry->points()) 
+        {
+            glVertex2f((GLfloat)point.x(), (GLfloat)point.y());
+        }
     }
     else
     {
         glBegin(GL_LINES);
+        for (int i=0; i<geometry->points().size()-1; i++) 
+        {
+            const auto& p1 = geometry->points()[i];
+            const auto& p2 = geometry->points()[i+1];
+            glVertex2f((GLfloat)p1.x(), (GLfloat)p1.y());
+            glVertex2f((GLfloat)p2.x(), (GLfloat)p2.y());
+        }
     }
-
-    // Outer ring
-    for (const auto& point : geometry->points()) 
-    {
-        glVertex2f((GLfloat)point.x(), (GLfloat)point.y());
-    }
-    // TODO: inner rings
 
     glEnd();
 }

@@ -129,14 +129,14 @@ namespace BlueMarble
     };
 
     class PanEventHandler 
-        : public BlueMarble::EventHandler
+        : public Tool
         , public IFeatureEventListener
     {
         public:
-            PanEventHandler(BlueMarble::MapPtr map, MapControlPtr mapControl) 
-                : EventHandler()
-                , m_map(map)
-                , m_mapControl(mapControl)
+            PanEventHandler() 
+                : Tool()
+                , m_map(nullptr)
+                , m_mapControl(nullptr)
                 , m_rectangle(BlueMarble::Rectangle::undefined())
                 , m_zoomToRect(false)
                 , m_inertiaOption{0.002, 0.1}
@@ -150,10 +150,29 @@ namespace BlueMarble
                 int reserveAmount = (int)(m_cutoff / 16.0) + 1;
                 m_positions.reserve(reserveAmount);
                 m_timeStamps.reserve(reserveAmount);
+            }
 
+            bool isActive() override final
+            {
+                return true;
+            }
+
+            void onConnected(const MapControlPtr& control, const MapPtr& map) override final 
+            {
+                m_mapControl = control;
+                m_map = map;
                 m_map->events.onUpdating.subscribe(this, &PanEventHandler::OnUpdating);
                 m_map->events.onCustomDraw.subscribe(this, &PanEventHandler::OnCustomDraw);
                 m_map->events.onIdle.subscribe(this, &PanEventHandler::OnIdle);
+            }
+
+            void onDisconnected() override final 
+            {
+                m_map->events.onUpdating.unsubscribe(this);
+                m_map->events.onCustomDraw.unsubscribe(this);
+                m_map->events.onIdle.unsubscribe(this);
+                m_map = nullptr;
+                m_mapControl = nullptr;
             }
 
             void OnIdle(BlueMarble::Map& /*map*/)
@@ -778,7 +797,7 @@ namespace BlueMarble
                 return deltaPos * (1.0/deltaTime);
             }
 
-            bool onEvent(const BlueMarble::Event& event) override
+            bool onEvent(const BlueMarble::Event& event) override final
             {
                 // Debug output event info
                 // const BlueMarble::PointerEvent& pointerEvent = static_cast<const BlueMarble::PointerEvent&>(event);
@@ -790,7 +809,7 @@ namespace BlueMarble
                     std::cout << "Resize!\n";
                 }
 
-                return EventHandler::onEvent(event);
+                return Tool::onEvent(event);
             }
         private:
             

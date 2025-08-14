@@ -2,14 +2,16 @@
 #define BLUEMARBLE_TOOL
 
 #include "BlueMarbleMaps/Event/EventHandler.h"
-#include "BlueMarbleMaps/Core/Map.h"
-#include "BlueMarbleMaps/Core/MapControl.h"
 
 #include <memory>
 #include <vector>
 
 namespace BlueMarble
 {
+    class Map;
+    typedef std::shared_ptr<Map> MapPtr;
+    class MapControl;
+    typedef std::shared_ptr<MapControl> MapControlPtr;
 
     // Abstract class for handling interactions/events
     class InteractionHandler : public EventHandler
@@ -33,9 +35,9 @@ namespace BlueMarble
             void addInteractionHandler(InteractionHandlerPtr handler);
             void removeInteractionHandler(InteractionHandlerPtr handler);
 
+        protected:
+            virtual bool onEvent(const Event& event) override;
         private:
-            virtual bool onEvent(const Event& event) override final;
-
             std::vector<InteractionHandlerPtr> m_interactionHandlers;
             InteractionHandlerPtr              m_activeHandler;
     };

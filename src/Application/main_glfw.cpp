@@ -270,14 +270,14 @@ int main()
 
     view->addLayer(vectorLayer);
 
-    PanEventHandler eventHandler(view, mapControl);
+    mapControl->setView(view);
+
+    auto eventHandler = std::make_shared<PanEventHandler>();
     // EventObserver eventObserver1("Observer1");
     // EventObserver eventObserver2("Observer2");
     // eventHandler.installEventFilter(&eventObserver1);
     // eventObserver1.installEventFilter(&eventObserver2);
-
-    mapControl->addSubscriber(&eventHandler);
-    mapControl->setView(view);
+    mapControl->setTool(eventHandler);
 
     view->update();
     while (!mapControl->windowShouldClose())

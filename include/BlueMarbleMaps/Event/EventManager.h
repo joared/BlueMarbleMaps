@@ -24,7 +24,8 @@ namespace BlueMarble
             int dragThresh = 5;
     };
 
-    class EventManager : public EventDispatcher
+    class EventManager 
+        : public EventDispatcher // TODO:  shold be hidden when using mapcontrol
     {
         public:
             EventManager();

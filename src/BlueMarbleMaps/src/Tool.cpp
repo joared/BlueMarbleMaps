@@ -33,7 +33,7 @@ bool Tool::onEvent(const Event& event)
 {
     bool handled = false;
 
-    // First dsipatch event to active handler
+    // First dispatch event to active handler
     auto activeHandler = m_activeHandler; // Keep a copy of the handler
     if (activeHandler)
     {

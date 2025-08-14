@@ -123,10 +123,11 @@ bool Map::update(bool forceUpdate)
     events.onCustomDraw.notify(*this);
 
     if (m_showDebugInfo)
+    {
         drawDebugInfo(getTimeStampMs() - timeStampMs);
+    }
 
     afterRender();
-
     
     events.onUpdated.notify(*this);
     
@@ -155,22 +156,6 @@ void Map::renderLayers()
     {
         l->onUpdateRequest(*this, updateArea, nullptr);
     }
-
-    auto pen = Pen();
-    pen.setColor(Color(200, 75, 150));
-    pen.setWidth(3.0);
-    auto rect = mapToScreen(updateArea);
-    //std::cout << "Screen: " << rect.toString() << "\n";
-    rect.floor(); // Needs to be done to get correct pixel values
-    //std::cout << "Screen Floor: " << rect.toString() << "\n";
-    
-    auto line = rect.corners();
-    line.push_back(line[0]);
-    LineGeometryPtr linePtr = std::make_shared<LineGeometry>(LineGeometry(line));
-    m_drawable->drawLine(linePtr, pen);
-
-    // Debug when adjusting the update area to something else
-    //drawable().drawRect(mapToScreen(updateArea), Color::red(0.1));
 }
 
 void Map::center(const Point &center)
@@ -808,6 +793,8 @@ void Map::drawDebugInfo(int elapsedMs)
     
     int fontSize = 16;
     m_drawable->drawText(0, 0, info.c_str(), Color(0, 0, 0), fontSize);
+
+    BMM_DEBUG() << info << "\n";
 
     // m_drawable->drawText(0,30, "Center: " + m_center.toString(), Color::black(0.5));
     // m_drawable->drawText(0,45, "Scale: " + std::to_string(m_scale), Color::black(0.5));

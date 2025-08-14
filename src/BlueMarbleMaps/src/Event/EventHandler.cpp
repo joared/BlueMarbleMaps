@@ -70,6 +70,7 @@ namespace BlueMarble
 
 
     EventDispatcher::EventDispatcher()
+        : m_eventHandlers()
     {
     }
 
@@ -78,24 +79,36 @@ namespace BlueMarble
         m_eventHandlers.push_back(eventHandler);
     }
 
-    bool EventDispatcher::dispatchEvent(Event& event, int timeStampMs)
+    void EventDispatcher::removeSubscriber(EventHandler *eventHandler)
     {
-        event.timeStampMs = timeStampMs; // TODO: should not be here??
-        return dispatchEvent(event);
+        for (auto it = m_eventHandlers.begin(); it!=m_eventHandlers.end(); it++)
+        {
+            if (*it == eventHandler)
+            {
+                m_eventHandlers.erase(it);
+                return;
+            }
+        }
+
+        std::cout << "EventDispatcher::removeSubscriber() Tried to remove an event handler that doesn't exist!\n";
     }
 
-    bool EventDispatcher::dispatchEvent(const Event &event)
+    bool EventDispatcher::dispatchEvent(Event &event, int timeStampMs)
     {
+        event.timeStampMs = timeStampMs; // TODO: should not be here??
+        // return dispatchEvent(event);
         for (auto eventHandler : m_eventHandlers)
         {
-            if (eventHandler->handleEvent(nullptr, event))
+            if (dispatchEventTo(event, eventHandler))
+            {
                 return true;
+            }
         }
 
         return false;
     }
 
-    bool EventDispatcher::dispatchEventTo(const Event &event, EventHandler *eventHandler)
+    bool EventDispatcher::dispatchEventTo(const Event& event, EventHandler* eventHandler)
     {
         return eventHandler->handleEvent(nullptr, event);
     }
