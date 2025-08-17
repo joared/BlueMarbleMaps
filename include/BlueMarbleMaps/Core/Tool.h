@@ -29,13 +29,35 @@ namespace BlueMarble
             Tool();
             virtual ~Tool() = default;
 
-            virtual void onConnected(const MapControlPtr& control, const MapPtr& map) = 0;
-            virtual void onDisconnected() = 0;
+            void onToolConnected(const MapControlPtr& control, const MapPtr& map) 
+            {
+                onConnected(control, map);
+                for (auto& handler : m_interactionHandlers)
+                {
+                    if (auto tool = std::dynamic_pointer_cast<Tool>(handler))
+                    {
+                        tool->onConnected(control, map);
+                    }
+                }
+            }
+            void onToolDisconnected()
+            {
+                onDisconnected();
+                for (auto& handler : m_interactionHandlers)
+                {
+                    if (auto tool = std::dynamic_pointer_cast<Tool>(handler))
+                    {
+                        tool->onDisconnected();
+                    }
+                }
+            }
 
             void addInteractionHandler(InteractionHandlerPtr handler);
             void removeInteractionHandler(InteractionHandlerPtr handler);
 
         protected:
+            virtual void onConnected(const MapControlPtr& control, const MapPtr& map) = 0;
+            virtual void onDisconnected() = 0;
             virtual bool onEvent(const Event& event) override;
         private:
             std::vector<InteractionHandlerPtr> m_interactionHandlers;

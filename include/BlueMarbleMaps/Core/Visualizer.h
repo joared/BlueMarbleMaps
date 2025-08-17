@@ -22,6 +22,15 @@ namespace BlueMarble
     // typedef FeatureEvaluation<double>       DoubleEvaluation;
     // typedef FeatureEvaluation<std::string>  StringEvaluation;
 
+    enum class VisualizerType
+    {
+        SymbolVisualizer,
+        TextVisualizer,
+        LineVisualizer,
+        PolygonVisualizer,
+        RasterVisualizer
+    };
+
     class Visualizer
     {
         enum VisualizerLengtUnit
@@ -35,20 +44,24 @@ namespace BlueMarble
             void renderingEnabled(bool enabled);
             bool renderingEnabled();
             void condition(const Condition& condition);
+            const Condition& condition();
             void color(const ColorEvaluation& colorEval);
             void offsetX(DoubleEvaluation intEval) { m_offsetXEval = intEval; }
             void offsetY(DoubleEvaluation intEval) { m_offsetYEval = intEval; }
             void size(const DoubleEvaluation& sizeEval);
             void sizeAdd(const DoubleEvaluation& sizeAddEval);
             void rotation(const DoubleEvaluation& rotationEval);
-            bool attachFeature(FeaturePtr feature, FeaturePtr sourceFeature, Attributes& updateAttributes);
-            void render(Drawable& drawable, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs);
-            // TODO Both below should be removed and replace with renderFeatures() (to enable OpenGl stuff)
-            virtual void preRender(Drawable& drawable, std::vector<FeaturePtr>& attachedFeatures, std::vector<FeaturePtr>& sourceFeatures, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs) {}
-            virtual void renderFeature(Drawable& drawable, const FeaturePtr& feature, const FeaturePtr& source, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs) = 0;
+
+            // TODO: hittest has to be part of visualizer since only the visualizer knows about line width etc
+            //virtual bool hitTest(const FeaturePtr& feature, const DrawablePtr& drawable, const Rectangle& area) = 0;
+            // TODO: generatePresentationObjects could probably be inside renderFeature
+            virtual void generatePresentationObjects(const FeaturePtr& feature, const FeaturePtr& sourceFeature, Attributes& updateAttributes, std::vector<PresentationObject>& presentationObjects);
+            virtual void renderFeature(Drawable& drawable, const FeaturePtr& feature, Attributes& updateAttributes) = 0;
+            virtual VisualizerType visualizerType() = 0;
         protected:
             virtual bool isValidGeometry(GeometryType type) = 0;
             ColorEvaluation         m_colorEval;
+            Condition               m_antialiasEval;
             DoubleEvaluation        m_sizeEval;
             DoubleEvaluation        m_sizeAddEval;
             StringEvaluation        m_textEval;
@@ -74,8 +87,9 @@ namespace BlueMarble
             bool isLabelOrganized() { return m_isLabelOrganized; }
             void isLabelOrganized(bool enabled) { m_isLabelOrganized = enabled; }
 
-            void preRender(Drawable& drawable, std::vector<FeaturePtr>& attachedFeatures, std::vector<FeaturePtr>& sourceFeatures, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs) override final;
-            void renderFeature(Drawable& drawable, const FeaturePtr& feature, const FeaturePtr& source, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs) override final;
+            //void preRender(Drawable& drawable, std::vector<FeaturePtr>& attachedFeatures, std::vector<FeaturePtr>& sourceFeatures, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs) override final;
+            void generatePresentationObjects(const FeaturePtr& feature, const FeaturePtr& sourceFeature, Attributes& updateAttributes, std::vector<PresentationObject>& presentationObjects) override final;
+            void renderFeature(Drawable& drawable, const FeaturePtr& feature, Attributes& updateAttributes) override final;
         protected:
             bool isValidGeometry(GeometryType type) override final;
             virtual void renderPoints(Drawable& drawable, const std::vector<Point>& points, const FeaturePtr& feature, const FeaturePtr& source, Attributes& updateAttributes) = 0;
@@ -225,6 +239,7 @@ namespace BlueMarble
 
         public:
             SymbolVisualizer();
+            virtual VisualizerType visualizerType() override final { return VisualizerType::SymbolVisualizer; }
             void symbol(const Symbol& symbol) { m_symbol = symbol; }
             const Symbol& symbol() { return m_symbol; }
         protected:
@@ -238,6 +253,7 @@ namespace BlueMarble
     {
         public:
             TextVisualizer();
+            virtual VisualizerType visualizerType() override final { return VisualizerType::TextVisualizer; };
             void text(const StringEvaluation& textEval);
             void backgroundColor(ColorEvaluation colorEval);
         protected:
@@ -252,11 +268,15 @@ namespace BlueMarble
     {
         public:
             LineVisualizer();
-            void renderFeature(Drawable& drawable, const FeaturePtr& feature, const FeaturePtr& source, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs) override final;
+            virtual VisualizerType visualizerType() override final { return VisualizerType::LineVisualizer; };
+            virtual void generatePresentationObjects(const FeaturePtr& feature, const FeaturePtr& sourceFeature, Attributes& updateAttributes, std::vector<PresentationObject>& presentationObjects) override final;
+            void renderFeature(Drawable& drawable, const FeaturePtr& feature, Attributes& updateAttributes) override final;
             void width(DoubleEvaluation widthEval);
         protected:
             bool isValidGeometry(GeometryType type) override final;
         private:
+            Pen createPen(const FeaturePtr& feature, Attributes& attributes) const;
+
             DoubleEvaluation m_widthEval;
     };
     typedef std::shared_ptr<LineVisualizer> LineVisualizerPtr;
@@ -266,10 +286,13 @@ namespace BlueMarble
     {
         public:
             PolygonVisualizer();
-            void renderFeature(Drawable& drawable, const FeaturePtr& feature, const FeaturePtr& source, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs) override final;
+            virtual VisualizerType visualizerType() override final { return VisualizerType::PolygonVisualizer; };
+            void renderFeature(Drawable& drawable, const FeaturePtr& feature, Attributes& updateAttributes) override final;
         protected:
             bool isValidGeometry(GeometryType type) override final;
         private:
+            Brush createBrush(const FeaturePtr& feature, Attributes& attributes) const;
+
             LineVisualizerPtr   m_lineVisualizer;
             SymbolVisualizerPtr m_nodeVisualizer;
     };
@@ -280,7 +303,8 @@ namespace BlueMarble
     {
         public:
             RasterVisualizer();
-            void renderFeature(Drawable& drawable, const FeaturePtr& feature, const FeaturePtr& source, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs) override final;
+            virtual VisualizerType visualizerType() override final { return VisualizerType::RasterVisualizer; };
+            void renderFeature(Drawable& drawable, const FeaturePtr& feature, Attributes& updateAttributes) override final;
             void alpha(const DoubleEvaluation& alphaEval);
         protected:
             bool isValidGeometry(GeometryType type) override final;

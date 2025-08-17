@@ -4,10 +4,17 @@
 
 using namespace BlueMarble;
 
-PresentationObject::PresentationObject(FeaturePtr feature, FeaturePtr sourceFeature, Visualizer* visualizer)
+PresentationObject::PresentationObject(FeaturePtr feature, 
+                                       FeaturePtr sourceFeature, 
+                                       Visualizer* visualizer,
+                                       bool isSelected,
+                                       int nodeIndex)
     : m_feature(feature)
     , m_sourceFeature(sourceFeature)
     , m_visualizer(visualizer)
+    , m_isSelected(isSelected)
+    , m_nodeIndex(nodeIndex)
+    , m_children() // TODO
 {
 }
 
@@ -18,6 +25,7 @@ bool PresentationObject::hitTest(const Map& map, int x, int y, double pointerRad
     pointerRadius /= map.scale();
 
     auto f = m_feature;
+    // TODO: delagate hittesting to visualizer. We don't know line width etc.
     switch (f->geometryType())
     {
         case GeometryType::Point:
@@ -39,6 +47,25 @@ bool PresentationObject::hitTest(const Rectangle& bounds)
 {
     // std::cout << "PresentationObject::hitTest\n";
     return m_feature->isInside(bounds);
+}
+
+int PresentationObject::nodeIndex() const
+{
+    return m_nodeIndex;
+}
+bool PresentationObject::isSelected() const
+{
+    return m_isSelected;
+}
+
+bool PresentationObject::equals(const PresentationObject& other)
+{
+    // This makes it possible to perform "partial" selection of 
+    // a feature by selecting a presentation object
+    return (m_visualizer->visualizerType() == other.visualizer()->visualizerType() &&
+            m_feature->id() == other.feature()->id() &&
+            m_feature->geometryType() == other.feature()->geometryType() &&
+            m_nodeIndex == other.nodeIndex());
 }
 
 bool BlueMarble::hitTestPoint(double x, double y, double pointerRadius, PointGeometryPtr geometry)

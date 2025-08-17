@@ -13,9 +13,9 @@ namespace BlueMarble
     {
         public:
             virtual ~AttributeVariable() = default;
-            virtual bool tryGetValue(const FeaturePtr& f, Attributes& attributes, T& val) { return false; };
+            virtual bool tryGetValue(const FeaturePtr& f, Attributes& attributes, T& val) const { return false; };
 
-            T operator() (const FeaturePtr& f, Attributes& attributes)
+            T operator() (const FeaturePtr& f, Attributes& attributes) const
             {
                 T val;
                 if(!tryGetValue(f, attributes, val))
@@ -63,7 +63,7 @@ namespace BlueMarble
                 m_function = function;
             }
 
-            bool tryGetValue(const FeaturePtr& f, Attributes& attributes, T& val) override final
+            bool tryGetValue(const FeaturePtr& f, Attributes& attributes, T& val) const override final
             {
                 val = T(m_function(f, attributes));
                 return true;
@@ -87,7 +87,7 @@ namespace BlueMarble
                 : m_value(value)
             {}
             
-            bool tryGetValue(const FeaturePtr& /*f*/, Attributes& /*attributes*/, T& val) override final
+            bool tryGetValue(const FeaturePtr& /*f*/, Attributes& /*attributes*/, T& val) const override final
             {
                 val = T(m_value);
                 return true;
@@ -119,7 +119,7 @@ namespace BlueMarble
                 , m_hasDefaultValue(true)
             {}
 
-            bool tryGetValue(const FeaturePtr& f, Attributes& attributes, T& val) override final
+            bool tryGetValue(const FeaturePtr& f, Attributes& attributes, T& val) const override final
             {
                 if (f->attributes().contains(m_key))
                 {
@@ -167,7 +167,7 @@ namespace BlueMarble
             {}
 
             // template <typename T>
-            bool tryGetValue(const FeaturePtr& f, Attributes& attributes, T& val) override final
+            bool tryGetValue(const FeaturePtr& f, Attributes& attributes, T& val) const override final
             {
                 // TODO: since we are using int, timestamps may be negative
                 int timeMs = attributes.get<int>(UpdateAttributeKeys::UpdateTimeMs);

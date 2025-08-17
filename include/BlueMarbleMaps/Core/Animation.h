@@ -77,9 +77,7 @@ namespace BlueMarble
             {
                 Signal<Animation*> onAnimationStarted;
                 Signal<Animation*> onAnimationFinished;
-            };
-
-            AnimationEvents events;
+            } events;
 
         private:
             double easeOut(double ratio, double easeOutPower);

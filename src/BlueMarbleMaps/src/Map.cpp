@@ -584,6 +584,16 @@ void Map::select(FeaturePtr feature, SelectMode mode)
     }
 }
 
+void Map::select(const PresentationObject& presentationObject)
+{
+    m_selectedPresentationObjects.push_back(presentationObject);
+}
+
+const std::vector<PresentationObject>& Map::selectedPresentationObjects()
+{
+    return m_selectedPresentationObjects;
+}
+
 void Map::deSelect(FeaturePtr feature)
 {
     for (auto it = m_selectedFeatures.begin(); it!= m_selectedFeatures.end(); it++)
@@ -599,6 +609,7 @@ void Map::deSelect(FeaturePtr feature)
 void Map::deSelectAll()
 {
     m_selectedFeatures.clear();
+    m_selectedPresentationObjects.clear();
 }
 
 bool Map::isSelected(const Id& id)
@@ -773,7 +784,8 @@ void Map::drawDebugInfo(int elapsedMs)
     auto centerLngLat = mapToLngLat(center());
     auto screenPos = mapToScreen(mouseMapPos).round();
     auto screenError = Point(mousePos.x-(int)screenPos.x(), mousePos.y-(int)screenPos.y());
-    std::string info = "Center: " + std::to_string(m_center.x()) + ", " + std::to_string(m_center.y());
+    std::string info = "------ Debug -------\n";
+    info += "Center: " + std::to_string(m_center.x()) + ", " + std::to_string(m_center.y());
     info += "\nCenter LngLat: " + std::to_string(centerLngLat.x()) + ", " + std::to_string(centerLngLat.y());
     info += "\nScale: " + std::to_string(m_scale);
     info += "\nScale inv: " + std::to_string(invertedScale());
@@ -791,14 +803,22 @@ void Map::drawDebugInfo(int elapsedMs)
     info += "\nUpdate time: " + std::to_string(elapsedMs);
     info += "\nPresentationObjects: " + std::to_string(m_presentationObjects.size());
     
+    info += "\n";
+    auto presentationObjects = hitTest(mousePos.x, mousePos.y, 10.0);
+    for (auto& p : presentationObjects)
+    {
+        info += "\t";
+        info += "Geometry: " + typeToString(p.feature()->geometryType());
+        info += ", Source: " + typeToString(p.sourceFeature()->geometryType());
+        info += ", Node: " + std::to_string(p.nodeIndex());
+        info += "\n";
+    }
+    
+
     int fontSize = 16;
     m_drawable->drawText(0, 0, info.c_str(), Color(0, 0, 0), fontSize);
 
-    BMM_DEBUG() << info << "\n";
-
-    // m_drawable->drawText(0,30, "Center: " + m_center.toString(), Color::black(0.5));
-    // m_drawable->drawText(0,45, "Scale: " + std::to_string(m_scale), Color::black(0.5));
-    // m_drawable->drawText(0,60, "Rotation: " + std::to_string(m_rotation), Color::black(0.5));
+    BMM_DEBUG() << info << "\n\n";
 }
 
 const Point Map::screenToLngLat(const Point& screenPoint)

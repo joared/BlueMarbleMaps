@@ -40,6 +40,7 @@ bool Tool::onEvent(const Event& event)
         handled = dispatchEventTo(event, activeHandler.get());
         if (activeHandler->isActive())
         {
+            BMM_DEBUG() << "Interaction handler still active\n";
             // The active handler is still active. 
             // Note: the handler might not have handled the event, but is still active
             return handled;
@@ -48,6 +49,7 @@ bool Tool::onEvent(const Event& event)
         
         // The active handler is not active anymore, reset pointer
         m_activeHandler = nullptr;
+        BMM_DEBUG() << "Interaction handler deactivated\n";
         if (handled)
         {
             // Even if not active, it might have handled the event. Return here if so.
@@ -60,22 +62,27 @@ bool Tool::onEvent(const Event& event)
     {
         if (s == activeHandler)
         {
+            // Active handler has already received the event and has not handled it (no longer active)
+            // So we don't send it again
             continue;
         }
         
-        if (dispatchEventTo(event, s.get()))
+        if (!dispatchEventTo(event, s.get()))
         {
             // A handler is not allowed to say it is active if it didnt handle the event
             assert(!s->isActive());
             continue;
         }
 
+        BMM_DEBUG() << "Interaction handler handled event\n";
         if (s->isActive())
         {
+            BMM_DEBUG() << "Interaction handler activated!\n";
             m_activeHandler = s;
+            return true;
         }
-        return true;
     }
 
+    // No one handled it, handle it ourselfs.
     return EventHandler::onEvent(event);
 }

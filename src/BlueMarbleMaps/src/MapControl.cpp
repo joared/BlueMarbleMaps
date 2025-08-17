@@ -71,14 +71,14 @@ void MapControl::setTool(const ToolPtr &tool)
     if (m_tool)
     {
         removeSubscriber(m_tool.get());
-        m_tool->onDisconnected();      
+        m_tool->onToolDisconnected();      
     }
 
     m_tool = tool;
     if (m_tool)
     {
         addSubscriber(m_tool.get());
-        m_tool->onConnected(shared_from_this(), m_mapView);
+        m_tool->onToolConnected(shared_from_this(), m_mapView);
     }
 }
 

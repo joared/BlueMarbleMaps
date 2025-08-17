@@ -273,6 +273,7 @@ int main()
     mapControl->setView(view);
 
     auto eventHandler = std::make_shared<PanEventHandler>();
+    eventHandler->addInteractionHandler(std::make_shared<EditFeatureTool>());
     // EventObserver eventObserver1("Observer1");
     // EventObserver eventObserver2("Observer2");
     // eventHandler.installEventFilter(&eventObserver1);

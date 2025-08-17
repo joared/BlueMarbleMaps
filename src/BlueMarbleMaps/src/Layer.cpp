@@ -74,6 +74,10 @@ FeaturePtr Layer::onGetFeatureRequest(const Id &id)
 
 void Layer::onFeatureInput(Map& map, const std::vector<FeaturePtr>& features)
 {
+    std::vector<PresentationObject> presentationObjects;
+    std::vector<PresentationObject> presentationObjectsHover;
+    std::vector<PresentationObject> presentationObjectsSelection;
+
     for (size_t i(0); i< features.size(); i++)
     {
         auto sourceFeature = features[i];
@@ -105,48 +109,70 @@ void Layer::onFeatureInput(Map& map, const std::vector<FeaturePtr>& features)
             break;
         }
         
-        // Always apply standard visualization for now
+        // Generate all presentation objects
         for (auto vis : m_visualizers)
         {
-            vis->attachFeature(f, sourceFeature, map.updateAttributes());
+            vis->generatePresentationObjects(f, sourceFeature, map.updateAttributes(), presentationObjects);
         }
         if (map.isSelected(sourceFeature))
         {
-            for (auto sVis : m_selectionVisualizers)
-                sVis->attachFeature(f, sourceFeature, map.updateAttributes());
+            for (const auto& sVis : m_selectionVisualizers)
+                sVis->generatePresentationObjects(f, sourceFeature, map.updateAttributes(), presentationObjectsSelection);
         }
         else if (map.isHovered(sourceFeature))
         {
-            for (auto hVis : m_hoverVisualizers)
-                hVis->attachFeature(f, sourceFeature, map.updateAttributes());
+            for (const auto& hVis : m_hoverVisualizers)
+                hVis->generatePresentationObjects(f, sourceFeature, map.updateAttributes(), presentationObjectsHover);
         }
     }
 
     auto drawable = map.drawable();
-    if (!m_effects.empty())
-    {
-        // TODO: Not implemented. m_drawable is null
-        if (map.drawable()->width() != m_drawable->width() ||
-            map.drawable()->height() != m_drawable->height())
-        {
-            // Resize
-            m_drawable->resize(map.drawable()->width(), map.drawable()->height());
-        }
-        m_drawable->fill(0);
-        drawable = m_drawable;
-    }
-    // TODO: Selection and hover visualizer should render after other layers normal visualizers
-    for (auto vis : m_visualizers)
-        vis->render(*drawable, map.updateAttributes(), map.presentationObjects());
-    for (auto hVis : m_hoverVisualizers)
-        hVis->render(*drawable, map.updateAttributes(), map.presentationObjects());
-    for (auto sVis : m_selectionVisualizers)
-        sVis->render(*drawable, map.updateAttributes(), map.presentationObjects());
+    // if (!m_effects.empty())
+    // {
+    //     // TODO: Not implemented. m_drawable is null
+    //     if (map.drawable()->width() != m_drawable->width() ||
+    //         map.drawable()->height() != m_drawable->height())
+    //     {
+    //         // Resize
+    //         m_drawable->resize(map.drawable()->width(), map.drawable()->height());
+    //     }
+    //     m_drawable->fill(0);
+    //     drawable = m_drawable;
+    // }
 
-    for (const auto& e : m_effects)
+    // // Partial selection (selection of presentation objects)
+    // std::vector<PresentationObject> partialSelected;
+    // for (auto& p : map.selectedPresentationObjects())
+    // {
+    //     for (const auto& sVis : m_selectionVisualizers)
+    //     {
+    //         sVis->generatePresentationObjects(p.feature(), p.sourceFeature(), map.updateAttributes(), partialSelected);
+    //     }
+    // }
+
+    // TODO: we should iterate featres, not presentationobjects. Probably inefficient for rendering in the future
+    for (auto& p : presentationObjects)
     {
-        e->apply(*map.drawable());
+        map.presentationObjects().push_back(p);
+        p.visualizer()->renderFeature(*drawable, p.feature(), map.updateAttributes());
     }
+
+    for (auto& p : presentationObjectsHover)
+    {
+        map.presentationObjects().push_back(p);
+        p.visualizer()->renderFeature(*drawable, p.feature(), map.updateAttributes());
+    }
+
+    for (auto& p : presentationObjectsSelection)
+    {
+        map.presentationObjects().push_back(p);
+        p.visualizer()->renderFeature(*drawable, p.feature(), map.updateAttributes());
+    }
+
+    // for (const auto& e : m_effects)
+    // {
+    //     e->apply(*map.drawable());
+    // }
 }
 
 void Layer::createDefaultVisualizers()
@@ -199,14 +225,14 @@ void Layer::createDefaultVisualizers()
 
     ColorEvaluation colorEvalSelect = [colorEval, animatedDouble](FeaturePtr f, Attributes& updateAttributes)
     {
-        auto toColor = Color(255, 255, 0, 0.5);
+        auto toColor = Color(250, 134, 196, 0.75);
         Color fromColor = colorEval(f, updateAttributes);
         double progress = animatedDouble(f, updateAttributes);
-        double alpha = 0.5*progress;
 
         double red = fromColor.r() + (double)(toColor.r()-fromColor.r())*progress;
         double green = fromColor.g() + (double)(toColor.g()-fromColor.g())*progress;
         double blue = fromColor.b() + (double)(toColor.b()-fromColor.b())*progress;
+        double alpha = fromColor.a() + (double)(toColor.a()-fromColor.a())*progress;
         auto color = Color(red, green, blue, alpha);
         // std::cout << "From: " <<  fromColor.toString() << "\n";
         // std::cout << "Result: " << color.toString() << "\n";
@@ -257,7 +283,7 @@ void Layer::createDefaultVisualizers()
     m_visualizers.push_back(polVis);
     m_visualizers.push_back(pointVis);
     m_visualizers.push_back(lineVis);
-    m_visualizers.push_back(nodeVis);
+    //m_visualizers.push_back(nodeVis);
     m_visualizers.push_back(rasterVis);
     m_visualizers.push_back(textVis);
 
@@ -290,18 +316,32 @@ void Layer::createDefaultVisualizers()
     m_hoverVisualizers.push_back(polVisHover);
     m_hoverVisualizers.push_back(lineVisHover);
     // m_hoverVisualizers.push_back(rasterVis);
+    //m_hoverVisualizers.push_back(nodeVis);
     m_hoverVisualizers.push_back(textVisHover);
 
-    
+    auto polVisSelectShadow = std::make_shared<PolygonVisualizer>();
+    polVisSelectShadow->color(ColorEvaluation([](FeaturePtr, Attributes&) { return Color(50,50,50,0.5); }));
+    polVisSelectShadow->size([=](FeaturePtr f, Attributes& u) { return 1.0*animatedDouble(f,u); });
+    polVisSelectShadow->offsetX([=](FeaturePtr f, Attributes& u) { return -10.0*(animatedDouble(f,u)); });
+    polVisSelectShadow->offsetY([=](FeaturePtr f, Attributes& u) { return -10.0*(animatedDouble(f,u)); });
+
     auto polVisSelect = std::make_shared<PolygonVisualizer>();
     polVisSelect->color(colorEvalSelect);
     polVisSelect->size([=](FeaturePtr f, Attributes& u) { return 1.0*animatedDouble(f,u); });
     polVisSelect->rotation([=](FeaturePtr f, Attributes& u) { return 2.0*M_PI*animatedDouble(f,u); });
-    polVisSelect->offsetX([=](FeaturePtr f, Attributes& u) { return 500.0*(1.0-animatedDouble(f,u)); });
-    polVisSelect->offsetY([=](FeaturePtr f, Attributes& u) { return 500.0*(1.0-animatedDouble(f,u)); });
+    //polVisSelect->offsetX([=](FeaturePtr f, Attributes& u) { return 1.0*(1.0-animatedDouble(f,u)); });
+    //polVisSelect->offsetY([=](FeaturePtr f, Attributes& u) { return 1.0*(1.0-animatedDouble(f,u)); });
+
+        // Line visualizer
+    auto lineVisSelect = std::make_shared<LineVisualizer>();
+    lineVisSelect->color([](auto, auto) { return Color(255,255,255,1.0); });
+    lineVisSelect->width(DirectDoubleAttributeVariable(3.0)); //[](auto, auto) { return 3.0; });
     
     auto textVisSelect = std::make_shared<TextVisualizer>(*textVisHover);
 
+    m_selectionVisualizers.push_back(polVisSelectShadow);
     m_selectionVisualizers.push_back(polVisSelect);
+    m_selectionVisualizers.push_back(lineVisSelect);
+    m_selectionVisualizers.push_back(nodeVis);
     m_selectionVisualizers.push_back(textVisSelect);
 }

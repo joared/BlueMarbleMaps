@@ -128,6 +128,130 @@ namespace BlueMarble
             std::vector<Polygon> m_polygons;
     };
 
+    class EditFeatureTool
+        : public Tool
+    {
+        public:
+            EditFeatureTool()
+                : Tool()
+                , m_active(false)
+                , m_editFeature(nullptr)
+                , m_autoSelect(true)
+            {}
+        protected:
+            bool isActive() override final
+            {
+                return m_editFeature != nullptr;
+            }
+
+            void onConnected(const MapControlPtr& control, const MapPtr& map) override final 
+            {
+                m_control = control;
+                m_map = map;
+            }
+
+            void onDisconnected() override final 
+            {
+                m_map = nullptr;
+                m_control = nullptr;
+            }
+
+            bool& autoSelect()
+            {
+                return m_autoSelect;
+            }
+
+            bool OnMouseDown(const MouseDownEvent& event) override final
+            {
+                auto presentationObjects = m_map->hitTest(event.pos.x, event.pos.y, 10);
+                for (auto& p : presentationObjects)
+                {
+                    if (!m_autoSelect && !m_map->isSelected(p.sourceFeature()))
+                    {
+                        // Not selected, continue to find a selected feature
+                        continue;
+                    }
+                    BMM_DEBUG() << "We hit something! I am stealing events!\n";
+                    m_editFeature = p.sourceFeature();
+                    m_nodeIndex = p.nodeIndex();
+                    return true;
+                }
+
+                return false;
+            }
+
+            bool OnDrag(const DragEvent& event) override final
+            {
+                if (!m_editFeature)
+                {
+                    return false;
+                }
+                BMM_DEBUG() << "I am editing!\n";
+
+                // If auto select is enabled, select the feature
+                if (m_autoSelect && !m_map->isSelected(m_editFeature))
+                {
+                    m_map->select(m_editFeature);
+                }
+
+                // TODO: should be projected to the feature coordinate system
+                auto fromPos = m_map->screenToMap(Point{event.lastPos.x, 
+                                                        event.lastPos.y});
+                auto toPos = m_map->screenToMap(Point{event.pos.x, 
+                                                      event.pos.y});
+                auto delta = toPos-fromPos;
+
+                if (m_nodeIndex != -1)
+                {
+                    BMM_DEBUG() << "Edit Node: " << m_nodeIndex << "\n";
+                    auto& point = getNodePoint(m_editFeature, m_nodeIndex);
+                    point = toPos;
+                }
+                else
+                {
+                    m_editFeature->move(delta);
+                }
+
+                m_map->update();
+
+                return true;
+            }
+
+            bool OnMouseUp(const MouseUpEvent& event) override final
+            {
+                BMM_DEBUG() << "Mouse up! Deactivate\n";
+                m_editFeature = nullptr;
+                return false;
+            }
+
+        private:
+            Point& getNodePoint(const FeaturePtr& feature, int nodeIndex)
+            {
+                if (feature->geometryType() == GeometryType::Polygon)
+                {
+                    // TODO: could be inner ring
+                    return feature->geometryAsPolygon()->outerRing()[nodeIndex];
+                }
+                else if (feature->geometryType() == GeometryType::Line)
+                {
+                    return feature->geometryAsLine()->points()[nodeIndex];
+                }
+                else
+                {
+                    BMM_DEBUG() << "Something went wrong...\n";
+                    throw std::exception();
+                }
+            }
+
+            MapControlPtr m_control;
+            MapPtr m_map;
+            bool m_active;
+            FeaturePtr m_editFeature;
+            int m_nodeIndex;
+
+            bool m_autoSelect;
+    };
+
     class PanEventHandler 
         : public Tool
         , public IFeatureEventListener

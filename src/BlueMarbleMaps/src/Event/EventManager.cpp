@@ -178,6 +178,13 @@ bool EventManager::mousePosChanged(const ScreenPos &lastPos, const ScreenPos &cu
 
 void EventManager::handlePosChanged(MouseButton lastDown, const ScreenPos& currPos, ModificationKey modKeys)
 {
+    // TESTING: always call Mouse move
+    MouseMoveEvent event;
+    event.pos = currPos;
+    event.modificationKey = modKeys;
+    event.mouseButton = lastDown;
+    dispatchEvent(event, m_timeStampMs);
+
     if (!m_isDragging)
     {
         if (lastDown != MouseButtonNone && detectDrag(m_downPos, currPos, m_configration.dragThresh))
@@ -204,12 +211,7 @@ void EventManager::handlePosChanged(MouseButton lastDown, const ScreenPos& currP
         }
         else 
         {
-            // Mouse move
-            MouseMoveEvent event;
-            event.pos = currPos;
-            event.modificationKey = modKeys;
-            event.mouseButton = lastDown;
-            dispatchEvent(event, m_timeStampMs);
+            // TESTING: always call Mouse move
         }
     }
     else
@@ -223,6 +225,7 @@ void EventManager::handlePosChanged(MouseButton lastDown, const ScreenPos& currP
         event.mouseButton = lastDown;     // We use the last down button
         dispatchEvent(event, m_timeStampMs);
     }
+
     m_lastPos = currPos;
 }
 
@@ -261,14 +264,16 @@ void EventManager::handleMouseButtonChanged(MouseButton currButton, const Screen
     }
     else if (currButton == MouseButtonNone)
     {
+        // TESTING: always dispatch mouse up
+        MouseUpEvent event;
+        event.pos = currPos;
+        event.modificationKey = modKeys;
+        event.mouseButton = m_lastDown; // We use the last down button
+        dispatchEvent(event, m_timeStampMs);
+
         if (!m_isDragging)
         {
-            // Mouse up TOOD: should we dispatch mouse up?
-            MouseUpEvent event;
-            event.pos = currPos;
-            event.modificationKey = modKeys;
-            event.mouseButton = m_lastDown; // We use the last down button
-            dispatchEvent(event, m_timeStampMs);
+            // TESTING: always dispatch mouse up
 
             // Also dispatch click if we have a previous mouse down event (not double click)
             if (m_previousMouseDownEvent.mouseButton != MouseButtonNone)

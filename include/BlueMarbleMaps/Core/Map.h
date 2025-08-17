@@ -123,6 +123,8 @@ namespace BlueMarble
             std::vector<PresentationObject> hitTest(int x, int y, double pointerRadius);
             std::vector<PresentationObject> hitTest(const Rectangle& bounds);
             void select(FeaturePtr feature, SelectMode mode=SelectMode::Replace);
+            void select(const PresentationObject& presentationObject);
+            const std::vector<PresentationObject>& selectedPresentationObjects();
             const std::vector<Id>& selected() { return m_selectedFeatures; }
             void deSelect(FeaturePtr feature);
             void deSelectAll();
@@ -197,6 +199,7 @@ namespace BlueMarble
             std::vector<PresentationObject> m_presentationObjects;
             std::vector<Id>                 m_selectedFeatures;
             std::vector<Id>                 m_hoveredFeatures;
+            std::vector<PresentationObject> m_selectedPresentationObjects;
 
             MapCommand*                     m_commmand;
 
