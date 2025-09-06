@@ -66,9 +66,19 @@ void SoftwareDrawable::Impl::drawCircle(int x, int y, double radius, const Color
     m_img.draw_circle(x, y, radius, c, color.a());
 }
 
-void SoftwareDrawable::Impl::drawLine(const LineGeometryPtr& geometry, const Color& color, double width)
+void SoftwareDrawable::Impl::drawLine(const LineGeometryPtr& geometry, const Pen& pen)
 {
     // m_renderer->drawLine(points, color, width);
+    Color color;
+    if (pen.getColors().size())
+    {
+        color = pen.getColors()[0];
+    }
+    else
+    {
+        color = Color();
+    }
+    double thickness = pen.getThickness();
     unsigned char c[] = {color.r(), color.g(), color.b(), (unsigned char)(color.a()*255)};
     int size = geometry->points().size();
     auto line = geometry->points();
@@ -80,7 +90,7 @@ void SoftwareDrawable::Impl::drawLine(const LineGeometryPtr& geometry, const Col
         int y0 = std::round(p1.y());
         int x1 = std::round(p2.x());
         int y1 = std::round(p2.y());
-        if (width <= 1.0)
+        if (thickness <= 1.0)
             m_img.draw_line(x0, y0, x1, y1, c, color.a());
         else
         {
@@ -91,17 +101,17 @@ void SoftwareDrawable::Impl::drawLine(const LineGeometryPtr& geometry, const Col
             auto v2 = Point(-v.y(), v.x()); // unit vector norm to the line
             
             std::vector<Point> polygon;
-            polygon.push_back(start + v2*width*0.5);
-            polygon.push_back(start - v2*width*0.5);
-            polygon.push_back(end - v2*width*0.5);
-            polygon.push_back(end + v2*width*0.5);
+            polygon.push_back(start + v2* thickness *0.5);
+            polygon.push_back(start - v2* thickness *0.5);
+            polygon.push_back(end - v2* thickness *0.5);
+            polygon.push_back(end + v2* thickness *0.5);
             PolygonGeometryPtr polygonPtr = std::make_shared<PolygonGeometry>(PolygonGeometry(polygon));
-            drawPolygon(polygonPtr, color);
+            drawPolygon(polygonPtr, Brush(color));
         }
     }
 }
 
-void SoftwareDrawable::Impl::drawPolygon(const PolygonGeometryPtr& geometry, const Color& color)
+void SoftwareDrawable::Impl::drawPolygon(const PolygonGeometryPtr& geometry, const Brush& brush)
 {
     // m_renderer->drawPolygon(points,color);
     assert(geometry->outerRing().size() > 2);
@@ -113,8 +123,13 @@ void SoftwareDrawable::Impl::drawPolygon(const PolygonGeometryPtr& geometry, con
         pointsCImg(i,0) = p.x(); 
         pointsCImg(i,1) = p.y(); 
     }
-    
-    unsigned char c[] = {color.r(), color.g(), color.b(), (unsigned char)(color.a()*255)};
+    Color color;
+    if (brush.getColors().size())
+        color = brush.getColors()[0];
+    else
+        color = Color();
+
+    unsigned char c[] = { color.r(), color.g(), color.b(), (unsigned char)(color.a() * 255)};
     m_img.draw_polygon(pointsCImg, c, color.a()); // .display();
 }
 

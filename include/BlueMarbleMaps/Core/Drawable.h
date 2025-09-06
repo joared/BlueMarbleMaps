@@ -34,8 +34,8 @@ namespace BlueMarble
             virtual void resize(int width, int height) = 0;
             virtual void fill(int val) = 0;
             virtual void drawCircle(int x, int y, double radius, const Color& color) = 0;
-            virtual void drawLine(const LineGeometryPtr& geometry, const Color& color, double width = 1.0) = 0;
-            virtual void drawPolygon(const PolygonGeometryPtr& geometry, const Color& color) = 0;
+            virtual void drawLine(const LineGeometryPtr& geometry, const Pen& pen) = 0;
+            virtual void drawPolygon(const PolygonGeometryPtr& geometry, const Brush& brush) = 0;
             virtual void drawRect(const Point& topLeft, const Point& bottomRight, const Color& color) = 0;
             virtual void drawRect(const Rectangle& rect, const Color& color) = 0; // Utility method, calls the above
             virtual void drawRaster(const RasterGeometryPtr& raster, const Brush& brush) = 0;

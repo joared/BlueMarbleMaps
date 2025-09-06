@@ -156,7 +156,7 @@ void Map::renderLayers()
     auto line = rect.corners();
     line.push_back(line[0]);
     LineGeometryPtr linePtr = std::make_shared<LineGeometry>(LineGeometry(line));
-    m_drawable->drawLine(linePtr, color, 3.0);
+    m_drawable->drawLine(linePtr, Pen(color, 3.0));
 
     // Debug when adjusting the update area to something else
     //drawable().drawRect(mapToScreen(updateArea), Color::red(0.1));

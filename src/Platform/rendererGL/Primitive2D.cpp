@@ -4,9 +4,32 @@ Primitive2D::Primitive2D()
 	:m_geometryInfo()
 {
 }
-Primitive2D::Primitive2D(PrimitiveGeometryInfoPtr& info)
+Primitive2D::Primitive2D(PrimitiveGeometryInfoPtr& info, std::vector<Vertice> vertices)
+	: m_geometryInfo(info)
+{
+	m_geometryInfo->m_vbo.init(vertices);
+	m_geometryInfo->m_vao.init();
+
+	m_geometryInfo->m_vao.bind();
+	m_geometryInfo->m_vbo.bind();
+	m_geometryInfo->m_vao.link(m_geometryInfo->m_vbo, 0, 3, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, position));
+	m_geometryInfo->m_vao.link(m_geometryInfo->m_vbo, 1, 4, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, color));
+	m_geometryInfo->m_vao.link(m_geometryInfo->m_vbo, 2, 2, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, texCoord));
+	m_geometryInfo->m_vbo.unbind();
+}
+Primitive2D::Primitive2D(PrimitiveGeometryInfoPtr& info, std::vector<Vertice> vertices, std::vector<GLuint> indices)
 	:m_geometryInfo(info)
 {
+	m_geometryInfo->m_vbo.init(vertices);
+	m_geometryInfo->m_ibo.init(indices);
+	m_geometryInfo->m_vao.init();
+
+	m_geometryInfo->m_vao.bind();
+	m_geometryInfo->m_vbo.bind();
+	m_geometryInfo->m_vao.link(m_geometryInfo->m_vbo, 0, 3, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, position));
+	m_geometryInfo->m_vao.link(m_geometryInfo->m_vbo, 1, 4, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, color));
+	m_geometryInfo->m_vao.link(m_geometryInfo->m_vbo, 2, 2, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, texCoord));
+	m_geometryInfo->m_vbo.unbind();
 }
 
 Primitive2D::~Primitive2D()
@@ -53,7 +76,7 @@ bool Primitive2D::hasFill()
 	return m_geometryInfo->m_hasFill;
 }
 
-void Primitive2D::draw()
+void Primitive2D::drawIndex(GLuint indexCount)
 {
 	if (m_geometryInfo->m_texture != nullptr && m_geometryInfo->m_texture->m_id != 0)
 	{
@@ -62,11 +85,7 @@ void Primitive2D::draw()
 	m_geometryInfo->m_vao.bind();
 	m_geometryInfo->m_vbo.bind();
 	m_geometryInfo->m_ibo.bind();
-	
-	GLenum drawMode;
-	if (hasFill()) drawMode = GL_TRIANGLES;
-	else                          drawMode = GL_LINE;
-	glDrawElements(drawMode, m_geometryInfo->m_ibo.m_nrOfIndices, GL_UNSIGNED_INT, 0);
+	glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
 	m_geometryInfo->m_vao.unbind();
 	m_geometryInfo->m_vbo.unbind();
 	m_geometryInfo->m_ibo.unbind();
@@ -74,4 +93,13 @@ void Primitive2D::draw()
 	{
 		m_geometryInfo->m_texture->unbind();
 	}
+}
+void Primitive2D::drawLine(GLuint vertCount, float thickness)
+{
+	m_geometryInfo->m_vao.bind();
+	m_geometryInfo->m_vbo.bind();
+	glLineWidth(thickness);
+	glDrawArrays(GL_LINES, 0, vertCount);
+	m_geometryInfo->m_vao.unbind();
+	m_geometryInfo->m_vbo.unbind();
 }

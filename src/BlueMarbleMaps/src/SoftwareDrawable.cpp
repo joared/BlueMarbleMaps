@@ -72,14 +72,14 @@ namespace BlueMarble
         m_impl->drawCircle(x, y, radius, color);
     }
 
-    void SoftwareDrawable::drawLine(const LineGeometryPtr& geometry, const Color& color, double width)
+    void SoftwareDrawable::drawLine(const LineGeometryPtr& geometry, const Pen& pen)
     {
-        m_impl->drawLine(geometry, color, width);
+        m_impl->drawLine(geometry, pen);
     }
 
-    void SoftwareDrawable::drawPolygon(const PolygonGeometryPtr& geometry, const Color& color)
+    void SoftwareDrawable::drawPolygon(const PolygonGeometryPtr& geometry, const Brush& brush)
     {
-        m_impl->drawPolygon(geometry, color);
+        m_impl->drawPolygon(geometry, brush);
     }
 
     void SoftwareDrawable::drawRect(const Rectangle& rect, const Color& color)

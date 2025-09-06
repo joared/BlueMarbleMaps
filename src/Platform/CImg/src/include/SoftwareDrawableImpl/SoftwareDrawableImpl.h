@@ -20,8 +20,8 @@ namespace BlueMarble
             void backgroundColor(const Color& color);
             void fill(int val);
             void drawCircle(int x, int y, double radius, const Color& color);
-            void drawLine(const LineGeometryPtr& points, const Color& color, double width);
-            void drawPolygon(const PolygonGeometryPtr& points, const Color& color);
+            void drawLine(const LineGeometryPtr& points, const Pen& pen);
+            void drawPolygon(const PolygonGeometryPtr& points, const Brush& brush);
             void drawRect(const Point& topLeft, const Point& bottomRight, const Color& color);
             void drawRaster(const RasterGeometryPtr& geometry, const Brush& brush);
             void drawText(int x, int y, const std::string& text, const Color& color, int fontSize, const Color& bcolor);

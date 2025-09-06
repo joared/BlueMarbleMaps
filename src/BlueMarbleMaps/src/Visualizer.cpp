@@ -287,7 +287,7 @@ void LineVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feature
     for (auto& line : lines)
     {
         LineGeometryPtr linePtr = std::make_shared<LineGeometry>(line);
-        drawable.drawLine(linePtr, m_colorEval(feature, updateAttributes), m_widthEval(feature, updateAttributes));
+        drawable.drawLine(linePtr, Pen(m_colorEval(feature, updateAttributes), m_widthEval(feature, updateAttributes)));
     }
 }
 

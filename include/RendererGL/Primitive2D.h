@@ -6,7 +6,8 @@ class Primitive2D : public Primitive
 {
 public:
 	Primitive2D();
-	Primitive2D(PrimitiveGeometryInfoPtr& info);
+	Primitive2D(PrimitiveGeometryInfoPtr& info, std::vector<Vertice> vertices);
+	Primitive2D(PrimitiveGeometryInfoPtr& info, std::vector<Vertice> vertices, std::vector<GLuint> indices);
 	~Primitive2D();
 
 	void setVao(VAO& vao) override;
@@ -17,7 +18,8 @@ public:
 	void setTexture(TexturePtr texture) override;
 	void setHasFill(bool fill) override;
 	bool hasFill() override;
-	void draw() override;
+	void drawIndex(GLuint indexCount) override;
+	void drawLine(GLuint vertCount, float thickness) override;
 private:
 	PrimitiveGeometryInfoPtr m_geometryInfo;
 };

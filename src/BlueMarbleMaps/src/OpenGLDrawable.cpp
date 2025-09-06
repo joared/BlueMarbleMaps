@@ -20,14 +20,16 @@ BlueMarble::OpenGLDrawable::OpenGLDrawable(int width, int height, int colorDepth
     , m_transform()
     , m_width(width)
     , m_height(height)
+    , m_window(nullptr)
 {
     //glDisable(GL_CULL_FACE);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
     glViewport(0, 0, m_width, m_height);
-    ShaderPtr shader = std::make_shared<Shader>();
-    shader->linkProgram("Shaders/basic.vert", "Shaders/basic.frag");
-    m_shaders.push_back(shader);
+    m_basicShader = std::make_shared<Shader>();
+    m_basicShader->linkProgram("Shaders/basic.vert", "Shaders/basic.frag");
+    m_lineShader = std::make_shared<Shader>();
+    m_lineShader->linkProgram("Shaders/line.vert", "Shaders/line.frag");
 }
 
 int BlueMarble::OpenGLDrawable::width() const
@@ -82,20 +84,109 @@ void BlueMarble::OpenGLDrawable::drawCircle(int x, int y, double radius, const C
 {
 }
 
-void BlueMarble::OpenGLDrawable::drawLine(const LineGeometryPtr& geometry, const Color& color, double width)
-{
-}
-
-void BlueMarble::OpenGLDrawable::drawPolygon(const PolygonGeometryPtr& geometry, const Color& color)
+void BlueMarble::OpenGLDrawable::drawLine(const LineGeometryPtr& geometry, const Pen& pen)
 {
     if (m_primitives.find(geometry->getID()) == m_primitives.end())
     {
+        std::vector<Vertice> vertices;
 
+        std::vector<Point> bounds = geometry->points();
+        std::vector<Color> colors = pen.getColors();
+
+        for (int i = 0; i < bounds.size(); i++)
+        {
+            Color bmColor = getColorFromList(pen.getColors(), i);
+
+            vertices.push_back(createPoint(bounds[i],bmColor));
+            if (i < bounds.size()-2)
+            {
+                Color bmColor = getColorFromList(pen.getColors(), i+1);
+                vertices.push_back(createPoint(bounds[i+1], bmColor));
+            }
+            else
+            {
+                vertices.push_back(vertices[0]);
+            }
+        }
+        PrimitiveGeometryInfoPtr info = std::make_shared<PrimitiveGeometryInfo>();
+        info->m_shader = m_lineShader;
+        info->m_hasFill = false;
+        Primitive2DPtr primitive = std::make_shared<Primitive2D>(info, vertices);
+        m_primitives[geometry->getID()] = primitive;
     }
-    else
+    std::cout << "Drawing line id: " << geometry->getID() << "\n";
+    Primitive2DPtr primitive = m_primitives[geometry->getID()];
+
+    auto center = m_transform.translation();
+    double scale = m_transform.scale();
+    auto info = OrthographicCameraInformation();
+
+    info.m_far = 100000000000000000.0;
+    info.m_height = m_height / scale;
+    info.m_width = m_width / scale;
+    CameraOrthographic cam = CameraOrthographic(info);
+    cam.pan(center.x(), -center.y(), 1.0);
+    auto& viewMatrix = cam.calculateTranslations();
+
+    if (primitive->getShader() != nullptr)
     {
-
+        primitive->getShader()->useProgram();
+        primitive->getShader()->setMat4("viewMatrix", viewMatrix);
     }
+
+    primitive->drawLine(geometry->points().size()*2, 10);
+    
+}
+
+void BlueMarble::OpenGLDrawable::drawPolygon(const PolygonGeometryPtr& geometry, const Brush& brush)
+{
+    if (m_primitives.find(geometry->getID()) == m_primitives.end())
+    {
+        std::vector<Vertice> vertices;
+        std::vector<GLuint> indices;
+
+        std::vector<Point> bounds = geometry->outerRing();
+        std::vector<Color> colors = brush.getColors();
+
+        for (int i = 0; i < bounds.size(); i++)
+        {
+            glm::vec3 pos(bounds[i].x(), bounds[i].y(), 0);
+
+            Color bmColor = getColorFromList(brush.getColors(), i);
+            glm::vec4 glColor((float)bmColor.r() / 255, (float)bmColor.g() / 255, (float)bmColor.b() / 255, bmColor.a());
+
+            vertices.push_back(Vertice{pos, glColor});
+        }
+        indices = { 0,1,2};
+        
+        PrimitiveGeometryInfoPtr info = std::make_shared<PrimitiveGeometryInfo>();
+        info->m_shader = m_basicShader;
+
+        Primitive2DPtr primitive = std::make_shared<Primitive2D>(info,vertices,indices);
+        m_primitives[geometry->getID()] = primitive;
+    }
+    std::cout << "Drawing polygon with id: " << geometry->getID() << "\n";
+    Primitive2DPtr primitive = m_primitives[geometry->getID()];
+
+    auto center = m_transform.translation();
+    double scale = m_transform.scale();
+    auto info = OrthographicCameraInformation();
+
+    info.m_far = 100000000000000000.0;
+    info.m_height = m_height / scale;
+    info.m_width = m_width / scale;
+    CameraOrthographic cam = CameraOrthographic(info);
+    cam.pan(center.x(), -center.y(), 1.0);
+    auto& viewMatrix = cam.calculateTranslations();
+
+    if (primitive->getShader() != nullptr)
+    {
+        primitive->getShader()->useProgram();
+        primitive->getShader()->setMat4("viewMatrix", viewMatrix);
+    }
+    
+    primitive->drawIndex(geometry->outerRing().size());
+    
 }
 
 void BlueMarble::OpenGLDrawable::drawRect(const Point& topLeft, const Point& bottomRight, const Color& color)
@@ -122,9 +213,8 @@ unsigned char* readImage(std::string path, int* width, int* height, int* nrOfCha
 
 void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, const Brush& brush)
 { 
-    if (!m_primitives.count(raster->getID()))
+    if (m_primitives.find(raster->getID()) == m_primitives.end())
     {
-        PrimitiveGeometryInfoPtr info =std::make_shared<PrimitiveGeometryInfo>();
         std::vector<Vertice> vertices;
         std::vector<GLuint> indices;
 
@@ -142,19 +232,7 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, con
         {
             glm::vec3 pos(bounds[i].x(), bounds[i].y(), 0);
 
-            Color bmColor;
-            if (i < colors.size())
-            {
-                bmColor = colors[i];
-            }
-            else if(colors.size())
-            {
-                bmColor = colors.back();
-            }
-            else
-            {
-                bmColor = Color(0,0,0,1.0f);
-            }
+            Color bmColor = getColorFromList(brush.getColors(), i);
             glm::vec4 glColor((float)bmColor.r()/255, (float)bmColor.g() / 255, (float)bmColor.b() / 255, bmColor.a());
 
             float texCoordX = (pos.x - minX) / (float)w;
@@ -172,7 +250,10 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, con
         indices = { 0,1,2,
                     2,3,0 };
 
-        info->m_shader = m_shaders.front();
+        PrimitiveGeometryInfoPtr info = std::make_shared<PrimitiveGeometryInfo>();
+        info->m_hasFill = true;
+
+        info->m_shader = m_basicShader;
 
         GLint texIndex = 0;
         info->m_texture = std::make_shared<Texture>();
@@ -181,43 +262,31 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, con
         info->m_shader->useProgram();
         info->m_shader->setInt("texture0", texIndex);
 
-        info->m_vbo.init(vertices);
-        info->m_ibo.init(indices);
-        info->m_vao.init();
-
-        info->m_vao.bind();
-        info->m_vbo.bind();
-        info->m_vao.link(info->m_vbo, 0, 3, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, position));
-        info->m_vao.link(info->m_vbo, 1, 4, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, color));
-        info->m_vao.link(info->m_vbo, 2, 2, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, texCoord));
-        info->m_vbo.unbind();
-        Primitive2DPtr primitive = std::make_shared<Primitive2D>(info);
+        Primitive2DPtr primitive = std::make_shared<Primitive2D>(info, vertices, indices);
         m_primitives[raster->getID()] = primitive;
     }
-    else
+    std::cout << "Drawing raster with id: " << raster->getID() << "\n";
+    Primitive2DPtr primitive = m_primitives[raster->getID()];
+    auto center = m_transform.translation();
+    double scale = m_transform.scale();
+    auto info = OrthographicCameraInformation();
+    
+    info.m_far = 100000000000000000.0;
+    info.m_height = m_height/scale;
+    info.m_width = m_width/scale;
+    CameraOrthographic cam = CameraOrthographic(info);
+    cam.pan(center.x(), -center.y(), 1.0);
+    auto& viewMatrix = cam.calculateTranslations();
+
+    //cam.zoom(1.0 / scale);
+
+    if (primitive->getShader() != nullptr)
     {
-        Primitive2DPtr primitive = m_primitives[raster->getID()];
-        auto center = m_transform.translation();
-        double scale = m_transform.scale();
-        // auto info = PerspectiveCamerInformation();
-        // info.m_far = 100000000000000000.0;
-        // CameraPerspective cam = CameraPerspective(info);
-        // cam.pan(center.x(), -center.y(), 1000.0/scale);
-        auto info = OrthographicCameraInformation();
-        
-        info.m_far = 100000000000000000.0;
-        info.m_height = m_height/scale;
-        info.m_width = m_width/scale;
-        CameraOrthographic cam = CameraOrthographic(info);
-        cam.pan(center.x(), -center.y(), 1.0);
-        auto& viewMatrix = cam.calculateTranslations();
-
-        //cam.zoom(1.0 / scale);
-
         primitive->getShader()->useProgram();
         primitive->getShader()->setMat4("viewMatrix", viewMatrix);
-        primitive->draw();
     }
+    primitive->drawIndex(6);
+    
 }
 
 void BlueMarble::OpenGLDrawable::drawText(int x, int y, const std::string& text, const Color& color, int fontSize, const Color& backgroundColor)
@@ -241,6 +310,29 @@ void BlueMarble::OpenGLDrawable::swapBuffers()
 RendererImplementation BlueMarble::OpenGLDrawable::renderer()
 {
     return RendererImplementation();
+}
+
+Vertice BlueMarble::OpenGLDrawable::createPoint(Point& point, Color color)
+{
+    glm::vec3 pos(point.x(), point.y(), 0);
+    glm::vec4 glColor((float)color.r() / 255, (float)color.g() / 255, (float)color.b() / 255, color.a());
+    return Vertice{ pos, glColor };
+}
+
+Color BlueMarble::OpenGLDrawable::getColorFromList(const std::vector<Color>& colors, int index)
+{
+    if (index < colors.size())
+    {
+        return colors[index];
+    }
+    else if (colors.size())
+    {
+        return colors.back();
+    }
+    else
+    {
+        return Color(0, 0, 0, 1.0f);
+    }
 }
 
 void BlueMarble::WindowOpenGLDrawable::setWindow(void* window)

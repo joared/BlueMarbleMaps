@@ -25,8 +25,8 @@ namespace BlueMarble
             void resize(int width, int height);
             void fill(int val);
             void drawCircle(int x, int y, double radius, const Color& color);
-            void drawLine(const LineGeometryPtr& geometry, const Color& color, double width = 1.0);
-            void drawPolygon(const PolygonGeometryPtr& geometry, const Color& color);
+            void drawLine(const LineGeometryPtr& geometry, const Pen& pen);
+            void drawPolygon(const PolygonGeometryPtr& geometry, const Brush& brush);
             void drawRect(const Point& topLeft, const Point& bottomRight, const Color& color);
             void drawRect(const Rectangle& rect, const Color& color); // Utility method, calls the above
             void drawRaster(const RasterGeometryPtr& raster, const Brush& brush);
