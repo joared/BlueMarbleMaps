@@ -160,14 +160,14 @@ int main()
     auto view = std::make_shared<Map>();
     view->center(Point(0, 0));
     view->scale(0.1);
-    /*auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("C:\\Users\\Ottop\\Pictures\\linkara.png");
+    auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("C:\\Users\\Ottop\\Pictures\\linkara.png");
     elevationDataSet->initialize(BlueMarble::DataSetInitializationType::RightHereRightNow);
     auto elevationLayer = BlueMarble::LayerPtr(new BlueMarble::Layer(false));
     elevationLayer->addUpdateHandler(elevationDataSet.get());
     auto rasterVis = std::make_shared<RasterVisualizer>();
     rasterVis->alpha(DirectDoubleAttributeVariable(0.5));
     elevationLayer->visualizers().push_back(rasterVis);
-    view->addLayer(elevationLayer);*/
+    view->addLayer(elevationLayer);
 
     // Test Polygon/Line/Symbol visualizers
     auto vectorDataSet = std::make_shared<BlueMarble::MemoryDataSet>();
@@ -175,9 +175,9 @@ int main()
     auto vectorLayer = BlueMarble::LayerPtr(new BlueMarble::Layer(true));
     vectorLayer->addUpdateHandler(vectorDataSet.get());
 
-    /*std::vector<Point> points({{500, 200}, {100, -40}, {250, 300}});
+    std::vector<Point> points({{-250, -250}, {250, -250}, {250, 250}});
     auto poly = std::make_shared<PolygonGeometry>(points);
-    vectorDataSet->addFeature(vectorDataSet->createFeature(poly));*/
+    vectorDataSet->addFeature(vectorDataSet->createFeature(poly));
 
     std::vector<Point> pointsLine({{-5000, 0}, {5000, 2500}});
     auto line = std::make_shared<LineGeometry>(pointsLine);

@@ -12,8 +12,77 @@
 #include "gtc/matrix_transform.hpp"
 #include "CameraPerspective.h"
 #include "CameraOrthographic.h"
+#include "Algorithms.h"
+
+#define SEVERITY_THRESHOLD GL_DEBUG_SEVERITY_LOW
 
 using namespace BlueMarble;
+
+void GLAPIENTRY BlueMarble::OpenGLDrawable::MessageCallback(GLenum source,
+    GLenum type,
+    GLuint id,
+    GLenum severity,
+    GLsizei length,
+    const GLchar* message,
+    const void* userParam)
+{
+
+    std::string severityStr;
+        switch (severity) {
+        case GL_DEBUG_SEVERITY_NOTIFICATION:
+            if (SEVERITY_THRESHOLD == GL_DEBUG_SEVERITY_LOW || SEVERITY_THRESHOLD == GL_DEBUG_SEVERITY_MEDIUM || SEVERITY_THRESHOLD == GL_DEBUG_SEVERITY_HIGH)
+            {
+                return;
+            }
+            severityStr = "NOTIFICATION";
+            break;
+        case GL_DEBUG_SEVERITY_LOW:
+            if (SEVERITY_THRESHOLD == GL_DEBUG_SEVERITY_MEDIUM || SEVERITY_THRESHOLD == GL_DEBUG_SEVERITY_HIGH)
+            {
+                return;
+            }
+            severityStr = "LOW";
+            break;
+        case GL_DEBUG_SEVERITY_MEDIUM:
+            if (SEVERITY_THRESHOLD == GL_DEBUG_SEVERITY_HIGH)
+            {
+                return;
+            }
+            severityStr = "MEDIUM";
+            break;
+        case GL_DEBUG_SEVERITY_HIGH:
+            severityStr = "HIGH";
+            break;
+        }
+    std::cout << "---------------------opengl-callback-start------------" << std::endl;
+    std::cout << "message: " << message << std::endl;
+    std::cout << "type: ";
+    switch (type) {
+    case GL_DEBUG_TYPE_ERROR:
+        std::cout << "ERROR";
+        break;
+    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+        std::cout << "DEPRECATED_BEHAVIOR";
+        break;
+    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+        std::cout << "UNDEFINED_BEHAVIOR";
+        break;
+    case GL_DEBUG_TYPE_PORTABILITY:
+        std::cout << "PORTABILITY";
+        break;
+    case GL_DEBUG_TYPE_PERFORMANCE:
+        std::cout << "PERFORMANCE";
+        break;
+    case GL_DEBUG_TYPE_OTHER:
+        std::cout << "OTHER";
+        break;
+    }
+    std::cout << std::endl;
+
+    std::cout << "id: " << id << std::endl;
+    std::cout << "severity: " << severityStr << std::endl;
+    std::cout << "---------------------opengl-callback-end--------------" << std::endl;
+}
 
 BlueMarble::OpenGLDrawable::OpenGLDrawable(int width, int height, int colorDepth)
     : m_primitives()
@@ -23,6 +92,7 @@ BlueMarble::OpenGLDrawable::OpenGLDrawable(int width, int height, int colorDepth
     , m_window(nullptr)
 {
     //glDisable(GL_CULL_FACE);
+    glDebugMessageCallback(MessageCallback, 0);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
     glViewport(0, 0, m_width, m_height);
@@ -157,7 +227,12 @@ void BlueMarble::OpenGLDrawable::drawPolygon(const PolygonGeometryPtr& geometry,
 
             vertices.push_back(Vertice{pos, glColor});
         }
-        indices = { 0,1,2};
+        std::vector<Vertice> triangles;
+        if (Algorithms::triangulatePolygon(vertices, std::vector<Vertice>(), triangles, indices) == false)
+        {
+            std::cout << "Couldn't draw object due to not being able to triangulate it" << std::endl;
+            return;
+        }
         
         PrimitiveGeometryInfoPtr info = std::make_shared<PrimitiveGeometryInfo>();
         info->m_shader = m_basicShader;
@@ -247,8 +322,12 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, con
                      Vertice{glm::vec3(w,-h,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)1.0), glm::vec2(1.0f,0.0f)},
                      Vertice{glm::vec3(0.0f,-h,0.0f), glm::vec4(1.0f,1.0f,1.0f,(float)1.0), glm::vec2(0.0f,0.0f)} };
         */
-        indices = { 0,1,2,
-                    2,3,0 };
+        std::vector<Vertice> triangles;
+        if (Algorithms::triangulatePolygon(vertices, std::vector<Vertice>(), triangles, indices) == false)
+        {
+            std::cout << "Couldn't draw object due to not being able to triangulate it" << std::endl;
+            return;
+        }
 
         PrimitiveGeometryInfoPtr info = std::make_shared<PrimitiveGeometryInfo>();
         info->m_hasFill = true;

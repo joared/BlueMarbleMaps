@@ -15,6 +15,7 @@
 #include "Texture.h"
 #include "CameraOrthographic.h"
 #include "CameraPerspective.h"
+#include "Primitive2D.h"
 
 
 class Renderer : public WindowGL
@@ -55,35 +56,24 @@ public:
 		std::vector<GLuint> indices = { 0,1,2,
 										2,3,0 };
 
-		Shader shader;
+		ShaderPtr shader = std::make_shared<Shader>();
 
-		shader.linkProgram("shaders/basic.vert","shaders/basic.frag");
+		shader->linkProgram("shaders/basic.vert","shaders/basic.frag");
 
 		int imgWidth, imgHeight, imgChannels;
 
 		unsigned char* image = readImage("C:/Users/Ottop/Onedrive/Skrivbord/goat.jpg", &imgWidth, &imgHeight, &imgChannels);
 
 		GLint texIndex = 0;
-		Texture tex;
-		tex.init(image, imgWidth, imgHeight, imgChannels, GL_UNSIGNED_BYTE, texIndex);
+		TexturePtr tex = std::make_shared<Texture>();
+		tex->init(image, imgWidth, imgHeight, imgChannels, GL_UNSIGNED_BYTE, texIndex);
 
-		shader.useProgram();
-		shader.setInt("texture0", texIndex);
-
-		VBO vbo;
-		VAO vao;
-		IBO ibo;
-
-		vbo.init(vertices);
-		ibo.init(indices);
-		vao.init();
-
-		vao.bind();
-		vbo.bind();
-		vao.link(vbo,0, vertices.size(), GL_FLOAT, sizeof(Vertice), (void*)0);
-		vao.link(vbo,1, vertices.size(), GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, color));
-		vao.link(vbo,2, vertices.size(), GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, texCoord));
-		vbo.unbind();
+		shader->useProgram();
+		shader->setInt("texture0", texIndex);
+		PrimitiveGeometryInfoPtr info = std::make_shared<PrimitiveGeometryInfo>();
+		Primitive2DPtr prim = std::make_shared<Primitive2D>(info, vertices, indices);
+		prim->setShader(shader);
+		prim->setTexture(tex);
 
 		glClearColor(0.1f,0.3f,0.2f,1.0f);
 
@@ -94,16 +84,9 @@ public:
 			glClear(GL_COLOR_BUFFER_BIT);
 			// Keep running
 
-			shader.useProgram();
-			shader.setMat4("viewMatrix",cam.getViewMatrix());
-			vao.bind();
-			ibo.bind();
-			tex.bind();
-			glDrawElements(GL_LINES, indices.size(), GL_UNSIGNED_INT, 0);
-			vao.unbind();
-			vbo.unbind();
-			ibo.unbind();
-			tex.unbind();
+			shader->useProgram();
+			shader->setMat4("viewMatrix",cam.getViewMatrix());
+			prim->drawIndex(indices.size());
 			swapBuffers();
 			pollWindowEvents();
 		}

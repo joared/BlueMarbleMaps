@@ -38,6 +38,7 @@ namespace BlueMarble
         void setPixel(int x, int y, const Color& color);
         void swapBuffers();
         RendererImplementation renderer();
+
     protected:
         std::map<BMID,Primitive2DPtr> m_primitives;
         ShaderPtr m_basicShader;
@@ -49,6 +50,7 @@ namespace BlueMarble
     private:
         Vertice createPoint(Point& point, Color color);
         Color getColorFromList(const std::vector<Color>& colors, int index);
+        static void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam);
     };
     typedef std::shared_ptr<OpenGLDrawable> OpenGLDrawablePtr;
 
