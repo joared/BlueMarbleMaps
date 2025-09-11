@@ -1,6 +1,7 @@
 #pragma once
 #include <glad/glad.h>
 #include <string>
+#include <memory>
 #include "glm.hpp"
 struct Shader
 {
@@ -26,3 +27,5 @@ private:
 	bool getShaderCompileLog(GLuint shaderId, char* info);
 	bool getProgramLog(GLuint programId, char* info);
 };
+
+typedef std::shared_ptr<Shader> ShaderPtr;

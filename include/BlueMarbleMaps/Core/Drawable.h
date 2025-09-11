@@ -1,13 +1,15 @@
 #ifndef DRAWABLE
 #define DRAWABLE
 
-#include "BlueMarbleMaps/Core/Raster.h"
-#include "BlueMarbleMaps/Core/Core.h"
-#include "BlueMarbleMaps/Core/Color.h"
-#include "BlueMarbleMaps/Core/Renderer.h"
-#include "BlueMarbleMaps/Core/Transform.h"
-#include "BlueMarbleMaps/Core/Geometry.h"
-#include "BlueMarbleMaps/Utility/Utils.h"
+#include "Core/Raster.h"
+#include "Core/Core.h"
+#include "Core/Color.h"
+#include "Core/Renderer.h"
+#include "Core/Transform.h"
+#include "Core/Geometry.h"
+#include "Core/Brush.h"
+#include "Core/Pen.h"
+#include "Utility/Utils.h"
 
 #include <string>
 #include <vector>
@@ -15,50 +17,6 @@
 
 namespace BlueMarble
 {    
-    class Pen
-    {
-        public:
-            static Pen transparent() { return Pen(); }
-            Pen(bool antiAlias=false, const Color& color=Color::transparent(), double width=1.0) 
-                : m_antiAlias(antiAlias)
-                , m_color(color)
-                , m_colorFrom(Color::undefined())
-                , m_width(width)
-                , m_fromWidth(-1.0) // Undefined
-            {}
-            const Color& getColor() const { return m_color; };
-            void setColor(const Color& color) { m_color = color; };
-            const Color& getFromColor() const { return m_colorFrom; };
-            void setFromColor(const Color& color) { m_colorFrom = color; };
-            
-            bool getAntiAlias() const { return m_antiAlias; };
-            void setAntiAlias(bool antiAlias) { m_antiAlias = antiAlias; };
-
-            double getWidth() const { return m_width; }
-            void setWidth(double width) { m_width = width; }
-            double getFromWidth() const { return m_fromWidth; }
-            void setFromWidth(double width) { m_fromWidth = width; }
-        private:
-            bool m_antiAlias;
-            Color m_color;
-            Color m_colorFrom;
-            double m_width;
-            double m_fromWidth;
-    };
-
-    class Brush
-    {
-        public:
-            static Brush transparent() { return Brush(); }
-            const Color& getColor() const { return m_color; };
-            void setColor(const Color& color) { m_color = color; };
-            bool getAntiAlias() const { return m_antiAlias; };
-            void setAntiAlias(bool antiAlias) { m_antiAlias = antiAlias; };
-        private:
-            bool m_antiAlias = false;
-            Color m_color = Color::transparent();
-    };
-
     class Drawable
     {
         public:
@@ -74,19 +32,17 @@ namespace BlueMarble
             virtual const Transform& getTransform() = 0;
             virtual void setTransform(const Transform& transform) = 0;
             virtual void resize(int width, int height) = 0;
-            virtual void drawArc(double cx, double cy, double rx, double ry, double theta, const Pen& pen, const Brush& brush) = 0;
-            virtual void drawCircle(double x, double y, double radius, const Pen& pen, const Brush& brush) = 0;
+            virtual void fill(int val) = 0;
+            virtual void drawCircle(int x, int y, double radius, const Color& color) = 0;
             virtual void drawLine(const LineGeometryPtr& geometry, const Pen& pen) = 0;
-            virtual void drawPolygon(const PolygonGeometryPtr& geometry, const Pen& pen, const Brush& brush) = 0;
+            virtual void drawPolygon(const PolygonGeometryPtr& geometry, const Brush& brush) = 0;
             virtual void drawRect(const Point& topLeft, const Point& bottomRight, const Color& color) = 0;
             virtual void drawRect(const Rectangle& rect, const Color& color) = 0; // Utility method, calls the above
-            virtual void drawRaster(const RasterGeometryPtr& raster, double alpha) = 0;
+            virtual void drawRaster(const RasterGeometryPtr& raster, const Brush& brush) = 0;
             virtual void drawText(int x, int y, const std::string& text, const Color& color, int fontSize=20, const Color& backgroundColor=Color::transparent()) = 0;
             virtual Color readPixel(int x, int y) = 0;
             virtual void setPixel(int x, int y, const Color& color) = 0;
             virtual void swapBuffers() = 0;
-            virtual void clearBuffer() = 0;
-            virtual Raster getRaster() = 0;
             virtual RendererImplementation renderer() = 0;
     };
     typedef std::shared_ptr<Drawable> DrawablePtr;

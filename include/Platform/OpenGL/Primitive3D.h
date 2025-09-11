@@ -11,12 +11,13 @@ public:
 	void setVao(VAO& vao) override;
 	void setVbo(VBO& vbo) override;
 	void setIbo(IBO& ibo) override;
-	void setShader(Shader& shader) override;
-	void setTexture(Texture& texture) override;
-
-	void draw(GLenum drawType) override;
+	void setShader(ShaderPtr shader) override;
+	ShaderPtr getShader() override;
+	void setTexture(TexturePtr texture) override;
+	void drawIndex(GLuint indexCount) override;
+	void drawLine(GLuint vertCount, float thickness) override;
 
 private:
 	PrimitiveGeometryInfo m_geometryInfo;
-
 };
+typedef std::shared_ptr<Primitive3D> Primitive3DPtr;

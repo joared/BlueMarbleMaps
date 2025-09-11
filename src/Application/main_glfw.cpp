@@ -1,21 +1,20 @@
 #include "glad/glad.h"
 #include <glfw3.h>
+#include "CImg.h"
 #include <iostream>
 
-#include "BlueMarbleMaps/Core/Map.h"
-#include "BlueMarbleMaps/Core/DataSet.h"
-#include "BlueMarbleMaps/Core/Core.h"
-#include "BlueMarbleMaps/Core/Feature.h"
-#include "BlueMarbleMaps/Core/MapControl.h"
-#include "BlueMarbleMaps/DefaultEventHandlers.h"
-#include "BlueMarbleMaps/Core/BlueMarbleLayout.h"
+#include "Core/Map.h"
+#include "Core/DataSet.h"
+#include "Core/Core.h"
+#include "Core/Feature.h"
+#include "Core/MapControl.h"
+#include "DefaultEventHandlers.h"
 #include "Application/WindowGL.h"
 
 #include "map_configuration.h"
 #include <Keys.h>
 
-#include <valgrind/callgrind.h>
-
+using namespace cimg_library;
 using namespace BlueMarble;
 
 
@@ -27,19 +26,6 @@ public:
         , m_wireFrameMode(false)
     {
     }
-
-    int64_t setTimer(int64_t interval) override final
-    {
-        // TODO, not tested
-        return -1;
-    }
-
-    bool killTimer(int64_t id) override final
-    {
-        // TODO, not tested
-        return false;
-    }
-
     void keyEvent(WindowGL* window, int key, int scanCode, int action, int modifier) override
     {
         Key keyStroke(scanCode);
@@ -48,15 +34,6 @@ public:
             m_wireFrameMode = !m_wireFrameMode;
             if (m_wireFrameMode) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
             else			  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        }
-
-        if (action == GLFW_PRESS)
-        {
-            keyUp(scanCode, getModificationKeyMask(), getGinotonicTimeStampMs());
-        }
-        else
-        {
-            keyDown(scanCode, getModificationKeyMask(), getGinotonicTimeStampMs());
         }
     }
 
@@ -83,8 +60,7 @@ public:
         MouseButton buttons = MouseButtonNone;
         int leftButton = glfwGetMouseButton(getGLFWWindowHandle(), GLFW_MOUSE_BUTTON_LEFT);
         int rightButton = glfwGetMouseButton(getGLFWWindowHandle(), GLFW_MOUSE_BUTTON_RIGHT);
-        int middleButton = glfwGetMouseButton(getGLFWWindowHandle(), GLFW_MOUSE_BUTTON_MIDDLE);
-        
+
         if (leftButton == GLFW_PRESS)
         {
             buttons = buttons | MouseButtonLeft;
@@ -95,38 +71,9 @@ public:
             buttons = buttons | MouseButtonRight;
         }
 
-        if (middleButton == GLFW_PRESS)
-        {
-            buttons = buttons | MouseButtonMiddle;
-        }
-
         return buttons;
     }
 
-    ModificationKey getModificationKeyMask() const override final
-    {
-        auto window = getGLFWWindowHandle();
-        ModificationKey modKeys = ModificationKeyNone;
-        if (glfwGetKey(window, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS ||
-            glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-        {
-            modKeys = modKeys | ModificationKey::ModificationKeyCtrl;
-        }
-
-        if (glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS ||
-            glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-        {
-            modKeys = modKeys | ModificationKey::ModificationKeyShift;
-        }
-
-        if (glfwGetKey(window, GLFW_KEY_RIGHT_ALT) == GLFW_PRESS ||
-            glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
-        {
-            modKeys = modKeys | ModificationKey::ModificationKeyAlt;
-        }
-
-        return modKeys;
-    }
 
     void mouseButtonEvent(WindowGL* window, int button, int action, int modifier) override
     {
@@ -153,13 +100,13 @@ public:
         {
         case GLFW_PRESS:
         {
-            mouseDown(bmmButton, mousePos.x, mousePos.y, getModificationKeyMask(), getGinotonicTimeStampMs());
+            mouseDown(bmmButton, mousePos.x, mousePos.y, ModificationKeyNone, getGinotonicTimeStampMs());
             m_mouseDown = true;
             break;
         }
         case GLFW_RELEASE:
         {
-            mouseUp(bmmButton, mousePos.x, mousePos.y, getModificationKeyMask(), getGinotonicTimeStampMs());
+            mouseUp(bmmButton, mousePos.x, mousePos.y, ModificationKeyNone, getGinotonicTimeStampMs());
             m_mouseDown = false;
             break;
         }
@@ -168,13 +115,13 @@ public:
 
     void mousePositionEvent(WindowGL* window, double x, double y) override
     {
-        mouseMove(getMouseButton(), x, y, getModificationKeyMask(), getGinotonicTimeStampMs());
+        mouseMove(getMouseButton(), x, y, ModificationKeyNone, getGinotonicTimeStampMs());
     }
     
     void mouseScrollEvent(WindowGL* window, double xOffs, double yOffs) override
     {
         ScreenPos mousePos; getMousePos(mousePos);
-        mouseWheel(yOffs, mousePos.x, mousePos.y, getModificationKeyMask(), getGinotonicTimeStampMs());
+        mouseWheel(yOffs, mousePos.x, mousePos.y, ModificationKeyNone, getGinotonicTimeStampMs());
     }
 
     void mouseEntered(WindowGL* window, int entered) override
@@ -197,57 +144,9 @@ public:
 };
 typedef std::shared_ptr<GLFWMapControl> GLFWMapControlPtr;
 
-class EventObserver : public EventHandler
-{
-    public:
-        EventObserver(const std::string& name)
-            : EventHandler()
-            , m_name(name)
-            , m_previousEventType(EventType::Invalid)
-        {}
-
-        bool onEventFilter(EventHandler* target, const Event& event) override final
-        {
-            if (m_previousEventType != EventType::Invalid 
-                && m_previousEventType != event.getType())
-            {
-                std::cout << m_name << ": " << event.toString() << "\n";
-            }
-
-            m_previousEventType = event.getType();
-
-            if (event.getType() == EventType::DoubleClick)
-            {
-                return true;
-            }
-            return false;
-        }
-    private:
-        std::string m_name;
-        EventType   m_previousEventType;
-};
-
-class MySignalTester
-{
-    public:
-        void slot(std::string s, int num) 
-        {
-            std::cout << "Me got: " << s << " " <<  num << "\n";
-        };
-};
-
-void dummy(MapPtr view)
-{
-    BMM_DEBUG() << "Hello!\n";
-}
-
-struct Dummy
-{
-    MapPtr view;
-};
 
 int main() 
-{   
+{
     //MapControlStuff
     auto mapControl = std::make_shared<GLFWMapControl>();
     if (!mapControl->init(1000, 1000, "Hello World"))
@@ -260,50 +159,37 @@ int main()
 
     auto view = std::make_shared<Map>();
     view->center(Point(0, 0));
-    view->scale(1.0);
-    view->showDebugInfo() = false;
-    view->drawable()->backgroundColor(Color::white(0.0));
-    // auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/readme/CompleteGeodata.png");
-    auto elevationDataSet = std::make_shared<ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/geodata/elevation/LARGE_elevation.jpg");
-    
-    elevationDataSet->initialize(DataSetInitializationType::RightHereRightNow);
-    auto elevationLayer = std::make_shared<Layer>(false);
-    elevationLayer->addDataSet(elevationDataSet);
+    view->scale(0.1);
+    auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("C:\\Users\\Ottop\\Pictures\\linkara.png");
+    elevationDataSet->initialize(BlueMarble::DataSetInitializationType::RightHereRightNow);
+    auto elevationLayer = BlueMarble::LayerPtr(new BlueMarble::Layer(false));
+    elevationLayer->addUpdateHandler(elevationDataSet.get());
     auto rasterVis = std::make_shared<RasterVisualizer>();
     rasterVis->alpha(DirectDoubleAttributeVariable(0.5));
     elevationLayer->visualizers().push_back(rasterVis);
     view->addLayer(elevationLayer);
 
     // Test Polygon/Line/Symbol visualizers
-    auto vectorDataSet = std::make_shared<MemoryDataSet>();
-    vectorDataSet->initialize(DataSetInitializationType::RightHereRightNow);
-    auto vectorLayer = std::make_shared<Layer>(true);
-    vectorLayer->addDataSet(vectorDataSet);
+    auto vectorDataSet = std::make_shared<BlueMarble::MemoryDataSet>();
+    vectorDataSet->initialize(BlueMarble::DataSetInitializationType::RightHereRightNow);
+    auto vectorLayer = BlueMarble::LayerPtr(new BlueMarble::Layer(true));
+    vectorLayer->addUpdateHandler(vectorDataSet.get());
 
-    std::vector<Point> points({ {16, 56}, {17, 57}, {15, 58} });
+    std::vector<Point> points({{-250, -250}, {250, -250}, {250, 250}});
     auto poly = std::make_shared<PolygonGeometry>(points);
     vectorDataSet->addFeature(vectorDataSet->createFeature(poly));
 
+    std::vector<Point> pointsLine({{-5000, 0}, {5000, 2500}});
+    auto line = std::make_shared<LineGeometry>(pointsLine);
+    vectorDataSet->addFeature(vectorDataSet->createFeature(line));
+
     view->addLayer(vectorLayer);
 
-    configureMap(view, true, true, false);
-
+    PanEventHandler eventHandler(view, mapControl);
+    mapControl->addSubscriber(&eventHandler);
     mapControl->setView(view);
 
-    auto tool = std::make_shared<PanEventHandler>();
-    tool->addSubTool(std::make_shared<EditFeatureTool>());
-    tool->addSubTool(std::make_shared<PointerTracerTool>());
-    tool->addSubTool(std::make_shared<KeyActionTool>());
-
-    // EventObserver eventObserver1("Observer1");
-    // EventObserver eventObserver2("Observer2");
-    // tool.installEventFilter(&eventObserver1);
-    // eventObserver1.installEventFilter(&eventObserver2);
-    mapControl->setTool(tool);
-
-    view->update(true);
-
-    CALLGRIND_START_INSTRUMENTATION;
+    view->update();
     while (!mapControl->windowShouldClose())
     {
         if (mapControl->updateRequired())
@@ -316,7 +202,6 @@ int main()
             mapControl->waitWindowEvents();
         }
     }
-    CALLGRIND_STOP_INSTRUMENTATION;
     glfwTerminate();
 
     return 0;

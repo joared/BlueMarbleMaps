@@ -10,13 +10,23 @@
 
 struct PrimitiveGeometryInfo
 {
+	PrimitiveGeometryInfo()
+		: m_vao()
+		, m_vbo()
+		, m_ibo()
+		, m_shader()
+		, m_texture()
+	{
+		
+	}
 	VAO m_vao;
 	VBO m_vbo;
 	IBO m_ibo;
-	Shader m_shader;
-	Texture m_texture;
+	ShaderPtr m_shader;
+	TexturePtr m_texture;
 	bool m_hasFill = true;
 };
+typedef std::shared_ptr<PrimitiveGeometryInfo> PrimitiveGeometryInfoPtr;
 
 class Primitive
 {
@@ -24,13 +34,16 @@ public:
 	Primitive() = default;
 	virtual ~Primitive() = default;
 
-	void virtual setVao(VAO& vao) = 0;
-	void virtual setVbo(VBO& vbo) = 0;
-	void virtual setIbo(IBO& ibo) = 0;
-	void virtual setShader(Shader& shader) = 0;
-	void virtual setTexture(Texture& texture) = 0;
-	void virtual setHasFill(bool fill) = 0;
-	bool virtual hasFill() = 0;
-	void virtual draw(GLenum drawType) = 0;
+	virtual void setVao(VAO& vao) = 0;
+	virtual void setVbo(VBO& vbo) = 0;
+	virtual void setIbo(IBO& ibo) = 0;
+	virtual void setShader(ShaderPtr shader) = 0;
+	virtual ShaderPtr getShader() = 0;
+	virtual void setTexture(TexturePtr texture) = 0;
+	virtual void setHasFill(bool fill) = 0;
+	virtual bool hasFill() = 0;
+	virtual void drawIndex(GLuint indexCount) = 0;
+	virtual void drawLine(GLuint vertCount, float thickness) = 0;
 	
 };
+typedef std::shared_ptr<Primitive> PrimitivePtr;

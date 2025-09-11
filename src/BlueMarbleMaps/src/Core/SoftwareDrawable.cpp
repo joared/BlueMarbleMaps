@@ -1,5 +1,6 @@
-#include "BlueMarbleMaps/Core/SoftwareDrawable.h"
+#include "Core/SoftwareDrawable.h"
 #include "SoftwareDrawableImpl.h"
+
 
 namespace BlueMarble
 {
@@ -61,14 +62,14 @@ namespace BlueMarble
         m_impl->backgroundColor(color);
     }
 
-    void SoftwareDrawable::drawArc(double cx, double cy, double rx, double ry, double theta, const Pen& pen, const Brush& brush)
+    void SoftwareDrawable::fill(int val)
     {
-        m_impl->drawArc(cx, cy, rx, ry, theta, pen, brush);
+        m_impl->fill(val);
     }
 
-    void SoftwareDrawable::drawCircle(double x, double y, double radius, const Pen& pen, const Brush& brush)
+    void SoftwareDrawable::drawCircle(int x, int y, double radius, const Color& color)
     {
-        m_impl->drawCircle(x, y, radius, pen, brush);
+        m_impl->drawCircle(x, y, radius, color);
     }
 
     void SoftwareDrawable::drawLine(const LineGeometryPtr& geometry, const Pen& pen)
@@ -76,9 +77,9 @@ namespace BlueMarble
         m_impl->drawLine(geometry, pen);
     }
 
-    void SoftwareDrawable::drawPolygon(const PolygonGeometryPtr& geometry, const Pen& pen, const Brush& brush)
+    void SoftwareDrawable::drawPolygon(const PolygonGeometryPtr& geometry, const Brush& brush)
     {
-        m_impl->drawPolygon(geometry, pen, brush);
+        m_impl->drawPolygon(geometry, brush);
     }
 
     void SoftwareDrawable::drawRect(const Rectangle& rect, const Color& color)
@@ -91,9 +92,9 @@ namespace BlueMarble
         m_impl->drawRect(topLeft, bottomRight, color);
     }
 
-    void SoftwareDrawable::drawRaster(const RasterGeometryPtr& raster, double alpha)
+    void SoftwareDrawable::drawRaster(const RasterGeometryPtr& raster, const Brush& brush)
     {
-        m_impl->drawRaster(raster, alpha);
+        m_impl->drawRaster(raster, brush);
     }
 
     void SoftwareDrawable::drawText(int x, int y, const std::string &text, const Color &color, int fontSize, const Color& backgroundColor)
@@ -121,12 +122,7 @@ namespace BlueMarble
         m_impl->setPixel(x, y, color);
     }
 
-    void SoftwareDrawable::clearBuffer()
-    {
-        m_impl->clearBuffer();
-    }
-
-    void SoftwareWindowDrawable::setWindow(void *window)
+    void SoftwareWindowDrawable::setWindow(void* window)
     {
         m_impl->setWindow(window);
     }

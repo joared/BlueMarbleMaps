@@ -11,6 +11,7 @@ Shader::Shader()
 }
 Shader::~Shader()
 {
+	std::cout << "Deleting Shader with id: " << m_id << "\n";
 	glDeleteProgram(m_id);
 }
 
