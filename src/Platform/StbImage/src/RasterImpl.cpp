@@ -2,6 +2,7 @@
 #include <iostream>
 #include <cstring> // For memcpy
 #include "stb_image_resize2.h"
+#include "stb_image_write.h"
 
 using namespace BlueMarble;
 
@@ -64,6 +65,8 @@ Raster::Impl::Impl(const std::string& filePath)
     stbi_set_flip_vertically_on_load(true);
 
     m_data = stbi_load(filePath.c_str(), &m_width, &m_height, &m_channels, 0);
+
+    
 
     if (m_data == NULL)
     {
@@ -175,7 +178,7 @@ void Raster::Impl::blur(double sigmaX, double sigmaY, double sigmaZ, bool isGaus
 
 Raster Raster::Impl::getCrop(int x0, int y0, int x1, int y1)
 {
-// Validate input coordinates
+    // Validate input coordinates
     if (x0 < 0 || y0 < 0 || x1 >= m_width || y1 >= m_height || x0 > x1 || y0 > y1) {
         throw std::invalid_argument("Invalid crop coordinates.");
     }
@@ -206,6 +209,15 @@ Raster Raster::Impl::getCrop(int x0, int y0, int x1, int y1)
     }
 
     return std::move(croppedRaster);
+}
+
+void Raster::Impl::save(const std::string& filePath) const
+{
+    // Flip vertically if needed (OpenGL's origin is bottom-left)
+    stbi_flip_vertically_on_write(1);
+
+    // Save as PNG
+    stbi_write_png(filePath.c_str(), width(), height(), channels(), data(), width() * 4);
 }
 
 const unsigned char* Raster::Impl::data() const

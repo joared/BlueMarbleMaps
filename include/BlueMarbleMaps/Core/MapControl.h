@@ -8,6 +8,12 @@
 
 namespace BlueMarble
 {
+    enum class MouseCursor
+    {
+        Standard,
+        Custom
+    };
+
     class MapControl 
         : public EventManager // TODO: could this sort of be private, as well as EventDispatcher?
         , public std::enable_shared_from_this<MapControl>
@@ -29,6 +35,8 @@ namespace BlueMarble
 
             // Override resize of EventManager
             bool resize(int width, int height, int64_t timeStampMs) override final;
+            void setMouseCursor(MouseCursor cursor);
+
         protected:
             void handleResize(int width, int height);
         private:

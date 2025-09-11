@@ -247,6 +247,11 @@ void SoftwareDrawable::Impl::swapBuffers()
     m_disp->display(drawImg);
 }
 
+void SoftwareDrawable::Impl::clearBuffer()
+{
+    // No need?
+}
+
 void SoftwareDrawable::Impl::setWindow(void* window)
 {
     #ifdef BLUEMARBLE_USE_CIMG_WINDOW

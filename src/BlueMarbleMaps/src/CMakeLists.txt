@@ -5,44 +5,27 @@ set(SRC_DIR ".")
 
 file(GLOB_RECURSE BBM_SOURCES ${CMAKE_SOURCE_DIR}/include/BlueMarbleMaps/*.h)
 
+add_subdirectory(Core)
+add_subdirectory(CoordinateSystem)
+add_subdirectory(Logging)
+add_subdirectory(System)
+add_subdirectory(Event)
+add_subdirectory(Utility)
+
 # The source files needed to compile the project executable
 set(SOURCES  
-    ${SRC_DIR}/Map.cpp
-    ${SRC_DIR}/MapConstraints.cpp
-    ${SRC_DIR}/Core.cpp
-    ${SRC_DIR}/Animation.cpp
-    ${SRC_DIR}/Event/EventHandler.cpp
-    ${SRC_DIR}/Event/EventManager.cpp
-    ${SRC_DIR}/Raster.cpp
-    ${SRC_DIR}/Layer.cpp
-    ${SRC_DIR}/DataSet.cpp
-    ${SRC_DIR}/SoftwareDrawable.cpp
-    ${SRC_DIR}/Geometry.cpp
-    ${SRC_DIR}/Feature.cpp
-    ${SRC_DIR}/UpdateInterfaces.cpp
-    ${SRC_DIR}/System/File.cpp
-    ${SRC_DIR}/System/CSVFile.cpp
-    ${SRC_DIR}/System/JsonFile.cpp
-    ${SRC_DIR}/PresentationObject.cpp
-    ${SRC_DIR}/Visualizer.cpp
-    ${SRC_DIR}/Algorithm.cpp
-    ${SRC_DIR}/EngineObject.cpp
-    ${SRC_DIR}/LabelOrganizer.cpp
-    ${SRC_DIR}/FeatureAnimation.cpp
-    ${SRC_DIR}/Effect.cpp
-    ${SRC_DIR}/MapControl.cpp
-    ${SRC_DIR}/Tool.cpp
-    ${SRC_DIR}/BlueMarbleLayout.cpp
-    ${SRC_DIR}/OpenGLDrawable.cpp
-    ${SRC_DIR}/CoordinateSystem/Crs.cpp
-    ${SRC_DIR}/CoordinateSystem/GeodeticDatum.cpp
-    ${SRC_DIR}/CoordinateSystem/Projection.cpp
-    ${SRC_DIR}/Logging/Logging.cpp
+    ${CORE_SOURCES}
+    ${CRS_SOURCES}
+    ${LOGGING_SOURCES}
+    ${SYSTEM_SOURCES}
+    ${EVENT_SOURCES}
+    ${UTILITY_SOURCES}
     ${BBM_SOURCES}
 )
 
-# Add the executable
+# Add the library with sources set from above add_subdirectory calls
 add_library(BlueMarbleMapsLib STATIC ${SOURCES})
+
 # Add include folder as a private include directory for BlueMarbleEngine
 target_include_directories(BlueMarbleMapsLib
   PUBLIC ${CMAKE_SOURCE_DIR}/include

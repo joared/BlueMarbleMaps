@@ -47,7 +47,7 @@ namespace BlueMarble
         public:
             virtual ~ResourceObject() = default;
             OBJECT_PROPERTY(std::string, name);
-            virtual const ResourcePropertiesPtr& getProperties() const { return ResourcePropertiesPtr(); } // TODO make pure virtual
+            virtual const ResourcePropertiesPtr& getProperties() const { return nullptr; } // TODO make pure virtual
     };
 
 }

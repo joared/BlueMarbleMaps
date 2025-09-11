@@ -26,6 +26,7 @@ namespace BlueMarble
             void drawRect(const Point& topLeft, const Point& bottomRight, const Color& color);
             void drawRaster(const RasterGeometryPtr& geometry, double alpha);
             void drawText(int x, int y, const std::string& text, const Color& color, int fontSize, const Color& bcolor);
+            void clearBuffer();
             void swapBuffers();
             void setWindow(void* window);
             RendererImplementation renderer();

@@ -42,7 +42,7 @@ namespace BlueMarble
     {
         if (m_handleEventRecursionGuard)
         {
-            throw std::runtime_error("EventHandler::handleEvent called withing handle event!!!");
+            throw std::runtime_error("EventHandler::handleEvent called within handle event!!!");
         }
         m_handleEventRecursionGuard = true;
         

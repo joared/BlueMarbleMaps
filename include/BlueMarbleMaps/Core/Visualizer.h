@@ -52,8 +52,17 @@ namespace BlueMarble
             void sizeAdd(const DoubleEvaluation& sizeAddEval);
             void rotation(const DoubleEvaluation& rotationEval);
 
-            // TODO: hittest has to be part of visualizer since only the visualizer knows about line width etc
-            //virtual bool hitTest(const FeaturePtr& feature, const DrawablePtr& drawable, const Rectangle& area) = 0;
+            virtual bool hitTest(const FeaturePtr& feature, const DrawablePtr& drawable, const Rectangle& area, std::vector<PresentationObject>& outPresentation) 
+            {
+                // Default implemenmntation
+                if (feature->isInside(area))
+                {
+                    // TODO: source feature
+                    outPresentation.push_back(PresentationObject(feature, feature, this, false, -1));
+                    return true;
+                }
+                return false;
+            };
             // TODO: generatePresentationObjects could probably be inside renderFeature
             virtual void generatePresentationObjects(const FeaturePtr& feature, const FeaturePtr& sourceFeature, Attributes& updateAttributes, std::vector<PresentationObject>& presentationObjects);
             virtual void renderFeature(Drawable& drawable, const FeaturePtr& feature, Attributes& updateAttributes) = 0;
@@ -90,6 +99,7 @@ namespace BlueMarble
             //void preRender(Drawable& drawable, std::vector<FeaturePtr>& attachedFeatures, std::vector<FeaturePtr>& sourceFeatures, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs) override final;
             void generatePresentationObjects(const FeaturePtr& feature, const FeaturePtr& sourceFeature, Attributes& updateAttributes, std::vector<PresentationObject>& presentationObjects) override final;
             void renderFeature(Drawable& drawable, const FeaturePtr& feature, Attributes& updateAttributes) override final;
+            bool hitTest(const FeaturePtr& feature, const DrawablePtr& drawable, const Rectangle& area, std::vector<PresentationObject>& outPresentation) override final;
         protected:
             bool isValidGeometry(GeometryType type) override final;
             virtual void renderPoints(Drawable& drawable, const std::vector<Point>& points, const FeaturePtr& feature, const FeaturePtr& source, Attributes& updateAttributes) = 0;
@@ -189,7 +199,8 @@ namespace BlueMarble
                             }
                             int xHot = m_hotSpot.x()*size; // Only approx
                             int yHot = m_hotSpot.y()*size; // Only approx
-                            auto&raster = m_rasterCache[cacheIdx];
+                            
+                            //auto& raster = m_rasterCache[cacheIdx];
                             if (rotation != 0)
                             {
                                 // Copy and rotate the copy
@@ -201,7 +212,7 @@ namespace BlueMarble
                             else 
                             {
                                 // Reference and no rotation
-                                auto& raster = m_rasterCache[cacheIdx];
+                                //auto& raster = m_rasterCache[cacheIdx];
                                 //did some shit...
                                 //drawable.drawRaster(point.x()-xHot, point.y()-yHot, raster, color.a());
                             }
@@ -271,6 +282,7 @@ namespace BlueMarble
             virtual VisualizerType visualizerType() override final { return VisualizerType::LineVisualizer; };
             virtual void generatePresentationObjects(const FeaturePtr& feature, const FeaturePtr& sourceFeature, Attributes& updateAttributes, std::vector<PresentationObject>& presentationObjects) override final;
             void renderFeature(Drawable& drawable, const FeaturePtr& feature, Attributes& updateAttributes) override final;
+            bool hitTest(const FeaturePtr& feature, const DrawablePtr& drawable, const Rectangle& area, std::vector<PresentationObject>& outPresentation) override final;
             void width(DoubleEvaluation widthEval);
         protected:
             bool isValidGeometry(GeometryType type) override final;

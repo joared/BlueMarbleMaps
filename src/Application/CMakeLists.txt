@@ -24,3 +24,9 @@ else()
 endif()
 target_include_directories(Application PRIVATE "${CMAKE_SOURCE_DIR}/include/Common")
 
+# Post build: copy OpenGL shaders
+add_custom_command(TARGET Application POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/src/Platform/OpenGL/Shaders
+        $<TARGET_FILE_DIR:Application>/Shaders
+)

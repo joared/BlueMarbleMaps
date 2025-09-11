@@ -135,8 +135,13 @@ namespace BlueMarble
 
                     for (auto f : m_features)
                     {
-                        if (f->isInside(bounds)) // This was very important, don't forget!
+                        // NOTE: if bounds are cached, this is faster.
+                        // Otherwise probably slower
+                        if (f->bounds().overlap(bounds)
+                            && f->isInside(bounds))
+                        {
                             features.add(f);
+                        }
                     }
                         
                     for (auto child : m_children)

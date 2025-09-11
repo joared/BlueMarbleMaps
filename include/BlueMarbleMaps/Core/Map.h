@@ -19,6 +19,7 @@ namespace BlueMarble
 {
     // Forward declarations
     class MapControl;
+    typedef std::shared_ptr<MapControl> MapControlPtr;
 
     enum class SelectMode
     {
@@ -26,8 +27,11 @@ namespace BlueMarble
         Replace
     };
 
+    class Map;
+    typedef std::shared_ptr<Map> MapPtr;
     class Map 
-        : public ResourceObject
+        : public std::enable_shared_from_this<Map>
+        , public ResourceObject
     {
         class MapCommand
         {
@@ -56,6 +60,12 @@ namespace BlueMarble
         };
         public:
             Map();
+            Map(const Map&) = delete;
+            Map& operator=(const Map&) = delete;
+            Map(Map&&) = delete;
+            Map& operator=(Map&&) = delete;
+
+            
             bool update(bool forceUpdate=false);
 
             void renderLayers();
@@ -116,12 +126,12 @@ namespace BlueMarble
             std::vector<LayerPtr>& layers();
             
             FeaturePtr getFeature(const Id& id);
-            void getFeatures(const Attributes& attributes, std::vector<FeaturePtr>& features);
+            //void getFeatures(const Attributes& attributes, std::vector<FeaturePtr>& features);
             std::vector<FeaturePtr> featuresAt(int X, int Y, double pointerRadius);
             void featuresInside(const Rectangle& bounds, FeatureCollection& out);
             std::vector<PresentationObject>& presentationObjects() { return m_presentationObjects; } // TODO: should be exposed like this
-            std::vector<PresentationObject> hitTest(int x, int y, double pointerRadius);
-            std::vector<PresentationObject> hitTest(const Rectangle& bounds);
+            const std::vector<PresentationObject>& hitTest(int x, int y, double pointerRadius);
+            const std::vector<PresentationObject>& hitTest(const Rectangle& bounds);
             void select(FeaturePtr feature, SelectMode mode=SelectMode::Replace);
             void select(const PresentationObject& presentationObject);
             const std::vector<PresentationObject>& selectedPresentationObjects();
@@ -150,7 +160,7 @@ namespace BlueMarble
             void doCommand(const std::function<void()>& action);
             bool undoCommand();
             bool& showDebugInfo() { return m_showDebugInfo; }
-            void onAttachedToMapControl(MapControl* mapControl) { m_mapControl = mapControl; };
+            void onAttachedToMapControl(MapControlPtr mapControl) { m_mapControl = mapControl; };
             void onDetachedFromMapControl() { m_mapControl = nullptr; };
 
             struct MapEvents
@@ -171,7 +181,7 @@ namespace BlueMarble
 
             void drawDebugInfo(int elapsedMs);
 
-            MapControl* m_mapControl;
+            MapControlPtr m_mapControl;
             DrawablePtr m_drawable;
             
             Point m_center;
@@ -206,8 +216,6 @@ namespace BlueMarble
             bool m_showDebugInfo;
             bool m_isUpdating; // Not allowed to call update() within an update() call
     };
-
-    typedef std::shared_ptr<Map> MapPtr;
 
 }
 

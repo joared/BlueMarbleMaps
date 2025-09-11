@@ -13,62 +13,45 @@ namespace BlueMarble
     class MapControl;
     typedef std::shared_ptr<MapControl> MapControlPtr;
 
-    // Abstract class for handling interactions/events
-    class InteractionHandler : public EventHandler
-    {
-        public:
-            virtual ~InteractionHandler() = default;
-            virtual bool isActive() = 0;
-    };
-    typedef std::shared_ptr<InteractionHandler> InteractionHandlerPtr;
 
     // Abstract class for a tool
-    class Tool : public InteractionHandler, public EventDispatcher
+    class Tool;
+    typedef std::shared_ptr<Tool> ToolPtr;
+    class Tool 
+        : public EventHandler
+        , public EventDispatcher
     {
         public:
             Tool();
             virtual ~Tool() = default;
 
-            void onToolConnected(const MapControlPtr& control, const MapPtr& map) 
+            void onConnectedToMapControl(const MapControlPtr& control, const MapPtr& map) 
             {
                 onConnected(control, map);
-                for (auto& handler : m_interactionHandlers)
+                for (const auto& tool : m_subTools)
                 {
-                    if (auto tool = std::dynamic_pointer_cast<Tool>(handler))
-                    {
-                        tool->onConnected(control, map);
-                    }
+                    tool->onConnected(control, map);
                 }
             }
-            void onToolDisconnected()
+            void onDisconnectedFromMapControl()
             {
                 onDisconnected();
-                for (auto& handler : m_interactionHandlers)
+                for (const auto& tool : m_subTools)
                 {
-                    if (auto tool = std::dynamic_pointer_cast<Tool>(handler))
-                    {
-                        tool->onDisconnected();
-                    }
+                    tool->onDisconnected();
                 }
             }
 
-            void addInteractionHandler(InteractionHandlerPtr handler);
-            void removeInteractionHandler(InteractionHandlerPtr handler);
-
+            void addSubTool(const ToolPtr& tool);
+            void removeSubTool(const ToolPtr& tool);
+            virtual bool isActive() = 0;
         protected:
             virtual void onConnected(const MapControlPtr& control, const MapPtr& map) = 0;
             virtual void onDisconnected() = 0;
             virtual bool onEvent(const Event& event) override;
         private:
-            std::vector<InteractionHandlerPtr> m_interactionHandlers;
-            InteractionHandlerPtr              m_activeHandler;
-    };
-    typedef std::shared_ptr<Tool> ToolPtr;
-
-    class BindingInteractionHandler : public InteractionHandler
-    {
-        public:
-        private:
+            std::vector<ToolPtr> m_subTools;
+            ToolPtr              m_activeSubTool;
     };
 }
 

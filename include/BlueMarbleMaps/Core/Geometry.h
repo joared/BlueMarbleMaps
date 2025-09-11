@@ -90,10 +90,12 @@ namespace BlueMarble
         public:
             LineGeometry();
             LineGeometry(const std::vector<Point>& points);
+            LineGeometry(const Rectangle& rect);
             EngineObjectPtr clone() override final { return std::make_shared<LineGeometry>(*this); };
             GeometryType type() override final { return GeometryType::Line; };
             Rectangle calculateBounds() override final { return Rectangle::fromPoints(m_points); };
             Point center() override final { return m_points[m_points.size()%2]; }; // FIXME
+            double length() const;
             bool isClosed() const { return m_isClosed; }
             void isClosed(bool closed) { m_isClosed = closed; }
             void move(const Point& delta) override final;
@@ -120,8 +122,19 @@ namespace BlueMarble
 
             EngineObjectPtr clone() override final { return std::make_shared<PolygonGeometry>(*this); };
             GeometryType type() override final { return GeometryType::Polygon; };
-            Rectangle calculateBounds() override final { return Rectangle::fromPoints(outerRing()); }; //{ return m_cachedBounds.get(); };
-            Point center() override final { return Utils::centroid(outerRing()); };
+            Rectangle calculateBounds() override final;
+            Point center() override final 
+            { 
+                if (m_rings.size() > 0 && outerRing().size() > 0)
+                {
+                    return Utils::centroid(outerRing()); 
+                }
+                else
+                {
+                    BMM_DEBUG() << "WARGNING: PolygonGeometry::center() called for polygon with no points\n";
+                    return Point(0,0);
+                }   
+            };
             void move(const Point& delta) override final;
             void moveTo(const Point& point) override final;
             bool isInside(const Rectangle& bounds) const override final 

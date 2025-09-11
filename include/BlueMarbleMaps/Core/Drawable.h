@@ -22,18 +22,28 @@ namespace BlueMarble
             Pen(bool antiAlias=false, const Color& color=Color::transparent(), double width=1.0) 
                 : m_antiAlias(antiAlias)
                 , m_color(color)
+                , m_colorFrom(Color::undefined())
                 , m_width(width)
+                , m_fromWidth(-1.0) // Undefined
             {}
             const Color& getColor() const { return m_color; };
             void setColor(const Color& color) { m_color = color; };
+            const Color& getFromColor() const { return m_colorFrom; };
+            void setFromColor(const Color& color) { m_colorFrom = color; };
+            
             bool getAntiAlias() const { return m_antiAlias; };
             void setAntiAlias(bool antiAlias) { m_antiAlias = antiAlias; };
+
             double getWidth() const { return m_width; }
             void setWidth(double width) { m_width = width; }
+            double getFromWidth() const { return m_fromWidth; }
+            void setFromWidth(double width) { m_fromWidth = width; }
         private:
             bool m_antiAlias;
             Color m_color;
+            Color m_colorFrom;
             double m_width;
+            double m_fromWidth;
     };
 
     class Brush
@@ -64,7 +74,6 @@ namespace BlueMarble
             virtual const Transform& getTransform() = 0;
             virtual void setTransform(const Transform& transform) = 0;
             virtual void resize(int width, int height) = 0;
-            virtual void fill(int val) = 0;
             virtual void drawArc(double cx, double cy, double rx, double ry, double theta, const Pen& pen, const Brush& brush) = 0;
             virtual void drawCircle(double x, double y, double radius, const Pen& pen, const Brush& brush) = 0;
             virtual void drawLine(const LineGeometryPtr& geometry, const Pen& pen) = 0;
@@ -76,6 +85,8 @@ namespace BlueMarble
             virtual Color readPixel(int x, int y) = 0;
             virtual void setPixel(int x, int y, const Color& color) = 0;
             virtual void swapBuffers() = 0;
+            virtual void clearBuffer() = 0;
+            virtual Raster getRaster() = 0;
             virtual RendererImplementation renderer() = 0;
     };
     typedef std::shared_ptr<Drawable> DrawablePtr;

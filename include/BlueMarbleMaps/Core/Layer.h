@@ -13,11 +13,10 @@ namespace BlueMarble
 {
     class DataSet; // Forward declaration.
     class Map;     // Forward declaration.
+    typedef std::shared_ptr<Map> MapPtr;
     
     class Layer 
         : public ResourceObject
-        , public IUpdateHandler
-        , public FeatureHandler
     {
         public:
             Layer(bool createdefaultVisualizers = true);
@@ -32,16 +31,25 @@ namespace BlueMarble
             double minScale() {return m_minScale; }
             void minScale(double minScale) { m_minScale = minScale; }
             
-            void onUpdateRequest(Map& map, const Rectangle& updateArea, FeatureHandler* handler) override;
-            void onFeatureInput(Map& map, const std::vector<FeaturePtr>& features) override;
-            void onGetFeaturesRequest(const Attributes& attributes, std::vector<FeaturePtr>& features) override;
-            FeaturePtr onGetFeatureRequest(const Id& id) override;
+            // Old stuff
+            // void onUpdateRequest(Map& map, const Rectangle& updateArea, FeatureHandler* handler) override;
+            // void onFeatureInput(Map& map, const std::vector<FeaturePtr>& features) override;
+            // void onGetFeaturesRequest(const Attributes& attributes, std::vector<FeaturePtr>& features) override;
+            // FeaturePtr onGetFeatureRequest(const Id& id) override;
+
+            // New stuff
+            // FIXME: why does shared_from_this() not work in Map::renderlayers()????
+            void update(const MapPtr& map, const CrsPtr& crs, const FeatureQuery& featureQuery);
+            FeatureEnumeratorPtr getFeatures(const CrsPtr& crs, const FeatureQuery& featureQuery, bool activeLayersOnly);
+            FeaturePtr getFeature(const Id& id);
 
             std::vector<VisualizerPtr>& visualizers() { return m_visualizers; }
             std::vector<VisualizerPtr>& hoverVisualizers() { return m_hoverVisualizers; }
             std::vector<VisualizerPtr>& selectionVisualizers() { return m_selectionVisualizers; }
 
             std::vector<EffectPtr>& effects() { return m_effects; }
+
+            void addDataSet(const DataSetPtr& dataSet);
 
         private:
 
@@ -57,8 +65,14 @@ namespace BlueMarble
             std::vector<VisualizerPtr> m_hoverVisualizers;
             std::vector<VisualizerPtr> m_selectionVisualizers;
 
+            std::vector<PresentationObject> m_presentationObjects;
+            std::vector<PresentationObject> m_presentationObjectsHover;
+            std::vector<PresentationObject> m_presentationObjectsSelection;
+
             std::vector<EffectPtr> m_effects;
             DrawablePtr m_drawable; // Needed if we need to draw on our own buffer
+
+            std::vector<DataSetPtr> m_dataSets;
     };
     typedef std::shared_ptr<Layer> LayerPtr;
 

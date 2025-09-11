@@ -14,6 +14,8 @@
 #include "map_configuration.h"
 #include <Keys.h>
 
+#include <valgrind/callgrind.h>
+
 using namespace BlueMarble;
 
 
@@ -29,11 +31,13 @@ public:
     int64_t setTimer(int64_t interval) override final
     {
         // TODO, not tested
+        return -1;
     }
 
     bool killTimer(int64_t id) override final
     {
         // TODO, not tested
+        return false;
     }
 
     void keyEvent(WindowGL* window, int key, int scanCode, int action, int modifier) override
@@ -48,11 +52,11 @@ public:
 
         if (action == GLFW_PRESS)
         {
-            keyUp(key, getModificationKeyMask(), getGinotonicTimeStampMs());
+            keyUp(scanCode, getModificationKeyMask(), getGinotonicTimeStampMs());
         }
         else
         {
-            keyDown(key, getModificationKeyMask(), getGinotonicTimeStampMs());
+            keyDown(scanCode, getModificationKeyMask(), getGinotonicTimeStampMs());
         }
     }
 
@@ -232,8 +236,18 @@ class MySignalTester
         };
 };
 
-int main() 
+void dummy(MapPtr view)
 {
+    BMM_DEBUG() << "Hello!\n";
+}
+
+struct Dummy
+{
+    MapPtr view;
+};
+
+int main() 
+{   
     //MapControlStuff
     auto mapControl = std::make_shared<GLFWMapControl>();
     if (!mapControl->init(1000, 1000, "Hello World"))
@@ -247,22 +261,24 @@ int main()
     auto view = std::make_shared<Map>();
     view->center(Point(0, 0));
     view->scale(1.0);
+    view->showDebugInfo() = false;
+    view->drawable()->backgroundColor(Color::white(0.0));
     // auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/readme/CompleteGeodata.png");
-    auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/geodata/elevation/LARGE_elevation.jpg");
+    auto elevationDataSet = std::make_shared<ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/geodata/elevation/LARGE_elevation.jpg");
     
-    elevationDataSet->initialize(BlueMarble::DataSetInitializationType::RightHereRightNow);
-    auto elevationLayer = BlueMarble::LayerPtr(new BlueMarble::Layer(false));
-    elevationLayer->addUpdateHandler(elevationDataSet.get());
+    elevationDataSet->initialize(DataSetInitializationType::RightHereRightNow);
+    auto elevationLayer = std::make_shared<Layer>(false);
+    elevationLayer->addDataSet(elevationDataSet);
     auto rasterVis = std::make_shared<RasterVisualizer>();
     rasterVis->alpha(DirectDoubleAttributeVariable(0.5));
     elevationLayer->visualizers().push_back(rasterVis);
     view->addLayer(elevationLayer);
 
     // Test Polygon/Line/Symbol visualizers
-    auto vectorDataSet = std::make_shared<BlueMarble::MemoryDataSet>();
-    vectorDataSet->initialize(BlueMarble::DataSetInitializationType::RightHereRightNow);
-    auto vectorLayer = BlueMarble::LayerPtr(new BlueMarble::Layer(true));
-    vectorLayer->addUpdateHandler(vectorDataSet.get());
+    auto vectorDataSet = std::make_shared<MemoryDataSet>();
+    vectorDataSet->initialize(DataSetInitializationType::RightHereRightNow);
+    auto vectorLayer = std::make_shared<Layer>(true);
+    vectorLayer->addDataSet(vectorDataSet);
 
     std::vector<Point> points({ {16, 56}, {17, 57}, {15, 58} });
     auto poly = std::make_shared<PolygonGeometry>(points);
@@ -270,17 +286,24 @@ int main()
 
     view->addLayer(vectorLayer);
 
+    configureMap(view, true, true, false);
+
     mapControl->setView(view);
 
-    auto eventHandler = std::make_shared<PanEventHandler>();
-    eventHandler->addInteractionHandler(std::make_shared<EditFeatureTool>());
+    auto tool = std::make_shared<PanEventHandler>();
+    tool->addSubTool(std::make_shared<EditFeatureTool>());
+    tool->addSubTool(std::make_shared<PointerTracerTool>());
+    tool->addSubTool(std::make_shared<KeyActionTool>());
+
     // EventObserver eventObserver1("Observer1");
     // EventObserver eventObserver2("Observer2");
-    // eventHandler.installEventFilter(&eventObserver1);
+    // tool.installEventFilter(&eventObserver1);
     // eventObserver1.installEventFilter(&eventObserver2);
-    mapControl->setTool(eventHandler);
+    mapControl->setTool(tool);
 
-    view->update();
+    view->update(true);
+
+    CALLGRIND_START_INSTRUMENTATION;
     while (!mapControl->windowShouldClose())
     {
         if (mapControl->updateRequired())
@@ -293,6 +316,7 @@ int main()
             mapControl->waitWindowEvents();
         }
     }
+    CALLGRIND_STOP_INSTRUMENTATION;
     glfwTerminate();
 
     return 0;

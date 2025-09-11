@@ -9,12 +9,14 @@ namespace BlueMarble
     class Color
     {
         public:
+            inline static Color undefined() { auto c = Color(-1, -1, -1, -1); c.m_isDefined=false; return c; }
             inline static Color transparent() { return Color(0, 0, 0, 0); }
             inline static Color red(double a=1.0) { return Color(255, 0, 0, a); }
             inline static Color green(double a=1.0) { return Color(0, 255, 0, a); }
             inline static Color blue(double a=1.0) { return Color(0, 0, 255, a); }
             inline static Color white(double a=1.0) { return Color(255, 255, 255, a); }
             inline static Color black(double a=1.0) { return Color(0, 0, 0, a); }
+            inline static Color gray(double a=1.0) { return Color(127, 127, 127, a); }
 
             // inline Color(int r, int g, int b)
             //     : m_r(r)
@@ -28,12 +30,45 @@ namespace BlueMarble
                 , m_g(Utils::clampValue(g, 0, 255))
                 , m_b(Utils::clampValue(b, 0, 255))
                 , m_alpha(Utils::clampValue(alpha, 0, 1.0))
+                , m_isDefined(true)
             {}
-
+            inline bool isDefined() const { return m_isDefined; }
             inline int r() const { return m_r; }
             inline int b() const { return m_b; }
             inline int g() const { return m_g; }
             inline double a() const { return m_alpha; }
+
+            inline Color operator+(const Color& other) const
+            {
+                return Color(r()+other.r(),
+                             g()+other.g(),
+                             b()+other.b(),
+                             a()+other.a());
+            }
+
+            inline Color operator-(const Color& other) const
+            {
+                return Color(r()-other.r(),
+                             g()-other.g(),
+                             b()-other.b(),
+                             a()-other.a());
+            }
+
+            inline Color operator*(const Color& other) const
+            {
+                return Color(r()*other.r(),
+                             g()*other.g(),
+                             b()*other.b(),
+                             a()*other.a());
+            }
+
+            inline Color operator*(double fraction) const
+            {
+                return Color(r()*fraction,
+                             g()*fraction,
+                             b()*fraction,
+                             a()*fraction);
+            }
 
             inline std::string toString() const 
             { 
@@ -52,6 +87,7 @@ namespace BlueMarble
             int m_g;
             int m_b;
             double m_alpha;
+            bool m_isDefined;
     };
 }
 

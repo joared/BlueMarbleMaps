@@ -127,6 +127,7 @@ bool EventManager::keyUp(int key, ModificationKey modKeys, int64_t timeStampMs)
 bool EventManager::keyDown(int key, ModificationKey modKeys, int64_t timeStampMs)
 {
     KeyDownEvent event;
+    event.keyCode = key;
     event.modificationKey = modKeys;
     return dispatchEvent(event, timeStampMs);
 }

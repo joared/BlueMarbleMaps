@@ -88,7 +88,7 @@ namespace BlueMarble
                     }
                 }
 
-                return FeaturePtr();
+                return nullptr;
             }
 
             Rectangle bounds() const 

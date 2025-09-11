@@ -28,7 +28,6 @@ namespace BlueMarble
     class DataSet 
         : public std::enable_shared_from_this<DataSet>
         , public ResourceObject
-        , public IUpdateHandler
     {
         private:
             static std::map<DataSetId, DataSetPtr> dataSets;
@@ -49,6 +48,10 @@ namespace BlueMarble
             void initialize(DataSetInitializationType initType = DataSetInitializationType::BackgroundThread);
             int64_t getVisualizationTimeStampForFeature(const Id& id);
             void restartVisualizationAnimation(FeaturePtr feature, int64_t timeStamp = -1);
+
+            virtual FeatureEnumeratorPtr getFeatures(const FeatureQuery& featureQuery) = 0;
+            virtual FeaturePtr getFeature(const Id& id) = 0;
+
         protected:
             virtual void init() = 0;
         private:
@@ -65,9 +68,12 @@ namespace BlueMarble
         public:
             ImageDataSet();
             ImageDataSet(const std::string &filePath);
-            void onUpdateRequest(Map& map, const Rectangle& updateArea, FeatureHandler* handler) override final;
-            void onGetFeaturesRequest(const Attributes& attributes, std::vector<FeaturePtr>& features) override final {};
-            FeaturePtr onGetFeatureRequest(const Id& id) override final { return nullptr; };
+            // void onUpdateRequest(Map& map, const Rectangle& updateArea, FeatureHandler* handler) override final;
+            // void onGetFeaturesRequest(const Attributes& attributes, std::vector<FeaturePtr>& features) override final {};
+            // FeaturePtr onGetFeatureRequest(const Id& id) override final { return nullptr; };
+
+            virtual FeatureEnumeratorPtr getFeatures(const FeatureQuery& featureQuery) override final;
+            virtual FeaturePtr getFeature(const Id& id) override final;
 
             void filePath(const std::string& filePath);
         private:
@@ -86,9 +92,13 @@ namespace BlueMarble
         public:
             AbstractFileDataSet(const std::string& filePath);
             double progress();
-            void onUpdateRequest(Map& map, const Rectangle& updateArea, FeatureHandler* handler) override final;
-            void onGetFeaturesRequest(const Attributes& attributes, std::vector<FeaturePtr>& features) override final;
-            FeaturePtr onGetFeatureRequest(const Id& id) override final;
+            // void onUpdateRequest(Map& map, const Rectangle& updateArea, FeatureHandler* handler) override final;
+            // void onGetFeaturesRequest(const Attributes& attributes, std::vector<FeaturePtr>& features) override final;
+            // FeaturePtr onGetFeatureRequest(const Id& id) override final;
+
+            virtual FeatureEnumeratorPtr getFeatures(const FeatureQuery& featureQuery) override final;
+            virtual FeaturePtr getFeature(const Id& id) override final;
+
         protected:
             void init() override final;
             virtual void read(const std::string& filePath) = 0;
@@ -170,9 +180,14 @@ namespace BlueMarble
             MemoryDataSet();
             void addFeature(FeaturePtr feature);
             void removeFeature(const Id& id);
-            void onUpdateRequest(Map& map, const Rectangle& updateArea, FeatureHandler* handler) override final;
-            void onGetFeaturesRequest(const Attributes& attributes, std::vector<FeaturePtr>& features) override final {};
-            FeaturePtr onGetFeatureRequest(const Id& id) override final;
+            void clear();
+            // void onUpdateRequest(Map& map, const Rectangle& updateArea, FeatureHandler* handler) override final;
+            // void onGetFeaturesRequest(const Attributes& attributes, std::vector<FeaturePtr>& features) override final {};
+            // FeaturePtr onGetFeatureRequest(const Id& id) override final;
+
+            virtual FeatureEnumeratorPtr getFeatures(const FeatureQuery& featureQuery) override final;
+            virtual FeaturePtr getFeature(const Id& id) override final;
+
             void startFeatureAnimation(FeaturePtr feature);
             void startFeatureAnimation(FeaturePtr feature, const Point& from, const Point& to);
             void triggerFeatureUpdated(const FeaturePtr& id);

@@ -4,6 +4,8 @@
 #include "Drawable.h"
 #include <set>
 #include "glm.hpp"
+#include "Platform/OpenGL/Shader.h"
+#include "Platform/OpenGL/Vertice.h"
 
 namespace BlueMarble
 {
@@ -23,7 +25,6 @@ namespace BlueMarble
         const Transform& getTransform();
         void setTransform(const Transform& transform);
         void resize(int width, int height);
-        void fill(int val);
         void drawCircle(double x, double y, double radius, const Pen& pen, const Brush& brush);
         void drawArc(double cx, double cy, double rx, double ry, double theta, const Pen& pen, const Brush& brush);
         void drawLine(const LineGeometryPtr& geometry, const Pen& pen);
@@ -34,7 +35,9 @@ namespace BlueMarble
         void drawText(int x, int y, const std::string& text, const Color& color, int fontSize = 20, const Color& backgroundColor = Color::transparent());
         Color readPixel(int x, int y);
         void setPixel(int x, int y, const Color& color);
+        void clearBuffer() override final;
         void swapBuffers();
+        Raster getRaster() override final;
         RendererImplementation renderer();
     protected:
         static glm::mat4x4 transformToMatrix(const Transform& transform);
@@ -48,6 +51,15 @@ namespace BlueMarble
         glm::mat4x4 m_projectionMatrix;
         int m_width;
         int m_height;
+        Color m_color;
+
+        GLuint                  m_lineVAO;
+        GLuint                  m_lineVBO;
+        Shader                  m_lineShader;
+        std::vector<Vertex>     m_lineBuffer;
+        std::vector<GLint>      m_lineFirsts;
+        std::vector<GLsizei>    m_lineCounts;
+        GLint                   m_lineFirstCounter;
     };
     typedef std::shared_ptr<OpenGLDrawable> OpenGLDrawablePtr;
 

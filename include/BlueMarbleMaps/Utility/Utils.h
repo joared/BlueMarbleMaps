@@ -70,7 +70,12 @@ namespace BlueMarble
 
         inline Point centroid(const std::vector<Point>& points)
         {
-            assert(points.size() > 1);
+            assert(points.size() > 0);
+
+            if (points.size() == 1)
+            {
+                return points[0];
+            }
 
             double cx = 0;
             double cy = 0;
@@ -215,6 +220,12 @@ namespace BlueMarble
         inline bool pointInsidePolygon(const Point& point, const std::vector<Point>& polygon)
         {
             int num_vertices = polygon.size();
+
+            if (num_vertices < 3)
+            {
+                BMM_DEBUG() << "WARNING: pointInsidePolygon() called with a polygon with less than 3 points\n";
+                return false;
+            }
             
             double x = point.x(), y = point.y();
             bool inside = false;
@@ -295,6 +306,8 @@ namespace BlueMarble
 
         inline std::vector<Point> scalePoints(const std::vector<Point>& input, double scale, Point fixPoint=Point::undefined())
         {
+            assert(!input.empty());
+            
             std::vector<Point> scaledPoints;
 
             if (fixPoint.isUndefined())
@@ -344,6 +357,8 @@ namespace BlueMarble
 
         inline std::vector<Point> rotatePoints(const std::vector<Point>& input, double angle, Point fixPoint=Point::undefined())
         {
+            assert(!input.empty());
+
             std::vector<Point> rotatedPoints;
 
             if (fixPoint.isUndefined())

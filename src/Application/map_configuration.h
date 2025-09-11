@@ -22,6 +22,10 @@ void setupAirPlaneLayerVisualization(const BlueMarble::LayerPtr& layer)
 
     symVis1->rotation(IndirectDoubleAttributeVariable("Rotation", 0.0));
 
+    auto symVis2 = std::make_shared<BlueMarble::SymbolVisualizer>();
+    symVis2->size(DirectDoubleAttributeVariable(10));
+    symVis2->color(DirectColorAttributeVariable(Color::black()));
+
     auto textSelHoverViz = std::make_shared<TextVisualizer>();
     textSelHoverViz->text(IndirectStringAttributeVariable("Name", std::string("Unknown aircraft")));
     textSelHoverViz->offsetY(DirectDoubleAttributeVariable(-100));
@@ -34,14 +38,14 @@ void setupAirPlaneLayerVisualization(const BlueMarble::LayerPtr& layer)
     textSelViz->color(DirectColorAttributeVariable(Color(255, 255, 0)));
     textSelViz->backgroundColor(DirectColorAttributeVariable(Color::white(0.5)));
 
-
+    layer->visualizers().push_back(symVis2);
     layer->visualizers().push_back(symVis1);
     layer->hoverVisualizers().push_back(textSelHoverViz);
     layer->selectionVisualizers().push_back(textSelViz);
     //layer.effects().push_back(std::make_shared<BlueMarble::DropShadowEffect>(0.0, 10, 10, 0.5));
 }
 
-void configureMap(const MapPtr& map)
+void configureMap(const MapPtr& map, bool includeBackground=false, bool includeRoads=false, bool includeAirPlanes=false)
 {
     ////////////////////////////////////////////////////////
     static auto backgroundDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/BlueMarbleMaps/geodata/NE1_LR_LC_SR_W/NE1_LR_LC_SR_W.tif");
@@ -60,7 +64,7 @@ void configureMap(const MapPtr& map)
     static auto airPlaneDataSet = std::make_shared<BlueMarble::MemoryDataSet>(); airPlaneDataSet->name("AirPlanesDataSet");
     
     //sverigeRoadsDataSet->initialize(); // Takes very long to initialize (1.4 GB large)
-    //roadsDataSet->initialize();  // very large too
+    if (includeRoads) roadsDataSet->initialize();  // very large too
     backgroundDataSet->initialize(DataSetInitializationType::RightHereRightNow);
     backgroundDataSet2->initialize();
 
@@ -74,13 +78,16 @@ void configureMap(const MapPtr& map)
     
     airPlaneDataSet->initialize(DataSetInitializationType::RightHereRightNow); 
     // Populate airplanes and start animations
-    for (int i=0; i < 10000; i++)
+    if (includeAirPlanes)
     {
-        auto from = Point(std::rand() % 360 - 180, std::rand() % 180 - 90);
-        auto to = Point(std::rand() % 360 - 180, std::rand() % 180 - 90);
-        auto airPlaneFeature = airPlaneDataSet->createFeature(std::make_shared<PointGeometry>(from));
-        airPlaneFeature->attributes().set("Name", "Aircraft #" + std::to_string(i+1));
-        airPlaneDataSet->addFeature(airPlaneFeature); airPlaneDataSet->startFeatureAnimation(airPlaneFeature, from, to);
+        for (int i=0; i < 10000; i++)
+        {
+            auto from = Point(std::rand() % 360 - 180, std::rand() % 180 - 90);
+            auto to = Point(std::rand() % 360 - 180, std::rand() % 180 - 90);
+            auto airPlaneFeature = airPlaneDataSet->createFeature(std::make_shared<PointGeometry>(from));
+            airPlaneFeature->attributes().set("Name", "Aircraft #" + std::to_string(i+1));
+            airPlaneDataSet->addFeature(airPlaneFeature); airPlaneDataSet->startFeatureAnimation(airPlaneFeature, from, to);
+        }
     }
 
     auto backgroundLayer = BlueMarble::LayerPtr(new BlueMarble::Layer());
@@ -89,37 +96,44 @@ void configureMap(const MapPtr& map)
     auto continentsLayer = BlueMarble::LayerPtr(new BlueMarble::Layer());
     auto roadsGeoJsonLayer = BlueMarble::LayerPtr(new BlueMarble::Layer());
     auto shapeFileLayer = BlueMarble::LayerPtr(new BlueMarble::Layer());
-    auto airPlaneLayer = BlueMarble::LayerPtr(new BlueMarble::Layer(false));; setupAirPlaneLayerVisualization(airPlaneLayer);
+    auto airPlaneLayer = BlueMarble::LayerPtr(new BlueMarble::Layer(false)); setupAirPlaneLayerVisualization(airPlaneLayer);
     auto csvLayer = BlueMarble::LayerPtr(new BlueMarble::Layer());
     auto sverigeLayer = BlueMarble::LayerPtr(new BlueMarble::Layer());
     auto debugLayer = BlueMarble::LayerPtr(new BlueMarble::Layer());
-    backgroundLayer->addUpdateHandler(backgroundDataSet.get());
-    backgroundLayer2->addUpdateHandler(backgroundDataSet2.get());
+    if (includeBackground)
+    {
+        backgroundLayer->addDataSet(backgroundDataSet);
+        backgroundLayer2->addDataSet(backgroundDataSet2);
+    }
     
-    double minScaleCountries = 0.25;
+    double minScaleCountries = 10.25;
     geoJsonLayer->minScale(minScaleCountries);
-    geoJsonLayer->addUpdateHandler(northAmerica.get()); geoJsonLayer->addUpdateHandler(southAmerica.get()); geoJsonLayer->addUpdateHandler(world.get());
+    geoJsonLayer->addDataSet(northAmerica); geoJsonLayer->addDataSet(southAmerica); geoJsonLayer->addDataSet(world);
 
     continentsLayer->maxScale(minScaleCountries);
-    continentsLayer->addUpdateHandler(continents.get());
-    roadsGeoJsonLayer->addUpdateHandler(roadsDataSet.get());
-    roadsGeoJsonLayer->addUpdateHandler(sverigeRoadsDataSet.get());
-    roadsGeoJsonLayer->minScale(5.0);
-    roadsGeoJsonLayer->enabledDuringQuickUpdates(false);
-    csvLayer->addUpdateHandler(svenskaStader.get());
-    sverigeLayer->addUpdateHandler(svenskaLandskapDataSet.get());
-    airPlaneLayer->addUpdateHandler(airPlaneDataSet.get());
+    continentsLayer->addDataSet(continents);
+    if (includeRoads)
+    {
+        roadsGeoJsonLayer->addDataSet(roadsDataSet);
+        roadsGeoJsonLayer->addDataSet(sverigeRoadsDataSet);
+        roadsGeoJsonLayer->minScale(50.0);
+        roadsGeoJsonLayer->enabledDuringQuickUpdates(false);
+    }
+    
+    csvLayer->addDataSet(svenskaStader);
+    sverigeLayer->addDataSet(svenskaLandskapDataSet);
+    airPlaneLayer->addDataSet(airPlaneDataSet);
     
     
     map->addLayer(backgroundLayer);
     map->addLayer(backgroundLayer2);
     map->addLayer(geoJsonLayer);
     map->addLayer(continentsLayer);
-    map->addLayer(sverigeLayer);
+    //map->addLayer(sverigeLayer);
     map->addLayer(roadsGeoJsonLayer);
-    map->addLayer(csvLayer);
+    //map->addLayer(csvLayer);
     map->addLayer(airPlaneLayer);
-    map->addLayer(debugLayer);
+    //map->addLayer(debugLayer);
     ////////////////////////////////////////////////////////OLD
 }
 

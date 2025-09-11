@@ -30,6 +30,7 @@ class Raster::Impl
         void fill(int val);
         void blur(double sigmaX, double sigmaY, double sigmaZ, bool isGaussian);
         Raster getCrop(int x0, int y0, int x1, int y1);
+        void save(const std::string& filePath) const;
         const unsigned char* data() const;
 
         Impl& operator=(const Impl& impl);

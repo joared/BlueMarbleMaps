@@ -9,24 +9,48 @@ namespace BlueMarble
     class FeatureHandler;  // Forward declaration.
 
     // New stuff
-    // class FeatureQuery
-    // {
-    //     public:
-    //         Rectangle& area() { return m_area; }
-    //     private:
-    //         Rectangle m_area = Rectangle::infinite();
-    // };
+    class FeatureQuery
+    {
+        public:
+            FeatureQuery()
+            {
 
-    // class FeatureEnumerator
-    // {
-    //     public:
-    //         std::vector<FeaturePtr>& features() { return m_features; }
-    //         void addEnumerator(const FeatureEnumeratorPtr& enumerator) { m_subEnumerators.push_back(enumerator); } 
-    //     private:
-    //         std::vector<FeaturePtr> m_features;
-    //         std::vector<FeatureEnumeratorPtr> m_subEnumerators;
-    // };
-    // typedef std::shared_ptr<FeatureEnumerator> FeatureEnumeratorPtr;
+            }
+            const Rectangle& area() const { return m_area; }
+            void area(const Rectangle& area) { m_area = area; }
+            double scale() const { return m_scale; }
+            void scale(double scale) { m_scale = scale; }
+            Attributes* updateAttributes() const { return m_updateAttributes; }
+            void updateAttributes(Attributes* attr) { m_updateAttributes = attr; }
+            bool quickUpdate() const { return m_quickUpdate; }
+            void quickUpdate(bool quickpdate) { m_quickUpdate = quickpdate; }
+
+        private:
+            Rectangle m_area = Rectangle::infinite();
+            double m_scale = 1.0;
+            Attributes* m_updateAttributes = nullptr;
+            bool        m_quickUpdate = false;
+    };
+
+    class FeatureEnumerator;
+    typedef std::shared_ptr<FeatureEnumerator> FeatureEnumeratorPtr;
+    class FeatureEnumerator
+    {
+        public:
+            FeatureEnumerator();
+            void addEnumerator(const FeatureEnumeratorPtr& enumerator) { m_subEnumerators.push_back(enumerator); }
+            const FeaturePtr& current() const;
+            bool moveNext();
+            void reset();
+            void add(const FeaturePtr& feature);
+            int size();
+            std::vector<FeaturePtr>& features() { return m_features; }; // TODO: remove?
+        private:
+            int m_iteratorIndex;
+            int m_iterationIndex;
+            std::vector<FeaturePtr> m_features;
+            std::vector<FeatureEnumeratorPtr> m_subEnumerators;
+    };
 
     // Downstream
     // Interface for layers, operators and data sets that handles update requests in the operator chain

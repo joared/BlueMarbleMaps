@@ -28,5 +28,8 @@ add_executable(TestMyReflection test_my_reflection.cpp)
 target_link_libraries(TestMyReflection PRIVATE ReflectionCpp)
 target_link_libraries(TestMyReflection PRIVATE BlueMarbleMapsLib)
 
+add_executable(TestSharedFromThis test_shared_from_this.cpp)
+target_link_libraries(TestSharedFromThis PRIVATE BlueMarbleMapsLib)
+
 add_executable(TestSignal test_signal.cpp)
 target_link_libraries(TestSignal PRIVATE BlueMarbleMapsLib)

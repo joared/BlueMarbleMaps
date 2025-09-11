@@ -2,6 +2,7 @@
 #define BLUEMARBLE_SOFTWAREDRAWABLE
 
 #include "Drawable.h"
+#include <exception>
 
 namespace BlueMarble
 {    
@@ -19,21 +20,22 @@ namespace BlueMarble
             
             // Methods
             const Transform& getTransform();
-            void setTransform(const Transform& transform);
-            void resize(int width, int height);
-            void fill(int val);
-            void drawArc(double cx, double cy, double rx, double ry, double theta, const Pen& pen, const Brush& brush);
+            void setTransform(const Transform& transform) override final;
+            void resize(int width, int height)  override final;
+            void drawArc(double cx, double cy, double rx, double ry, double theta, const Pen& pen, const Brush& brush) override final;
             void drawCircle(double x, double y, double radius, const Pen& pen, const Brush& brush);
-            void drawLine(const LineGeometryPtr& geometry, const Pen& pen);
-            void drawPolygon(const PolygonGeometryPtr& geometry, const Pen& pen, const Brush& brush);
-            void drawRect(const Point& topLeft, const Point& bottomRight, const Color& color);
-            void drawRect(const Rectangle& rect, const Color& color); // Utility method, calls the above
-            void drawRaster(const RasterGeometryPtr& raster, double alpha);
-            void drawText(int x, int y, const std::string& text, const Color& color, int fontSize=20, const Color& backgroundColor=Color::transparent());
-            Color readPixel(int x, int y);
-            void setPixel(int x, int y, const Color& color);
-            void swapBuffers();
-            RendererImplementation renderer();
+            void drawLine(const LineGeometryPtr& geometry, const Pen& pen) override final;
+            void drawPolygon(const PolygonGeometryPtr& geometry, const Pen& pen, const Brush& brush) override final;
+            void drawRect(const Point& topLeft, const Point& bottomRight, const Color& color) override final;
+            void drawRect(const Rectangle& rect, const Color& color) override final; // Utility method, calls the above
+            void drawRaster(const RasterGeometryPtr& raster, double alpha) override final;
+            void drawText(int x, int y, const std::string& text, const Color& color, int fontSize=20, const Color& backgroundColor=Color::transparent()) override final;
+            Color readPixel(int x, int y) override final;
+            void setPixel(int x, int y, const Color& color) override final;
+            void clearBuffer() override final;
+            void swapBuffers() override final;
+            virtual Raster getRaster() override final { throw std::runtime_error("SoftwareDrawable::getRaster() Not implemented"); };
+            RendererImplementation renderer() override final;
         protected:
             class Impl;
             Impl* m_impl;

@@ -41,7 +41,7 @@ bool WindowGL::init(int width, int height, std::string windowTitle)
 		return false;
 	}
 
-	bool useCoreProfile = false;
+	bool useCoreProfile = true;
 	if (useCoreProfile)
 	{
 		std::cout << "Using OpenGL core profile\n";
