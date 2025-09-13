@@ -1,4 +1,5 @@
 #include "Platform/OpenGL/VAO.h"
+#include <iostream>
 
 VAO::VAO()
 	:m_id(0)
@@ -7,7 +8,8 @@ VAO::VAO()
 }
 VAO::~VAO()
 {
-
+	std::cout << "Deleting VAO with id: " << m_id << "\n";
+	glDeleteVertexArrays(1, &m_id);
 }
 void VAO::init()
 {

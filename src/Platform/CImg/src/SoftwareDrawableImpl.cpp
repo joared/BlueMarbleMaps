@@ -143,7 +143,7 @@ void SoftwareDrawable::Impl::drawRect(const Point& topLeft, const Point& bottomR
                             (float)color.a());
 }
 
-void SoftwareDrawable::Impl::drawRaster(const RasterGeometryPtr& geometry, double alpha)
+void SoftwareDrawable::Impl::drawRaster(const RasterGeometryPtr& geometry, const Brush& brush)
 {
     auto center = m_transform.translation();
     double scaleX = m_transform.scaleX();
@@ -191,6 +191,7 @@ void SoftwareDrawable::Impl::drawRaster(const RasterGeometryPtr& geometry, doubl
     OPENGL_TO_CIMG(rasterImg.data(), subRaster.data(), subRaster.width(), subRaster.height(), subRaster.channels());
 #endif
 
+    double alpha = brush.getColor().a();
     if (rasterImg.spectrum() == 4)
     {
         //img.draw_image(x, y, rasterImg.get_shared_channels(0,2), rasterImg.get_shared_channel(3), 1.0, 255);

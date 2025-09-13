@@ -6,17 +6,21 @@ class Primitive2D : public Primitive
 {
 public:
 	Primitive2D();
-	Primitive2D(PrimitiveGeometryInfo& info);
+	Primitive2D(PrimitiveGeometryInfoPtr& info, std::vector<Vertice> vertices);
+	Primitive2D(PrimitiveGeometryInfoPtr& info, std::vector<Vertice> vertices, std::vector<GLuint> indices);
 	~Primitive2D();
 
 	void setVao(VAO& vao) override;
 	void setVbo(VBO& vbo) override;
 	void setIbo(IBO& ibo) override;
-	void setShader(Shader& shader) override;
-	void setTexture(Texture& texture) override;
+	void setShader(ShaderPtr shader) override;
+	ShaderPtr getShader() override;
+	void setTexture(TexturePtr texture) override;
 	void setHasFill(bool fill) override;
 	bool hasFill() override;
-	void draw(GLenum drawType) override;
+	void drawIndex(GLuint indexCount) override;
+	void drawLine(GLuint vertCount, float thickness) override;
 private:
-	PrimitiveGeometryInfo m_geometryInfo;
+	PrimitiveGeometryInfoPtr m_geometryInfo;
 };
+typedef std::shared_ptr<Primitive2D> Primitive2DPtr;

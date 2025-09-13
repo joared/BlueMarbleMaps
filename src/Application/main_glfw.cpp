@@ -286,7 +286,7 @@ int main()
 
     view->addLayer(vectorLayer);
 
-    configureMap(view, true, true, false);
+    //configureMap(view, true, false, false);
 
     mapControl->setView(view);
 

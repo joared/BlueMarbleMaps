@@ -1,7 +1,7 @@
 #pragma once
 #include <glad/glad.h>
 #include <vector>
-#include "Vertice.h"
+#include "Platform/OpenGL/Vertice.h"
 struct VBO
 {
 	GLuint m_id;

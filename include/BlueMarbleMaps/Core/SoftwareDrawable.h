@@ -28,7 +28,7 @@ namespace BlueMarble
             void drawPolygon(const PolygonGeometryPtr& geometry, const Pen& pen, const Brush& brush) override final;
             void drawRect(const Point& topLeft, const Point& bottomRight, const Color& color) override final;
             void drawRect(const Rectangle& rect, const Color& color) override final; // Utility method, calls the above
-            void drawRaster(const RasterGeometryPtr& raster, double alpha) override final;
+            void drawRaster(const RasterGeometryPtr& raster, const Brush& brush) override final;
             void drawText(int x, int y, const std::string& text, const Color& color, int fontSize=20, const Color& backgroundColor=Color::transparent()) override final;
             Color readPixel(int x, int y) override final;
             void setPixel(int x, int y, const Color& color) override final;

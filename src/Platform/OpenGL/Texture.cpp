@@ -5,10 +5,11 @@
 Texture::Texture()
 	:m_id(0)
 {
-	glGenTextures(1,&m_id);
+
 }
 Texture::~Texture()
 {
+	std::cout << "Deleting Texture with id: " << m_id << "\n";
 	glDeleteTextures(1, &m_id);
 }
 bool Texture::init(const unsigned char* data, int width, int height, int format, GLenum pixelType, GLuint activeIndex)
@@ -31,7 +32,7 @@ bool Texture::init(const unsigned char* data, int width, int height, int format,
 	default:glFormat = GL_RGBA;
 	}
 
-	//glGenTextures(1,&m_id);
+	glGenTextures(1,&m_id);
 
 	glBindTexture(GL_TEXTURE_2D, m_id);
 	glBindTextureUnit(activeIndex, m_id);
@@ -41,7 +42,6 @@ bool Texture::init(const unsigned char* data, int width, int height, int format,
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	//TODO assign the mipmap images from data read from the image as well, this could suffice as the lod cache entirely
 	if (glFormat == GL_RGBA)
 		glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 	else

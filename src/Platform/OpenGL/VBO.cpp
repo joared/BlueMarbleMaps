@@ -1,4 +1,5 @@
 #include "Platform/OpenGL/VBO.h"
+#include <iostream>
 
 VBO::VBO()
 	:m_id(0)
@@ -7,6 +8,7 @@ VBO::VBO()
 }
 VBO::~VBO()
 {
+	std::cout << "Deleting VAO with id: " << m_id << "\n";
 	glDeleteBuffers(1, &m_id);
 }
 

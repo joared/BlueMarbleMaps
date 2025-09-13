@@ -305,19 +305,18 @@ void LineVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feature
     if (!isValidGeometry(feature->geometryType()) || !cond(feature, updateAttributes))
         return;
 
-    auto lines = std::vector<LineGeometryPtr>();
+    auto lines = std::vector<std::vector<Point>>();
     switch (feature->geometryType())
     {
     case GeometryType::Line:
-        lines.push_back(feature->geometryAsLine());
+        lines.push_back(feature->geometryAsLine()->points());
         break;
     case GeometryType::Polygon:
-        for (auto& ring : feature->geometryAsPolygon()->rings())
+        for (auto ring : feature->geometryAsPolygon()->rings())
         {
             // Note: ring as copy!!!
-            LineGeometryPtr linePtr = std::make_shared<LineGeometry>(ring);
-            linePtr->isClosed(true);
-            lines.push_back(linePtr);
+            ring.push_back(ring[0]); // Make a closed loop
+            lines.push_back(ring);
         }
         break;
     default:
@@ -327,7 +326,8 @@ void LineVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feature
 
     for (auto& line : lines)
     {
-        drawable.drawLine(line, createPen(feature, updateAttributes));
+        LineGeometryPtr linePtr = std::make_shared<LineGeometry>(line);
+        drawable.drawLine(linePtr, Pen(m_colorEval(feature, updateAttributes), m_widthEval(feature, updateAttributes)));
     }
 }
 
@@ -386,13 +386,20 @@ void PolygonVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feat
     }
     auto& polygonPoints = geometry->outerRing();
 
+    double epsilon = 0.000001;
     if (scale != 1.0)
     {
+        // TODO: should we do this?
+        // if (abs(scale) < epsilon)
+        //     scale = epsilon;
         polygonPoints = Utils::scalePoints(polygonPoints, scale);
     }
 
     if (extend != 1.0)
     {
+        // TODO: should we do this?
+        // if (abs(extend) < epsilon)
+        //     extend = epsilon;
         polygonPoints = Utils::extendPolygon(polygonPoints, extend);
     }
 
@@ -437,7 +444,8 @@ void RasterVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& featu
     // auto offset = geometry->bounds().minCorner();
     // drawable.drawRaster(offset.x(), offset.y(), newImage, 1.0);
     double alpha = m_alphaEval(feature, updateAttributes);
-    drawable.drawRaster(geometry, alpha);
+    auto c = Color::white(alpha);
+    drawable.drawRaster(geometry, Brush(std::vector<Color>{c, c, c, c}));
 }
 
 void RasterVisualizer::alpha(const DoubleEvaluation& alphaEval)

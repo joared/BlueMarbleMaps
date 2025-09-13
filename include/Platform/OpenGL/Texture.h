@@ -1,5 +1,6 @@
 #pragma once
 #include <glad/glad.h>
+#include <memory>
 #include <string>
 struct Texture
 {
@@ -11,3 +12,4 @@ struct Texture
 	void bind();
 	void unbind();
 };
+typedef std::shared_ptr<Texture> TexturePtr;

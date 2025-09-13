@@ -91,9 +91,9 @@ namespace BlueMarble
         m_impl->drawRect(topLeft, bottomRight, color);
     }
 
-    void SoftwareDrawable::drawRaster(const RasterGeometryPtr& raster, double alpha)
+    void SoftwareDrawable::drawRaster(const RasterGeometryPtr& raster, const Brush& brush)
     {
-        m_impl->drawRaster(raster, alpha);
+        m_impl->drawRaster(raster, brush);
     }
 
     void SoftwareDrawable::drawText(int x, int y, const std::string &text, const Color &color, int fontSize, const Color& backgroundColor)
