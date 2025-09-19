@@ -14,8 +14,6 @@
 #include "map_configuration.h"
 #include <Keys.h>
 
-#include <valgrind/callgrind.h>
-
 using namespace BlueMarble;
 
 
@@ -227,25 +225,6 @@ class EventObserver : public EventHandler
         EventType   m_previousEventType;
 };
 
-class MySignalTester
-{
-    public:
-        void slot(std::string s, int num) 
-        {
-            std::cout << "Me got: " << s << " " <<  num << "\n";
-        };
-};
-
-void dummy(MapPtr view)
-{
-    BMM_DEBUG() << "Hello!\n";
-}
-
-struct Dummy
-{
-    MapPtr view;
-};
-
 int main() 
 {   
     //MapControlStuff
@@ -303,7 +282,6 @@ int main()
 
     view->update(true);
 
-    CALLGRIND_START_INSTRUMENTATION;
     while (!mapControl->windowShouldClose())
     {
         if (mapControl->updateRequired())
@@ -316,7 +294,6 @@ int main()
             mapControl->waitWindowEvents();
         }
     }
-    CALLGRIND_STOP_INSTRUMENTATION;
     glfwTerminate();
 
     return 0;
