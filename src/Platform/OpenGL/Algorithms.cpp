@@ -2,9 +2,11 @@
 #include "glm.hpp"
 #include <iostream>
 
-bool Algorithms::triangulatePolygon(std::vector<Vertice> vertices, std::vector<Vertice> hole, std::vector<Vertice>& triangles, std::vector<GLuint>& indices)
+bool Algorithms::triangulatePolygon(std::vector<Vertice>& vertices, std::vector<Vertice>& hole, std::vector<Vertice>& triangles, std::vector<GLuint>& indices)
 {
-	bool success = triangulatePolygon(0, vertices, vertices.size(), hole, triangles);
+	std::vector<Vertice> tmpVerts = vertices;
+	std::vector<Vertice> tmpHoles = hole;
+	bool success = triangulatePolygon(0, tmpVerts, vertices.size(), tmpHoles, triangles);
 	if (success)
 	{
 		for (int i = 0; i < triangles.size(); i++)
@@ -25,7 +27,7 @@ bool Algorithms::triangulatePolygon(std::vector<Vertice> vertices, std::vector<V
 	return success;
 }
 
-bool Algorithms::triangulatePolygon(int step, std::vector<Vertice> vertices, int corners, std::vector<Vertice> hole, std::vector<Vertice>& triangles)
+bool Algorithms::triangulatePolygon(int step, std::vector<Vertice>& vertices, int corners, std::vector<Vertice>& hole, std::vector<Vertice>& triangles)
 {
 	bool success = true;
 	int i = 0, j = 0, k = 0, l = 0;
@@ -144,7 +146,7 @@ bool Algorithms::triangulatePolygon(int step, std::vector<Vertice> vertices, int
 	return success;
 }
 
-bool Algorithms::pointInsideTriangle(Vertice A, Vertice B, Vertice C, Vertice point)
+bool Algorithms::pointInsideTriangle(Vertice& A, Vertice& B, Vertice& C, Vertice& point)
 {
 	bool inside = false;
 
@@ -159,7 +161,7 @@ bool Algorithms::pointInsideTriangle(Vertice A, Vertice B, Vertice C, Vertice po
 	return inside;
 }
 
-bool Algorithms::lineSegmentsIntersect(Vertice A, Vertice B, Vertice C, Vertice D)
+bool Algorithms::lineSegmentsIntersect(Vertice& A, Vertice& B, Vertice& C, Vertice& D)
 {
 	//  No intersection if any of the four points are identical.
 	if (A.position.x == B.position.x && A.position.y == B.position.y || A.position.x == C.position.x && A.position.y == C.position.y || A.position.x == D.position.x && A.position.y == D.position.y
@@ -190,11 +192,11 @@ bool Algorithms::lineSegmentsIntersect(Vertice A, Vertice B, Vertice C, Vertice 
 	return ABpos > 0 && ABpos < distAB;
 }
 
-double Algorithms::distSq(Vertice v1, Vertice v2) {
+double Algorithms::distSq(Vertice& v1, Vertice& v2) {
 	return std::pow((v2.position.x - v1.position.x), 2) + std::pow((v2.position.y - v1.position.y), 2);
 }
 
-bool Algorithms::checkRightAngled(Vertice v1, Vertice v2, Vertice v3) {
+bool Algorithms::checkRightAngled(Vertice& v1, Vertice& v2, Vertice& v3) {
 	// Calculate the squares of the lengths of the sides
 	double s1 = distSq(v1, v2);
 	double s2 = distSq(v2, v3);
