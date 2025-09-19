@@ -10,6 +10,9 @@
 #include "Platform/OpenGL/CameraPerspective.h"
 #include "Platform/OpenGL/CameraOrthographic.h"
 #include "Platform/OpenGL/Algorithms.h"
+#include "Platform/OpenGL/Line.h"
+#include "Platform/OpenGL/Polygon.h"
+#include "Platform/OpenGL/Rect.h"
 #include "stb_image.h"
 #include "glm.hpp"
 #include "gtc/type_ptr.hpp"
@@ -330,24 +333,23 @@ void BlueMarble::OpenGLDrawable::drawLine(const LineGeometryPtr& geometry, const
             vertices.push_back(vertices[0]);
         }
         if (vertices.empty()) return;
-        PrimitiveGeometryInfoPtr info = std::make_shared<PrimitiveGeometryInfo>();
+        LineGeometryInfoPtr info = std::make_shared<LineGeometryInfo>();
         info->m_shader = m_lineShader;
-        info->m_hasFill = false;
-        Primitive2DPtr primitive = std::make_shared<Primitive2D>(info, vertices);
-        m_primitives[geometry->getID()] = primitive;
+        LinePtr line = std::make_shared<Line>(info, vertices);
+        m_primitives[geometry->getID()] = line;
     }
     //std::cout << "Drawing line id: " << geometry->getID() << "\n";
-    Primitive2DPtr primitive = m_primitives[geometry->getID()];
-
+    LinePtr line = std::static_pointer_cast<Line>(m_primitives[geometry->getID()]);
+    if (line == nullptr) return;
     auto mat = m_projectionMatrix*m_viewMatrix;
-    if (primitive->getShader() != nullptr)
+    if (line->getShader() != nullptr)
     {
-        primitive->getShader()->useProgram();
-        primitive->getShader()->setMat4("viewMatrix", mat);
+        line->getShader()->useProgram();
+        line->getShader()->setMat4("viewMatrix", mat);
     }
 
     int add = 1 ? geometry->isClosed() : 0;
-    primitive->drawLine(geometry->points().size() + add, 10);
+    line->drawLine(geometry->points().size() + add, 10);
 }
 
 void BlueMarble::OpenGLDrawable::drawPolygon(const PolygonGeometryPtr& geometry, const Pen& pen, const Brush& brush)
@@ -379,15 +381,15 @@ void BlueMarble::OpenGLDrawable::drawPolygon(const PolygonGeometryPtr& geometry,
             std::cout << "Couldn't draw object due to not being able to triangulate it" << std::endl;
             return;
         }
-        PrimitiveGeometryInfoPtr info = std::make_shared<PrimitiveGeometryInfo>();
+        PolygonGeometryInfoPtr info = std::make_shared<PolygonGeometryInfo>();
         info->m_shader = m_basicShader;
 
-        Primitive2DPtr primitive = std::make_shared<Primitive2D>(info,vertices,indices);
-        m_primitives[geometry->getID()] = primitive;
+        PolygonPtr polygon = std::make_shared<Polygon>(info,vertices,indices);
+        m_primitives[geometry->getID()] = polygon;
     }
     //std::cout << "Drawing polygon with id: " << geometry->getID() << "\n";
-    Primitive2DPtr primitive = m_primitives[geometry->getID()];
-
+    PolygonPtr primitive = std::static_pointer_cast<Polygon>(m_primitives[geometry->getID()]);
+    if (primitive == nullptr) return;
     auto mat = m_projectionMatrix*m_viewMatrix;
     if (primitive->getShader() != nullptr)
     {
@@ -477,16 +479,7 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, con
             return;
         }
 
-        BMM_DEBUG() << "Indicies: ";
-        for (auto ind : indices)
-        {
-            BMM_DEBUG() << ind << ", ";
-        }
-        BMM_DEBUG() << "\n";
-        
-
-
-        PrimitiveGeometryInfoPtr info = std::make_shared<PrimitiveGeometryInfo>();
+        RectGeometryInfoPtr info = std::make_shared<RectGeometryInfo>();
         info->m_hasFill = true;
 
         info->m_shader = m_basicShader;
@@ -498,19 +491,20 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, con
         info->m_shader->useProgram();
         info->m_shader->setInt("texture0", texIndex);
 
-        Primitive2DPtr primitive = std::make_shared<Primitive2D>(info, vertices, indices);
-        m_primitives[raster->getID()] = primitive;
+        RectPtr rect = std::make_shared<Rect>(info, vertices, indices);
+        m_primitives[raster->getID()] = rect;
     }
     //std::cout << "Drawing raster with id: " << raster->getID() << "\n";
-    Primitive2DPtr primitive = m_primitives[raster->getID()];
+    RectPtr rect = std::static_pointer_cast<Rect>(m_primitives[raster->getID()]);
+    if (rect == nullptr) return;
 
     auto mat = m_projectionMatrix*m_viewMatrix;
-    if (primitive->getShader() != nullptr)
+    if (rect->getShader() != nullptr)
     {
-        primitive->getShader()->useProgram();
-        primitive->getShader()->setMat4("viewMatrix", mat);
+        rect->getShader()->useProgram();
+        rect->getShader()->setMat4("viewMatrix", mat);
     }
-    primitive->drawIndex(6);
+    rect->drawIndex(6);
 }
 
 void OpenGLDrawable::drawText(int x, int y, const std::string& text, const Color& color, int fontSize, const Color& backgroundColor)

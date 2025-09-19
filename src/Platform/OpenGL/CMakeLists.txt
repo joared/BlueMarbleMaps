@@ -12,7 +12,7 @@ file(GLOB_RECURSE RENDERER_SOURCES
     "${CMAKE_SOURCE_DIR}/external/stb_image/stb_image.h"
     "${CMAKE_SOURCE_DIR}/external/stb_image/stb_image.cpp"
     "${CMAKE_SOURCE_DIR}/include/Application/WindowGL.h"
-    "${CMAKE_SOURCE_DIR}/include/RendererGL/*.h"
+    "${CMAKE_SOURCE_DIR}/include/Platform/OpenGL/*.h"
 )
 file(GLOB SHADER_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.frag"
@@ -23,7 +23,7 @@ add_executable(GraphicsRendererGL ${RENDERER_SOURCES} ${SHADER_SOURCES})
 
 target_include_directories(GraphicsRendererGL PRIVATE "${CMAKE_SOURCE_DIR}/include/Common")
 
-target_include_directories(GraphicsRendererGL PRIVATE "${CMAKE_SOURCE_DIR}/include/RendererGL/")
+target_include_directories(GraphicsRendererGL PRIVATE "${CMAKE_SOURCE_DIR}/include/Platform/OpenGL")
 
 message(STATUS "Looking for GLFW")
 
@@ -56,7 +56,7 @@ add_library(GraphicsRendererGLLib ${RENDERER_SOURCES} ${SHADER_SOURCER})
 
 target_include_directories(GraphicsRendererGLLib PRIVATE "${CMAKE_SOURCE_DIR}/include/Common")
 
-target_include_directories(GraphicsRendererGLLib PUBLIC "${CMAKE_SOURCE_DIR}/include/RendererGL/")
+target_include_directories(GraphicsRendererGLLib PUBLIC "${CMAKE_SOURCE_DIR}/include/Platform/OpenGL")
 
 message(STATUS "Looking for GLFW")
 

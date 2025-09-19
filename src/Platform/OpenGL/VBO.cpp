@@ -2,7 +2,8 @@
 #include <iostream>
 
 VBO::VBO()
-	:m_id(0)
+	:m_id(0),
+	 m_vertexCount(0)
 {
 
 }
@@ -14,6 +15,7 @@ VBO::~VBO()
 
 void VBO::init(std::vector<Vertice>& vertices)
 {
+	m_vertexCount = vertices.size();
 	glGenBuffers(1, &m_id);
 	glBindBuffer(GL_ARRAY_BUFFER, m_id);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertice) * vertices.size(), &vertices[0], GL_STATIC_DRAW);

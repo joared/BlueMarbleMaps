@@ -5,7 +5,7 @@
 struct VBO
 {
 	GLuint m_id;
-
+	GLuint m_vertexCount;
 	VBO();
 	~VBO();
 	

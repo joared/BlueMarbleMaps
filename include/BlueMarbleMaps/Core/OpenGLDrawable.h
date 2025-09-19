@@ -5,7 +5,6 @@
 #include "BlueMarbleMaps/Core/Brush.h"
 #include "BlueMarbleMaps/Core/Pen.h"
 #include "Platform/OpenGL/Primitive.h"
-#include "Platform/OpenGL/Primitive2D.h"
 #include <map>
 
 namespace BlueMarble
@@ -50,7 +49,7 @@ namespace BlueMarble
         Color getColorFromList(const std::vector<Color>& colors, int index);
         static void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam);
 
-	    std::map<BMID,Primitive2DPtr> m_primitives;
+	    std::map<BMID,PrimitivePtr> m_primitives;
         ShaderPtr m_basicShader;
         ShaderPtr m_lineShader;
         Transform m_transform;

@@ -15,7 +15,7 @@
 #include "Platform/OpenGL/Texture.h"
 #include "Platform/OpenGL/CameraOrthographic.h"
 #include "Platform/OpenGL/CameraPerspective.h"
-#include "Platform/OpenGL/Primitive2D.h"
+#include "Platform/OpenGL/Polygon.h"
 
 
 class Renderer : public WindowGL
@@ -70,8 +70,8 @@ public:
 
 		shader->useProgram();
 		shader->setInt("texture0", texIndex);
-		PrimitiveGeometryInfoPtr info = std::make_shared<PrimitiveGeometryInfo>();
-		Primitive2DPtr prim = std::make_shared<Primitive2D>(info, vertices, indices);
+		PolygonGeometryInfoPtr info = std::make_shared<PolygonGeometryInfo>();
+		PolygonPtr prim = std::make_shared<Polygon>(info, vertices, indices);
 		prim->setShader(shader);
 		prim->setTexture(tex);
 
