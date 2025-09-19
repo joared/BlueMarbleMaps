@@ -311,12 +311,13 @@ void Layer::createDefaultVisualizers()
         }
     );
 
-    m_visualizers.push_back(polVis);
+    m_visualizers.push_back(rasterVis);
+    //m_visualizers.push_back(polVis);
     //m_visualizers.push_back(pointVis);
     m_visualizers.push_back(lineVis);
     //m_visualizers.push_back(nodeVis);
-    m_visualizers.push_back(rasterVis);
-    m_visualizers.push_back(textVis);
+    
+    //m_visualizers.push_back(textVis);
 
     // Line visualizer
     auto lineVisHover = std::make_shared<LineVisualizer>();
@@ -341,8 +342,8 @@ void Layer::createDefaultVisualizers()
 
     // m_hoverVisualizers.push_back(pointVis);
     
-    m_hoverVisualizers.push_back(polVisHover);
-    m_hoverVisualizers.push_back(lineVisHover);
+    //m_hoverVisualizers.push_back(polVisHover);
+    //m_hoverVisualizers.push_back(lineVisHover);
     // m_hoverVisualizers.push_back(rasterVis);
     //m_hoverVisualizers.push_back(nodeVis);
     //m_hoverVisualizers.push_back(textVisHover);

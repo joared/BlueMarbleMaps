@@ -172,8 +172,7 @@ void Map::renderLayers()
     auto line = std::make_shared<LineGeometry>(updateArea);
     Pen p;
     p.setColor(Color::red());
-    p.setFromColor(Color::blue());
-    p.setWidth(5.0);
+    p.setThickness(5.0);
     //m_drawable->setTransform(Transform::screenTransform(m_drawable->width(), m_drawable->height()));
     m_drawable->drawLine(line, p);
     m_drawable->drawText(0,0,"",Color(), 2); // Faking flush

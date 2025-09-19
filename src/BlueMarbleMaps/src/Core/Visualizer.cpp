@@ -294,7 +294,7 @@ Pen LineVisualizer::createPen(const FeaturePtr &feature, Attributes &attributes)
     Pen pen;
     pen.setAntiAlias(m_antialiasEval(feature, attributes));
     pen.setColor(m_colorEval(feature, attributes));
-    pen.setWidth(m_widthEval(feature, attributes));
+    pen.setThickness(m_widthEval(feature, attributes));
 
     return pen;
 }

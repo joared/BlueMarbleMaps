@@ -18,6 +18,31 @@ namespace BlueMarble
             inline static Color black(double a=1.0) { return Color(0, 0, 0, a); }
             inline static Color gray(double a=1.0) { return Color(127, 127, 127, a); }
 
+            inline static std::vector<Color> colorRamp(const Color& start, const Color& end, int steps)
+            {
+                std::vector<Color> ramp;
+                ramp.reserve(steps);
+
+                double diffR = end.r()-start.r();
+                double diffG = end.g()-start.g();
+                double diffB = end.b()-start.b();
+                double diffA = end.a()-start.a();
+
+                for (int i = 0; i < steps; i++) 
+                {
+                    float t = static_cast<float>(i) / (steps - 1); // goes from 0 to 1
+                    
+                    ramp.push_back(Color(
+                        (int)(start.r() + diffR*t),
+                        (int)(start.g() + diffG*t),
+                        (int)(start.b() + diffB*t),
+                        start.a() + diffA*t)
+                    );
+                }
+
+                return ramp;
+            }
+
             // inline Color(int r, int g, int b)
             //     : m_r(r)
             //     , m_g(g)

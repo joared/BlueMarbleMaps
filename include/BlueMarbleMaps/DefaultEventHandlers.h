@@ -254,7 +254,7 @@ namespace BlueMarble
 
                 Pen pen;
                 pen.setAntiAlias(true);
-                pen.setWidth(3.0);
+                pen.setThickness(3.0);
                 pen.setColor(Color::red(0.9));
 
                 Brush brush;
@@ -896,20 +896,20 @@ namespace BlueMarble
 
                 auto line = std::make_shared<LineGeometry>();
                 
-                Pen p;
-                p.setAntiAlias(true);
-                p.setColor(Color::gray(0.8));
-                p.setFromColor(Color::gray(0.0));
-                p.setWidth(3.0);
+                
 
                 auto c1 = drawable->readPixel(m_currPos.x, m_currPos.y);
-                p.setFromColor(c1);
 
                 for (const auto& tp : m_trace)
                 {
                     const auto& screen = tp.first;
                     line->points().push_back(Point((double)screen.x, (double)screen.y));
                 }
+
+                Pen p;
+                p.setAntiAlias(true);
+                p.setColors(Color::colorRamp(Color::black(0.0), Color::gray(0.5), line->points().size()));
+                p.setThickness(3.0);
 
                 // Draw the trace as a line
                 drawable->drawLine(line, p);

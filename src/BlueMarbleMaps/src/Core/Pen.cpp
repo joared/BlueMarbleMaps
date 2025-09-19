@@ -2,12 +2,19 @@
 
 namespace BlueMarble
 {
-	Pen::Pen(Color color, double thickness, Pen::Properties properties, double offset)
-		: m_colors()
-		, m_offset(offset)
-		, m_thickness(thickness)
-		, m_properties(properties)
+	Pen::Pen()
+		: Pen(Color::black(), 1.0)
 	{
+
+	}
+
+    Pen::Pen(Color color, double thickness, Pen::Properties properties, double offset)
+        : m_colors()
+        , m_offset(offset)
+        , m_thickness(thickness)
+        , m_properties(properties)
+		, m_antiAlias(false)
+    {
 		m_colors.push_back(color);
 	}
 	Pen::Pen(std::vector<Color> colors, double thickness, Pen::Properties properties, double offset)
@@ -15,8 +22,9 @@ namespace BlueMarble
 		, m_offset(offset)
 		, m_thickness(thickness)
 		, m_properties(properties)
+		, m_antiAlias(false)
 	{
-
+		
 	}
 
 	void Pen::setThickness(double thickness)
@@ -45,15 +53,42 @@ namespace BlueMarble
 	{
 		m_colors = colors;
 	}
-	std::vector<Color> Pen::getColors() const
+
+	 void Pen::setColor(const Color& color)
+	 {
+		m_colors = { color };
+	 }
+
+     const Color& Pen::getColor() const
+     {
+         if (m_colors.empty())
+		 {
+			return Color::black();
+		 }
+
+		 return m_colors[0];
+     }
+
+     std::vector<Color> Pen::getColors() const
+     {
+         return m_colors;
+     }
+
+	void Pen::setAntiAlias(bool antiAlias)
 	{
-		return m_colors;
+		m_antiAlias = antiAlias;
+	}
+	
+	bool Pen::getAntiAlias() const
+	{
+		return m_antiAlias;
 	}
 
 	void Pen::setProperties(Pen::Properties properties)
 	{
 		m_properties = properties;
 	}
+
 	Pen::Properties Pen::getProperties() const
 	{
 		return m_properties;

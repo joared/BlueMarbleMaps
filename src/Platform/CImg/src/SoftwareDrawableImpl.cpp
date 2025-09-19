@@ -75,7 +75,7 @@ void SoftwareDrawable::Impl::drawCircle(int x, int y, double radius, const Pen& 
 void SoftwareDrawable::Impl::drawLine(const LineGeometryPtr& geometry, const Pen& pen)
 {
     auto color = pen.getColor();
-    double width = pen.getWidth();
+    double width = pen.getThickness();
     // m_renderer->drawLine(points, color, width);
     unsigned char c[] = {color.r(), color.g(), color.b(), (unsigned char)(color.a()*255)};
     int size = geometry->points().size();
