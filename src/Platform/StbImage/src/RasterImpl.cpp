@@ -66,8 +66,6 @@ Raster::Impl::Impl(const std::string& filePath)
 
     m_data = stbi_load(filePath.c_str(), &m_width, &m_height, &m_channels, 0);
 
-    
-
     if (m_data == NULL)
     {
         std::cout << "couldn't load texture: " << stbi_failure_reason() << "\n";
