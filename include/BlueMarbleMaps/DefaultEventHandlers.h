@@ -956,11 +956,13 @@ namespace BlueMarble
         private:
             void prunePositions(int64_t timeStamp)
             {
+                if (m_trace.empty()) return;
                 auto it = m_trace.begin();
+                
                 while ((it != m_trace.end() && timeStamp - it->second > m_cutoff) ||
                         m_trace.size() > m_traceSize)
                 {
-                    m_trace.erase(it);
+                    it = m_trace.erase(it);
                 }
             }
 

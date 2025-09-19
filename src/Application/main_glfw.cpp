@@ -14,6 +14,13 @@
 #include "map_configuration.h"
 #include <Keys.h>
 
+#ifdef WIN32
+#define PATH_TO_FANNY_FILE "E:/bilder/knrdoe5tleu51.png"
+#else 
+#define PATH_TO_FANNY_FILE /home/joar/git-repos/BlueMarbleMaps/geodata/elevation/LARGE_elevation.jpg
+#endif
+
+
 using namespace BlueMarble;
 
 
@@ -243,7 +250,7 @@ int main()
     view->showDebugInfo() = false;
     view->drawable()->backgroundColor(Color::white(0.0));
     // auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/readme/CompleteGeodata.png");
-    auto elevationDataSet = std::make_shared<ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/geodata/elevation/LARGE_elevation.jpg");
+    auto elevationDataSet = std::make_shared<ImageDataSet>(PATH_TO_FANNY_FILE);
     
     elevationDataSet->initialize(DataSetInitializationType::RightHereRightNow);
     auto elevationLayer = std::make_shared<Layer>(false);
@@ -265,7 +272,7 @@ int main()
 
     view->addLayer(vectorLayer);
 
-    configureMap(view, false, false, false);
+    //configureMap(view, false, false, false);
 
     mapControl->setView(view);
 

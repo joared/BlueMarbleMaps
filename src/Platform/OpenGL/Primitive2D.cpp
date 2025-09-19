@@ -7,6 +7,8 @@ Primitive2D::Primitive2D()
 Primitive2D::Primitive2D(PrimitiveGeometryInfoPtr& info, std::vector<Vertice> vertices)
 	: m_geometryInfo(info)
 {
+	if (vertices.empty()) return;
+	
 	m_geometryInfo->m_vbo.init(vertices);
 	m_geometryInfo->m_vao.init();
 
@@ -20,6 +22,8 @@ Primitive2D::Primitive2D(PrimitiveGeometryInfoPtr& info, std::vector<Vertice> ve
 Primitive2D::Primitive2D(PrimitiveGeometryInfoPtr& info, std::vector<Vertice> vertices, std::vector<GLuint> indices)
 	:m_geometryInfo(info)
 {
+	if (vertices.empty() || indices.empty()) return;
+
 	m_geometryInfo->m_vbo.init(vertices);
 	m_geometryInfo->m_ibo.init(indices);
 	m_geometryInfo->m_vao.init();

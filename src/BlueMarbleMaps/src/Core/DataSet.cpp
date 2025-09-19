@@ -900,7 +900,7 @@ FeatureEnumeratorPtr MemoryDataSet::getFeatures(const FeatureQuery& featureQuery
 
     for (auto f : m_features)
     {
-        if (f->isInside(featureQuery.area()))
+        if (f->bounds().overlap(featureQuery.area()))
         {
             features->add(f);
         }

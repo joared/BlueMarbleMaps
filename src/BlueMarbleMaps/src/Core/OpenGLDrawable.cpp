@@ -329,7 +329,7 @@ void BlueMarble::OpenGLDrawable::drawLine(const LineGeometryPtr& geometry, const
         {
             vertices.push_back(vertices[0]);
         }
-
+        if (vertices.empty()) return;
         PrimitiveGeometryInfoPtr info = std::make_shared<PrimitiveGeometryInfo>();
         info->m_shader = m_lineShader;
         info->m_hasFill = false;
@@ -372,13 +372,13 @@ void BlueMarble::OpenGLDrawable::drawPolygon(const PolygonGeometryPtr& geometry,
 
             vertices.push_back(Vertice{pos, glColor});
         }
+        if (vertices.empty()) return;
         std::vector<Vertice> triangles;
         if (Algorithms::triangulatePolygon(vertices, std::vector<Vertice>(), triangles, indices) == false)
         {
             std::cout << "Couldn't draw object due to not being able to triangulate it" << std::endl;
             return;
         }
-        
         PrimitiveGeometryInfoPtr info = std::make_shared<PrimitiveGeometryInfo>();
         info->m_shader = m_basicShader;
 
@@ -469,7 +469,7 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, con
 
             vertices.push_back(Vertice{ pos, glColor, textureCoords});
         }
-    
+        if (vertices.empty()) return;
         std::vector<Vertice> triangles;
         if (Algorithms::triangulatePolygon(vertices, std::vector<Vertice>(), triangles, indices) == false)
         {
