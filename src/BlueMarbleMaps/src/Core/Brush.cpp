@@ -1,4 +1,4 @@
-#include "Core/Brush.h"
+#include "BlueMarbleMaps/Core/Brush.h"
 
 namespace BlueMarble
 {

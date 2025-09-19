@@ -15,7 +15,6 @@
 # Cmake file from: https://github.com/daw42/glslcookbook
 
 set( _glfw3_HEADER_SEARCH_DIRS
-"$ENV{GLFW3_INCLUDE_DIR}"
 "/usr/include"
 "/usr/local/include"
 "/usr/include/GLFW/"
@@ -24,7 +23,6 @@ set( _glfw3_HEADER_SEARCH_DIRS
 "C:/dependencies/includes/GLFW"
 "D:/programmering/dependencies/includes/glfw" )
 set( _glfw3_LIB_SEARCH_DIRS
-"$ENV{GLFW3_LIB_DIR}"
 "/usr/lib"
 "/usr/local/lib"
 "${CMAKE_SOURCE_DIR}/lib"

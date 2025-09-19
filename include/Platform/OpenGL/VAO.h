@@ -1,6 +1,6 @@
 #pragma once
 #include <glad/glad.h>
-#include "VBO.h"
+#include "Platform/OpenGL/VBO.h"
 struct VAO
 {
 	GLuint m_id;

@@ -6,201 +6,219 @@
 #include "Core/Core.h"
 #include "Event/PointerEvent.h"
 #include "Event/KeyEvent.h"
-#include <Core/MapControl.h>
+#include "BlueMarbleMaps/Core/MapControl.h"
+#include "BlueMarbleMaps/Core/AnimationFunctions.h"
 
 namespace BlueMarble
 {
-    class DrawSomeEventHandler
-        : public BlueMarble::EventHandler
-        , public BlueMarble::MapEventHandler
+
+    class EditFeatureTool
+        : public Tool
     {
         public:
-            DrawSomeEventHandler(MapPtr map) 
-                : m_map(map)
+            EditFeatureTool()
+                : Tool()
+                , m_active(false)
+                , m_editFeature(nullptr)
+                , m_autoSelect(false)
+            {}
+        protected:
+            bool isActive() override final
             {
-
+                return m_editFeature != nullptr;
             }
 
-            void OnAreaChanged(BlueMarble::Map& /*map*/) override final 
+            void onConnected(const MapControlPtr& control, const MapPtr& map) override final 
             {
-
+                m_control = control;
+                m_map = map;
             }
 
-            void OnUpdating(BlueMarble::Map& /*map*/) override final 
+            void onDisconnected() override final 
             {
-
+                m_map = nullptr;
+                m_control = nullptr;
             }
 
-            void drawRect(const BlueMarble::Rectangle& bounds)
+            bool& autoSelect()
             {
-
+                return m_autoSelect;
             }
 
-            void OnCustomDraw(BlueMarble::Map& /*map*/) override final 
+            bool OnMouseDown(const MouseDownEvent& event) override final
             {
-                // auto& drawable = m_map->drawable(); // TODO: add reference again
-                // auto lineColor = BlueMarble::Color{0, 0, 0};
-                // auto fillColor = BlueMarble::Color{255, 255, 255, 0.5};
-            }
-
-            void OnUpdated(BlueMarble::Map& /*map*/) override final 
-            {
-
-            }
-
-            bool OnClick(const ClickEvent& event)
-            {
-
-                return true;
-            }
-
-        private:
-            BlueMarble::MapPtr m_map;
-    };
-
-    class PolygonEventHandler 
-        : public BlueMarble::EventHandler
-        , public BlueMarble::MapEventHandler
-    {
-        public:
-            PolygonEventHandler(MapPtr map)
-                : m_map(map)
-            {
-                m_map->addMapEventHandler(this);
-            }
-
-            void OnAreaChanged(BlueMarble::Map& /*map*/) override final 
-            {
-
-            }
-
-            void OnUpdating(BlueMarble::Map& /*map*/) override final 
-            {
-
-            }
-
-            void OnCustomDraw(BlueMarble::Map& /*map*/) override final 
-            {
-                for (auto& polygon : m_polygons)
+                auto& presentationObjects = m_map->hitTest(event.pos.x, event.pos.y, 10);
+                for (auto& p : presentationObjects)
                 {
-                    //std::cout << "OnCustomDraw\n";
-                    if (polygon.size() > 1)
+                    if (!m_autoSelect && !m_map->isSelected(p.sourceFeature()))
                     {
-                        // Draw line
-                        auto& drawable = *m_map->drawable();
-                        LineGeometryPtr polygonPtr = std::make_shared<LineGeometry>(m_map->mapToScreen(polygon));
-                        drawable.drawLine(polygonPtr, Pen(Color(255, 255, 255),1));
+                        // Not selected, continue to find a selected feature
+                        continue;
                     }
-
-                    if (polygon.size() > 2)
-                    {
-                        // Draw polygon
-                        auto& drawable = *m_map->drawable();
-                        PolygonGeometryPtr polygonPtr = std::make_shared<PolygonGeometry>(m_map->mapToScreen(polygon));
-                        drawable.drawPolygon(polygonPtr, Brush(Color(0, 0, 0, 0.5)));
-                    }
+                    BMM_DEBUG() << "We hit something! I am stealing events!\n";
+                    m_editFeature = p.sourceFeature();
+                    m_nodeIndex = p.nodeIndex();
+                    return true;
                 }
-                std::cout << "Drawing polygon\n";
+
+                return false;
             }
 
-            void OnUpdated(BlueMarble::Map& /*map*/) override final 
+            bool OnDrag(const DragEvent& event) override final
             {
-
-            }
-
-            bool OnClick(const ClickEvent& event)
-            {
-                if (m_polygons.empty())
+                if (!m_editFeature)
+                {
                     return false;
+                }
+                BMM_DEBUG() << "I am editing!\n";
 
-                auto& polygon = m_polygons[m_polygons.size()-1];
-                Point p = m_map->screenToMap(event.pos.x, event.pos.y);
-                polygon.push_back(p);
+                // If auto select is enabled, select the feature
+                if (m_autoSelect && !m_map->isSelected(m_editFeature))
+                {
+                    m_map->select(m_editFeature);
+                }
+
+                // TODO: should be projected to the feature coordinate system
+                auto fromPos = m_map->screenToMap(Point{(double)event.lastPos.x, 
+                                                        (double)event.lastPos.y});
+                auto toPos = m_map->screenToMap(Point{(double)event.pos.x, 
+                                                      (double)event.pos.y});
+                auto delta = toPos-fromPos;
+
+                if (m_nodeIndex != -1)
+                {
+                    BMM_DEBUG() << "Edit Node: " << m_nodeIndex << "\n";
+                    auto& point = getNodePoint(m_editFeature, m_nodeIndex);
+                    point = toPos;
+                }
+                else
+                {
+                    m_editFeature->move(delta);
+                }
+
                 m_map->update();
+
                 return true;
             }
 
-            bool OnKeyDown(const KeyDownEvent& event)
+            bool OnMouseUp(const MouseUpEvent& event) override final
             {
-                switch (event.keyButton)
-                {
-                case KeyButton::Space:
-                    // add polygon
-                    m_polygons.push_back(Polygon());
-                    std::cout << "New polygon\n";
-                    break;
-                case KeyButton::BackSpace:
-                    /* code */
-                    if (!m_polygons.empty())
-                    {
-                        m_polygons.erase(m_polygons.end() - 1);
-                        std::cout << "Delete polygon\n";
-                        m_map->update();
-                    }
-                    break;
-                default:
-                    break;
-                }
+                BMM_DEBUG() << "Mouse up! Deactivate\n";
+                m_editFeature = nullptr;
+                return false;
             }
 
         private:
+            Point& getNodePoint(const FeaturePtr& feature, int nodeIndex)
+            {
+                if (feature->geometryType() == GeometryType::Point)
+                {
+                    return feature->geometryAsPoint()->point();
+                }
+                else if (feature->geometryType() == GeometryType::Polygon)
+                {
+                    // TODO: could be inner ring
+                    return feature->geometryAsPolygon()->outerRing()[nodeIndex];
+                }
+                else if (feature->geometryType() == GeometryType::Line)
+                {
+                    return feature->geometryAsLine()->points()[nodeIndex];
+                }
+                else
+                {
+                    BMM_DEBUG() << "Something went wrong...\n";
+                    throw std::exception();
+                }
+            }
+
+            MapControlPtr m_control;
             MapPtr m_map;
-            typedef std::vector<Point> Polygon;
-            std::vector<Polygon> m_polygons;
+            bool m_active;
+            FeaturePtr m_editFeature;
+            int m_nodeIndex;
+
+            bool m_autoSelect;
     };
 
     class PanEventHandler 
-        : public BlueMarble::EventHandler
-        , public BlueMarble::MapEventHandler
+        : public Tool
         , public IFeatureEventListener
     {
         public:
-            PanEventHandler(BlueMarble::MapPtr map, MapControlPtr mapControl) 
-                : m_map(map)
-                , m_mapControl(mapControl)
+            PanEventHandler() 
+                : Tool()
+                , m_map(nullptr)
+                , m_mapControl(nullptr)
                 , m_rectangle(BlueMarble::Rectangle::undefined())
                 , m_zoomToRect(false)
                 , m_inertiaOption{0.002, 0.1}
-                , m_dataSetsInitialized(false)
-                , m_funnyDudeRaster(0,0,0,0) // Prevent warning
                 , m_drawDataSetInfo(false)
+                , m_hitTestLine(std::make_shared<LineGeometry>())
+                , m_hoverFeature(nullptr)
             {
                 m_cutoff = 150;
                 int reserveAmount = (int)(m_cutoff / 16.0) + 1;
                 m_positions.reserve(reserveAmount);
                 m_timeStamps.reserve(reserveAmount);
-
-                m_map->addMapEventHandler(this);
             }
-            
-            void OnAreaChanged(BlueMarble::Map& /*map*/) override final 
+
+            bool isActive() override final
+            {
+                return true;
+            }
+
+            void onConnected(const MapControlPtr& control, const MapPtr& map) override final 
+            {
+                m_mapControl = control;
+                m_map = map;
+                m_map->events.onUpdating.subscribe(this, &PanEventHandler::OnUpdating);
+                m_map->events.onCustomDraw.subscribe(this, &PanEventHandler::OnCustomDraw);
+                m_map->events.onUpdated.subscribe(this, &PanEventHandler::OnUpdated);
+                m_map->events.onIdle.subscribe(this, &PanEventHandler::OnIdle);
+            }
+
+            void onDisconnected() override final 
+            {
+                m_map->events.onUpdating.unsubscribe(this);
+                m_map->events.onCustomDraw.unsubscribe(this);
+                m_map->events.onUpdated.unsubscribe(this);
+                m_map->events.onIdle.unsubscribe(this);
+                m_map = nullptr;
+                m_mapControl = nullptr;
+            }
+
+            void OnIdle(BlueMarble::Map& /*map*/)
+            {
+                //BMM_DEBUG() << "OnIdle!\n";
+            }
+
+            void OnAreaChanged(BlueMarble::Map& /*map*/)
             {
 
             }
 
-            void OnUpdating(BlueMarble::Map& /*map*/) override final 
+            void OnUpdating(BlueMarble::Map& /*map*/)
             {
-
+                
             }
 
             void drawRect(const BlueMarble::Rectangle& bounds)
             {
-                auto& drawable = *m_map->drawable(); // TODO: add reference again
-                auto lineColor = BlueMarble::Color{0, 0, 0};
-                auto fillColor = BlueMarble::Color{255, 255, 255, 0.2};
-                
-
-                std::cout << "drawRect\n";
-                drawable.drawRect(bounds, fillColor);
-                std::cout << "drawRect exit\n";
+                auto drawable = m_map->drawable();
+                auto pen = BlueMarble::Pen();
+                pen.setColor(BlueMarble::Color{0, 0, 0});
+                auto brush = Brush();
+                brush.setColor(BlueMarble::Color{255, 255, 255, 0.2});
 
                 auto line = bounds.corners();
-                line.push_back(line[0]);
-                LineGeometryPtr linePtr = std::make_shared<LineGeometry>(line);
-                drawable.drawLine(linePtr, Pen(lineColor,1)); 
+                auto linePtr = std::make_shared<PolygonGeometry>(line);
+                drawable->drawPolygon(linePtr, pen, brush); 
+
+                auto l2 = Rectangle(0,0,100,100).corners();
+                drawable->drawPolygon(std::make_shared<PolygonGeometry>(l2), pen, brush);
             }
 
-            void OnCustomDraw(BlueMarble::Map& /*map*/) override final 
+            void OnCustomDraw(BlueMarble::Map& /*map*/)
             {
                 ScreenPos pos;
                 m_mapControl->getMousePos(pos);
@@ -216,6 +234,7 @@ namespace BlueMarble
                     auto screenRect = m_map->mapToScreen(m_rectangle);
                     screenRect.floor();
                     drawRect(screenRect);
+                    BMM_DEBUG() << "Draw rect: " << screenRect.toString() << "\n";
                 }
 
                 if (m_drawDataSetInfo)
@@ -250,9 +269,9 @@ namespace BlueMarble
                 //m_map->drawable()->drawArc(c.x(), c.y(), 10, 20, 0.5, pen, brush);
             }
 
-            void OnUpdated(BlueMarble::Map& /*map*/) override final 
+            void OnUpdated(BlueMarble::Map& /*map*/)
             {
-
+                
             }
 
             void onFeatureCreated(const FeaturePtr& /*feature*/) override final {}
@@ -407,7 +426,7 @@ namespace BlueMarble
                         int i = numberKeyToInt(event.keyButton);
                         std::cout << "Layers: " << m_map->layers().size() << "\n";
                         std::cout << "Number: " << i << "\n";
-                        if (i <= m_map->layers().size())
+                        if (i <= (int)m_map->layers().size())
                         {
                             bool enabled = m_map->layers()[i-1]->enabled();
                             enabled = !enabled;
@@ -465,7 +484,13 @@ namespace BlueMarble
                 BlueMarble::FeaturePtr hoverFeature(nullptr);
                 if (pObjs.size() > 0)
                 {
+                    auto p = m_map->screenToMap(Point(event.pos.x, event.pos.y));
+                    
+                    m_hitTestLine->points().push_back(p);
                     hoverFeature = pObjs[0].sourceFeature();
+                    
+                    m_map->update();
+                    m_hoverFeature = hoverFeature;
                 }
 
                 if (!m_map->isHovered(hoverFeature))
@@ -525,6 +550,7 @@ namespace BlueMarble
                 else // SelectMode::Add
                 {
                     m_map->deSelect(selFeat);
+                    std::cout << "Clicked " << m_map->center().toString() << "\n";
                 }
                 
                 m_map->update();
@@ -565,7 +591,14 @@ namespace BlueMarble
                 }
                 else
                 {
-                    m_map->zoomOn(mapPoint, zoomFactor, true);
+                    if (event.mouseButton == MouseButton::MouseButtonRight)
+                    {
+                        m_map->center({0,0}); // Recenter, there is a bug in this shiet
+                    }
+                    else
+                    {
+                        m_map->zoomOn(mapPoint, zoomFactor, true);
+                    }
                 }
                 m_map->update();
 
@@ -647,11 +680,17 @@ namespace BlueMarble
                     }
                 case BlueMarble::MouseButtonMiddle:
                     {
-                        auto corner1 = m_map->screenToMap(dragEvent.pos.x, dragEvent.pos.y);
-                        auto corner2 = m_map->screenToMap(dragEvent.startPos.x, dragEvent.startPos.y);
-                        m_rectangle = BlueMarble::Rectangle(corner1.x(), corner1.y(), corner2.x(), corner2.y());
-                        std::cout << "Rectangle set: " << std::to_string(m_rectangle.xMin()) << ", " << std::to_string(m_rectangle.yMin()) << ", " << std::to_string(m_rectangle.xMax()) << ", " << std::to_string(m_rectangle.yMax()) << "\n";
+                        // Pan navigation thing
+                        m_map->panBy({-(double)(dragEvent.lastPos.x - dragEvent.pos.x), 
+                                      -(double)(dragEvent.lastPos.y - dragEvent.pos.y)});
                         m_map->update();
+
+                        // Draw a rectangle
+                        // auto corner1 = m_map->screenToMap(dragEvent.pos.x, dragEvent.pos.y);
+                        // auto corner2 = m_map->screenToMap(dragEvent.startPos.x, dragEvent.startPos.y);
+                        // m_rectangle = BlueMarble::Rectangle(corner1.x(), corner1.y(), corner2.x(), corner2.y());
+                        // std::cout << "Rectangle set: " << std::to_string(m_rectangle.xMin()) << ", " << std::to_string(m_rectangle.yMin()) << ", " << std::to_string(m_rectangle.xMax()) << ", " << std::to_string(m_rectangle.yMax()) << "\n";
+                        // m_map->update();
                         break;
                     }
                 default:
@@ -747,11 +786,10 @@ namespace BlueMarble
 
             void prunePositions(int timeStamp)
             {
-                int i = 0;
-                while (i < (int)m_timeStamps.size() && timeStamp - m_timeStamps[0] > m_cutoff)
+                while (m_timeStamps.size() > 0 && timeStamp - m_timeStamps[0] > m_cutoff)
                 {
-                    m_timeStamps.erase(m_timeStamps.begin() + i);
-                    m_positions.erase(m_positions.begin() + i);
+                    m_timeStamps.erase(m_timeStamps.begin());
+                    m_positions.erase(m_positions.begin());
                 }
             }
 
@@ -766,13 +804,18 @@ namespace BlueMarble
                 int size = (int)m_timeStamps.size();
                 int diffIdx = size-1;
                 int deltaTime = m_timeStamps[diffIdx] - m_timeStamps[0];
+                if (deltaTime == 0)
+                {
+                    BMM_DEBUG() << "WARNING: delta time evaluated to 0!\n";
+                    return Point{0.0};
+                }
                 BlueMarble::Point deltaPos = BlueMarble::Point(m_positions[diffIdx].x, m_positions[diffIdx].y) 
                                             - BlueMarble::Point(m_positions[0].x, m_positions[0].y);
 
                 return deltaPos * (1.0/deltaTime);
             }
 
-            bool handleEvent(const BlueMarble::Event& event) override
+            bool onEvent(const BlueMarble::Event& event) override final
             {
                 // Debug output event info
                 // const BlueMarble::PointerEvent& pointerEvent = static_cast<const BlueMarble::PointerEvent&>(event);
@@ -784,21 +827,19 @@ namespace BlueMarble
                     std::cout << "Resize!\n";
                 }
 
-                return EventHandler::handleEvent(event);
+                return Tool::onEvent(event);
             }
         private:
             
             BlueMarble::MapPtr m_map;
             MapControlPtr m_mapControl;
+            BlueMarble::Rectangle m_rectangle;
+            bool m_zoomToRect;
             std::vector<int> m_timeStamps;
+            BlueMarble::InertiaOptions m_inertiaOption;
             std::vector<BlueMarble::ScreenPos> m_positions;
             int m_cutoff;
-            BlueMarble::InertiaOptions m_inertiaOption;
-            BlueMarble::Rectangle m_rectangle;
             int m_debugTime;
-            bool m_zoomToRect;
-            Raster m_funnyDudeRaster;
-            bool m_dataSetsInitialized;
             bool m_drawDataSetInfo;
             int m_lastX;
             int m_lastY;
@@ -979,6 +1020,7 @@ namespace BlueMarble
         private:
             MapPtr m_map;
     };
+    typedef std::shared_ptr<KeyActionTool> KeyActionToolPtr;
 
 }
 #endif /* DEFAULTEVENTHANDLERS */

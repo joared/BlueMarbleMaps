@@ -4,7 +4,7 @@
 // If opengl compatible raster implementation is used,
 // we need ImageDataOperations to convert image data in e.g.
 // drawRaster.
-#include "Utility/ImageDataOperations.h"
+#include "BlueMarbleMaps/Utility/ImageDataOperations.h"
 #define OPENGL_TO_CIMG interleavedToPlanarFlipY
 #endif
  
@@ -59,9 +59,15 @@ void SoftwareDrawable::Impl::fill(int val)
     m_img.fill(val);
 }
 
-void SoftwareDrawable::Impl::drawCircle(int x, int y, double radius, const Color& color)
+void SoftwareDrawable::Impl::drawArc(float cx, float cy, float rx, float ry, double theta, const Pen& pen, const Brush& brush)
+{
+    std::cout << "SoftwareDrawable::Impl::drawArc Not implemented\n";
+}
+
+void SoftwareDrawable::Impl::drawCircle(int x, int y, double radius, const Pen& pen, const Brush& brush)
 {
     // m_renderer->drawCircle(x, y,radius,color);
+    auto color = brush.getColor();
     unsigned char c[] = {color.r(), color.g(), color.b(), (unsigned char)(color.a()*255)};
     m_img.draw_circle(x, y, radius, c, color.a());
 }
@@ -71,16 +77,6 @@ void SoftwareDrawable::Impl::drawLine(const LineGeometryPtr& geometry, const Pen
     auto color = pen.getColor();
     double width = pen.getThickness();
     // m_renderer->drawLine(points, color, width);
-    Color color;
-    if (pen.getColors().size())
-    {
-        color = pen.getColors()[0];
-    }
-    else
-    {
-        color = Color();
-    }
-    double thickness = pen.getThickness();
     unsigned char c[] = {color.r(), color.g(), color.b(), (unsigned char)(color.a()*255)};
     int size = geometry->points().size();
     auto line = geometry->points();
@@ -92,7 +88,7 @@ void SoftwareDrawable::Impl::drawLine(const LineGeometryPtr& geometry, const Pen
         int y0 = std::round(p1.y());
         int x1 = std::round(p2.x());
         int y1 = std::round(p2.y());
-        if (thickness <= 1.0)
+        if (width <= 1.0)
             m_img.draw_line(x0, y0, x1, y1, c, color.a());
         else
         {
@@ -103,19 +99,22 @@ void SoftwareDrawable::Impl::drawLine(const LineGeometryPtr& geometry, const Pen
             auto v2 = Point(-v.y(), v.x()); // unit vector norm to the line
             
             std::vector<Point> polygon;
-            polygon.push_back(start + v2* thickness *0.5);
-            polygon.push_back(start - v2* thickness *0.5);
-            polygon.push_back(end - v2* thickness *0.5);
-            polygon.push_back(end + v2* thickness *0.5);
+            polygon.push_back(start + v2*width*0.5);
+            polygon.push_back(start - v2*width*0.5);
+            polygon.push_back(end - v2*width*0.5);
+            polygon.push_back(end + v2*width*0.5);
             PolygonGeometryPtr polygonPtr = std::make_shared<PolygonGeometry>(PolygonGeometry(polygon));
-            drawPolygon(polygonPtr, Brush(color));
+            auto brush = Brush();
+            brush.setColor(color);
+            drawPolygon(polygonPtr, Pen(), brush);
         }
     }
 }
 
-void SoftwareDrawable::Impl::drawPolygon(const PolygonGeometryPtr& geometry, const Brush& brush)
+void SoftwareDrawable::Impl::drawPolygon(const PolygonGeometryPtr& geometry, const Pen& pen, const Brush& brush)
 {
-    // m_renderer->drawPolygon(points,color);
+    auto color = brush.getColor();
+
     assert(geometry->outerRing().size() > 2);
     auto iterator = geometry->outerRing().begin();
     cimg_library::CImg<int> pointsCImg(geometry->outerRing().size(), 2);
@@ -125,13 +124,8 @@ void SoftwareDrawable::Impl::drawPolygon(const PolygonGeometryPtr& geometry, con
         pointsCImg(i,0) = p.x(); 
         pointsCImg(i,1) = p.y(); 
     }
-    Color color;
-    if (brush.getColors().size())
-        color = brush.getColors()[0];
-    else
-        color = Color();
-
-    unsigned char c[] = { color.r(), color.g(), color.b(), (unsigned char)(color.a() * 255)};
+    
+    unsigned char c[] = {color.r(), color.g(), color.b(), (unsigned char)(color.a()*255)};
     m_img.draw_polygon(pointsCImg, c, color.a()); // .display();
 }
 
@@ -152,25 +146,26 @@ void SoftwareDrawable::Impl::drawRect(const Point& topLeft, const Point& bottomR
 void SoftwareDrawable::Impl::drawRaster(const RasterGeometryPtr& geometry, const Brush& brush)
 {
     auto center = m_transform.translation();
-    double scale = m_transform.scale();
+    double scaleX = m_transform.scaleX();
+    double scaleY = m_transform.scaleY();
     double rotation = m_transform.rotation();
 
     // TODO: This is the entire screen and might not be the update area that the view provided during the update.
     // This will result in raster features that have info outside the update area provided by the view will be visible
     Rectangle updateArea
     (
-        center.x() - (width() / scale)*0.5,
-        center.y() - (height() / scale)*0.5,
-        center.x() + (width() / scale)*0.5,
-        center.y() + (height() / scale)*0.5
+        center.x() - (width() / scaleX)*0.5,
+        center.y() - (height() / scaleY)*0.5,
+        center.x() + (width() / scaleX)*0.5,
+        center.y() + (height() / scaleY)*0.5
     );
 
     auto subGeometry = geometry->getSubRasterGeometry(updateArea);
 
     Raster& subRaster = subGeometry->raster();
 
-    int screenWidth = subGeometry->bounds().width()*scale;
-    int screenHeight = subGeometry->bounds().height()*scale;
+    int screenWidth = subGeometry->bounds().width()*scaleX;
+    int screenHeight = subGeometry->bounds().height()*scaleY;
 
     if (screenWidth == 0 || screenHeight == 0)
     {
@@ -182,8 +177,8 @@ void SoftwareDrawable::Impl::drawRaster(const RasterGeometryPtr& geometry, const
 
     auto screenC = screenCenter();
     auto delta = minCorner - center;
-    int x = delta.x()*scale + screenC.x();
-    int y = delta.y()*scale + screenC.y();
+    int x = delta.x()*scaleX + screenC.x();
+    int y = delta.y()*scaleY + screenC.y();
     
     subRaster.resize(screenWidth, screenHeight, Raster::ResizeInterpolation::NearestNeighbor);
 
@@ -196,15 +191,16 @@ void SoftwareDrawable::Impl::drawRaster(const RasterGeometryPtr& geometry, const
     OPENGL_TO_CIMG(rasterImg.data(), subRaster.data(), subRaster.width(), subRaster.height(), subRaster.channels());
 #endif
 
+    double alpha = brush.getColor().a();
     if (rasterImg.spectrum() == 4)
     {
         //img.draw_image(x, y, rasterImg.get_shared_channels(0,2), rasterImg.get_shared_channel(3), 1.0, 255);
         //img.draw_image(x, y, rasterImg, rasterImg.get_shared_channel(3), 1.0, 255);
-        m_img.draw_image(x, y, rasterImg, rasterImg.get_shared_channel(3), 0, 255);
+        m_img.draw_image(x, y, rasterImg, rasterImg.get_shared_channel(3), alpha, 255);
     }
     else
     {
-        m_img.draw_image(x, y, 0, 0, rasterImg, 0);
+        m_img.draw_image(x, y, 0, 0, rasterImg, alpha);
     }
 }
 
@@ -250,6 +246,11 @@ void SoftwareDrawable::Impl::swapBuffers()
     }
 
     m_disp->display(drawImg);
+}
+
+void SoftwareDrawable::Impl::clearBuffer()
+{
+    // No need?
 }
 
 void SoftwareDrawable::Impl::setWindow(void* window)

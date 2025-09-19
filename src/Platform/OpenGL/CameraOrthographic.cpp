@@ -49,7 +49,7 @@ void CameraOrthographic::zoom(float zoomFactor)
 }
 void CameraOrthographic::roll(float rotation)
 {
-	float rot = rotation; // * m_cameraInfo.m_sensitivity;
+	float rot = rotation * m_cameraInfo.m_sensitivity;
 	m_cameraInfo.m_roll += rot;
 	if (m_cameraInfo.m_roll >= 360.0f)
 		m_cameraInfo.m_roll -= 360.0f;
@@ -107,8 +107,7 @@ glm::mat4& CameraOrthographic::calculateTranslations()
 {
 	float w = (float)m_cameraInfo.m_width;
 	float h = (float)m_cameraInfo.m_height;
-	//m_projMatrix = glm::ortho(-w*0.5f, w*0.5f, -h*0.5f, h*0.5f, -(float)m_cameraInfo.m_near, (float)m_cameraInfo.m_far);
-	m_projMatrix = glm::ortho(0.0f, w, 0.0f, h, (float)m_cameraInfo.m_near, (float)m_cameraInfo.m_far);
+	m_projMatrix = glm::ortho(-w*0.5f, w*0.5f, -h*0.5f, h*0.5f, -(float)m_cameraInfo.m_near, (float)m_cameraInfo.m_far);
 	m_viewMatrix = m_projMatrix * glm::lookAt(m_cameraInfo.m_pos, 
 											  m_cameraInfo.m_cameraFace + m_cameraInfo.m_pivot, 
 											  m_cameraInfo.m_up);

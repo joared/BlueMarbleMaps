@@ -1,4 +1,4 @@
-#include "VBO.h"
+#include "Platform/OpenGL/VBO.h"
 #include <iostream>
 
 VBO::VBO()

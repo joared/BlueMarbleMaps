@@ -2,7 +2,7 @@
     #error "CImg SoftwareDrawableImpl.cpp has not been compiled. Define BLUEMARBLE_USE_CIMG_SOFTWARE_DRAWABLE_IMPL to compile it!";
 #endif
 
-#include "Core/SoftwareDrawable.h"
+#include "BlueMarbleMaps/Core/SoftwareDrawable.h"
 #include "CImg.h"
 
 namespace BlueMarble
@@ -19,12 +19,14 @@ namespace BlueMarble
             const Color& backgroundColor() const;
             void backgroundColor(const Color& color);
             void fill(int val);
-            void drawCircle(int x, int y, double radius, const Color& color);
+            void drawArc(float cx, float cy, float rx, float ry, double theta, const Pen& pen, const Brush& brush);
+            void drawCircle(int x, int y, double radius, const Pen& pen, const Brush& brush);
             void drawLine(const LineGeometryPtr& points, const Pen& pen);
-            void drawPolygon(const PolygonGeometryPtr& points, const Brush& brush);
+            void drawPolygon(const PolygonGeometryPtr& points, const Pen& pen, const Brush& brush);
             void drawRect(const Point& topLeft, const Point& bottomRight, const Color& color);
             void drawRaster(const RasterGeometryPtr& geometry, const Brush& brush);
             void drawText(int x, int y, const std::string& text, const Color& color, int fontSize, const Color& bcolor);
+            void clearBuffer();
             void swapBuffers();
             void setWindow(void* window);
             RendererImplementation renderer();

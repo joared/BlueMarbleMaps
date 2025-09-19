@@ -1,6 +1,6 @@
 #pragma once
 #include <glad/glad.h>
-#include <Primitive.h>
+#include "Platform/OpenGL/Primitive.h"
 
 class Primitive3D : public Primitive
 {

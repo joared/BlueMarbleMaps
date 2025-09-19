@@ -217,7 +217,7 @@ void Raster::Impl::save(const std::string& filePath) const
     stbi_flip_vertically_on_write(1);
 
     // Save as PNG
-    stbi_write_png(filePath.c_str(), width(), height(), channels(), data(), width() * 4);
+    stbi_write_png(filePath.c_str(), width(), height(), channels(), data(), width() * channels());
 }
 
 const unsigned char* Raster::Impl::data() const

@@ -99,7 +99,7 @@ void Primitive2D::drawLine(GLuint vertCount, float thickness)
 	m_geometryInfo->m_vao.bind();
 	m_geometryInfo->m_vbo.bind();
 	glLineWidth(thickness);
-	glDrawArrays(GL_LINES, 0, vertCount);
+	glDrawArrays(GL_LINE_STRIP, 0, vertCount);
 	glLineWidth(1);
 	m_geometryInfo->m_vao.unbind();
 	m_geometryInfo->m_vbo.unbind();
