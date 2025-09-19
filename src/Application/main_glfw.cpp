@@ -17,7 +17,7 @@
 #ifdef WIN32
 #define PATH_TO_FANNY_FILE "E:/bilder/knrdoe5tleu51.png"
 #else 
-#define PATH_TO_FANNY_FILE /home/joar/git-repos/BlueMarbleMaps/geodata/elevation/LARGE_elevation.jpg
+#define PATH_TO_FANNY_FILE "/home/joar/git-repos/BlueMarbleMaps/geodata/elevation/LARGE_elevation.jpg"
 #endif
 
 
