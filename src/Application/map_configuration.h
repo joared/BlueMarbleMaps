@@ -2,6 +2,7 @@
 #define MAP_CONFIGURATION
 
 #include "BlueMarbleMaps/Core/Map.h"
+#include "BlueMarbleMaps/Core/DataSets/DataSets.h"
 
 using namespace BlueMarble;
 

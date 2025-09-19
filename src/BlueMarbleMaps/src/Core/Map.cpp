@@ -1,7 +1,7 @@
 #include "BlueMarbleMaps/Core/Map.h"
 #include "BlueMarbleMaps/Core/MapConstraints.h"
 #include "BlueMarbleMaps/Utility/Utils.h"
-#include "BlueMarbleMaps/Core/DataSet.h"
+#include "BlueMarbleMaps/Core/DataSets/DataSet.h"
 #include "BlueMarbleMaps/Core/MapControl.h"
 #include "BlueMarbleMaps/Core/SoftwareDrawable.h"
 #include "BlueMarbleMaps/Logging/Logging.h"

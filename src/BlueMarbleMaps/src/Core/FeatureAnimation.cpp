@@ -1,5 +1,5 @@
 #include "BlueMarbleMaps/Core/FeatureAnimation.h"
-#include "BlueMarbleMaps/Core/DataSet.h"
+#include "BlueMarbleMaps/Core/DataSets/MemoryDataSet.h"
 
 using namespace BlueMarble;
 

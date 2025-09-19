@@ -3,7 +3,7 @@
 #include <iostream>
 
 #include "BlueMarbleMaps/Core/Map.h"
-#include "BlueMarbleMaps/Core/DataSet.h"
+#include "BlueMarbleMaps/Core/DataSets/DataSet.h"
 #include "BlueMarbleMaps/Core/Core.h"
 #include "BlueMarbleMaps/Core/Feature.h"
 #include "BlueMarbleMaps/Core/MapControl.h"

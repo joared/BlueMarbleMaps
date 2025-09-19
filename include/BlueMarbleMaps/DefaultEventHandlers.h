@@ -8,6 +8,7 @@
 #include "Event/KeyEvent.h"
 #include "BlueMarbleMaps/Core/MapControl.h"
 #include "BlueMarbleMaps/Core/AnimationFunctions.h"
+#include "BlueMarbleMaps/Core/DataSets/MemoryDataSet.h"
 
 namespace BlueMarble
 {
