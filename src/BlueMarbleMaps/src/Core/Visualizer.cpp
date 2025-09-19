@@ -1,4 +1,4 @@
-#include "BlueMarbleMaps/Core/Visualizer.h"
+#include "Core/Visualizer.h"
 
 using namespace BlueMarble;
 
@@ -8,7 +8,6 @@ Visualizer::Visualizer()
     , m_attachedFeatures()
     , m_sourceFeatures()
     , m_condition([](auto, auto) { return true; })
-    , m_antialiasEval([](auto, auto) { return false; })
     , m_colorEval(ColorEvaluation([](auto, auto) { return Color::black(); }))
     , m_sizeEval([](auto, auto) { return 1.0; })
     , m_sizeAddEval([](auto, auto) { return 1.0; })
@@ -16,7 +15,6 @@ Visualizer::Visualizer()
     , m_rotationEval([](auto, auto) { return 0.0; })
     , m_offsetXEval([](auto, auto) { return 0.0; })
     , m_offsetYEval([](auto, auto) { return 0.0; })
-    , m_lengthUnit(VisualizerLengtUnit::Pixels)
 {
 }
 
@@ -35,10 +33,7 @@ void Visualizer::condition(const Condition& condition)
     m_condition = condition;
 }
 
-const Condition& BlueMarble::Visualizer::condition()
-{
-    return m_condition;
-}
+
 void Visualizer::color(const ColorEvaluation& colorEval)
 {
     m_colorEval = colorEval;
@@ -54,20 +49,44 @@ void Visualizer::sizeAdd(const DoubleEvaluation& sizeAddEval)
     m_sizeAddEval = sizeAddEval;
 }
 
-void Visualizer::rotation(const DoubleEvaluation &rotationEval)
+void BlueMarble::Visualizer::rotation(const DoubleEvaluation &rotationEval)
 {
     m_rotationEval = rotationEval;
 }
 
-void Visualizer::generatePresentationObjects(const FeaturePtr& feature, const FeaturePtr& sourceFeature, Attributes& updateAttributes, std::vector<PresentationObject>& presentationObjects)
+bool Visualizer::attachFeature(FeaturePtr feature, FeaturePtr sourceFeature, Attributes& updateAttributes)
 {
-    // Default implementation
     if (!isValidGeometry(feature->geometryType()) || !m_condition(feature, updateAttributes))
-        return;
+        return false;
+    
+    m_attachedFeatures.push_back(feature);
+    m_sourceFeatures.push_back(sourceFeature);
 
-    auto p = PresentationObject(feature, sourceFeature, this, false, -1);
-    presentationObjects.push_back(p);
+    return true;
 }
+
+
+void Visualizer::render(Drawable& drawable, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs)
+{
+    if (m_attachedFeatures.empty())
+    {
+        // We have nothing to render. 
+    }
+    
+    preRender(drawable, m_attachedFeatures, m_sourceFeatures, updateAttributes, presObjs);
+    assert(m_attachedFeatures.size() == m_sourceFeatures.size());
+    for (size_t i(0); i<m_attachedFeatures.size(); i++)
+    {
+        auto f = m_attachedFeatures[i];
+        auto sourceF = m_sourceFeatures[i];
+        if (m_renderingEnabled)
+            renderFeature(drawable, f, sourceF, updateAttributes, presObjs);
+        presObjs.push_back(PresentationObject(f, sourceF, this));
+    }
+    m_attachedFeatures.clear();
+    m_sourceFeatures.clear();
+}
+
 
 PointVisualizer::PointVisualizer()
     : Visualizer()
@@ -77,65 +96,52 @@ PointVisualizer::PointVisualizer()
 {
 }
 
-void PointVisualizer::generatePresentationObjects(const FeaturePtr& feature, const FeaturePtr& sourceFeature, Attributes& updateAttributes, std::vector<PresentationObject>& presentationObjects)
+void BlueMarble::PointVisualizer::preRender(Drawable& drawable, 
+                                            std::vector<FeaturePtr>& attachedFeatures, 
+                                            std::vector<FeaturePtr>& sourceFeatures, 
+                                            Attributes& updateAttributes,
+                                            std::vector<PresentationObject>& presObjs)
 {
-    auto cond = condition();
-    if (!isValidGeometry(feature->geometryType()) || !cond(feature, updateAttributes))
-        return;
-
     // Convert Polygon and Line features into point features
-    auto pointFeatures = std::vector<FeaturePtr>();
-    toPointFeature(feature, updateAttributes, pointFeatures);
-    assert(pointFeatures.size() > 0);
-
-    for (int nodeIndex=0; nodeIndex<pointFeatures.size(); ++nodeIndex)
+    // TODO: should this be done in attachFeature instead?
+    auto newAttachedFeatures = std::vector<FeaturePtr>();
+    auto newSourceFeatures = std::vector<FeaturePtr>();
+    for (size_t i(0); i<attachedFeatures.size(); i++)
     {
-        presentationObjects.push_back(PresentationObject(pointFeatures[nodeIndex], sourceFeature, this, false, nodeIndex));
-    }
-}
-
-void PointVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feature, Attributes& updateAttributes)
-{
-    auto cond = condition();
-    if (!isValidGeometry(feature->geometryType()) || !cond(feature, updateAttributes))
-        return;
-
-    auto points = std::vector<Point>();
-    if (atCenter())
-    {
-        points.push_back(feature->center());
-    }
-    else
-    {
-        switch (feature->geometryType())
+        auto f = attachedFeatures[i];
+        auto sourceF = sourceFeatures[i];
+        
+        auto pointFeatures = std::vector<FeaturePtr>();
+        toPointFeature(f, updateAttributes, pointFeatures);
+        assert(pointFeatures.size() > 0);
+        for (auto newF : pointFeatures)
         {
-        case GeometryType::Point:
-            points.push_back(feature->geometryAsPoint()->point());
-            break;
-        case GeometryType::Line:
-            points = feature->geometryAsLine()->points();
-            break;
-        case GeometryType::Polygon:
-            for (auto& ring : feature->geometryAsPolygon()->rings())
-            {
-                for (auto& p : ring)
-                    points.push_back(p);
-            }
-            break;
-        default:
-            std::cout << "SymbolVisualizer::renderFeature() Unhandled GeometryType: " << (int)feature->geometryType() << "\n";
-            throw std::exception();
+            newAttachedFeatures.push_back(newF);
+            newSourceFeatures.push_back(sourceF);
         }
     }
 
-    // Defer rendering to sub class
-    renderPoints(drawable, points, feature, nullptr, updateAttributes);
+    // Label organization
+    if (isLabelOrganized())
+    {
+        m_labelOrganizer.organize(newAttachedFeatures, newSourceFeatures);
+        // TODO: Clip to view area. Need view area...
+    }
+
+    attachedFeatures = newAttachedFeatures;
+    sourceFeatures = newSourceFeatures;
 }
 
-bool PointVisualizer::hitTest(const FeaturePtr &feature, const DrawablePtr &drawable, const Rectangle &area, std::vector<PresentationObject> &outPresentation)
+void PointVisualizer::renderFeature(Drawable &drawable, const FeaturePtr& feature, const FeaturePtr& source, Attributes& updateAttributes, std::vector<PresentationObject> &presObjs)
 {
-    // TODO
-    return Visualizer::hitTest(feature, drawable, area, outPresentation);
+    // TODO: use point geometries and features, needed for label organization for attributes
+    // use convertGeometry()
+    auto points = std::vector<Point>();
+    auto point = feature->geometryAsPoint()->point();
+    points.push_back(point);
+    
+    // Defer rendering to sub class
+    renderPoints(drawable, points, feature, source, updateAttributes);
 }
 
 bool PointVisualizer::isValidGeometry(GeometryType type)
@@ -193,9 +199,8 @@ SymbolVisualizer::SymbolVisualizer()
 
 void SymbolVisualizer::renderPoints(Drawable& drawable, const std::vector<Point> &points, const FeaturePtr& feature, const FeaturePtr& source, Attributes& updateAttributes)
 {
-    double radius = m_sizeEval(feature, updateAttributes) / updateAttributes.get<double>(UpdateAttributeKeys::UpdateViewScale);
+    double radius = m_sizeEval(feature, updateAttributes);
     Color color = m_colorEval(feature, updateAttributes);
-    
     double rotation = m_rotationEval(feature, updateAttributes);
     for (auto& point : points)
     {
@@ -218,7 +223,7 @@ void TextVisualizer::text(const StringEvaluation& textEval)
     m_textEval = textEval;
 }
 
-void TextVisualizer::backgroundColor(ColorEvaluation colorEval)
+void BlueMarble::TextVisualizer::backgroundColor(ColorEvaluation colorEval)
 {
     m_backgroundColorEval = colorEval;
 }
@@ -250,38 +255,6 @@ LineVisualizer::LineVisualizer()
 {
 }
 
-void LineVisualizer::generatePresentationObjects(const FeaturePtr& feature, const FeaturePtr& sourceFeature, Attributes& updateAttributes, std::vector<PresentationObject>& presentationObjects)
-{
-    // Default implementation
-    auto cond = condition();
-    if (!isValidGeometry(feature->geometryType()) || !cond(feature, updateAttributes))
-        return;
-
-    if (feature->geometryType() == GeometryType::Polygon)
-    {
-        auto poly = feature->geometryAsPolygon();
-        if (poly->outerRing().empty())
-        {
-            return;
-        }
-        for (auto& line : poly->rings())
-        {
-            auto lineFeature = std::make_shared<Feature>(
-                feature->id(), 
-                feature->crs(), 
-                std::make_shared<LineGeometry>(line), 
-                feature->attributes()
-            );
-
-            presentationObjects.push_back(PresentationObject(lineFeature, sourceFeature, this, false, -1)); // TODO add ringIndex to presentationobject
-        }
-    }
-    else
-    {
-        // Line
-        presentationObjects.push_back(PresentationObject(feature, sourceFeature, this, false, -1));
-    }
-}
 
 bool LineVisualizer::isValidGeometry(GeometryType type)
 {
@@ -296,15 +269,8 @@ Pen LineVisualizer::createPen(const FeaturePtr &feature, Attributes &attributes)
     pen.setColor(m_colorEval(feature, attributes));
     pen.setThickness(m_widthEval(feature, attributes));
 
-    return pen;
-}
-
-void LineVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feature, Attributes& updateAttributes)
+void LineVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feature, const FeaturePtr& source, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs)
 {
-    auto cond = condition();
-    if (!isValidGeometry(feature->geometryType()) || !cond(feature, updateAttributes))
-        return;
-
     auto lines = std::vector<std::vector<Point>>();
     switch (feature->geometryType())
     {
@@ -331,13 +297,7 @@ void LineVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feature
     }
 }
 
-bool LineVisualizer::hitTest(const FeaturePtr &feature, const DrawablePtr &drawable, const Rectangle &area, std::vector<PresentationObject> &outPresentation)
-{
-    // TODO
-    return Visualizer::hitTest(feature, drawable, area, outPresentation);
-}
-
-void LineVisualizer::width(DoubleEvaluation widthEval)
+void BlueMarble::LineVisualizer::width(DoubleEvaluation widthEval)
 {
     m_widthEval = widthEval;
 }
@@ -347,78 +307,55 @@ PolygonVisualizer::PolygonVisualizer()
 {
 }
 
-Brush PolygonVisualizer::createBrush(const FeaturePtr &feature, Attributes &attributes) const
-{
-    Brush brush;
-    brush.setAntiAlias(m_antialiasEval(feature, attributes));
-    brush.setColor(m_colorEval(feature, attributes));
-
-    return brush;
-}
-
 bool PolygonVisualizer::isValidGeometry(GeometryType type)
 {
     return type == GeometryType::Polygon;
 }
 
-void PolygonVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feature, Attributes& updateAttributes)
+void PolygonVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feature, const FeaturePtr& source, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs)
 {
-    auto cond = condition();
-    if (!isValidGeometry(feature->geometryType()) || !cond(feature, updateAttributes))
-        return;
-
     auto geometry = feature->geometryAsPolygon();
-    
+    auto& polygonPoints = geometry->outerRing();
     
     // FIXME: changing the geometry like this will mess with hittest of 
     // other presentation objects that in fact was rendered with 
     // a different geometry. Should probably not be done?
     double scale = m_sizeEval(feature, updateAttributes);
-    double rotation = m_rotationEval(feature, updateAttributes);
-    double extend = m_sizeAddEval(feature, updateAttributes);
-    double offX = m_offsetXEval(feature, updateAttributes);
-    double offY = m_offsetYEval(feature, updateAttributes);
-
-    if (scale != 1.0 || extend != 1.0 || rotation != 0.0 || offX != 0.0 || offY != 0.0)
-    {
-        // Need to clone the geometry if we intent modify it, otherwise hittesting for previous visualizers will mess up
-        geometry = std::dynamic_pointer_cast<PolygonGeometry>(geometry->clone());
-    }
-    auto& polygonPoints = geometry->outerRing();
-
-    double epsilon = 0.000001;
     if (scale != 1.0)
     {
-        // TODO: should we do this?
-        // if (abs(scale) < epsilon)
-        //     scale = epsilon;
         polygonPoints = Utils::scalePoints(polygonPoints, scale);
     }
 
+    double extend = m_sizeAddEval(feature, updateAttributes);
     if (extend != 1.0)
     {
-        // TODO: should we do this?
-        // if (abs(extend) < epsilon)
-        //     extend = epsilon;
+        std::vector<Point> newPoints;
         polygonPoints = Utils::extendPolygon(polygonPoints, extend);
     }
 
+    double rotation = m_rotationEval(feature, updateAttributes);
     if (rotation != 0.0)
     {
         polygonPoints = Utils::rotatePoints(polygonPoints, rotation);
     }
 
+    double offX = m_offsetXEval(feature, updateAttributes);
+    double offY = m_offsetYEval(feature, updateAttributes);
     if (offX != 0.0 || offY != 0.0)
     {
-        double incScale = 1.0 / updateAttributes.get<double>(UpdateAttributeKeys::UpdateViewScale);
-        offX *= incScale;
-        offY *= incScale;
         Utils::movePoints(polygonPoints, Point(offX, offY));
     }
-
     // Draw the polygon
-    //geometry->outerRing() = polygonPoints;
-    drawable.drawPolygon(geometry, Pen::transparent(), createBrush(feature, updateAttributes));
+    auto color = m_colorEval(feature, updateAttributes);
+    drawable.drawPolygon(geometry, color);
+    
+    return; // TODO: remove, testing new visualization structure
+
+    // TODO: inner rings should be "holes". How do we do that?
+    // for (auto innerRing : geometry->innerRings())
+    // {
+    //     drawable.drawPolygon(innerRing, Color::black(0.5));
+    // }
 }
 
 
@@ -433,19 +370,14 @@ bool RasterVisualizer::isValidGeometry(GeometryType type)
     return type == GeometryType::Raster;
 }
 
-void RasterVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feature, Attributes& updateAttributes)
+void RasterVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feature, const FeaturePtr& source, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs)
 {
-    auto cond = condition();
-    if (!isValidGeometry(feature->geometryType()) || !cond(feature, updateAttributes))
-        return;
-
     auto geometry = feature->geometryAsRaster();
     // auto& newImage = geometry->raster();
     // auto offset = geometry->bounds().minCorner();
     // drawable.drawRaster(offset.x(), offset.y(), newImage, 1.0);
     double alpha = m_alphaEval(feature, updateAttributes);
-    auto c = Color::white(alpha);
-    drawable.drawRaster(geometry, Brush(std::vector<Color>{c, c, c, c}));
+    drawable.drawRaster(geometry, Brush(std::vector<Color>{Color(255, 200, 210, 0.1f), Color(200,50,255,1.0f), Color(0, 250,10,0.5f), Color(10,100,170,0.3f)}));
 }
 
 void RasterVisualizer::alpha(const DoubleEvaluation& alphaEval)

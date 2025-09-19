@@ -1,4 +1,4 @@
-#include "BlueMarbleMaps/Core/Pen.h"
+#include "Core/Pen.h"
 
 namespace BlueMarble
 {

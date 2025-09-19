@@ -6,8 +6,6 @@
 #include "PresentationObject.h"
 #include "LabelOrganizer.h"
 #include "AttributeVariable.h"
-#include "Brush.h"
-#include "Pen.h"
 
 #include <functional>
 #include <memory>

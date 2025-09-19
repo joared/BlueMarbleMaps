@@ -1,4 +1,4 @@
-#include "Platform/OpenGL/IBO.h"
+#include "IBO.h"
 #include <iostream>
 
 IBO::IBO()

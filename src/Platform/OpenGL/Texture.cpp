@@ -5,7 +5,7 @@
 Texture::Texture()
 	:m_id(0)
 {
-
+	glGenTextures(1,&m_id);
 }
 Texture::~Texture()
 {
@@ -32,7 +32,7 @@ bool Texture::init(const unsigned char* data, int width, int height, int format,
 	default:glFormat = GL_RGBA;
 	}
 
-	glGenTextures(1,&m_id);
+	//glGenTextures(1,&m_id);
 
 	glBindTexture(GL_TEXTURE_2D, m_id);
 	glBindTextureUnit(activeIndex, m_id);

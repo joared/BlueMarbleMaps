@@ -7,15 +7,15 @@
 #include "Keys.h"
 #include "stb_image.h"
 
-#include "Platform/OpenGL/Vertice.h"
-#include "Platform/OpenGL/VAO.h"
-#include "Platform/OpenGL/VBO.h"
-#include "Platform/OpenGL/IBO.h"
-#include "Platform/OpenGL/Shader.h"
-#include "Platform/OpenGL/Texture.h"
-#include "Platform/OpenGL/CameraOrthographic.h"
-#include "Platform/OpenGL/CameraPerspective.h"
-#include "Platform/OpenGL/Primitive2D.h"
+#include "Vertice.h"
+#include "VAO.h"
+#include "VBO.h"
+#include "IBO.h"
+#include "Shader.h"
+#include "Texture.h"
+#include "CameraOrthographic.h"
+#include "CameraPerspective.h"
+#include "Primitive2D.h"
 
 
 class Renderer : public WindowGL
@@ -23,7 +23,7 @@ class Renderer : public WindowGL
 public:
 	static CameraOrthographic cam;
 
-	Renderer()
+	Renderer::Renderer()
 	{
 		stbi_set_flip_vertically_on_load(true);
 		if (!WindowGL::init(1000, 1000, "Hello World"))
@@ -93,7 +93,7 @@ public:
 		glfwTerminate();
 	}
 	
-	void keyEvent(WindowGL* window, int key, int scanCode, int action, int modifier) override
+	void Renderer::keyEvent(WindowGL* window, int key, int scanCode, int action, int modifier) override
 	{
 		Key keyStroke(scanCode);
 		static bool wireFrameMode = false;

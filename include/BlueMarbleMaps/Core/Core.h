@@ -283,23 +283,23 @@ namespace BlueMarble
 
             inline std::vector<Point> corners(bool clockWise=false) const
             {
-                auto minCorner = BlueMarble::Point(xMin(), yMin());
-                auto maxCorner = BlueMarble::Point(xMax(), yMax());
+                auto topLeft = BlueMarble::Point(xMin(), yMin());
+                auto bottomRight = BlueMarble::Point(xMax(), yMax());
 
                 std::vector<BlueMarble::Point> points;
                 if (!clockWise)
                 {
-                    points.push_back(minCorner);
-                    points.push_back(BlueMarble::Point(maxCorner.x(), minCorner.y()));
-                    points.push_back(maxCorner);
-                    points.push_back(BlueMarble::Point(minCorner.x(), maxCorner.y()));
+                    points.push_back(topLeft);
+                    points.push_back(BlueMarble::Point(topLeft.x(), bottomRight.y()));
+                    points.push_back(bottomRight);
+                    points.push_back(BlueMarble::Point(bottomRight.x(), topLeft.y()));
                 }
                 else
                 {
-                    points.push_back(minCorner);
-                    points.push_back(BlueMarble::Point(minCorner.x(), maxCorner.y()));
-                    points.push_back(maxCorner);
-                    points.push_back(BlueMarble::Point(maxCorner.x(), minCorner.y()));
+                    points.push_back(BlueMarble::Point(bottomRight.x(), topLeft.y()));
+                    points.push_back(bottomRight);
+                    points.push_back(BlueMarble::Point(topLeft.x(), bottomRight.y()));
+                    points.push_back(topLeft);
                 }
                 
                 return points;

@@ -1,4 +1,4 @@
-#include "Platform/OpenGL/VAO.h"
+#include "VAO.h"
 #include <iostream>
 
 VAO::VAO()

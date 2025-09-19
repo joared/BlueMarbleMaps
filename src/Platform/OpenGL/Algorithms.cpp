@@ -1,4 +1,4 @@
-#include "Platform/OpenGL/Algorithms.h"
+#include "Algorithms.h"
 #include "glm.hpp"
 #include <iostream>
 
