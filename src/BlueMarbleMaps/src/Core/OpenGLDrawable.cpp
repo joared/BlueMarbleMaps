@@ -376,7 +376,8 @@ void BlueMarble::OpenGLDrawable::drawPolygon(const PolygonGeometryPtr& geometry,
         }
         if (vertices.empty()) return;
         std::vector<Vertice> triangles;
-        if (Algorithms::triangulatePolygon(vertices, std::vector<Vertice>(), triangles, indices) == false)
+        std::vector<Vertice> holes;
+        if (Algorithms::triangulatePolygon(vertices, holes, triangles, indices) == false)
         {
             std::cout << "Couldn't draw object due to not being able to triangulate it" << std::endl;
             return;
@@ -473,7 +474,8 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, con
         }
         if (vertices.empty()) return;
         std::vector<Vertice> triangles;
-        if (Algorithms::triangulatePolygon(vertices, std::vector<Vertice>(), triangles, indices) == false)
+        std::vector<Vertice> holes;
+        if (Algorithms::triangulatePolygon(vertices, holes, triangles, indices) == false)
         {
             std::cout << "Couldn't draw object due to not being able to triangulate it" << std::endl;
             return;
