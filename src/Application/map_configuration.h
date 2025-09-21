@@ -66,8 +66,6 @@ void configureMap(const MapPtr& map, bool includeBackground=false, bool includeR
     
     //sverigeRoadsDataSet->initialize(); // Takes very long to initialize (1.4 GB large)
     if (includeRoads) roadsDataSet->initialize();  // very large too
-    backgroundDataSet->initialize(DataSetInitializationType::RightHereRightNow);
-    backgroundDataSet2->initialize();
 
     northAmerica->initialize();
     southAmerica->initialize();
@@ -103,6 +101,8 @@ void configureMap(const MapPtr& map, bool includeBackground=false, bool includeR
     auto debugLayer = BlueMarble::LayerPtr(new BlueMarble::Layer());
     if (includeBackground)
     {
+        backgroundDataSet->initialize(DataSetInitializationType::RightHereRightNow);
+        backgroundDataSet2->initialize();
         backgroundLayer->addDataSet(backgroundDataSet);
         backgroundLayer2->addDataSet(backgroundDataSet2);
     }

@@ -5,6 +5,7 @@
 #include "BlueMarbleMaps/Core/Feature.h"
 #include "BlueMarbleMaps/Utility/Algorithm.h"
 #include "BlueMarbleMaps/Core/UpdateInterfaces.h"
+#include "BlueMarbleMaps/Core/Index/FeatureStore.h"
 
 namespace BlueMarble
 {
@@ -25,10 +26,10 @@ namespace BlueMarble
             void init() override final;
             virtual void read(const std::string& filePath) = 0;
 
-            std::string             m_filePath;
-            std::vector<FeaturePtr> m_features;
-            Algorithm::QuadTree     m_featureTree;
-            std::atomic<double>     m_progress;
+            std::string                    m_filePath;
+            std::vector<FeaturePtr>        m_features;
+            std::unique_ptr<FeatureStore>  m_featureStore;
+            std::atomic<double>            m_progress;
     };
 }
 

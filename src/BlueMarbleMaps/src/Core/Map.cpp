@@ -43,6 +43,7 @@ Map::Map()
     , m_commmand(nullptr)
     , m_showDebugInfo(true)
     , m_isUpdating(false)
+    , m_renderingEnabled(true)
 {   
     m_drawable = std::make_shared<SoftwareBitmapDrawable>(500, 500, 4);
     m_presentationObjects.reserve(1000000); // Reserve a good amount for efficiency
@@ -89,40 +90,14 @@ bool Map::update(bool forceUpdate)
     beforeRender();
     renderLayers(); // Let layers do their work
 
-    // Some debug
-    // Color color(0,50,0,0.5);
-    // m_drawable->drawCircle(100, 100, 10, Color(0,0,0));
-    // std::vector<Point> points;
-    // points.push_back(Point(0,0));
-    // points.push_back(Point(500,500));
-    // m_drawable->drawLine(points,color,20);
-    // std::vector<Point> polyPoints;
-    // polyPoints.push_back(Point(500,500));
-    // polyPoints.push_back(Point(1000,500));
-    // polyPoints.push_back(Point(1000,100));
-    // polyPoints.push_back(Point(500,700));
-
-    // std::vector<Point> rectPoints;
-    // Point point1(50,50);
-    // Point point2(75,75);
-    // Color rectColor(50,0,100);
-    // m_drawable->drawRect(point1, point2, rectColor);
-    // m_drawable->drawText(400,400,"ello1",Color::white(),50, color);
-    // m_drawable->drawText(100,200,"ello2",rectColor,100);
-    // m_drawable->drawCircle(200, 50, 10, Color::blue(0.5));
-    // Raster raster0("/home/joar/BlueMarbleMaps/geodata/symbols/funny_dude.png");
-    // Raster raster1("/home/joar/BlueMarbleMaps/geodata/symbols/funny_dude.png");
-    // raster0.resize(0.5f);
-    // raster1.resize(100,100);
-    // m_drawable->drawRaster(750,500,raster0,0.5);
-    // m_drawable->drawRaster(500,500,raster1,1);
-    // m_drawable->drawPolygon(polyPoints, color);
-
-
-    // Reset transform for custom draw
-    
-    m_drawable->setTransform(Transform::screenTransform(m_drawable->width(), m_drawable->height()));
-    events.onCustomDraw.notify(*this);
+    // Each onCustomDraw notification should have the transform set to "screen".
+    // Since handlers are allowed to modify the transform, we need to make sure to reset it
+    // each time a handler is called.
+    auto preNotifyAction = [this]() 
+    { 
+        m_drawable->setTransform(Transform::screenTransform(m_drawable->width(), m_drawable->height())); 
+    };
+    events.onCustomDraw.notify(*this, preNotifyAction);
 
     if (m_showDebugInfo)
     {
@@ -742,6 +717,15 @@ BlueMarble::DrawablePtr Map::drawable()
 void BlueMarble::Map::drawable(const DrawablePtr &drawable)
 {
     m_drawable = drawable;
+}
+
+void BlueMarble::Map::renderingEnabled(bool enabled)
+{
+    m_renderingEnabled = enabled;
+    for (const auto& l : m_layers)
+    {
+        l->renderingEnabled(enabled);
+    }
 }
 
 void Map::updateUpdateAttributes(int64_t timeStampMs)

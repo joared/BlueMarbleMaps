@@ -5,6 +5,7 @@
 #include "BlueMarbleMaps/Core/Geometry.h"
 #include "BlueMarbleMaps/Core/Identity.h"
 #include "BlueMarbleMaps/Core/Attributes.h"
+#include "BlueMarbleMaps/Core/Collection.h"
 #include "BlueMarbleMaps/CoordinateSystem/Crs.h"
 
 #include <memory>
@@ -14,6 +15,9 @@ namespace BlueMarble
     // Forward declaration
     class Feature;
     typedef std::shared_ptr<Feature> FeaturePtr;
+
+    typedef Collection<FeatureId>              FeatureIdCollection;
+    typedef std::shared_ptr<FeatureIdCollection> FeatureIdCollectionPtr;
 
     class FeatureCollection;
     typedef std::shared_ptr<FeatureCollection> FeatureCollectionPtr;
@@ -104,10 +108,16 @@ namespace BlueMarble
 
             std::vector<FeaturePtr>& getVector() { return m_features; }
 
+            const FeaturePtr& get(size_t i) { return m_features[i]; }
+
+            void clear() { m_features.clear(); }
             bool empty() const { return m_features.empty(); }
             inline size_t size() const { return m_features.size(); }
-            inline auto begin() const { return m_features.begin(); }
-            inline auto end() const { return m_features.end(); }
+            inline auto begin() { return m_features.begin(); }
+            inline auto end() { return m_features.end(); }
+            inline auto begin() const { return m_features.cbegin(); }
+            inline auto end() const { return m_features.cend(); }
+            void reserve(size_t size) { m_features.reserve(size); }
 
         private:
             std::vector<FeaturePtr> m_features;

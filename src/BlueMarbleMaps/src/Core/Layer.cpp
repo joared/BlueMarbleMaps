@@ -12,6 +12,7 @@ Layer::Layer(bool createdefaultVisualizers)
     , m_enabledDuringQuickUpdates(true)
     , m_maxScale(std::numeric_limits<double>::infinity())
     , m_minScale(0)
+    , m_renderingEnabled(true)
     , m_effects()
     , m_drawable(nullptr)
 {
@@ -73,7 +74,8 @@ void Layer::update(const MapPtr& map, const CrsPtr &crs, const FeatureQuery &fea
             //     auto drawCalls = map->drawable()->stopRecording();
             //     m_cache[vis].set(f->id(), drawCalls);
             // }
-            vis->renderFeature(*map->drawable(), f, map->updateAttributes());
+            if (m_renderingEnabled)
+                vis->renderFeature(*map->drawable(), f, map->updateAttributes());
 
             if (!hasAddedHoverAnSelection)
             {
@@ -88,7 +90,6 @@ void Layer::update(const MapPtr& map, const CrsPtr &crs, const FeatureQuery &fea
             }
         }
         hasAddedHoverAnSelection = true;
-        map->drawable()->drawText(0,0,"",Color()); // Faking flush
     }
     
 
@@ -96,16 +97,16 @@ void Layer::update(const MapPtr& map, const CrsPtr &crs, const FeatureQuery &fea
     {
         for (const auto& f : hoveredFeatures)
         {
-            vis->renderFeature(*map->drawable(), f, map->updateAttributes());
-            map->drawable()->drawText(0,0,"",Color()); // Faking flush
+            if (m_renderingEnabled)
+                vis->renderFeature(*map->drawable(), f, map->updateAttributes());
         }
     }
     for (const auto& vis : m_selectionVisualizers)
     {
         for (const auto& f : selectedFeatures)
         {
-            vis->renderFeature(*map->drawable(), f, map->updateAttributes());
-            map->drawable()->drawText(0,0,"",Color()); // Faking flush
+            if (m_renderingEnabled)
+                vis->renderFeature(*map->drawable(), f, map->updateAttributes());
         }
     }
 

@@ -43,12 +43,12 @@ namespace BlueMarble
             bool moveNext();
             void reset();
             void add(const FeaturePtr& feature);
+            void setFeatures(const FeatureCollectionPtr& features);
             int size();
-            std::vector<FeaturePtr>& features() { return m_features; }; // TODO: remove?
         private:
             int m_iteratorIndex;
             int m_iterationIndex;
-            std::vector<FeaturePtr> m_features;
+            FeatureCollectionPtr m_features;
             std::vector<FeatureEnumeratorPtr> m_subEnumerators;
     };
 

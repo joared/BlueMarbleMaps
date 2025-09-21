@@ -1,40 +1,51 @@
 #include "BlueMarbleMaps/Core/DataSets/FileDataSet.h"
+#include "BlueMarbleMaps/Core/Index/QuadTreeIndex.h"
+#include "BlueMarbleMaps/Core/Index/FileDatabase.h"
+#include "BlueMarbleMaps/Core/Index/MemoryDatabase.h"
+#include "BlueMarbleMaps/Core/Index/FIFOCache.h"
 
 using namespace BlueMarble;
 
 AbstractFileDataSet::AbstractFileDataSet(const std::string& filePath)
     : DataSet() 
     , m_filePath(filePath)
-    , m_featureTree(Rectangle(-180.0, -90.0, 180.0, 90.0), 0.05)
+    , m_featureStore()
     , m_progress(0)
 {
+    auto db = std::make_unique<MemoryDatabase>();//std::make_unique<FileDatabase>(); // TODO: change to FileDataSet
+    auto index = std::make_unique<QuadTreeIndex>(Rectangle(-180, -90, 180, 90), 0.05);
+    auto cache = std::make_shared<FIFOCache>();
+    m_featureStore = std::make_unique<FeatureStore>(dataSetId(), std::move(db), std::move(index), cache);
 }
 
 FeatureEnumeratorPtr AbstractFileDataSet::getFeatures(const FeatureQuery &featureQuery)
 {
-    auto features = std::make_shared<FeatureEnumerator>();
+    auto enumerator = std::make_shared<FeatureEnumerator>();
 
     if (!isInitialized()) // TODO: move to base class
     {
-        return features;
+        return enumerator;
     }
 
-    // Testing QuadTree
-    FeatureCollection filteredFeatures;
+    auto features = m_featureStore->query(featureQuery.area());
+    enumerator->setFeatures(features);
 
-    m_featureTree.getFeaturesInside(featureQuery.area(), filteredFeatures);
-    features->features() = std::move(filteredFeatures.getVector());
-
-    return features;
+    return enumerator;
 }
 
 void AbstractFileDataSet::init()
 {
-    read(m_filePath);
-    for (auto f : m_features)
+    std::string indexPath = "spatial_index/test_index";
+    if (!m_featureStore->load(indexPath))
     {
-        m_featureTree.insertFeature(f);
+        read(m_filePath);
+        for (auto f : m_features)
+        {
+            m_featureStore->addFeature(f);
+        }
+        m_featureStore->save(indexPath);
     }
+    
     std::cout << "AbstractFileDataSet::init() Data loaded!\n";
 }
 

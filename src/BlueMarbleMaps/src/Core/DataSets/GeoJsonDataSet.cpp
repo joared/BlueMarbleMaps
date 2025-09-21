@@ -83,7 +83,9 @@ void GeoJsonFileDataSet::handleFeatureCollection(JsonValue *jsonValue)
                 {
                     auto polFeature = createFeature(std::make_shared<PolygonGeometry>(polygon));
                      // FIXME: temporary fix to make selection of one polygon select all polygons within a multipolygon
-                    polFeature->id(commonId); // Use same id
+                     // Update: removed commonId since it can mess up caching
+                    //polFeature->id(commonId); // Use same id
+                    
                     auto attrIbutesCopy = feature->attributes();
                     polFeature->attributes() = attrIbutesCopy;
                     m_features.push_back(polFeature);
