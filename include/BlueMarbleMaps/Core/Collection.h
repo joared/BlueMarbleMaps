@@ -44,6 +44,8 @@ namespace BlueMarble
             return false;
         }
 
+        inline void remove(size_t index) { auto it = m_collection.begin()+index; m_collection.erase(it); }
+        inline const T& get(size_t index) const { return m_collection.at(index); }
         inline void reserve(size_t size) { m_collection.reserve(size); }
         inline auto begin() { return m_collection.begin(); }
         inline auto end() { return m_collection.end(); }

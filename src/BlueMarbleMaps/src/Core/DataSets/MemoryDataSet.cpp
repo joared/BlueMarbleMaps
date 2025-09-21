@@ -78,7 +78,7 @@ void MemoryDataSet::removeFeature(const Id &id)
 
 void MemoryDataSet::clear()
 {
-    m_features.getVector().clear();
+    m_features.clear();
 }
 
 FeatureEnumeratorPtr MemoryDataSet::getFeatures(const FeatureQuery& featureQuery)

@@ -55,73 +55,97 @@ namespace BlueMarble
             CrsPtr      m_crs;
     };
 
-
-    class FeatureCollection
+    class FeatureCollection : public Collection<FeaturePtr>
     {
-        public:
-            FeatureCollection()
-                : m_features()
-            {}
-            void add(FeaturePtr feature)
+    public:
+        using Base = Collection<FeaturePtr>;
+        using Base::Base; // inherit constructors
+        
+        using Base::remove; // Keep base remove (hidden otherwise due to overload)
+        void remove(const Id& id)
+        {
+            for (size_t i(0); i<size(); ++i)
             {
-                m_features.push_back(feature);
-            }
-
-            void remove(const Id& id)
-            {
-                for (auto it=m_features.begin(); it!=m_features.end(); it++)
+                if (get(i)->id() == id)
                 {
-                    if ((*it)->id() == id)
-                    {
-                        m_features.erase(it);
-                        return;
-                    }
+                    Base::remove(i);
+                    return;
                 }
-
-                std::cout << "FeatureCollection::remove() Feature with id '(" << id.dataSetId() << ", " << id.featureId() << ")' doesn't exist!";
-                throw std::exception();
             }
 
-            const FeaturePtr& getFeature(const Id& id)
-            {
-                for (auto& f : m_features)
-                {
-                    if (f->id() == id)
-                    {
-                        return f;
-                    }
-                }
+            std::cout << "FeatureCollection::remove() Feature with id '(" << id.dataSetId() << ", " << id.featureId() << ")' doesn't exist!";
+            throw std::exception();
+        }
 
-                return nullptr;
-            }
-
-            Rectangle bounds() const 
-            {
-                auto boundsList = std::vector<Rectangle>();
-                for (auto f : m_features) 
-                { 
-                    if (!f->bounds().isUndefined())
-                        boundsList.push_back(f->bounds()); 
-                }
-                return Rectangle::mergeBounds(boundsList);
-            }
-
-            std::vector<FeaturePtr>& getVector() { return m_features; }
-
-            const FeaturePtr& get(size_t i) { return m_features[i]; }
-
-            void clear() { m_features.clear(); }
-            bool empty() const { return m_features.empty(); }
-            inline size_t size() const { return m_features.size(); }
-            inline auto begin() { return m_features.begin(); }
-            inline auto end() { return m_features.end(); }
-            inline auto begin() const { return m_features.cbegin(); }
-            inline auto end() const { return m_features.cend(); }
-            void reserve(size_t size) { m_features.reserve(size); }
-
-        private:
-            std::vector<FeaturePtr> m_features;
     };
+
+    
+    // class FeatureCollection
+    // {
+    //     public:
+    //         FeatureCollection()
+    //             : m_features()
+    //         {}
+    //         void add(FeaturePtr feature)
+    //         {
+    //             m_features.push_back(feature);
+    //         }
+
+    //         void remove(const Id& id)
+    //         {
+    //             for (auto it=m_features.begin(); it!=m_features.end(); it++)
+    //             {
+    //                 if ((*it)->id() == id)
+    //                 {
+    //                     m_features.erase(it);
+    //                     return;
+    //                 }
+    //             }
+
+    //             std::cout << "FeatureCollection::remove() Feature with id '(" << id.dataSetId() << ", " << id.featureId() << ")' doesn't exist!";
+    //             throw std::exception();
+    //         }
+
+    //         const FeaturePtr& getFeature(const Id& id)
+    //         {
+    //             for (auto& f : m_features)
+    //             {
+    //                 if (f->id() == id)
+    //                 {
+    //                     return f;
+    //                 }
+    //             }
+
+    //             return nullptr;
+    //         }
+
+    //         Rectangle bounds() const 
+    //         {
+    //             auto boundsList = std::vector<Rectangle>();
+    //             for (auto f : m_features) 
+    //             { 
+    //                 if (!f->bounds().isUndefined())
+    //                     boundsList.push_back(f->bounds()); 
+    //             }
+    //             return Rectangle::mergeBounds(boundsList);
+    //         }
+
+    //         std::vector<FeaturePtr>& getVector() { return m_features; }
+
+    //         const FeaturePtr& get(size_t i) { return m_features[i]; }
+
+    //         void clear() { m_features.clear(); }
+    //         bool empty() const { return m_features.empty(); }
+    //         inline size_t size() const { return m_features.size(); }
+    //         inline auto begin() { return m_features.begin(); }
+    //         inline auto end() { return m_features.end(); }
+    //         inline auto begin() const { return m_features.cbegin(); }
+    //         inline auto end() const { return m_features.cend(); }
+    //         void reserve(size_t size) { m_features.reserve(size); }
+
+    //     private:
+    //         std::vector<FeaturePtr> m_features;
+    // };
 }
 
 #endif /* BLUEMARBLE_FEATURE */

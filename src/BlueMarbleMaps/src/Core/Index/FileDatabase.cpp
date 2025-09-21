@@ -46,6 +46,7 @@ size_t FileDatabase::size() const
 
 void FileDatabase::save(const std::string& path) const
 {
+    
 }
 
 bool FileDatabase::load(const std::string& path)
