@@ -33,3 +33,6 @@ target_link_libraries(TestSharedFromThis PRIVATE BlueMarbleMapsLib)
 
 add_executable(TestSignal test_signal.cpp)
 target_link_libraries(TestSignal PRIVATE BlueMarbleMapsLib)
+
+add_executable(TestFiledatabase test_filedatabase.cpp)
+target_link_libraries(TestFiledatabase PRIVATE BlueMarbleMapsLib)
