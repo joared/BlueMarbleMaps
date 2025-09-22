@@ -46,11 +46,14 @@ public:
 	//timeout expressed in number of seconds.
 	void waitWindowEventsTimeout(double timeout);
 	GLFWwindow* getGLFWWindowHandle() const;
+	void showFPS();
 private:
 	int m_width;
 	int m_height;
 	std::string m_windowTitle;
 	GLFWwindow* m_window;
+	double m_previousSeconds;
+	int m_frameCount;
 
 	virtual void keyEvent(WindowGL* window, int key, int scanCode, int action, int modifier) = 0;
 	virtual void resizeEvent(WindowGL* window, int width, int height) = 0;

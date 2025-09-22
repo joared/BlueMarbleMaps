@@ -291,6 +291,7 @@ int main()
 
     while (!mapControl->windowShouldClose())
     {
+        mapControl->showFPS();
         if (mapControl->updateRequired())
         {
             mapControl->updateViewInternal();

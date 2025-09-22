@@ -2,6 +2,7 @@
 #include "BlueMarbleMaps/Logging/Logging.h"
 
 #include <iostream>
+#include <sstream>
 
 //Public functions
 
@@ -23,7 +24,9 @@
 WindowGL::WindowGL()
 	:m_width(0),
 	m_height(0),
-	m_windowTitle("")
+	m_windowTitle(""),
+	m_previousSeconds(0),
+    m_frameCount(0)
 {
 
 }
@@ -60,7 +63,8 @@ bool WindowGL::init(int width, int height, std::string windowTitle)
 	}
 
 	//glDebugMessageCallback(MessageCallback, 0);
-	m_window = glfwCreateWindow(width, height, windowTitle.c_str(), nullptr, nullptr);
+	m_windowTitle = windowTitle;
+	m_window = glfwCreateWindow(width, height, m_windowTitle.c_str(), nullptr, nullptr);
 	glfwMakeContextCurrent(m_window);
 	gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 	//Sets the this pointer as the owner of the glfw window
@@ -220,4 +224,29 @@ void WindowGL::internalCloseWindowEventCallback(GLFWwindow* window)
 GLFWwindow* WindowGL::getGLFWWindowHandle() const
 {
 	return m_window;
+}
+
+void WindowGL::showFPS()
+{
+	double elapsedSeconds;
+	double currentSeconds = glfwGetTime(); // Number of secs since program started
+
+	elapsedSeconds = currentSeconds - m_previousSeconds;
+
+	//limit update to 4 times a second
+
+	if (elapsedSeconds > 0.25)
+	{
+		m_previousSeconds = currentSeconds;
+		double fps = (double)m_frameCount / elapsedSeconds;
+		double msPerFrame = 1000.0 / fps;
+
+		std::ostringstream outs;
+		outs.precision(3);
+		outs << std::fixed << m_windowTitle << "    " << "FPS: " << fps << "    " << "Frame Time: " << msPerFrame << " (ms)";
+		glfwSetWindowTitle(m_window, outs.str().c_str());
+
+		m_frameCount = 0;
+	}
+	m_frameCount++;
 }
