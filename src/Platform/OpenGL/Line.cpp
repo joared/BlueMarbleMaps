@@ -10,14 +10,15 @@ Line::Line(LineGeometryInfoPtr info, std::vector<Vertice>& vertices)
 {
 	if (vertices.empty()) return;
 
-	m_lineGeometryInfo->m_vbo.init(vertices);
+	m_lineGeometryInfo->m_vbo.init();
+	m_lineGeometryInfo->m_vbo.bufferData(vertices);
 	m_lineGeometryInfo->m_vao.init();
 
 	m_lineGeometryInfo->m_vao.bind();
 	m_lineGeometryInfo->m_vbo.bind();
 	m_lineGeometryInfo->m_vao.link(m_lineGeometryInfo->m_vbo, 0, 3, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, position));
 	m_lineGeometryInfo->m_vao.link(m_lineGeometryInfo->m_vbo, 1, 4, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, color));
-	m_lineGeometryInfo->m_vao.link(m_lineGeometryInfo->m_vbo, 2, 2, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, texCoord));
+	//m_lineGeometryInfo->m_vao.link(m_lineGeometryInfo->m_vbo, 2, 2, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, texCoord));
 	m_lineGeometryInfo->m_vbo.unbind();
 }
 
@@ -48,6 +49,8 @@ void Line::drawIndex(GLuint indexCount)
 
 void Line::drawLine(GLuint vertCount, float thickness)
 {
+	if (m_lineGeometryInfo->m_vao.m_id == 0 || m_lineGeometryInfo->m_vbo.m_id == 0) return;
+
 	m_lineGeometryInfo->m_vao.bind();
 	m_lineGeometryInfo->m_vbo.bind();
 	glLineWidth(thickness);

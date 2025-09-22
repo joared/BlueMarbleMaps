@@ -13,6 +13,7 @@
 #include "Platform/OpenGL/Line.h"
 #include "Platform/OpenGL/Polygon.h"
 #include "Platform/OpenGL/Rect.h"
+#include "Platform/OpenGL/Batch.h"
 #include "stb_image.h"
 #include "glm.hpp"
 #include "gtc/type_ptr.hpp"
@@ -314,7 +315,32 @@ void BlueMarble::OpenGLDrawable::drawArc(double cx, double cy, double rx, double
 
 void BlueMarble::OpenGLDrawable::drawLine(const LineGeometryPtr& geometry, const Pen& pen)
 {
-    if (m_primitives.find(geometry->getID()) == m_primitives.end())
+    if (batch == nullptr)
+    {
+        batch = std::make_shared<Batch>();
+        batch->begin();
+    }
+    std::vector<Vertice> vertices;
+
+    std::vector<Point> bounds = geometry->points();
+    std::vector<Color> colors = pen.getColors();
+
+    for (int i = 0; i < bounds.size(); i++)
+    {
+        Color bmColor = getColorFromList(pen.getColors(), i);
+
+        vertices.push_back(createPoint(bounds[i], bmColor));
+    }
+
+    if (geometry->isClosed())
+    {
+        vertices.push_back(vertices[0]);
+    }
+    if (vertices.empty()) return;
+    batch->submit(vertices);
+    
+
+    /*if (m_primitives.find(geometry->getID()) == m_primitives.end())
     {
         std::vector<Vertice> vertices;
 
@@ -349,7 +375,7 @@ void BlueMarble::OpenGLDrawable::drawLine(const LineGeometryPtr& geometry, const
     }
 
     int add = 1 ? geometry->isClosed() : 0;
-    line->drawLine(geometry->points().size() + add, 10);
+    line->drawLine(geometry->points().size() + add, 10);*/
 }
 
 void BlueMarble::OpenGLDrawable::drawPolygon(const PolygonGeometryPtr& geometry, const Pen& pen, const Brush& brush)
@@ -539,8 +565,16 @@ void BlueMarble::OpenGLDrawable::setPixel(int x, int y, const Color& color)
 
 void BlueMarble::OpenGLDrawable::swapBuffers()
 {
-    drawText(0,0,"",Color(), 2);
+    auto mat = m_projectionMatrix * m_viewMatrix;
+
+    m_lineShader->useProgram();
+    m_lineShader->setMat4("viewMatrix", mat);
+    
+    
+    batch->end();
+    batch->flush();
     glfwSwapBuffers(m_window);
+    batch->begin();
 }
 
 void BlueMarble::OpenGLDrawable::clearBuffer()

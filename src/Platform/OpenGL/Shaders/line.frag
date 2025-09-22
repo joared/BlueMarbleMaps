@@ -1,8 +1,14 @@
 #version 330 core
-in vec4 givenColor;
 out vec4 FragColor;
+
+in DATA
+{
+	vec4 position;
+	vec4 color;
+	vec2 texCoord;
+}frag_in;
 
 void main()
 {
-	FragColor = givenColor;
+	FragColor = frag_in.color;
 }

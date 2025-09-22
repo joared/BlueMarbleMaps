@@ -3,14 +3,20 @@ layout (location = 0) in vec3 pos;
 layout (location = 1) in vec4 color;
 layout (location = 2) in vec2 texCoords;
 
-out vec4 givenColor;
-out vec2 fragTexCoords;
-
 uniform mat4 viewMatrix;
+
+out DATA
+{
+	vec4 position;
+	vec4 color;
+	vec2 texCoord;
+}vert_out;
 
 void main()
 {
-	gl_Position = viewMatrix * vec4(pos, 1.0f);
-	givenColor = color;
-	fragTexCoords = texCoords;
+    vec4 mPos = viewMatrix * vec4(pos, 1.0f);
+	gl_Position = mPos;
+	vert_out.position = mPos;
+	vert_out.color = color;
+	vert_out.texCoord = texCoords;
 }

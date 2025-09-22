@@ -23,13 +23,11 @@ void VAO::link(VBO& vbo, GLuint layout, GLuint nrOfComponents, GLenum type, GLsi
 {
 	glEnableVertexAttribArray(layout);
 	glVertexAttribPointer(layout,nrOfComponents,type,GL_FALSE,stride,offset);
-	glEnableVertexAttribArray(0);
 }
 void VAO::linkInt(VBO& vbo, GLuint layout, GLuint nrOfComponents, GLenum type, GLsizeiptr stride, GLvoid* offset)
 {
 	glEnableVertexAttribArray(layout);
 	glVertexAttribIPointer(layout, nrOfComponents, type, stride, offset);
-	glEnableVertexAttribArray(0);
 }
 void VAO::unbind()
 {

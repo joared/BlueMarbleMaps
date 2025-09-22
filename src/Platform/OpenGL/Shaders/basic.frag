@@ -1,11 +1,16 @@
 #version 330 core
-in vec4 givenColor;
-in vec2 fragTexCoords;
 out vec4 FragColor;
 
 uniform sampler2D texture0;
 
+in DATA
+{
+	vec4 position;
+	vec4 color;
+	vec2 texCoord;
+}frag_in;
+
 void main()
 {
-	FragColor = givenColor * texture(texture0, fragTexCoords);
+	FragColor = frag_in.color * texture(texture0, frag_in.texCoord);
 }

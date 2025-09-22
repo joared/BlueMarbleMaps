@@ -13,13 +13,24 @@ VBO::~VBO()
 	glDeleteBuffers(1, &m_id);
 }
 
-void VBO::init(std::vector<Vertice>& vertices)
+void VBO::init()
+{
+	glGenBuffers(1, &m_id);
+}
+
+void VBO::bufferData(std::vector<Vertice>& vertices)
 {
 	m_vertexCount = vertices.size();
-	glGenBuffers(1, &m_id);
 	glBindBuffer(GL_ARRAY_BUFFER, m_id);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertice) * vertices.size(), &vertices[0], GL_STATIC_DRAW);
 }
+
+void VBO::allocateDynamicBuffer(GLuint size)
+{
+	glBindBuffer(GL_ARRAY_BUFFER, m_id);
+	glBufferData(GL_ARRAY_BUFFER, size, NULL, GL_DYNAMIC_DRAW);
+}
+
 void VBO::bind()
 {
 	glBindBuffer(GL_ARRAY_BUFFER, m_id);

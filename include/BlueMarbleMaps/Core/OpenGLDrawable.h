@@ -4,6 +4,7 @@
 #include "Drawable.h"
 #include "BlueMarbleMaps/Core/Brush.h"
 #include "BlueMarbleMaps/Core/Pen.h"
+#include "Platform/OpenGL/Batch.h"
 #include "Platform/OpenGL/Primitive.h"
 #include <map>
 
@@ -56,6 +57,7 @@ namespace BlueMarble
         glm::mat4x4 m_viewMatrix;
         glm::mat4x4 m_projectionMatrix;
         Color m_color;
+        BatchPtr batch;
     };
     typedef std::shared_ptr<OpenGLDrawable> OpenGLDrawablePtr;
 

@@ -10,8 +10,10 @@ Rect::Rect(RectGeometryInfoPtr info, std::vector<Vertice>& vertices, std::vector
 {
 	if (vertices.empty() || indices.empty()) return;
 
-	m_rectGeometryInfo->m_vbo.init(vertices);
-	m_rectGeometryInfo->m_ibo.init(indices);
+	m_rectGeometryInfo->m_vbo.init();
+	m_rectGeometryInfo->m_vbo.bufferData(vertices);
+	m_rectGeometryInfo->m_ibo.init();
+	m_rectGeometryInfo->m_ibo.bufferData(indices);
 	m_rectGeometryInfo->m_vao.init();
 
 	m_rectGeometryInfo->m_vao.bind();
@@ -64,7 +66,7 @@ bool Rect::hasFill()
 
 void Rect::drawIndex(GLuint indexCount)
 {
-	if (m_rectGeometryInfo->m_texture != nullptr && m_rectGeometryInfo->m_texture->m_id != 0)
+	if (m_rectGeometryInfo->m_vao.m_id == 0 || m_rectGeometryInfo->m_vbo.m_id == 0 || m_rectGeometryInfo->m_ibo.m_id == 0) return;
 	{
 		m_rectGeometryInfo->m_texture->bind();
 	}

@@ -9,7 +9,9 @@ struct VBO
 	VBO();
 	~VBO();
 	
-	void init(std::vector<Vertice>& vertices);
+	void init();
+	void bufferData(std::vector<Vertice>& vertices);
+	void allocateDynamicBuffer(GLuint size);
 	void bind();
 	void unbind();
 };

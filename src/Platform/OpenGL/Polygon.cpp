@@ -10,8 +10,10 @@ Polygon::Polygon(PolygonGeometryInfoPtr info, std::vector<Vertice>& vertices, st
 {
 	if (vertices.empty() || indices.empty()) return;
 
-	m_polygonGeometryInfo->m_vbo.init(vertices);
-	m_polygonGeometryInfo->m_ibo.init(indices);
+	m_polygonGeometryInfo->m_vbo.init();
+	m_polygonGeometryInfo->m_vbo.bufferData(vertices);
+	m_polygonGeometryInfo->m_ibo.init();
+	m_polygonGeometryInfo->m_ibo.bufferData(indices);
 	m_polygonGeometryInfo->m_vao.init();
 
 	m_polygonGeometryInfo->m_vao.bind();
@@ -64,6 +66,7 @@ bool Polygon::hasFill()
 
 void Polygon::drawIndex(GLuint indexCount)
 {
+	if (m_polygonGeometryInfo->m_vao.m_id == 0 || m_polygonGeometryInfo->m_vbo.m_id == 0 || m_polygonGeometryInfo->m_ibo.m_id == 0) return;
 	if (m_polygonGeometryInfo->m_texture != nullptr && m_polygonGeometryInfo->m_texture->m_id != 0)
 	{
 		m_polygonGeometryInfo->m_texture->bind();
