@@ -2,147 +2,128 @@
 #include "glm.hpp"
 #include <iostream>
 
-bool Algorithms::triangulatePolygon(std::vector<Vertice>& vertices, std::vector<Vertice>& hole, std::vector<Vertice>& triangles, std::vector<GLuint>& indices)
+bool Algorithms::triangulatePolygon(std::vector<Vertice>& vertices, std::vector<Vertice>& hole, std::vector<Vertice>& result, std::vector<GLuint>& indices, int resultAsTriangles)
 {
 	std::vector<Vertice> tmpVerts = vertices;
 	std::vector<Vertice> tmpHoles = hole;
-	bool success = triangulatePolygon(0, tmpVerts, vertices.size(), tmpHoles, triangles);
-	if (success)
+	std::vector<std::pair<GLuint, Vertice>> vertIndexPair;
+	
+	if (tmpHoles.size())
 	{
-		for (int i = 0; i < triangles.size(); i++)
+		combineHole(tmpVerts, tmpHoles, vertIndexPair);
+	}
+	else
+	{
+		for (int i = 0; i < tmpVerts.size(); i++)
 		{
-			for (int j = 0; j < vertices.size(); j++)
-			{
-				if (vertices[j].position.x == triangles[i].position.x &&
-					vertices[j].position.y == triangles[i].position.y &&
-					vertices[j].position.z == triangles[i].position.z)
-				{
-					indices.push_back(j);
-					break;
-				}
-			}
-
+			vertIndexPair.push_back(std::pair(i, tmpVerts[i]));
 		}
 	}
-	return success;
+	result.reserve(vertices.size());
+	indices.reserve(vertices.size());
+	if (!resultAsTriangles)
+	{
+		for (int i = 0; i < vertIndexPair.size(); i++)
+		{
+			result.push_back(vertIndexPair[i].second);
+		}
+	}
+	return triangulatePolygon(vertIndexPair, vertIndexPair.size(), result, indices, resultAsTriangles);
 }
 
-bool Algorithms::triangulatePolygon(int step, std::vector<Vertice>& vertices, int corners, std::vector<Vertice>& hole, std::vector<Vertice>& triangles)
+bool Algorithms::combineHole(std::vector<Vertice>& vertices, std::vector<Vertice>& hole, std::vector<std::pair<GLuint, Vertice>>& result)
 {
 	bool success = true;
 	int i = 0, j = 0, k = 0, l = 0;
-	step++;
-	if (step == 1)
-	{
-		//  If there is no hole, skip step 2 and move on to step 3.
-		if (hole.size() == 0) {
-			return triangulatePolygon(step, vertices, corners, hole, triangles);
-		}
 
-		//  Set up arrays for a unified polygon (outer polygon and hole combined).
-		std::vector<Vertice> uVerts; 
-		int uCorners = corners + hole.size() + 2;
-
-		//  Find the shortest connector between the outer polygon and the hole
-		//  polygon (that does not intersect any side of either polygon).
-		int minI = -1, hMinI, dX, dY, dist2, minDist2 = 999999999;
-		for (i = 0; i < corners; i++) for (j = 0; j < hole.size(); j++) {
-			dX = vertices[i].position.x - hole[j].position.x;
-			dY = vertices[i].position.y - hole[j].position.y;
-			dist2 = dX * dX + dY * dY;
-			if (dist2 < minDist2) {   //  Shorter segment found.
-				//  Ensure that the segment under consideration does not intersect any side of the outer polygon.
-				for (k = 0; k < corners; k++) {
-					l = (k + 1) % corners;
-					if (lineSegmentsIntersect(vertices[i], hole[j], vertices[k], vertices[l])) k = corners;
-				}
-				if (k == corners) {
-					//  Ensure that the segment under consideration does not intersect any side of the hole polygon.
-					for (k = 0; k < hole.size(); k++) {
-						l = (k + 1) % hole.size();
-						if (lineSegmentsIntersect(vertices[i], hole[j], hole[k], hole[k])) k = hole.size();
-					}
-					if (k == hole.size()) {
-						//  All good; the new line segment becomes the current best choice.
-						minDist2 = dist2; minI = i; hMinI = j;
-					}
-				}
-			}
-		}
-		if (minI < 0) {
-			std::cout << "Failed to find a candidate for linking hole\n";
-			return false;
-		}
-
-		//  Using the connector, create a unified polygon from the two polygons.
-		uVerts = std::vector<Vertice>(uCorners);
-		for (i = 0; i <= corners; i++) {
-			uVerts.push_back(vertices[(minI + i) % corners]);
-		}
-		for (i = 0; i <= hole.size(); i++) {
-			uVerts[corners + 1 + i] = hole[(hMinI + hole.size() - i) % hole.size()];
-		}
-
-		//  Allow the connector to be viewed for one second, then start the triangulation.
-		success = triangulatePolygon(step, uVerts, uCorners, hole, triangles);
-		
+	//  If there is no hole, skip combination.
+	if (hole.size() == 0) {
+		return false;
 	}
-	else if (step >= 2)
-	{
-		//  Crawl around the edge of the polygon, looking for three consecutive corners that form a usable triangle.
-		i = 0;
-		while (i < corners && corners >= 3) {
-			j = (i + 1) % corners;
-			k = (j + 1) % corners;
-			//  Verify that the candidate triangle is inside, not outside the
-			if ((vertices[i].position.x != vertices[j].position.x || vertices[i].position.y != vertices[j].position.y) && 
-				(vertices[k].position.y - vertices[i].position.y) * (vertices[j].position.x - vertices[i].position.x) >= 
-				(vertices[k].position.x - vertices[i].position.x) * (vertices[j].position.y - vertices[i].position.y)) {
-				//  Verify that the candidate triangle's interior does not contain any corners of the polygon.
-				for (l = 0; l < corners; l++) {
-					if (pointInsideTriangle(vertices[i], vertices[j], vertices[k], vertices[l])) l = corners;
-				}
-				if (l == corners) {   //  A usable triangle has been found.
-					triangles.push_back(vertices[i]);
-					triangles.push_back(vertices[j]);
-					triangles.push_back(vertices[k]);
 
-					//  Reduce the remaining polygon to exclude the just-drawn triangle.
-					corners--;
-					for (l = j; l < corners; l++) {
-						vertices[l] = vertices[l + 1];
-					}
-					return triangulatePolygon(step, vertices, corners, hole, triangles);
+	//  Find the shortest connector between the outer polygon and the hole
+	//  polygon (that does not intersect any side of either polygon).
+	int minI = -1, hMinI, dX, dY, dist2, minDist2 = 999999999;
+	for (i = 0; i < vertices.size(); i++) for (j = 0; j < hole.size(); j++) {
+		dX = vertices[i].position.x - hole[j].position.x;
+		dY = vertices[i].position.y - hole[j].position.y;
+		dist2 = dX * dX + dY * dY;
+		if (dist2 < minDist2) {   //  Shorter segment found.
+			//  Ensure that the segment under consideration does not intersect any side of the outer polygon.
+			for (k = 0; k < vertices.size(); k++) {
+				l = (k + 1) % vertices.size();
+				if (lineSegmentsIntersect(vertices[i], hole[j], vertices[k], vertices[l])) k = vertices.size();
+			}
+			if (k == vertices.size()) {
+				//  Ensure that the segment under consideration does not intersect any side of the hole polygon.
+				for (k = 0; k < hole.size(); k++) {
+					l = (k + 1) % hole.size();
+					if (lineSegmentsIntersect(vertices[i], hole[j], hole[k], hole[k])) k = hole.size();
+				}
+				if (k == hole.size()) {
+					//  All good; the new line segment becomes the current best choice.
+					minDist2 = dist2; minI = i; hMinI = j;
 				}
 			}
-			else if (checkRightAngled(vertices[i], vertices[j], vertices[k]))
-			{
-				for (l = 0; l < corners; l++) {
-					if (pointInsideTriangle(vertices[i], vertices[j], vertices[k], vertices[l])) l = corners;
-				}
-				if (l == corners) {   //  A usable triangle has been found.		
-					triangles.push_back(vertices[i]);
-					triangles.push_back(vertices[j]);
-					triangles.push_back(vertices[k]);
-
-					//  Reduce the remaining polygon to exclude the just-drawn triangle.
-					corners--;
-					for (l = j; l < corners; l++) {
-						vertices[l] = vertices[l + 1];
-					}
-
-					return triangulatePolygon(step, vertices, corners, hole, triangles);
-				}
-			}
-			//  The three corners (i,j,k) did not make a usable triangle. Move forward around the polygon to keep looking.
-			i++;
-		}
-		//  The process has ended; alert the user if it didn't successfully triangulate the entire polygon.
-		if (corners >= 3) {
-			std::cout << "Failed to find a suitable triangle\n";
-			return false;
 		}
 	}
+	if (minI < 0) {
+		std::cout << "Failed to find a candidate for linking hole\n";
+		return false;
+	}
+
+	//  Using the connector, create a unified polygon from the two polygons.
+	for (i = 0; i <= vertices.size(); i++) {
+		result.push_back(std::make_pair(i,vertices[(minI + i) % vertices.size()]));
+	}
+	for (i = 0; i <= hole.size(); i++) {
+		result.push_back(std::make_pair(vertices.size() + 1 + i,hole[(hMinI + hole.size() - i) % hole.size()]));
+	}
+}
+
+bool Algorithms::triangulatePolygon(std::vector<std::pair<GLuint, Vertice>>& vertices, int corners, std::vector<Vertice>& triangles,std::vector<GLuint>& indices, int resultAsTriangles)
+{
+	bool success = true;
+	int i = 0, j = 0, k = 0, l = 0;
+
+	//  Crawl around the edge of the polygon, looking for three consecutive corners that form a usable triangle.
+	i = 0;
+	while (i < corners && corners >= 3) {
+		j = (i + 1) % corners;
+		k = (j + 1) % corners;
+		//  Verify that the candidate triangle is inside, not outside the
+		if (((vertices[i].second.position.x != vertices[j].second.position.x || vertices[i].second.position.y != vertices[j].second.position.y) &&
+			(vertices[k].second.position.y - vertices[i].second.position.y) * (vertices[j].second.position.x - vertices[i].second.position.x) >=
+			(vertices[k].second.position.x - vertices[i].second.position.x) * (vertices[j].second.position.y - vertices[i].second.position.y))||
+			isRightAngled(vertices[i].second, vertices[j].second, vertices[k].second)) {
+			//  Verify that the candidate triangle's interior does not contain any corners of the polygon.
+			for (l = 0; l < corners; l++) {
+				if (pointInsideTriangle(vertices[i].second, vertices[j].second, vertices[k].second, vertices[l].second)) l = corners;
+			}
+			if (l == corners) {   //  A usable triangle has been found.
+				if (resultAsTriangles)
+				{
+					triangles.insert(triangles.end(), { vertices[i].second, vertices[j].second, vertices[k].second });
+				}
+				indices.insert(indices.end(), {vertices[i].first ,vertices[j].first,vertices[k].first});
+	
+				//  Reduce the remaining polygon to exclude the just-drawn triangle.
+				corners--;
+				for (l = j; l < corners; l++) {
+					vertices[l] = vertices[l + 1];
+				}
+				return triangulatePolygon(vertices, corners, triangles,indices, resultAsTriangles);
+			}
+		}
+		//  The three corners (i,j,k) did not make a usable triangle. Move forward around the polygon to keep looking.
+		i++;
+	}
+	//  The process has ended; alert the user if it didn't successfully triangulate the entire polygon.
+	if (corners >= 3) {
+		std::cout << "Failed to find a suitable triangle\n";
+		return false;
+	}
+	
 	return success;
 }
 
@@ -196,7 +177,7 @@ double Algorithms::distSq(Vertice& v1, Vertice& v2) {
 	return std::pow((v2.position.x - v1.position.x), 2) + std::pow((v2.position.y - v1.position.y), 2);
 }
 
-bool Algorithms::checkRightAngled(Vertice& v1, Vertice& v2, Vertice& v3) {
+bool Algorithms::isRightAngled(Vertice& v1, Vertice& v2, Vertice& v3) {
 	// Calculate the squares of the lengths of the sides
 	double s1 = distSq(v1, v2);
 	double s2 = distSq(v2, v3);
