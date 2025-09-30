@@ -7,6 +7,9 @@ bool Algorithms::triangulatePolygon(std::vector<Vertice>& vertices, std::vector<
 	std::vector<Vertice> tmpVerts = vertices;
 	std::vector<Vertice> tmpHoles = hole;
 	std::vector<std::pair<GLuint, Vertice>> vertIndexPair;
+	result.reserve(vertices.size());
+	indices.reserve(vertices.size());
+	vertIndexPair.reserve(vertices.size() + hole.size())
 	
 	if (tmpHoles.size())
 	{
@@ -19,8 +22,7 @@ bool Algorithms::triangulatePolygon(std::vector<Vertice>& vertices, std::vector<
 			vertIndexPair.push_back(std::pair(i, tmpVerts[i]));
 		}
 	}
-	result.reserve(vertices.size());
-	indices.reserve(vertices.size());
+	
 	if (!resultAsTriangles)
 	{
 		for (int i = 0; i < vertIndexPair.size(); i++)
