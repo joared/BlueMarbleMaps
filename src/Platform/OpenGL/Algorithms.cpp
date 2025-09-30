@@ -9,7 +9,7 @@ bool Algorithms::triangulatePolygon(std::vector<Vertice>& vertices, std::vector<
 	std::vector<std::pair<GLuint, Vertice>> vertIndexPair;
 	result.reserve(vertices.size());
 	indices.reserve(vertices.size());
-	vertIndexPair.reserve(vertices.size() + hole.size())
+	vertIndexPair.reserve(vertices.size() + hole.size());
 	
 	if (tmpHoles.size())
 	{
@@ -144,7 +144,7 @@ bool Algorithms::pointInsideTriangle(Vertice& A, Vertice& B, Vertice& C, Vertice
 	return inside;
 }
 
-bool Algorithms::lineSegmentsIntersect(Vertice& A, Vertice& B, Vertice& C, Vertice& D)
+bool Algorithms::lineSegmentsIntersect(Vertice A, Vertice B, Vertice C, Vertice D)
 {
 	//  No intersection if any of the four points are identical.
 	if (A.position.x == B.position.x && A.position.y == B.position.y || A.position.x == C.position.x && A.position.y == C.position.y || A.position.x == D.position.x && A.position.y == D.position.y
