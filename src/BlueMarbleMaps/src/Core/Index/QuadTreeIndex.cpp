@@ -1,10 +1,13 @@
 #include "BlueMarbleMaps/Core/Index/QuadTreeIndex.h"
+#include "BlueMarbleMaps/System/File.h"
+#include "BlueMarbleMaps/Core/Serialization/JsonValue.h"
+
 
 using namespace BlueMarble;
 
 class QuadTree; // Forwards declaration
 
-
+typedef std::pair<FeatureId, Rectangle> Entry;
 class BlueMarble::QuadTreeNode
 {
     public:
@@ -12,10 +15,10 @@ class BlueMarble::QuadTreeNode
             : m_bounds(bounds)
             , m_entries()
         {
-
         }
 
-        const std::vector<QuadTreeNode*>& children() { return m_children; }
+        const std::vector<QuadTreeNode*>& children() const { return m_children; }
+        const std::vector<Entry>& entries() const { return m_entries; }
         void addChild(QuadTreeNode* child) 
         { 
             // assert(this != child);
@@ -146,12 +149,52 @@ class BlueMarble::QuadTreeNode
         }
 
     private:
-        typedef std::pair<FeatureId, Rectangle> Entry;
         Rectangle                  m_bounds;
         std::vector<Entry>         m_entries;
         std::vector<QuadTreeNode*> m_children;
         QuadTree*                  m_owner;
 };
+
+
+
+JsonValue serializeNode(const QuadTreeNode* node)
+{
+    JsonValue::Object data;
+    
+    data["bounds"] = 
+    {
+        {"xMin", node->bounds().xMin()},
+        {"yMin", node->bounds().yMin()},
+        {"xMax", node->bounds().xMax()},
+        {"yMax", node->bounds().yMax()}
+    };
+
+    data["entries"] = JsonValue::Array();
+    auto& entries = data["entries"].get<JsonValue::Array>();
+    for (const auto& e : node->entries())
+    {
+        const auto& b = e.second;
+        entries.push_back({
+            {"id", (int)e.first},
+            {"bounds", {
+                {"xMin", b.xMin()},
+                {"yMin", b.yMin()},
+                {"xMax", b.xMax()},
+                {"yMax", b.yMax()}
+            }}
+        });
+    }
+    
+    data["children"] = JsonValue::Array();
+    auto& children = data["children"].get<JsonValue::Array>();
+    for (auto child : node->children())
+    {
+        children.push_back(serializeNode(child));
+    }
+
+    return data;
+}
+
 
 QuadTreeIndex::QuadTreeIndex(const Rectangle& rootBounds, double minSize)
     : m_root(new QuadTreeNode(rootBounds))
@@ -159,7 +202,15 @@ QuadTreeIndex::QuadTreeIndex(const Rectangle& rootBounds, double minSize)
 {
 }
 
-void QuadTreeIndex::insert(const FeatureId& id, const Rectangle& bounds)
+void QuadTreeIndex::build(const FeatureCollectionPtr& entries, const std::string& path)
+{
+    for (const auto& f : *entries)
+    {
+        insert(f->id().featureId(), f->bounds());
+    }
+}
+
+void QuadTreeIndex::insert(const FeatureId &id, const Rectangle &bounds)
 {
     if (!m_root->insert(id, bounds, m_minSize))
     {
@@ -187,15 +238,14 @@ void QuadTreeIndex::clear()
 {
 }
 
-void QuadTreeIndex::save(const std::string& path) const
-{
-}
-
 bool QuadTreeIndex::load(const std::string& path)
 {
+    return false;
 }
 
 // BlueMarble::FeaturePtr QuadTree::findFeature(const Id &id) const
 // {
 //     return m_root->getFeature(id, true);
 // }
+
+

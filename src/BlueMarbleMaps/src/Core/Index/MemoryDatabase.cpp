@@ -7,19 +7,7 @@ MemoryDatabase::MemoryDatabase()
 {
 }
 
-void MemoryDatabase::addFeature(const FeaturePtr& feature)
-{
-    // In a database, only feature id is relevant. We use "0" as dataset id
-    auto id = Id(0, feature->id().featureId());
-
-    if (m_cache.contains(id))
-    {
-        BMM_DEBUG() << "WARNING: MemoryDatabase::addFeature() Id already exist in the database!: " << id.toString() << "\n";
-    }
-    m_cache.insert(id, feature);
-}
-
-FeaturePtr MemoryDatabase::getFeature(const FeatureId& featureId) const
+FeaturePtr MemoryDatabase::getFeature(const FeatureId& featureId)
 {
     // In a database, only feature id is relevant. We use "0" as dataset id
     auto id = Id(0, featureId);
@@ -27,7 +15,7 @@ FeaturePtr MemoryDatabase::getFeature(const FeatureId& featureId) const
     return m_cache.getFeature(id);
 }
 
-FeatureCollectionPtr MemoryDatabase::getFeatures(const FeatureIdCollectionPtr &ids) const
+FeatureCollectionPtr MemoryDatabase::getFeatures(const FeatureIdCollectionPtr &ids)
 {
     auto features = std::make_shared<FeatureCollection>();
 
@@ -36,7 +24,7 @@ FeatureCollectionPtr MemoryDatabase::getFeatures(const FeatureIdCollectionPtr &i
     return features;
 }
 
-void MemoryDatabase::getFeatures(const FeatureIdCollectionPtr &ids, FeatureCollectionPtr& featuresOut) const
+void MemoryDatabase::getFeatures(const FeatureIdCollectionPtr &ids, FeatureCollectionPtr& featuresOut)
 {
     for (const auto& id : *ids)
     {
@@ -44,7 +32,7 @@ void MemoryDatabase::getFeatures(const FeatureIdCollectionPtr &ids, FeatureColle
     }
 }
 
-FeatureCollectionPtr MemoryDatabase::getAllFeatures() const
+FeatureCollectionPtr MemoryDatabase::getAllFeatures()
 {
     return m_cache.getAllFeatures();
 }
@@ -71,4 +59,21 @@ bool MemoryDatabase::load(const std::string &path)
 {
     // We don't support saving/loading for now
     return false;
+}
+
+bool MemoryDatabase::build(const FeatureCollectionPtr& features, const std::string& path)
+{
+    for (const auto& feature : * features)
+    {
+        // In a database, only feature id is relevant. We use "0" as dataset id
+        auto id = Id(0, feature->id().featureId());
+
+        if (m_cache.contains(id))
+        {
+            BMM_DEBUG() << "WARNING: MemoryDatabase::addFeature() Id already exist in the database!: " << id.toString() << "\n";
+        }
+        m_cache.insert(id, feature);
+    }
+
+    return true;
 }

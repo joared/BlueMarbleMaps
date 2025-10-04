@@ -62,6 +62,7 @@ bool WindowGL::init(int width, int height, std::string windowTitle)
 	//glDebugMessageCallback(MessageCallback, 0);
 	m_window = glfwCreateWindow(width, height, windowTitle.c_str(), nullptr, nullptr);
 	glfwMakeContextCurrent(m_window);
+	glfwSwapInterval(0); // Speeeeed!!!
 	gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 	//Sets the this pointer as the owner of the glfw window
 	glfwSetWindowUserPointer(m_window, reinterpret_cast<void*>(this));

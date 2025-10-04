@@ -21,6 +21,10 @@ namespace BlueMarble
     class Collection
     {
     public:
+        using CollectionDef = std::vector<T, Alloc>;
+        using iterator = typename CollectionDef::iterator;
+        using const_iterator = typename CollectionDef::const_iterator;
+
         inline void add(const T& obj) { m_collection.push_back(obj); }
 
         template<typename... Args>
@@ -44,6 +48,29 @@ namespace BlueMarble
             return false;
         }
 
+        //inline addRange(CollectionDef::iter)
+
+        // add range from iterators
+        template <typename InputIt>
+        void addRange(InputIt first, InputIt last) 
+        {
+            m_collection.insert(m_collection.end(), first, last);
+        }
+
+        // add range from another container
+        void addRange(const Collection<T>& other) 
+        {
+            reserve(size() + other.size());
+            m_collection.insert(m_collection.end(), other.begin(), other.end());
+        }
+
+        // optional: add range from initializer list
+        void addRange(std::initializer_list<T> ilist) 
+        {
+            reserve(size() + ilist.size());
+            m_collection.insert(m_collection.end(), ilist.begin(), ilist.end());
+        }
+
         inline void remove(size_t index) { auto it = m_collection.begin()+index; m_collection.erase(it); }
         inline const T& get(size_t index) const { return m_collection.at(index); }
         inline void reserve(size_t size) { m_collection.reserve(size); }
@@ -53,7 +80,7 @@ namespace BlueMarble
         inline auto end() const { return m_collection.end(); }
 
     private:
-        std::vector<T, Alloc> m_collection;
+        CollectionDef m_collection;
     };
 }
 

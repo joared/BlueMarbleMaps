@@ -48,6 +48,7 @@ void setupAirPlaneLayerVisualization(const BlueMarble::LayerPtr& layer)
 
 void configureMap(const MapPtr& map, bool includeBackground=false, bool includeRoads=false, bool includeAirPlanes=false)
 {
+    const std::string commonIndexPath = "bluemarble_index"; // Relative to the Application build folder
     ////////////////////////////////////////////////////////
     static auto backgroundDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/BlueMarbleMaps/geodata/NE1_LR_LC_SR_W/NE1_LR_LC_SR_W.tif");
     static auto backgroundDataSet2 = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/BlueMarbleMaps/geodata/BlueMarble.jpeg");
@@ -64,16 +65,13 @@ void configureMap(const MapPtr& map, bool includeBackground=false, bool includeR
     static auto markerDataSet = std::make_shared<BlueMarble::MemoryDataSet>(); markerDataSet->name("MarkerDataSet");
     static auto airPlaneDataSet = std::make_shared<BlueMarble::MemoryDataSet>(); airPlaneDataSet->name("AirPlanesDataSet");
     
-    //sverigeRoadsDataSet->initialize(); // Takes very long to initialize (1.4 GB large)
-    if (includeRoads) roadsDataSet->initialize();  // very large too
+    
 
-    northAmerica->initialize();
-    southAmerica->initialize();
-    world->initialize();
+    continents->indexPath(commonIndexPath);
     continents->initialize();
-    svenskaStader->initialize();
-    svenskaLandskapDataSet->initialize();
-    markerDataSet->initialize();
+    // svenskaStader->initialize();
+    // svenskaLandskapDataSet->initialize();
+    // markerDataSet->initialize();
     
     airPlaneDataSet->initialize(DataSetInitializationType::RightHereRightNow); 
     // Populate airplanes and start animations
@@ -101,7 +99,7 @@ void configureMap(const MapPtr& map, bool includeBackground=false, bool includeR
     auto debugLayer = BlueMarble::LayerPtr(new BlueMarble::Layer());
     if (includeBackground)
     {
-        backgroundDataSet->initialize(DataSetInitializationType::RightHereRightNow);
+        backgroundDataSet->initialize();
         backgroundDataSet2->initialize();
         backgroundLayer->addDataSet(backgroundDataSet);
         backgroundLayer2->addDataSet(backgroundDataSet2);
@@ -109,14 +107,32 @@ void configureMap(const MapPtr& map, bool includeBackground=false, bool includeR
     
     double minScaleCountries = 10.25;
     geoJsonLayer->minScale(minScaleCountries);
-    geoJsonLayer->addDataSet(northAmerica); geoJsonLayer->addDataSet(southAmerica); geoJsonLayer->addDataSet(world);
+
+    bool includeCountryPolygons = true; // TODO add parameter
+    if (includeCountryPolygons) 
+    {
+        northAmerica->indexPath(commonIndexPath);
+        southAmerica->indexPath(commonIndexPath);
+        world->indexPath(commonIndexPath);
+        northAmerica->initialize();
+        southAmerica->initialize();
+        world->initialize();
+        geoJsonLayer->addDataSet(northAmerica); 
+        geoJsonLayer->addDataSet(southAmerica); 
+        geoJsonLayer->addDataSet(world);
+    }
 
     continentsLayer->maxScale(minScaleCountries);
     continentsLayer->addDataSet(continents);
     if (includeRoads)
     {
-        roadsGeoJsonLayer->addDataSet(roadsDataSet);
-        roadsGeoJsonLayer->addDataSet(sverigeRoadsDataSet);
+        //roadsDataSet->indexPath(commonIndexPath);
+        //roadsDataSet->initialize();
+        //roadsGeoJsonLayer->addDataSet(roadsDataSet);
+        //sverigeRoadsDataSet->indexPath(commonIndexPath);
+        //sverigeRoadsDataSet->initialize(); // Takes very long to initialize (1.4 GB large)
+        //roadsGeoJsonLayer->addDataSet(sverigeRoadsDataSet);
+        
         roadsGeoJsonLayer->minScale(50.0);
         roadsGeoJsonLayer->enabledDuringQuickUpdates(false);
     }

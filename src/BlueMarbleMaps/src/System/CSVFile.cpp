@@ -18,7 +18,7 @@ const std::vector<std::vector<std::string>> &BlueMarble::CSVFile::rows()
 
 void CSVFile::extractData()
 {
-    for (auto& line : lines())
+    for (auto& line : getLines())
     {
         auto row = Utils::splitString(line, m_delimiter);
         m_rows.push_back(row);

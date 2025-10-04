@@ -369,8 +369,8 @@ void Layer::createDefaultVisualizers()
     
     auto textVisSelect = std::make_shared<TextVisualizer>(*textVisHover);
 
-    m_selectionVisualizers.push_back(polVisSelectShadow);
-    m_selectionVisualizers.push_back(polVisSelect);
+    //m_selectionVisualizers.push_back(polVisSelectShadow);
+    //m_selectionVisualizers.push_back(polVisSelect);
     m_selectionVisualizers.push_back(lineVisSelect);
     //m_selectionVisualizers.push_back(nodeVis);
     //m_selectionVisualizers.push_back(textVisSelect);

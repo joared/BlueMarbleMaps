@@ -17,14 +17,14 @@ namespace BlueMarble
                      std::unique_ptr<IFeatureDataBase> dataBase,
                      std::unique_ptr<ISpatialIndex> index,
                      IFeatureCachePtr cache = nullptr); // The cache is optional
-        
+
+        void buildIndex(const FeatureCollectionPtr& features, const std::string& indexPath);
         void addFeature(const FeaturePtr& feature);
 
         FeaturePtr getFeature(const FeatureId& id);
         FeatureCollectionPtr query(const Rectangle& area);
 
         bool load(const std::string& indexPath);
-        void save(const std::string& indexPath);
 
         bool verifyIndex() const;
     private:

@@ -13,9 +13,8 @@ using namespace BlueMarble;
 
 Id BlueMarble::DataSet::generateId()
 {
-    static std::atomic<FeatureId> globalFeatureIdCounter = 0;
-    globalFeatureIdCounter++;
-    return Id(m_dataSetId, globalFeatureIdCounter);
+    ++m_featureIdCounter;
+    return Id(m_dataSetId, m_featureIdCounter);
 }
 
 FeaturePtr DataSet::createFeature(GeometryPtr geometry)
@@ -59,7 +58,7 @@ void DataSet::initialize(DataSetInitializationType initType)
         }
         catch(const std::exception& e)
         {
-            std::cerr << e.what() << '\n';
+            std::cerr << "Data set initialization failed: " << e.what() << '\n';
             m_isInitialized = false;
             return;
         }
@@ -108,6 +107,7 @@ DataSetPtr DataSet::getDataSetById(const DataSetId &dataSetId)
 
 DataSet::DataSet()
     : m_dataSetId(DataSetId(this))
+    , m_featureIdCounter(0)
     , m_crs(Crs::wgs84LngLat()) // TODO: should be nullptr?
     , m_isInitialized(false)
     , m_isInitializing(false)

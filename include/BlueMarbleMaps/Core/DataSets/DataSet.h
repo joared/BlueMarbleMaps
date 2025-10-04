@@ -43,7 +43,7 @@ namespace BlueMarble
             void setCrs(const CrsPtr& crs) { m_crs = crs; }
             bool isInitialized() { return m_isInitialized; }
             bool isInitializing() { return m_isInitializing; }
-            void initialize(DataSetInitializationType initType = DataSetInitializationType::BackgroundThread);
+            void initialize(DataSetInitializationType initType = DataSetInitializationType::RightHereRightNow);
             int64_t getVisualizationTimeStampForFeature(const Id& id);
             void restartVisualizationAnimation(FeaturePtr feature, int64_t timeStamp = -1);
 
@@ -54,6 +54,7 @@ namespace BlueMarble
             virtual void init() = 0;
         private:
             DataSetId        m_dataSetId;
+            FeatureId        m_featureIdCounter;
             CrsPtr           m_crs;
             std::atomic_bool m_isInitialized;
             std::atomic_bool m_isInitializing;
