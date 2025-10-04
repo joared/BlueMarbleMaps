@@ -20,6 +20,7 @@ namespace BlueMarble
     {
         public:
             Layer(bool createdefaultVisualizers = true);
+            void renderingEnabled(bool enabled) { m_renderingEnabled=enabled; }
             void enabled(bool enabled);
             bool enabled() const;
             void selectable(bool selectable);
@@ -60,6 +61,7 @@ namespace BlueMarble
             bool    m_enabledDuringQuickUpdates;
             double  m_maxScale;
             double  m_minScale;
+            bool    m_renderingEnabled;
 
             std::vector<VisualizerPtr> m_visualizers;
             std::vector<VisualizerPtr> m_hoverVisualizers;

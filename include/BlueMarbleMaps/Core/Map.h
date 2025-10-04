@@ -172,6 +172,10 @@ namespace BlueMarble
                 Signal<Map&> onIdle;
             } events;
 
+            // Debug options
+            bool renderingEnabled() { return m_renderingEnabled; };
+            void renderingEnabled(bool enabled);
+
         private:
             void updateUpdateAttributes(int64_t timeStampMs);
             void beforeRender();
@@ -215,6 +219,9 @@ namespace BlueMarble
 
             bool m_showDebugInfo;
             bool m_isUpdating; // Not allowed to call update() within an update() call
+
+            // Debugging
+            bool m_renderingEnabled;
     };
 
 }

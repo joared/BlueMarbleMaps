@@ -25,7 +25,7 @@ namespace BlueMarble
 
     }
 
-    bool EventHandler::onEventFilter(EventHandler* target, const Event& event) 
+    bool EventHandler::onEventFilter(const Event& event, EventHandler* target) 
     {
         // Default implementation does nothing. If you want to dispatch
         // the event to an event callback, override this and call OnEvent(event)
@@ -38,7 +38,7 @@ namespace BlueMarble
     }
 
 
-    bool EventHandler::handleEvent(EventHandler* target, const Event& event)
+    bool EventHandler::handleEvent(const Event& event, EventHandler* target)
     {
         if (m_handleEventRecursionGuard)
         {
@@ -47,7 +47,7 @@ namespace BlueMarble
         m_handleEventRecursionGuard = true;
         
         bool handled = false;
-        if (m_eventFilter && m_eventFilter->handleEvent(this, event))
+        if (m_eventFilter && m_eventFilter->handleEvent(event, this))
         {
             // An installed event filter has handled the event
             handled = true;
@@ -55,7 +55,7 @@ namespace BlueMarble
         else if (target != nullptr)
         {
             // We are an event filter for "target"
-            handled = onEventFilter(target, event);
+            handled = onEventFilter(event, target);
         }
         else
         {
@@ -110,7 +110,7 @@ namespace BlueMarble
 
     bool EventDispatcher::dispatchEventTo(const Event& event, EventHandler* eventHandler)
     {
-        return eventHandler->handleEvent(nullptr, event);
+        return eventHandler->handleEvent(event, nullptr);
     }
 
 } // namespace BlueMarble

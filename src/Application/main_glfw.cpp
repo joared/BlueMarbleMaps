@@ -3,7 +3,7 @@
 #include <iostream>
 
 #include "BlueMarbleMaps/Core/Map.h"
-#include "BlueMarbleMaps/Core/DataSet.h"
+#include "BlueMarbleMaps/Core/DataSets/DataSet.h"
 #include "BlueMarbleMaps/Core/Core.h"
 #include "BlueMarbleMaps/Core/Feature.h"
 #include "BlueMarbleMaps/Core/MapControl.h"
@@ -211,7 +211,7 @@ class EventObserver : public EventHandler
             , m_previousEventType(EventType::Invalid)
         {}
 
-        bool onEventFilter(EventHandler* target, const Event& event) override final
+        bool onEventFilter(const Event& event, EventHandler* target) override final
         {
             if (m_previousEventType != EventType::Invalid 
                 && m_previousEventType != event.getType())
@@ -272,7 +272,7 @@ int main()
 
     view->addLayer(vectorLayer);
 
-    //configureMap(view, false, false, false);
+    configureMap(view, false, true, false);
 
     mapControl->setView(view);
 
@@ -287,6 +287,7 @@ int main()
     // eventObserver1.installEventFilter(&eventObserver2);
     mapControl->setTool(tool);
 
+    view->scale(10.0);
     view->update(true);
 
     while (!mapControl->windowShouldClose())

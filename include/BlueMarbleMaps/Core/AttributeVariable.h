@@ -3,7 +3,7 @@
 
 #include "Animation.h"
 #include "Attributes.h"
-#include "DataSet.h"
+#include "DataSets/DataSet.h"
 
 namespace BlueMarble
 {

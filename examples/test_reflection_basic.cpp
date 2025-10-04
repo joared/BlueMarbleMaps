@@ -15,7 +15,7 @@
 #include <cassert>
 
 // Blue marble includes
-#include "BlueMarbleMaps/System/JsonFile.h"
+#include "BlueMarbleMaps/Core/Serialization/JsonValue.h"
 
 #include "reflection_utils.h"
 
@@ -161,23 +161,23 @@ class JsonParser : public JSONParseHandler
             std::cout << "onNull" << "\n";
         }
 
-        void onStartList(const JsonList& value) override final 
+        void onStartArray(const JsonValue::Array& value) override final 
         {
             std::cout << "onStartList: " << value.size() << "\n";
         }
 
-        void onEndList(const JsonList& value) override final
+        void onEndArray(const JsonValue::Array& value) override final
         {
             std::cout << "onEndList" << "\n";
         }
 
-        void onStartObject(const JsonData& value) override final
+        void onStartObject(const JsonValue::Object& value) override final
         {
             std::cout << "onStartObject: " << value.size() << "\n";
             assert(m_currObj.empty());
         }
         
-        void onEndObject(const JsonData& value) override final
+        void onEndObject(const JsonValue::Object& value) override final
         {
             std::cout << "onEndObject: " << "\n";
             if (m_currObj.empty())
@@ -224,8 +224,8 @@ class LayoutParser
 
         LayoutParser(const std::string& filePath)
         {
-            JSONFile f(filePath);
-            auto data = f.data();
+            // JSONFile f(filePath);
+            // auto data = f.data();
         }
 
 
@@ -233,57 +233,57 @@ class LayoutParser
 
         static std::map<std::string, UiElementProperties> fromString(const std::string& jsonStr)
         {
-            auto jsonData = BlueMarble::JSONFile::fromString(jsonStr);
-            auto parser = LayoutParser();
-            parser.parse(jsonData);
-            return parser.getObjects();
+            // auto jsonData = BlueMarble::JSONFile::fromString(jsonStr);
+            // auto parser = LayoutParser();
+            // parser.parse(jsonData);
+            // return parser.getObjects();
         }
         
     private:
         void parse(JsonValue* data)
         {
-            parseObject(data->get<JsonData>());
+            // parseObject(data->get<JsonData>());
         }
 
-        void parseObject(const JsonData& data)
+        void parseObject(const JsonValue::Object& data)
         {
-            auto it = data.find("type");
-            if (it == data.end())
-            {
-                std::cout << "'type' key not found\n";
-            }
-            auto nameStr = it->second->get<std::string>();
+            // auto it = data.find("type");
+            // if (it == data.end())
+            // {
+            //     std::cout << "'type' key not found\n";
+            // }
+            // auto nameStr = it->second->get<std::string>();
             
-            UiElementProperties props;
+            // UiElementProperties props;
 
-            for (auto it2 : data)
-            {
-                auto key = it2.first;
-                auto val = it2.second;
+            // for (auto it2 : data)
+            // {
+            //     auto key = it2.first;
+            //     auto val = it2.second;
 
-                if (val->isType<std::string>())
-                {
-                    props[key] = val->get<std::string>();
-                }
-                else if (val->isType<int>())
-                {
-                    props[key] = std::to_string(val->get<int>());
-                }
-                else if (val->isType<double>())
-                {
-                    props[key] = std::to_string(val->get<double>());
-                }
-                else if (val->isType<JsonList>())
-                {
-                    //parseJsonList(val->get<JsonList>());
-                }
-                else
-                {
-                    parseObject(val->get<JsonData>());
-                }
-            }
+            //     if (val->isType<std::string>())
+            //     {
+            //         props[key] = val->get<std::string>();
+            //     }
+            //     else if (val->isType<int>())
+            //     {
+            //         props[key] = std::to_string(val->get<int>());
+            //     }
+            //     else if (val->isType<double>())
+            //     {
+            //         props[key] = std::to_string(val->get<double>());
+            //     }
+            //     else if (val->isType<JsonList>())
+            //     {
+            //         //parseJsonList(val->get<JsonList>());
+            //     }
+            //     else
+            //     {
+            //         parseObject(val->get<JsonData>());
+            //     }
+            // }
 
-            m_objects[nameStr] = props;
+            // m_objects[nameStr] = props;
         }
 
 

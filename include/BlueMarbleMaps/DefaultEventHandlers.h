@@ -8,6 +8,7 @@
 #include "Event/KeyEvent.h"
 #include "BlueMarbleMaps/Core/MapControl.h"
 #include "BlueMarbleMaps/Core/AnimationFunctions.h"
+#include "BlueMarbleMaps/Core/DataSets/MemoryDataSet.h"
 
 namespace BlueMarble
 {
@@ -1016,7 +1017,34 @@ namespace BlueMarble
                     raster.save("temporary.png");
                     return true;
                 }
+
+                // TODO rendering enabled
+                if (event.keyCode == 27 && // r
+                    event.modificationKey && ModificationKeyCtrl)
+                {
+                    bool enabled = !m_map->renderingEnabled();
+                    m_map->renderingEnabled(enabled);
+                    m_map->update();
+
+                    if (enabled)
+                        BMM_DEBUG() << "Enabled rendering!\n";
+                    else
+                        BMM_DEBUG() << "Disabled rendering!\n";
+                }
                 
+                if (event.keyCode == 40 && // d
+                    event.modificationKey && ModificationKeyCtrl)
+                {
+                    bool enabled = !m_map->showDebugInfo();
+                    m_map->showDebugInfo() = enabled;
+                    m_map->update();
+
+                    if (enabled)
+                        BMM_DEBUG() << "Debug info enabled!\n";
+                    else
+                        BMM_DEBUG() << "Debug info disabled!\n";
+                }
+
                 return false;
             }
         private:

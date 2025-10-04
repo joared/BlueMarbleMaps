@@ -24,16 +24,49 @@ namespace BlueMarble
         const std::string StartAnimationTimeMs = std::string("__animationTimeMs");
     };
 
-    // TODO: make attributes an std::map and use class for AttributeValue with get/set?
-    // "contatins" method is convenient, maybe Attributes both should its own class still
-    // TODO: big issue when introducing bool, where "hello" in "set" can be interpreted as bool in the template argument deduction
-    using AttributeValue = std::variant<int, double, std::string, bool>;
     enum class AttributeValueType
     {
+        Empty,
         Integer,
         Double,
         String,
         Boolean
+    };
+
+    // TODO: make attributes an std::map and use class for AttributeValue with get/set?
+    // "contatins" method is convenient, maybe Attributes both should its own class still
+    // TODO: big issue when introducing bool, where "hello" in "set" can be interpreted as bool in the template argument deduction
+    //using AttributeValue = std::variant<int, double, std::string, bool>;
+    using AttributeValueBase = std::variant<std::monostate, int, double, std::string, bool>;
+    class AttributeValue : public AttributeValueBase
+    {
+    public:
+        using AttributeValueBase::AttributeValueBase;
+
+        int getInteger() const { return std::get<int>(*this); }
+        double getDouble() const { return std::get<double>(*this); }
+        const std::string& getString() const { return std::get<std::string>(*this); }
+        bool getBoolean() const { return std::get<bool>(*this); }
+
+        AttributeValueType type() const
+        {
+            switch (index())
+            {
+            case 0:
+                return AttributeValueType::Empty;
+            case 1:
+                return AttributeValueType::Integer;
+            case 2:
+                return AttributeValueType::Double;
+            case 3:
+                return AttributeValueType::String;
+            case 4:
+                return AttributeValueType::Boolean;
+            default:
+                std::cout << "AttributeValue::type() Unhandled index: " << index() << "\n";
+                return AttributeValueType::String; // TODO
+            }
+        }
     };
 
     inline std::string attributeToString(const AttributeValue& attr)
@@ -41,12 +74,15 @@ namespace BlueMarble
         switch (attr.index())
         {
         case 0:
-            return std::to_string(std::get<int>(attr));
+            std::cout << "attributeToString() Unhandled index: " << attr.index() << "\n";
+            return "Invalid attribute index: " + std::to_string(attr.index());
         case 1:
-            return std::to_string(std::get<double>(attr));
+            return std::to_string(std::get<int>(attr));
         case 2:
-            return std::get<std::string>(attr);
+            return std::to_string(std::get<double>(attr));
         case 3:
+            return std::get<std::string>(attr);
+        case 4:
             return std::get<bool>(attr) ? "true" : "false";
         default:
             std::cout << "attributeToString() Unhandled index: " << attr.index() << "\n";
@@ -60,6 +96,9 @@ namespace BlueMarble
         public:
             inline Attributes()
                 : m_attributes()
+            {}
+            inline Attributes(std::initializer_list<std::pair<const std::string, AttributeValue>> init)
+                : m_attributes(init)
             {}
             
             template <typename T>

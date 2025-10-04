@@ -197,22 +197,29 @@ void EventManager::handlePosChanged(MouseButton lastDown, const ScreenPos& currP
             beginEvent.pos = m_downPos;
             beginEvent.modificationKey = modKeys;
             beginEvent.mouseButton = lastDown;
-            dispatchEvent(beginEvent, m_previousMouseDownEvent.timeStampMs); // Use the timestamp of the mouse down event
-
-            // Drag event directly after, using current pos
-            DragEvent event;
-            event.startPos = m_downPos;
-            event.lastPos = m_downPos;
-            event.pos = currPos;
-            event.modificationKey = modKeys;
-            event.mouseButton = m_lastDown;
-            dispatchEvent(event, m_timeStampMs);
+            dispatchEvent(beginEvent, m_timeStampMs);
+            
+            //dispatchEvent(beginEvent, m_previousMouseDownEvent.timeStampMs); // I did this before, I don't think its good
+            
+            // This seemed to introduce issues
+            //Drag event directly after, using current pos
+            // DragEvent event;
+            // event.startPos = m_downPos;
+            // event.lastPos = m_downPos;
+            // event.pos = currPos;
+            // event.modificationKey = modKeys;
+            // event.mouseButton = lastDown;
+            // dispatchEvent(event, m_timeStampMs);
 
             m_isDragging = true;
         }
         else 
         {
-            // TESTING: always call Mouse move
+            // MouseMoveEvent event;
+            // event.pos = currPos;
+            // event.modificationKey = modKeys;
+            // event.mouseButton = lastDown;
+            // dispatchEvent(event, m_timeStampMs);
         }
     }
     else
@@ -274,7 +281,11 @@ void EventManager::handleMouseButtonChanged(MouseButton currButton, const Screen
 
         if (!m_isDragging)
         {
-            // TESTING: always dispatch mouse up
+            // MouseUpEvent event;
+            // event.pos = currPos;
+            // event.modificationKey = modKeys;
+            // event.mouseButton = m_lastDown; // We use the last down button
+            // dispatchEvent(event, m_timeStampMs);
 
             // Also dispatch click if we have a previous mouse down event (not double click)
             if (m_previousMouseDownEvent.mouseButton != MouseButtonNone)

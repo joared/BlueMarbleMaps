@@ -35,12 +35,12 @@ namespace BlueMarble
             friend bool EventDispatcher::dispatchEventTo(const Event&, EventHandler*);
         protected:
             // Default behaviour return false
-            virtual bool onEventFilter(EventHandler* target, const Event& event);
+            virtual bool onEventFilter(const Event& event, EventHandler* target=nullptr);
             // Default behaviour delegate to corresponding EventCallbacks method
             virtual bool onEvent(const Event& event);
 
         private:
-            bool handleEvent(EventHandler* target, const Event& event);
+            bool handleEvent(const Event& event, EventHandler* target=nullptr);
             
             EventHandler* m_eventFilter;
             bool          m_handleEventRecursionGuard;

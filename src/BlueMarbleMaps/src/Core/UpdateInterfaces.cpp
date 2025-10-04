@@ -22,7 +22,7 @@ using namespace BlueMarble;
 FeatureEnumerator::FeatureEnumerator()
     : m_iteratorIndex(-1)
     , m_iterationIndex(-1)
-    , m_features()
+    , m_features(std::make_shared<FeatureCollection>())
     , m_subEnumerators()
 {
     reset();
@@ -40,12 +40,12 @@ const FeaturePtr &FeatureEnumerator::current() const
     if (m_iteratorIndex == -1)
     {
         // Our own features
-        if (m_iterationIndex >= m_features.size())
+        if (m_iterationIndex >= m_features->size())
         {
             BMM_DEBUG() << "Something went wrong during iteration index, out of bounds...\n";
             throw std::exception();
         }
-        return m_features[m_iterationIndex];
+        return m_features->get(m_iterationIndex);
     }
 
     // Other iterator
@@ -64,7 +64,7 @@ bool FeatureEnumerator::moveNext()
     {
         // Our own
         m_iterationIndex++;
-        if (m_iterationIndex < m_features.size())
+        if (m_iterationIndex < m_features->size())
         {
             return true;
         }
@@ -105,12 +105,17 @@ void FeatureEnumerator::reset()
 
 void FeatureEnumerator::add(const FeaturePtr &feature)
 {
-    m_features.push_back(feature);
+    m_features->add(feature);
+}
+
+void FeatureEnumerator::setFeatures(const FeatureCollectionPtr& features)
+{
+    m_features = features;
 }
 
 int FeatureEnumerator::size()
 {
-    int s = m_features.size();
+    int s = m_features->size();
 
     for (const auto& e : m_subEnumerators)
     {
