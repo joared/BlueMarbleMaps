@@ -57,7 +57,8 @@ namespace BlueMarble
         glm::mat4x4 m_viewMatrix;
         glm::mat4x4 m_projectionMatrix;
         Color m_color;
-        BatchPtr batch;
+        BatchPtr lineBatch;
+        BatchPtr polyBatch;
     };
     typedef std::shared_ptr<OpenGLDrawable> OpenGLDrawablePtr;
 

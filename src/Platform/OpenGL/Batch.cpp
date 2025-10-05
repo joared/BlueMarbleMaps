@@ -1,12 +1,13 @@
 #include "Batch.h"
 
-Batch::Batch()
+Batch::Batch(bool isPolygon)
 	:m_vao()
 	,m_vbo()
 	,m_ibo()
 	,m_vertBuffer()
 	,m_indexBuffer()
 	,m_indexCount(0)
+	,m_isPolygon(isPolygon)
 {
 	m_vao.init();
 	m_vbo.init();
@@ -54,7 +55,22 @@ void Batch::submit(std::vector<Vertice> &vertices)
 }
 void Batch::submit(std::vector<Vertice>& vertices, std::vector<GLuint> &indices)
 {
-	//TODO
+	if (m_indexCount + indices.size() + 1 >= (sizeof(Vertice) * 4 * 60000) - 1) flush();
+	for (int i = 0; i < vertices.size(); i++)
+	{
+		m_vertBuffer->position = vertices[i].position;
+		m_vertBuffer->color = vertices[i].color;
+		m_vertBuffer->texCoord = vertices[i].texCoord;
+		m_vertBuffer++;
+	}
+	for (int i = 0; i < vertices.size(); i++)
+	{
+		*m_indexBuffer = (GLuint)(i+m_indexCount);
+		m_indexBuffer++;
+	}
+	*m_indexBuffer = (GLuint)MAGIX_NUMBER;
+	m_indexBuffer++;
+	m_indexCount += indices.size();
 }
 
 void Batch::end()
@@ -68,11 +84,14 @@ void Batch::end()
 
 void Batch::flush()
 {
+	GLuint drawType;
+	if (!m_isPolygon) drawType = GL_LINE_STRIP;
+	else drawType = GL_TRIANGLES;
 	m_vao.bind();
 	m_ibo.bind();
 	glEnable(GL_PRIMITIVE_RESTART);
 	glPrimitiveRestartIndex(MAGIX_NUMBER);
-	glDrawElements(GL_LINE_STRIP, m_indexCount, GL_UNSIGNED_INT, NULL);
+	glDrawElements(drawType, m_indexCount, GL_UNSIGNED_INT, NULL);
 	glDisable(GL_PRIMITIVE_RESTART);
 	m_ibo.unbind();
 	m_vao.unbind();

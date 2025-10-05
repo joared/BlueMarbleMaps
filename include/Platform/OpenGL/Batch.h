@@ -9,7 +9,7 @@ class Batch
 {
 #define MAGIX_NUMBER 0xFFFFFFFF
 public:
-	Batch();
+	Batch(bool isPolygon);
 	~Batch();
 	void begin();
 	void submit(std::vector<Vertice>& vertices);
@@ -24,5 +24,6 @@ private:
 	Vertice* m_vertBuffer;
 	GLuint* m_indexBuffer;
 	GLsizei m_indexCount;
+	bool m_isPolygon;
 };
 typedef std::shared_ptr<Batch> BatchPtr;

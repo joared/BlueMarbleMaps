@@ -315,10 +315,10 @@ void BlueMarble::OpenGLDrawable::drawArc(double cx, double cy, double rx, double
 
 void BlueMarble::OpenGLDrawable::drawLine(const LineGeometryPtr& geometry, const Pen& pen)
 {
-    if (batch == nullptr)
+    if (lineBatch == nullptr)
     {
-        batch = std::make_shared<Batch>();
-        batch->begin();
+        lineBatch = std::make_shared<Batch>(false);
+        lineBatch->begin();
     }
     std::vector<Vertice> vertices;
 
@@ -337,7 +337,7 @@ void BlueMarble::OpenGLDrawable::drawLine(const LineGeometryPtr& geometry, const
         vertices.push_back(vertices[0]);
     }
     if (vertices.empty()) return;
-    batch->submit(vertices);
+    lineBatch->submit(vertices);
     
 
     /*if (m_primitives.find(geometry->getID()) == m_primitives.end())
@@ -380,51 +380,36 @@ void BlueMarble::OpenGLDrawable::drawLine(const LineGeometryPtr& geometry, const
 
 void BlueMarble::OpenGLDrawable::drawPolygon(const PolygonGeometryPtr& geometry, const Pen& pen, const Brush& brush)
 {
-    if (geometry->rings().size() == 0 || geometry->rings()[0].size() < 3)
+    if (polyBatch == nullptr)
+    {
+        polyBatch = std::make_shared<Batch>(true);
+        polyBatch->begin();
+    }
+    std::vector<Vertice> vertices;
+    std::vector<GLuint> indices;
+
+    std::vector<Point> bounds = geometry->outerRing();
+    std::vector<Color> colors = brush.getColors();
+
+    for (int i = 0; i < bounds.size(); i++)
+    {
+        glm::vec3 pos(bounds[i].x(), bounds[i].y(), 0);
+
+        Color bmColor = getColorFromList(brush.getColors(), i);
+        glm::vec4 glColor((float)bmColor.r() / 255, (float)bmColor.g() / 255, (float)bmColor.b() / 255, bmColor.a());
+
+        vertices.push_back(Vertice{ pos, glColor });
+    }
+    if (vertices.empty()) return;
+    std::vector<Vertice> triangles;
+    std::vector<Vertice> holes;
+    if (Algorithms::triangulatePolygon(vertices, holes, triangles, indices, false) == false)
+    {
+        std::cout << "Couldn't draw object due to not being able to triangulate it" << std::endl;
         return;
-
-    if (m_primitives.find(geometry->getID()) == m_primitives.end())
-    {
-        std::vector<Vertice> vertices;
-        std::vector<GLuint> indices;
-
-        std::vector<Point> bounds = geometry->outerRing();
-        std::vector<Color> colors = brush.getColors();
-
-        for (int i = 0; i < bounds.size(); i++)
-        {
-            glm::vec3 pos(bounds[i].x(), bounds[i].y(), 0);
-
-            Color bmColor = getColorFromList(brush.getColors(), i);
-            glm::vec4 glColor((float)bmColor.r() / 255, (float)bmColor.g() / 255, (float)bmColor.b() / 255, bmColor.a());
-
-            vertices.push_back(Vertice{pos, glColor});
-        }
-        if (vertices.empty()) return;
-        std::vector<Vertice> triangles;
-        std::vector<Vertice> holes;
-        if (Algorithms::triangulatePolygon(vertices, holes, triangles, indices,false) == false)
-        {
-            std::cout << "Couldn't draw object due to not being able to triangulate it" << std::endl;
-            return;
-        }
-        PolygonGeometryInfoPtr info = std::make_shared<PolygonGeometryInfo>();
-        info->m_shader = m_basicShader;
-
-        PolygonPtr polygon = std::make_shared<Polygon>(info,triangles,indices);
-        m_primitives[geometry->getID()] = polygon;
     }
-    //std::cout << "Drawing polygon with id: " << geometry->getID() << "\n";
-    PolygonPtr primitive = std::static_pointer_cast<Polygon>(m_primitives[geometry->getID()]);
-    if (primitive == nullptr) return;
-    auto mat = m_projectionMatrix*m_viewMatrix;
-    if (primitive->getShader() != nullptr)
-    {
-        primitive->getShader()->useProgram();
-        primitive->getShader()->setMat4("viewMatrix", mat);
-    }
-    
-    primitive->drawIndex(geometry->outerRing().size());
+    if (vertices.empty()) return;
+    polyBatch->submit(vertices,indices);
 }
 
 void BlueMarble::OpenGLDrawable::drawRect(const Point& topLeft, const Point& bottomRight, const Color& color)
@@ -567,14 +552,32 @@ void BlueMarble::OpenGLDrawable::swapBuffers()
 {
     auto mat = m_projectionMatrix * m_viewMatrix;
 
-    m_lineShader->useProgram();
-    m_lineShader->setMat4("viewMatrix", mat);
     
+    if (polyBatch)
+    {
+        m_basicShader->useProgram();
+        m_basicShader->setMat4("viewMatrix", mat);
+        polyBatch->end();
+        polyBatch->flush();
+    }
+    if (lineBatch)
+    {
+        m_lineShader->useProgram();
+        m_lineShader->setMat4("viewMatrix", mat);
+        lineBatch->end();
+        lineBatch->flush();
+    }
     
-    batch->end();
-    batch->flush();
     glfwSwapBuffers(m_window);
-    batch->begin();
+    if (lineBatch)
+    {
+        lineBatch->begin();
+    }
+    if (polyBatch)
+    {
+        polyBatch->begin();
+    }
+
 }
 
 void BlueMarble::OpenGLDrawable::clearBuffer()
