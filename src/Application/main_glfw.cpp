@@ -266,13 +266,11 @@ int main()
     auto vectorLayer = std::make_shared<Layer>(true);
     vectorLayer->addDataSet(vectorDataSet);
 
-    std::vector<Point> points({ {16, 56}, {17, 57}, {15, 58} });
-    auto poly = std::make_shared<PolygonGeometry>(points);
-    vectorDataSet->addFeature(vectorDataSet->createFeature(poly));
-
+    auto polyVis = std::make_shared<PolygonVisualizer>();
+    vectorLayer->visualizers().push_back(polyVis);
     view->addLayer(vectorLayer);
 
-    configureMap(view, false, true, false);
+    configureMap(view, false, false, false);
 
     mapControl->setView(view);
 

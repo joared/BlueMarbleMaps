@@ -29,6 +29,16 @@ void SoftwareDrawable::Impl::setTransform(const Transform &transform)
     m_transform = transform;
 }
 
+void BlueMarble::SoftwareDrawable::Impl::beginBatches()
+{
+    //Facka you
+}
+
+void BlueMarble::SoftwareDrawable::Impl::endBatches()
+{
+    //Facka you
+}
+
 void SoftwareDrawable::Impl::resize(int width, int height)
 {
     m_img.resize(width, height);

@@ -17,7 +17,8 @@ std::string File::readAsString(const std::string &filePath)
 
 void File::writeLines(const std::string &filePath, const std::vector<std::string> &lines)
 {
-    std::ofstream file(filePath);
+    std::ofstream file;
+    file.open(filePath);
     if (!file.is_open())
     {
         throw std::runtime_error("File::writeLines() Failed to open file: " + filePath);

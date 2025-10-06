@@ -25,6 +25,8 @@ namespace BlueMarble
         // Methods
         const Transform& getTransform();
         void setTransform(const Transform& transform);
+        void beginBatches();
+        void endBatches();
         void resize(int width, int height);
         void drawCircle(double x, double y, double radius, const Pen& pen, const Brush& brush);
         void drawArc(double cx, double cy, double rx, double ry, double theta, const Pen& pen, const Brush& brush);

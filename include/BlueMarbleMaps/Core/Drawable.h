@@ -31,6 +31,8 @@ namespace BlueMarble
             // Methods
             virtual const Transform& getTransform() = 0;
             virtual void setTransform(const Transform& transform) = 0;
+            virtual void beginBatches() = 0;
+            virtual void endBatches() = 0;
             virtual void resize(int width, int height) = 0;
             virtual void drawArc(double cx, double cy, double rx, double ry, double theta, const Pen& pen, const Brush& brush) = 0;
             virtual void drawCircle(double x, double y, double radius, const Pen& pen, const Brush& brush) = 0;

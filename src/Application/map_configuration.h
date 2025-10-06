@@ -57,7 +57,7 @@ void configureMap(const MapPtr& map, bool includeBackground=false, bool includeR
     static auto northAmerica = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/world_geojson/northamerica_high_fixed.geo.json");
     static auto southAmerica = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/world_geojson/southamerica_high.geo.json");
     static auto world = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/world_geojson/world_high.geo.json");
-    static auto continents = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/continents/continents.json");
+    static auto continents = std::make_shared<BlueMarble::GeoJsonFileDataSet>("../../../geodata/continents.json");
     continents->name("Continents");
     static auto sverigeRoadsDataSet = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/svenska_vagar/hotosm_swe_roads_lines_geojson.geojson"); sverigeRoadsDataSet->name("Roads sverige");
     static auto roadsDataSet = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/roads_geojson/europe-road.geojson"); roadsDataSet->name("Roads");
@@ -93,7 +93,8 @@ void configureMap(const MapPtr& map, bool includeBackground=false, bool includeR
     auto continentsLayer = BlueMarble::LayerPtr(new BlueMarble::Layer());
     auto roadsGeoJsonLayer = BlueMarble::LayerPtr(new BlueMarble::Layer());
     auto shapeFileLayer = BlueMarble::LayerPtr(new BlueMarble::Layer());
-    auto airPlaneLayer = BlueMarble::LayerPtr(new BlueMarble::Layer(false)); setupAirPlaneLayerVisualization(airPlaneLayer);
+    auto airPlaneLayer = BlueMarble::LayerPtr(new BlueMarble::Layer(false)); 
+    if(includeAirPlanes) setupAirPlaneLayerVisualization(airPlaneLayer);
     auto csvLayer = BlueMarble::LayerPtr(new BlueMarble::Layer());
     auto sverigeLayer = BlueMarble::LayerPtr(new BlueMarble::Layer());
     auto debugLayer = BlueMarble::LayerPtr(new BlueMarble::Layer());

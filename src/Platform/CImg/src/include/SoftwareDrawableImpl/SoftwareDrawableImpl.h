@@ -13,6 +13,8 @@ namespace BlueMarble
             Impl(int width, int height, int channels);
             const Transform& getTransform();
             void setTransform(const Transform &transform);
+            void beginBatches();
+            void endBatches();
             void resize(int width, int height);
             int width() const;
             int height() const;

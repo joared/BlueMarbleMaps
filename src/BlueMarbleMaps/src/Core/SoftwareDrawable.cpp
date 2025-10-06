@@ -36,6 +36,16 @@ namespace BlueMarble
         m_impl->setTransform(transform);
     }
 
+    void SoftwareDrawable::beginBatches()
+    {
+        m_impl->beginBatches();
+    }
+
+    void SoftwareDrawable::endBatches()
+    {
+        m_impl->endBatches();
+    }
+
     void SoftwareDrawable::resize(int width, int height)
     {
         m_impl->resize(width, height);

@@ -97,8 +97,9 @@ bool Map::update(bool forceUpdate)
     { 
         m_drawable->setTransform(Transform::screenTransform(m_drawable->width(), m_drawable->height())); 
     };
+    m_drawable->beginBatches();
     events.onCustomDraw.notify(*this, preNotifyAction);
-
+    m_drawable->endBatches();
     if (m_showDebugInfo)
     {
         drawDebugInfo(getTimeStampMs() - timeStampMs);
@@ -134,7 +135,7 @@ void Map::renderLayer(const LayerPtr& layer, const FeatureQuery& featureQuery)
     for (const auto& vis : layer->visualizers())
     {
         features->reset();
-        
+        m_drawable->beginBatches();
         while (features->moveNext())
         {
             const auto& f = features->current();
@@ -154,25 +155,29 @@ void Map::renderLayer(const LayerPtr& layer, const FeatureQuery& featureQuery)
                 }
             }
         }
-
+        m_drawable->endBatches();
         hasAddedHoverAnSelection = true;
     }
 
     for (const auto& vis : layer->hoverVisualizers())
     {
+        m_drawable->beginBatches();
         for (const auto& f : hoveredFeatures)
         {
             if (m_renderingEnabled)
                 vis->renderFeature(*drawable(), f, updateAttributes());
         }
+        m_drawable->endBatches();
     }
     for (const auto& vis : layer->selectionVisualizers())
     {
+        m_drawable->beginBatches();
         for (const auto& f : selectedFeatures)
         {
             if (m_renderingEnabled)
                 vis->renderFeature(*drawable(), f, updateAttributes());
         }
+        m_drawable->endBatches();
     }
 }
 

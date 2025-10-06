@@ -19,7 +19,7 @@
 #include "gtc/type_ptr.hpp"
 #include "gtc/matrix_transform.hpp"
 
-#define SEVERITY_THRESHOLD GL_DEBUG_SEVERITY_LOW
+#define SEVERITY_THRESHOLD GL_DEBUG_SEVERITY_HIGH
 
 using namespace BlueMarble;
 
@@ -166,6 +166,37 @@ void BlueMarble::OpenGLDrawable::setTransform(const Transform& transform)
     // glVertex2f(100, 100);
     // glVertex2f(0, 100);
     // glEnd();
+}
+
+void BlueMarble::OpenGLDrawable::beginBatches()
+{
+    if (lineBatch)
+    {
+        lineBatch->begin();
+    }
+    if (polyBatch)
+    {
+        polyBatch->begin();
+    }
+}
+
+void BlueMarble::OpenGLDrawable::endBatches()
+{
+    auto mat = m_projectionMatrix * m_viewMatrix;
+    if (polyBatch)
+    {
+        m_basicShader->useProgram();
+        m_basicShader->setMat4("viewMatrix", mat);
+        polyBatch->end();
+        polyBatch->flush();
+    }
+    if (lineBatch)
+    {
+        m_lineShader->useProgram();
+        m_lineShader->setMat4("viewMatrix", mat);
+        lineBatch->end();
+        lineBatch->flush();
+    }
 }
 
 void BlueMarble::OpenGLDrawable::resize(int width, int height)
@@ -338,44 +369,6 @@ void BlueMarble::OpenGLDrawable::drawLine(const LineGeometryPtr& geometry, const
     }
     if (vertices.empty()) return;
     lineBatch->submit(vertices);
-    
-
-    /*if (m_primitives.find(geometry->getID()) == m_primitives.end())
-    {
-        std::vector<Vertice> vertices;
-
-        std::vector<Point> bounds = geometry->points();
-        std::vector<Color> colors = pen.getColors();
-
-        for (int i = 0; i < bounds.size(); i++)
-        {
-            Color bmColor = getColorFromList(pen.getColors(), i);
-
-            vertices.push_back(createPoint(bounds[i],bmColor));
-        }
-
-        if (geometry->isClosed())
-        {
-            vertices.push_back(vertices[0]);
-        }
-        if (vertices.empty()) return;
-        LineGeometryInfoPtr info = std::make_shared<LineGeometryInfo>();
-        info->m_shader = m_lineShader;
-        LinePtr line = std::make_shared<Line>(info, vertices);
-        m_primitives[geometry->getID()] = line;
-    }
-    //std::cout << "Drawing line id: " << geometry->getID() << "\n";
-    LinePtr line = std::static_pointer_cast<Line>(m_primitives[geometry->getID()]);
-    if (line == nullptr) return;
-    auto mat = m_projectionMatrix*m_viewMatrix;
-    if (line->getShader() != nullptr)
-    {
-        line->getShader()->useProgram();
-        line->getShader()->setMat4("viewMatrix", mat);
-    }
-
-    int add = 1 ? geometry->isClosed() : 0;
-    line->drawLine(geometry->points().size() + add, 10);*/
 }
 
 void BlueMarble::OpenGLDrawable::drawPolygon(const PolygonGeometryPtr& geometry, const Pen& pen, const Brush& brush)
@@ -409,7 +402,7 @@ void BlueMarble::OpenGLDrawable::drawPolygon(const PolygonGeometryPtr& geometry,
         return;
     }
     if (vertices.empty()) return;
-    polyBatch->submit(vertices,indices);
+    polyBatch->submit(triangles,indices);
 }
 
 void BlueMarble::OpenGLDrawable::drawRect(const Point& topLeft, const Point& bottomRight, const Color& color)
@@ -445,24 +438,6 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, con
         Raster& r = raster->raster();
         int w = (float)r.width();
         int h = (float)r.height();
-
-        // Color c1 = getColorFromList(brush.getColors(), 0);
-        // // Color c2 = getColorFromList(brush.getColors(), 1);
-        // // Color c3 = getColorFromList(brush.getColors(), 2);
-        // // Color c4 = getColorFromList(brush.getColors(), 3);
-
-        // glm::vec4 glColor((float)c1.r()/255, (float)c1.g() / 255, (float)c1.b() / 255, c1.a());
-
-        // auto b = raster->bounds();
-        // float xMin = b.xMin();
-        // float xMax = b.xMax();
-        // float yMin = b.yMin();
-        // float yMax = b.yMax();
-        // vertices = { Vertice{glm::vec3(xMin,yMin,0.0f), glColor, glm::vec2(0.0f,0.0f)},
-        //                 Vertice{glm::vec3(xMax,yMin,0.0f), glColor, glm::vec2(1.0f,0.0f)},
-        //                 Vertice{glm::vec3(xMax,yMax,0.0f), glColor, glm::vec2(1.0f,1.0f)},
-        //                 Vertice{glm::vec3(xMin,yMax,0.0f), glColor, glm::vec2(0.0f,1.0f)} };
-
 
         std::vector<Point> bounds = raster->bounds().corners();
         std::vector<Color> colors = brush.getColors();
@@ -550,34 +525,7 @@ void BlueMarble::OpenGLDrawable::setPixel(int x, int y, const Color& color)
 
 void BlueMarble::OpenGLDrawable::swapBuffers()
 {
-    auto mat = m_projectionMatrix * m_viewMatrix;
-
-    
-    if (polyBatch)
-    {
-        m_basicShader->useProgram();
-        m_basicShader->setMat4("viewMatrix", mat);
-        polyBatch->end();
-        polyBatch->flush();
-    }
-    if (lineBatch)
-    {
-        m_lineShader->useProgram();
-        m_lineShader->setMat4("viewMatrix", mat);
-        lineBatch->end();
-        lineBatch->flush();
-    }
-    
     glfwSwapBuffers(m_window);
-    if (lineBatch)
-    {
-        lineBatch->begin();
-    }
-    if (polyBatch)
-    {
-        polyBatch->begin();
-    }
-
 }
 
 void BlueMarble::OpenGLDrawable::clearBuffer()

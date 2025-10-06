@@ -84,6 +84,8 @@ void Batch::end()
 
 void Batch::flush()
 {
+	if (m_indexCount == 0) return;
+
 	GLuint drawType;
 	if (!m_isPolygon) drawType = GL_LINE_STRIP;
 	else drawType = GL_TRIANGLES;

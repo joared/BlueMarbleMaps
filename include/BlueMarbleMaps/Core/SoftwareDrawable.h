@@ -21,6 +21,8 @@ namespace BlueMarble
             // Methods
             const Transform& getTransform();
             void setTransform(const Transform& transform) override final;
+            void beginBatches() override final;
+            void endBatches() override final;
             void resize(int width, int height)  override final;
             void drawArc(double cx, double cy, double rx, double ry, double theta, const Pen& pen, const Brush& brush) override final;
             void drawCircle(double x, double y, double radius, const Pen& pen, const Brush& brush);
