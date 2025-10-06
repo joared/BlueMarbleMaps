@@ -123,6 +123,58 @@ bool Map::update(bool forceUpdate)
     return updateRequired;
 }
 
+void Map::renderLayer(const LayerPtr& layer, const FeatureQuery& featureQuery)
+{
+    std::vector<FeaturePtr> hoveredFeatures;
+    std::vector<FeaturePtr> selectedFeatures;
+    auto features = layer->update(crs(), featureQuery);
+
+    bool hasAddedHoverAnSelection = false;
+    
+    for (const auto& vis : layer->visualizers())
+    {
+        features->reset();
+        
+        while (features->moveNext())
+        {
+            const auto& f = features->current();
+
+            if (m_renderingEnabled)
+                vis->renderFeature(*drawable(), f, updateAttributes());
+
+            if (!hasAddedHoverAnSelection)
+            {
+                if (isSelected(f))
+                {
+                    selectedFeatures.push_back(f);
+                }
+                else if (isHovered(f))
+                {
+                    hoveredFeatures.push_back(f);
+                }
+            }
+        }
+
+        hasAddedHoverAnSelection = true;
+    }
+
+    for (const auto& vis : layer->hoverVisualizers())
+    {
+        for (const auto& f : hoveredFeatures)
+        {
+            if (m_renderingEnabled)
+                vis->renderFeature(*drawable(), f, updateAttributes());
+        }
+    }
+    for (const auto& vis : layer->selectionVisualizers())
+    {
+        for (const auto& f : selectedFeatures)
+        {
+            if (m_renderingEnabled)
+                vis->renderFeature(*drawable(), f, updateAttributes());
+        }
+    }
+}
 
 void Map::renderLayers()
 {
@@ -136,10 +188,11 @@ void Map::renderLayers()
     featureQuery.quickUpdate(quickUpdateEnabled());
     featureQuery.updateAttributes(&updateAttributes());
 
-    for (auto l : m_layers)
+    for (const auto& l : m_layers)
     {
         // TODO add "ViewInfo" as parameter to Layer::update()?
-        l->update(shared_from_this(), getCrs(), featureQuery);
+        //l->update(shared_from_this(), getCrs(), featureQuery);
+        renderLayer(l, featureQuery);
         m_drawable->drawText(0,0,"",Color(), 2); // Faking flush
     }
 
@@ -763,6 +816,7 @@ void Map::beforeRender()
 
 void Map::afterRender()
 {
+    //m_drawable->setTransform(Transform(m_center, m_scale, m_scale, m_rotation)); // TODO: remove, temp fix
     m_drawable->swapBuffers();
 }
 

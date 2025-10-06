@@ -31,16 +31,8 @@ namespace BlueMarble
             void maxScale(double maxScale) { m_maxScale = maxScale; }
             double minScale() {return m_minScale; }
             void minScale(double minScale) { m_minScale = minScale; }
-            
-            // Old stuff
-            // void onUpdateRequest(Map& map, const Rectangle& updateArea, FeatureHandler* handler) override;
-            // void onFeatureInput(Map& map, const std::vector<FeaturePtr>& features) override;
-            // void onGetFeaturesRequest(const Attributes& attributes, std::vector<FeaturePtr>& features) override;
-            // FeaturePtr onGetFeatureRequest(const Id& id) override;
 
-            // New stuff
-            // FIXME: why does shared_from_this() not work in Map::renderlayers()????
-            void update(const MapPtr& map, const CrsPtr& crs, const FeatureQuery& featureQuery);
+            virtual FeatureEnumeratorPtr update(const CrsPtr &crs, const FeatureQuery& featureQuery);
             FeatureEnumeratorPtr getFeatures(const CrsPtr& crs, const FeatureQuery& featureQuery, bool activeLayersOnly);
             FeaturePtr getFeature(const Id& id);
 

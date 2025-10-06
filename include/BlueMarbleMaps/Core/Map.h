@@ -67,8 +67,6 @@ namespace BlueMarble
 
             
             bool update(bool forceUpdate=false);
-
-            void renderLayers();
  
             const Point& center() const;
             void center(const Point& center);
@@ -82,8 +80,8 @@ namespace BlueMarble
             double height() const;
             Rectangle area() const;
             MapConstraints& mapConstraints() { return m_constraints; };
-            const CrsPtr& getCrs() { return m_crs; }
-            void setCrs(const CrsPtr& crs) { m_crs = crs; }
+            const CrsPtr& crs() { return m_crs; }
+            void crs(const CrsPtr& crs) { m_crs = crs; }
             // Operations
             void panBy(const Point& deltaScreen, bool animate=false);
             void panTo(const Point& mapPoint, bool animate=false);
@@ -179,6 +177,8 @@ namespace BlueMarble
         private:
             void updateUpdateAttributes(int64_t timeStampMs);
             void beforeRender();
+            void renderLayers();
+            void renderLayer(const LayerPtr& layer, const FeatureQuery& featureQuery);
             void afterRender();
             
             void resetUpdateFlags();
