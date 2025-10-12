@@ -2,6 +2,7 @@
 #define MAP_CONFIGURATION
 
 #include "BlueMarbleMaps/Core/Map.h"
+#include "BlueMarbleMaps/Core/StandardLayer.h"
 #include "BlueMarbleMaps/Core/DataSets/DataSets.h"
 
 using namespace BlueMarble;
@@ -48,7 +49,8 @@ void setupAirPlaneLayerVisualization(const BlueMarble::LayerPtr& layer)
 
 void configureMap(const MapPtr& map, bool includeBackground=false, bool includeRoads=false, bool includeAirPlanes=false)
 {
-    const std::string commonIndexPath = "bluemarble_index"; // Relative to the Application build folder
+    const bool asyncBackgroundReading = false;
+    const std::string commonIndexPath = "../../../bluemarble_index"; // Relative to the build/bin/<debug/release>/ folder
     ////////////////////////////////////////////////////////
     static auto backgroundDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/BlueMarbleMaps/geodata/NE1_LR_LC_SR_W/NE1_LR_LC_SR_W.tif");
     static auto backgroundDataSet2 = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/BlueMarbleMaps/geodata/BlueMarble.jpeg");
@@ -57,15 +59,13 @@ void configureMap(const MapPtr& map, bool includeBackground=false, bool includeR
     static auto northAmerica = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/world_geojson/northamerica_high_fixed.geo.json");
     static auto southAmerica = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/world_geojson/southamerica_high.geo.json");
     static auto world = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/world_geojson/world_high.geo.json");
-    static auto continents = std::make_shared<BlueMarble::GeoJsonFileDataSet>("../../../geodata/continents.json");
+    static auto continents = std::make_shared<BlueMarble::GeoJsonFileDataSet>("../../../geodata/continents/continents.json");
     continents->name("Continents");
     static auto sverigeRoadsDataSet = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/svenska_vagar/hotosm_swe_roads_lines_geojson.geojson"); sverigeRoadsDataSet->name("Roads sverige");
     static auto roadsDataSet = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/roads_geojson/europe-road.geojson"); roadsDataSet->name("Roads");
     static auto svenskaLandskapDataSet = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/svenska_landskap/svenska-landskap-klippt.geo.json");
     static auto markerDataSet = std::make_shared<BlueMarble::MemoryDataSet>(); markerDataSet->name("MarkerDataSet");
     static auto airPlaneDataSet = std::make_shared<BlueMarble::MemoryDataSet>(); airPlaneDataSet->name("AirPlanesDataSet");
-    
-    
 
     continents->indexPath(commonIndexPath);
     continents->initialize();
@@ -87,17 +87,17 @@ void configureMap(const MapPtr& map, bool includeBackground=false, bool includeR
         }
     }
 
-    auto backgroundLayer = BlueMarble::LayerPtr(new BlueMarble::Layer());
-    auto backgroundLayer2 = BlueMarble::LayerPtr(new BlueMarble::Layer());
-    auto geoJsonLayer = BlueMarble::LayerPtr(new BlueMarble::Layer());
-    auto continentsLayer = BlueMarble::LayerPtr(new BlueMarble::Layer());
-    auto roadsGeoJsonLayer = BlueMarble::LayerPtr(new BlueMarble::Layer());
-    auto shapeFileLayer = BlueMarble::LayerPtr(new BlueMarble::Layer());
-    auto airPlaneLayer = BlueMarble::LayerPtr(new BlueMarble::Layer(false)); 
+    auto backgroundLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer());
+    auto backgroundLayer2 = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer());
+    auto geoJsonLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer()); geoJsonLayer->asyncRead(asyncBackgroundReading);
+    auto continentsLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer()); continentsLayer->asyncRead(asyncBackgroundReading);
+    auto roadsGeoJsonLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer());
+    auto shapeFileLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer());
+    auto airPlaneLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer(false)); 
     if(includeAirPlanes) setupAirPlaneLayerVisualization(airPlaneLayer);
-    auto csvLayer = BlueMarble::LayerPtr(new BlueMarble::Layer());
-    auto sverigeLayer = BlueMarble::LayerPtr(new BlueMarble::Layer());
-    auto debugLayer = BlueMarble::LayerPtr(new BlueMarble::Layer());
+    auto csvLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer());
+    auto sverigeLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer());
+    auto debugLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer());
     if (includeBackground)
     {
         backgroundDataSet->initialize();

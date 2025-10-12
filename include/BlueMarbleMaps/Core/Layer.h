@@ -20,6 +20,7 @@ namespace BlueMarble
     {
         public:
             Layer(bool createdefaultVisualizers = true);
+            virtual ~Layer() = default;
             void renderingEnabled(bool enabled) { m_renderingEnabled=enabled; }
             void enabled(bool enabled);
             bool enabled() const;
@@ -32,9 +33,8 @@ namespace BlueMarble
             double minScale() {return m_minScale; }
             void minScale(double minScale) { m_minScale = minScale; }
 
-            virtual FeatureEnumeratorPtr update(const CrsPtr &crs, const FeatureQuery& featureQuery);
-            FeatureEnumeratorPtr getFeatures(const CrsPtr& crs, const FeatureQuery& featureQuery, bool activeLayersOnly);
-            FeaturePtr getFeature(const Id& id);
+            virtual FeatureEnumeratorPtr update(const CrsPtr &crs, const FeatureQuery& featureQuery) = 0;
+            virtual FeatureEnumeratorPtr getFeatures(const CrsPtr& crs, const FeatureQuery& featureQuery, bool activeLayersOnly) = 0;
 
             std::vector<VisualizerPtr>& visualizers() { return m_visualizers; }
             std::vector<VisualizerPtr>& hoverVisualizers() { return m_hoverVisualizers; }
@@ -42,7 +42,7 @@ namespace BlueMarble
 
             std::vector<EffectPtr>& effects() { return m_effects; }
 
-            void addDataSet(const DataSetPtr& dataSet);
+            bool isActiveForQuery(const FeatureQuery& query);
 
         private:
 
@@ -59,14 +59,8 @@ namespace BlueMarble
             std::vector<VisualizerPtr> m_hoverVisualizers;
             std::vector<VisualizerPtr> m_selectionVisualizers;
 
-            std::vector<PresentationObject> m_presentationObjects;
-            std::vector<PresentationObject> m_presentationObjectsHover;
-            std::vector<PresentationObject> m_presentationObjectsSelection;
-
             std::vector<EffectPtr> m_effects;
             DrawablePtr m_drawable; // Needed if we need to draw on our own buffer
-
-            std::vector<DataSetPtr> m_dataSets;
     };
     typedef std::shared_ptr<Layer> LayerPtr;
 

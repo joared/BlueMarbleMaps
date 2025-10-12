@@ -325,7 +325,8 @@ namespace BlueMarble
                         auto pointList = std::vector<Point>();
                         for (auto id : m_map->selected()) 
                         { 
-                            auto f = m_map->getFeature(id);
+                            auto dataSet = DataSet::getDataSetById(id.dataSetId());
+                            auto f = dataSet->getFeature(id);
                             if (f && !f->bounds().isUndefined())
                             {
                                 for (auto p: f->bounds().corners())

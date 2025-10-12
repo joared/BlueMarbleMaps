@@ -123,7 +123,6 @@ namespace BlueMarble
             void addLayer(const LayerPtr& layer);
             std::vector<LayerPtr>& layers();
             
-            FeaturePtr getFeature(const Id& id);
             //void getFeatures(const Attributes& attributes, std::vector<FeaturePtr>& features);
             std::vector<FeaturePtr> featuresAt(int X, int Y, double pointerRadius);
             void featuresInside(const Rectangle& bounds, FeatureCollection& out);

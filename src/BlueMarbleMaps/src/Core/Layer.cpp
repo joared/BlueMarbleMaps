@@ -16,9 +16,6 @@ Layer::Layer(bool createdefaultVisualizers)
     , m_effects()
     , m_drawable(nullptr)
 {
-    m_presentationObjects.reserve(100000);
-    m_presentationObjectsHover.reserve(1);
-    m_presentationObjectsSelection.reserve(1);
     // TODO: remove, this is a temporary solution
     if (createdefaultVisualizers)
         createDefaultVisualizers();
@@ -46,56 +43,20 @@ bool Layer::selectable()
     return m_selectable;
 }
 
-FeatureEnumeratorPtr Layer::update(const CrsPtr &crs, const FeatureQuery& featureQuery)
+bool Layer::isActiveForQuery(const FeatureQuery& featureQuery)
 {
-    return getFeatures(crs, featureQuery, true);
-}
-
-FeatureEnumeratorPtr Layer::getFeatures(const CrsPtr &crs, const FeatureQuery& featureQuery, bool activeLayersOnly)
-{
-    auto features = std::make_shared<FeatureEnumerator>();
-    if (activeLayersOnly)
+    if (featureQuery.scale() > maxScale())
+        return false;
+    if (featureQuery.scale() < minScale())
+        return false;
+    // if (featureQuery.quickUpdateEnabled() && !enabledDuringQuickUpdates())
+    //     return features;
+    if (!enabled())
     {
-        if (featureQuery.scale() > maxScale())
-            return features;
-        if (featureQuery.scale() < minScale())
-            return features;
-        // if (featureQuery.quickUpdateEnabled() && !enabledDuringQuickUpdates())
-        //     return features;
-        if (!enabled())
-        {
-            return features;
-        }
-    }
-    
-    for (const auto& d : m_dataSets)
-    {
-        auto dataSetFeatures = d->getFeatures(featureQuery);
-        features->addEnumerator(dataSetFeatures);
+        return false;
     }
 
-    return features;
-}
-
-
-FeaturePtr Layer::getFeature(const Id& id)
-{
-    for (const auto& d : m_dataSets)
-    {
-        if (auto feature = d->getFeature(id))
-        {
-            return feature;
-        }
-    }
-
-    // Not found
-    return FeaturePtr();
-}
-
-
-void Layer::addDataSet(const DataSetPtr &dataSet)
-{
-    return m_dataSets.push_back(dataSet);
+    return true;
 }
 
 void Layer::createDefaultVisualizers()

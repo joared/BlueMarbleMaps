@@ -26,8 +26,8 @@ namespace BlueMarble
             void quickUpdate(bool quickpdate) { m_quickUpdate = quickpdate; }
 
         private:
-            Rectangle m_area = Rectangle::infinite();
-            double m_scale = 1.0;
+            Rectangle   m_area = Rectangle::infinite();
+            double      m_scale = 1.0;
             Attributes* m_updateAttributes = nullptr;
             bool        m_quickUpdate = false;
     };

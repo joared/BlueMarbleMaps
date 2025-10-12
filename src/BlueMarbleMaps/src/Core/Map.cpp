@@ -95,11 +95,15 @@ bool Map::update(bool forceUpdate)
     // each time a handler is called.
     auto preNotifyAction = [this]() 
     { 
-        m_drawable->setTransform(Transform::screenTransform(m_drawable->width(), m_drawable->height())); 
+        m_drawable->setTransform(Transform::screenTransform(m_drawable->width(), m_drawable->height()));
+        m_drawable->beginBatches();
     };
-    m_drawable->beginBatches();
-    events.onCustomDraw.notify(*this, preNotifyAction);
-    m_drawable->endBatches();
+    auto postNotifyAction = [this]()
+    {
+        m_drawable->endBatches();
+    };    
+    events.onCustomDraw.notify(*this, preNotifyAction, postNotifyAction);
+
     if (m_showDebugInfo)
     {
         drawDebugInfo(getTimeStampMs() - timeStampMs);
@@ -134,6 +138,7 @@ void Map::renderLayer(const LayerPtr& layer, const FeatureQuery& featureQuery)
     
     for (const auto& vis : layer->visualizers())
     {
+        
         features->reset();
         m_drawable->beginBatches();
         while (features->moveNext())
@@ -141,7 +146,11 @@ void Map::renderLayer(const LayerPtr& layer, const FeatureQuery& featureQuery)
             const auto& f = features->current();
 
             if (m_renderingEnabled)
-                vis->renderFeature(*drawable(), f, updateAttributes());
+            {
+                //m_drawable->visualizerBegin();
+                vis->renderFeature(*drawable(), f, updateAttributes()); // Calls drawable->drawLine, drawable->drawPolygon etc
+                //m_drawable->visualizerEnd();
+            }
 
             if (!hasAddedHoverAnSelection)
             {
@@ -201,14 +210,15 @@ void Map::renderLayers()
         m_drawable->drawText(0,0,"",Color(), 2); // Faking flush
     }
 
-    // Debug draw update area
+    // Debug draw update are
+    m_drawable->beginBatches();
     auto line = std::make_shared<LineGeometry>(updateArea);
     Pen p;
     p.setColor(Color::red());
     p.setThickness(5.0);
     //m_drawable->setTransform(Transform::screenTransform(m_drawable->width(), m_drawable->height()));
     m_drawable->drawLine(line, p);
-    m_drawable->drawText(0,0,"",Color(), 2); // Faking flush
+    m_drawable->endBatches();
 }
 
 void Map::center(const Point &center)
@@ -511,17 +521,6 @@ void Map::addLayer(const LayerPtr& layer)
 std::vector<LayerPtr>& Map::layers()
 {
     return m_layers;
-}
-
-FeaturePtr Map::getFeature(const Id &id)
-{
-    for (auto l : m_layers)
-    {
-        if (auto f = l->getFeature(id))
-            return f;
-    }
-    
-    return nullptr;
 }
 
 // void Map::getFeatures(const Attributes& attributes, std::vector<FeaturePtr>& features)

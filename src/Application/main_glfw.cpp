@@ -253,7 +253,7 @@ int main()
     auto elevationDataSet = std::make_shared<ImageDataSet>(PATH_TO_FANNY_FILE);
     
     elevationDataSet->initialize(DataSetInitializationType::RightHereRightNow);
-    auto elevationLayer = std::make_shared<Layer>(false);
+    auto elevationLayer = std::make_shared<StandardLayer>(false);
     elevationLayer->addDataSet(elevationDataSet);
     auto rasterVis = std::make_shared<RasterVisualizer>();
     rasterVis->alpha(DirectDoubleAttributeVariable(0.5));
@@ -263,7 +263,7 @@ int main()
     // Test Polygon/Line/Symbol visualizers
     auto vectorDataSet = std::make_shared<MemoryDataSet>();
     vectorDataSet->initialize(DataSetInitializationType::RightHereRightNow);
-    auto vectorLayer = std::make_shared<Layer>(true);
+    auto vectorLayer = std::make_shared<StandardLayer>(true);
     vectorLayer->addDataSet(vectorDataSet);
 
     auto polyVis = std::make_shared<PolygonVisualizer>();

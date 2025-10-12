@@ -250,6 +250,17 @@ class Signal : public ISignal
             }
         }
 
+        template <typename Action1, typename Action2>
+        void notify(Args... args, Action1&& preNotifyAction, Action2&& postNotifyAction)
+        {
+            for (auto& [id, handler] : m_listeners)
+            {
+                preNotifyAction();
+                handler(args...);
+                postNotifyAction();
+            }
+        }
+
         void operator+=(Handler handler)
         {
             SubscriptionID id = generateAnonymousUniqueId();
