@@ -137,7 +137,7 @@ void Layer::createDefaultVisualizers()
 
     // Line visualizer
     auto lineVis = std::make_shared<LineVisualizer>();
-    lineVis->color(ColorEvaluation([](FeaturePtr, Attributes&) { return Color(50,50,50,1.0); }));
+    lineVis->color(ColorEvaluation([](FeaturePtr, Attributes&) { return Color(255,0,255,1.0); }));
     lineVis->width([](FeaturePtr, Attributes&) -> double { return 3.0; });
 
     // Polygon visualizer
@@ -214,7 +214,7 @@ void Layer::createDefaultVisualizers()
     //polVisSelect->offsetX([=](FeaturePtr f, Attributes& u) { return 1.0*(1.0-animatedDouble(f,u)); });
     //polVisSelect->offsetY([=](FeaturePtr f, Attributes& u) { return 1.0*(1.0-animatedDouble(f,u)); });
 
-        // Line visualizer
+    // Line visualizer
     auto lineVisSelect = std::make_shared<LineVisualizer>();
     lineVisSelect->color([](auto, auto) { return Color(255,255,0,1.0); });
     lineVisSelect->width(DirectDoubleAttributeVariable(3.0)); //[](auto, auto) { return 3.0; });

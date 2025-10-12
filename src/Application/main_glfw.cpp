@@ -263,6 +263,11 @@ int main()
     // Test Polygon/Line/Symbol visualizers
     auto vectorDataSet = std::make_shared<MemoryDataSet>();
     vectorDataSet->initialize(DataSetInitializationType::RightHereRightNow);
+
+    auto points = std::vector<Point>({{14,56}, {14,57}, {15,57}});
+    auto testfeature = vectorDataSet->createFeature(std::make_shared<PolygonGeometry>(points));
+    vectorDataSet->addFeature(testfeature);
+
     auto vectorLayer = std::make_shared<StandardLayer>(true);
     vectorLayer->addDataSet(vectorDataSet);
 

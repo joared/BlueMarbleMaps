@@ -207,7 +207,6 @@ void Map::renderLayers()
         // TODO add "ViewInfo" as parameter to Layer::update()?
         //l->update(shared_from_this(), getCrs(), featureQuery);
         renderLayer(l, featureQuery);
-        m_drawable->drawText(0,0,"",Color(), 2); // Faking flush
     }
 
     // Debug draw update are

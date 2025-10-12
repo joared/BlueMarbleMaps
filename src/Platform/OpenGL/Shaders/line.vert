@@ -6,15 +6,15 @@ uniform mat4 viewMatrix;
 
 out DATA
 {
-	vec4 position;
-	vec4 color;
-	vec2 texCoord;
+    vec4 position;
+    vec4 color;
+    vec2 texCoord;
 }vert_out;
 
 void main()
 {
-	vec4 mPos = viewMatrix * vec4(pos, 1.0f);
-	gl_Position = mPos;
-	vert_out.position = mPos;
-	vert_out.color = vert_out.color;
+    vec4 mPos = viewMatrix * vec4(pos, 1.0f);
+    gl_Position = mPos;
+    vert_out.position = mPos;
+    vert_out.color = color;
 }
