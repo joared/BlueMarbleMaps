@@ -2,12 +2,12 @@
 #define MAP_CONFIGURATION
 
 #include "BlueMarbleMaps/Core/Map.h"
-#include "BlueMarbleMaps/Core/StandardLayer.h"
+#include "BlueMarbleMaps/Core/Layer/StandardLayer.h"
 #include "BlueMarbleMaps/Core/DataSets/DataSets.h"
 
 using namespace BlueMarble;
 
-void setupAirPlaneLayerVisualization(const BlueMarble::LayerPtr& layer)
+void setupAirPlaneLayerVisualization(const BlueMarble::StandardLayerPtr& layer)
 {
     auto symVis1 = std::make_shared<BlueMarble::SymbolVisualizer>();
     
@@ -49,7 +49,7 @@ void setupAirPlaneLayerVisualization(const BlueMarble::LayerPtr& layer)
 
 void configureMap(const MapPtr& map, bool includeBackground=false, bool includeRoads=false, bool includeAirPlanes=false)
 {
-    const bool asyncBackgroundReading = false;
+    const bool asyncBackgroundReading = true;
     const std::string commonIndexPath = "../../../bluemarble_index"; // Relative to the build/bin/<debug/release>/ folder
     ////////////////////////////////////////////////////////
     static auto backgroundDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/BlueMarbleMaps/geodata/NE1_LR_LC_SR_W/NE1_LR_LC_SR_W.tif");

@@ -1,7 +1,7 @@
 #ifndef BLUEMARBLE_STANDARDLAYER
 #define BLUEMARBLE_STANDARDLAYER
 
-#include "BlueMarbleMaps/Core/Layer.h"
+#include "BlueMarbleMaps/Core//Layer/Layer.h"
 #include "BlueMarbleMaps/Core/Index/FIFOCache.h"
 
 #include <thread>
@@ -17,19 +17,36 @@ namespace BlueMarble
     class StandardLayer : public Layer
     {
         public:
-            StandardLayer(bool createdefaultVisualizers = true);
+            StandardLayer(bool createDefaultVisualizers = true);
             ~StandardLayer();
             void asyncRead(bool async);
             bool asyncRead();
             void addDataSet(const DataSetPtr& dataSet);
-            virtual FeatureEnumeratorPtr update(const CrsPtr &crs, const FeatureQuery& featureQuery) override final;
+
+            std::vector<VisualizerPtr>& visualizers() { return m_visualizers; }
+            std::vector<VisualizerPtr>& hoverVisualizers() { return m_hoverVisualizers; }
+            std::vector<VisualizerPtr>& selectionVisualizers() { return m_selectionVisualizers; }
+
+            std::vector<EffectPtr>& effects() { return m_effects; }
+
+            virtual void hitTest(const MapPtr& map, const Rectangle& bounds, std::vector<PresentationObject>& presObjects) override final;
+            virtual void prepare(const CrsPtr &crs, const FeatureQuery& featureQuery) override final;
+            virtual void update(const MapPtr& map) override final;
             virtual FeatureEnumeratorPtr getFeatures(const CrsPtr& crs, const FeatureQuery& featureQuery, bool activeLayersOnly) override final;
         private:
+            void createDefaultVisualizers();
+
             void backgroundReadingThread();
             void startbackgroundReadingThread();
             void stopBackgroundReadingThread();
 
+            std::vector<VisualizerPtr> m_visualizers;
+            std::vector<VisualizerPtr> m_hoverVisualizers;
+            std::vector<VisualizerPtr> m_selectionVisualizers;
+            std::vector<EffectPtr> m_effects;
+
             std::vector<DataSetPtr> m_dataSets;
+
             FIFOCachePtr            m_cache;
             bool                    m_readAsync;
             std::thread             m_readingThread;
@@ -39,6 +56,9 @@ namespace BlueMarble
             bool                    m_stop;
             FeatureQuery            m_query;
             CrsPtr                  m_crs;
+            std::function<void()>   m_job;
+
+            FeatureEnumeratorPtr    m_queriedFeatures;
 
 
     };

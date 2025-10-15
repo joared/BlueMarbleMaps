@@ -1,65 +1,213 @@
-#include "BlueMarbleMaps/Core/Layer.h"
+#include "BlueMarbleMaps/Core/Layer/StandardLayer.h"
 #include "BlueMarbleMaps/Core/Map.h"
-#include "BlueMarbleMaps/Core/DataSets/DataSet.h"
-#define _USE_MATH_DEFINES
-#include <math.h>
+
+#include <chrono>
+#include <future>
+
 
 using namespace BlueMarble;
 
-Layer::Layer(bool createdefaultVisualizers)
-    : m_enabled(true)
-    , m_selectable(true) // TODO: use this for something
-    , m_enabledDuringQuickUpdates(true)
-    , m_maxScale(std::numeric_limits<double>::infinity())
-    , m_minScale(0)
-    , m_renderingEnabled(true)
+StandardLayer::StandardLayer(bool createDefaultVisualizerz)
+    : Layer()
+    , m_visualizers()
+    , m_hoverVisualizers()
+    , m_selectionVisualizers()
     , m_effects()
-    , m_drawable(nullptr)
+    , m_dataSets()
+    , m_cache(std::make_shared<FIFOCache>())
+    , m_readAsync(false)
+    , m_doRead(false)
+    , m_stop(false)
+    , m_queriedFeatures(std::make_shared<FeatureEnumerator>())
 {
     // TODO: remove, this is a temporary solution
-    if (createdefaultVisualizers)
+    if (createDefaultVisualizerz)
         createDefaultVisualizers();
 }
 
-
-void Layer::enabled(bool enabled)
+StandardLayer::~StandardLayer()
 {
-    m_enabled = enabled;
+    stopBackgroundReadingThread();
 }
 
-
-bool Layer::enabled() const
+void StandardLayer::asyncRead(bool async)
 {
-    return m_enabled;
-}
-
-void Layer::selectable(bool selectable)
-{
-    m_selectable = selectable;
-}
-
-bool Layer::selectable()
-{
-    return m_selectable;
-}
-
-bool Layer::isActiveForQuery(const FeatureQuery& featureQuery)
-{
-    if (featureQuery.scale() > maxScale())
-        return false;
-    if (featureQuery.scale() < minScale())
-        return false;
-    // if (featureQuery.quickUpdateEnabled() && !enabledDuringQuickUpdates())
-    //     return features;
-    if (!enabled())
+    if (m_readAsync && !async)
     {
-        return false;
+        stopBackgroundReadingThread();
+    }
+    else if (!m_readAsync && async)
+    {
+        startbackgroundReadingThread();
     }
 
-    return true;
+    m_readAsync = async;
 }
 
-void Layer::createDefaultVisualizers()
+bool StandardLayer::asyncRead()
+{
+    return m_readAsync;
+}
+
+void StandardLayer::addDataSet(const DataSetPtr &dataSet)
+{
+    return m_dataSets.push_back(dataSet);
+}
+
+void StandardLayer::hitTest(const MapPtr& map, const Rectangle& bounds, std::vector<PresentationObject>& presObjects)
+{
+    FeatureQuery featureQuery;
+    featureQuery.area(bounds);
+    featureQuery.scale(map->scale());
+    featureQuery.updateAttributes(&map->updateAttributes());
+    
+    if (!isActiveForQuery(featureQuery))
+    {
+        return;
+    }
+
+    auto features = getFeatures(m_crs, featureQuery, true);
+
+    while (features->moveNext())
+    {
+        const auto& f = features->current();
+
+        for (const auto& vis : visualizers())
+        {
+            vis->hitTest(f, map->drawable(), bounds, presObjects);
+        }
+
+        if (map->isSelected(f->id()))
+        {
+            for (const auto& vis : selectionVisualizers())
+            {
+                vis->hitTest(f, map->drawable(), bounds, presObjects);
+            }
+        }
+        else if (map->isHovered(f->id()))
+        {
+            for (const auto& vis : hoverVisualizers())
+            {
+                vis->hitTest(f, map->drawable(), bounds, presObjects);
+            }
+        }
+    }
+}
+
+void StandardLayer::prepare(const CrsPtr &crs, const FeatureQuery &featureQuery)
+{
+    m_queriedFeatures = std::make_shared<FeatureEnumerator>();
+    if (!isActiveForQuery(featureQuery))
+    {
+        return;
+    }
+
+    if (m_readAsync)
+    {
+        {
+            std::lock_guard lock(m_mutex);
+            auto cachedFeatures = m_cache->getAllFeatures();
+            for (const auto& f : *cachedFeatures)
+            {
+                if (f->bounds().overlap(featureQuery.area()))
+                {
+                    m_queriedFeatures->add(f);
+                }
+            }
+            m_doRead = true;
+            m_query = featureQuery;
+            m_crs = crs;
+        }
+        m_cond.notify_one();
+    }
+    else
+    {
+        m_queriedFeatures = getFeatures(crs, featureQuery, true);
+    }
+}
+
+void StandardLayer::update(const MapPtr& map)
+{
+    const auto& features = m_queriedFeatures;
+    auto& updateAttributes = map->updateAttributes();
+    
+    std::vector<FeaturePtr> hoveredFeatures;
+    std::vector<FeaturePtr> selectedFeatures;
+    
+    bool hasAddedHoverAnSelection = false;
+    
+    for (const auto& vis : visualizers())
+    {
+        features->reset();
+        map->drawable()->beginBatches();
+        while (features->moveNext())
+        {
+            const auto& f = features->current();
+
+            if (renderingEnabled())
+            {
+                //m_drawable->visualizerBegin();
+                vis->renderFeature(*map->drawable(), f, updateAttributes); // Calls drawable->drawLine, drawable->drawPolygon etc
+                //m_drawable->visualizerEnd();
+            }
+
+            if (!hasAddedHoverAnSelection)
+            {
+                if (map->isSelected(f))
+                {
+                    selectedFeatures.push_back(f);
+                }
+                else if (map->isHovered(f))
+                {
+                    hoveredFeatures.push_back(f);
+                }
+            }
+        }
+        map->drawable()->endBatches();
+        hasAddedHoverAnSelection = true;
+    }
+
+    for (const auto& vis : hoverVisualizers())
+    {
+        map->drawable()->beginBatches();
+        for (const auto& f : hoveredFeatures)
+        {
+            if (renderingEnabled())
+                vis->renderFeature(*map->drawable(), f, updateAttributes);
+        }
+        map->drawable()->endBatches();
+    }
+    for (const auto& vis : selectionVisualizers())
+    {
+        map->drawable()->beginBatches();
+        for (const auto& f : selectedFeatures)
+        {
+            if (renderingEnabled())
+                vis->renderFeature(*map->drawable(), f, updateAttributes);
+        }
+        map->drawable()->endBatches();
+    }
+}
+
+FeatureEnumeratorPtr StandardLayer::getFeatures(const CrsPtr &crs, const FeatureQuery& featureQuery, bool activeLayersOnly)
+{
+    auto features = std::make_shared<FeatureEnumerator>();
+    if (activeLayersOnly && !isActiveForQuery(featureQuery))
+    {
+        return features;
+    }
+    
+    for (const auto& d : m_dataSets)
+    {
+        auto dataSetFeatures = d->getFeatures(featureQuery);
+        features->addEnumerator(dataSetFeatures);
+    }
+
+    return features;
+}
+
+
+void StandardLayer::createDefaultVisualizers()
 {
     auto animatedDouble = [](FeaturePtr feature, Attributes& updateAttributes) 
     { 
@@ -137,7 +285,7 @@ void Layer::createDefaultVisualizers()
 
     // Line visualizer
     auto lineVis = std::make_shared<LineVisualizer>();
-    lineVis->color(ColorEvaluation([](FeaturePtr, Attributes&) { return Color(255,0,255,1.0); }));
+    lineVis->color(ColorEvaluation([](FeaturePtr, Attributes&) { return Color(50,50,50,1.0); }));
     lineVis->width([](FeaturePtr, Attributes&) -> double { return 3.0; });
 
     // Polygon visualizer
@@ -226,4 +374,57 @@ void Layer::createDefaultVisualizers()
     m_selectionVisualizers.push_back(lineVisSelect);
     //m_selectionVisualizers.push_back(nodeVis);
     //m_selectionVisualizers.push_back(textVisSelect);
+}
+
+
+void StandardLayer::backgroundReadingThread()
+{
+    BMM_DEBUG() << "StandardLayer::backgroundReadingThread() Started background reading thread\n";
+    
+    while (true)
+    {
+        std::unique_lock lock(m_mutex);
+        m_cond.wait(lock, [this](){ return m_doRead || m_stop; });
+        if (m_stop) break;
+
+        m_doRead = false;
+        auto crs = m_crs;
+        auto query = m_query;
+        lock.unlock();
+
+        BMM_DEBUG() << "StandardLayer::backgroundReadingThread() LOAD for some time\n";
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // Faking load
+        BMM_DEBUG() << "StandardLayer::backgroundReadingThread() LOAD done!\n";
+        auto features = getFeatures(crs, query, true);
+        
+        std::unique_lock lock2(m_mutex);
+        while (features->moveNext())
+        {
+            const auto& f = features->current();
+            m_cache->insert(f->id(), f);
+        }
+        lock2.unlock();
+        
+        m_cond.notify_one();
+    }
+
+    BMM_DEBUG() << "StandardLayer::backgroundReadingThread() Background reading thread exited\n";
+}
+
+void StandardLayer::startbackgroundReadingThread()
+{
+    m_readingThread = std::thread([this](){backgroundReadingThread();});
+}
+
+void StandardLayer::stopBackgroundReadingThread()
+{
+    {
+        std::lock_guard lock(m_mutex);
+        m_stop = true;
+    }
+    m_cond.notify_one();
+    if (m_readingThread.joinable())
+    {
+        m_readingThread.join();
+    }
 }

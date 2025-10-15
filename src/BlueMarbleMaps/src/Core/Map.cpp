@@ -130,64 +130,8 @@ bool Map::update(bool forceUpdate)
 
 void Map::renderLayer(const LayerPtr& layer, const FeatureQuery& featureQuery)
 {
-    std::vector<FeaturePtr> hoveredFeatures;
-    std::vector<FeaturePtr> selectedFeatures;
-    auto features = layer->update(crs(), featureQuery);
-
-    bool hasAddedHoverAnSelection = false;
-    
-    for (const auto& vis : layer->visualizers())
-    {
-        
-        features->reset();
-        m_drawable->beginBatches();
-        while (features->moveNext())
-        {
-            const auto& f = features->current();
-
-            if (m_renderingEnabled)
-            {
-                //m_drawable->visualizerBegin();
-                vis->renderFeature(*drawable(), f, updateAttributes()); // Calls drawable->drawLine, drawable->drawPolygon etc
-                //m_drawable->visualizerEnd();
-            }
-
-            if (!hasAddedHoverAnSelection)
-            {
-                if (isSelected(f))
-                {
-                    selectedFeatures.push_back(f);
-                }
-                else if (isHovered(f))
-                {
-                    hoveredFeatures.push_back(f);
-                }
-            }
-        }
-        m_drawable->endBatches();
-        hasAddedHoverAnSelection = true;
-    }
-
-    for (const auto& vis : layer->hoverVisualizers())
-    {
-        m_drawable->beginBatches();
-        for (const auto& f : hoveredFeatures)
-        {
-            if (m_renderingEnabled)
-                vis->renderFeature(*drawable(), f, updateAttributes());
-        }
-        m_drawable->endBatches();
-    }
-    for (const auto& vis : layer->selectionVisualizers())
-    {
-        m_drawable->beginBatches();
-        for (const auto& f : selectedFeatures)
-        {
-            if (m_renderingEnabled)
-                vis->renderFeature(*drawable(), f, updateAttributes());
-        }
-        m_drawable->endBatches();
-    }
+    layer->prepare(crs(), featureQuery);
+    layer->update(shared_from_this());
 }
 
 void Map::renderLayers()
@@ -585,32 +529,33 @@ const std::vector<PresentationObject>& BlueMarble::Map::hitTest(const Rectangle&
     m_presentationObjects.clear();
     for (const auto& l : m_layers)
     {
-        auto features = l->getFeatures(m_crs, featureQuery, true);
+        l->hitTest(shared_from_this(), bounds, m_presentationObjects);
+        // auto features = l->getFeatures(m_crs, featureQuery, true);
 
-        while (features->moveNext())
-        {
-            const auto& f = features->current();
+        // while (features->moveNext())
+        // {
+        //     const auto& f = features->current();
 
-            for (const auto& vis : l->visualizers())
-            {
-                vis->hitTest(f, drawable(), bounds, m_presentationObjects);
-            }
+        //     for (const auto& vis : l->visualizers())
+        //     {
+        //         vis->hitTest(f, drawable(), bounds, m_presentationObjects);
+        //     }
 
-            if (isSelected(f->id()))
-            {
-                for (const auto& vis : l->selectionVisualizers())
-                {
-                    vis->hitTest(f, drawable(), bounds, m_presentationObjects);
-                }
-            }
-            else if (isHovered(f->id()))
-            {
-                for (const auto& vis : l->hoverVisualizers())
-                {
-                    vis->hitTest(f, drawable(), bounds, m_presentationObjects);
-                }
-            }
-        }
+        //     if (isSelected(f->id()))
+        //     {
+        //         for (const auto& vis : l->selectionVisualizers())
+        //         {
+        //             vis->hitTest(f, drawable(), bounds, m_presentationObjects);
+        //         }
+        //     }
+        //     else if (isHovered(f->id()))
+        //     {
+        //         for (const auto& vis : l->hoverVisualizers())
+        //         {
+        //             vis->hitTest(f, drawable(), bounds, m_presentationObjects);
+        //         }
+        //     }
+        // }
     }
 
     // Iterate in reverse order such that the first rendered presentation objects are first

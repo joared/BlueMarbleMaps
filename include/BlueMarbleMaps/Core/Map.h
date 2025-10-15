@@ -5,7 +5,7 @@
 #include "BlueMarbleMaps/Core/MapConstraints.h"
 #include "BlueMarbleMaps/Core/Animation.h"
 #include "BlueMarbleMaps/Core/Drawable.h"
-#include "BlueMarbleMaps/Core/Layer.h"
+#include "BlueMarbleMaps/Core/Layer/Layer.h"
 #include "BlueMarbleMaps/Core/PresentationObject.h"
 #include "BlueMarbleMaps/Core/ResourceObject.h"
 #include "BlueMarbleMaps/CoordinateSystem/Crs.h"

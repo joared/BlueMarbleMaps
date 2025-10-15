@@ -19,9 +19,10 @@ namespace BlueMarble
         : public ResourceObject
     {
         public:
-            Layer(bool createdefaultVisualizers = true);
+            Layer();
             virtual ~Layer() = default;
             void renderingEnabled(bool enabled) { m_renderingEnabled=enabled; }
+            bool renderingEnabled() { return m_renderingEnabled; }
             void enabled(bool enabled);
             bool enabled() const;
             void selectable(bool selectable);
@@ -33,20 +34,14 @@ namespace BlueMarble
             double minScale() {return m_minScale; }
             void minScale(double minScale) { m_minScale = minScale; }
 
-            virtual FeatureEnumeratorPtr update(const CrsPtr &crs, const FeatureQuery& featureQuery) = 0;
+            virtual void hitTest(const MapPtr& map, const Rectangle& bounds, std::vector<PresentationObject>& presObjects) = 0;
+            virtual void prepare(const CrsPtr &crs, const FeatureQuery& featureQuery) = 0;
+            virtual void update(const MapPtr& map) = 0;
             virtual FeatureEnumeratorPtr getFeatures(const CrsPtr& crs, const FeatureQuery& featureQuery, bool activeLayersOnly) = 0;
-
-            std::vector<VisualizerPtr>& visualizers() { return m_visualizers; }
-            std::vector<VisualizerPtr>& hoverVisualizers() { return m_hoverVisualizers; }
-            std::vector<VisualizerPtr>& selectionVisualizers() { return m_selectionVisualizers; }
-
-            std::vector<EffectPtr>& effects() { return m_effects; }
 
             bool isActiveForQuery(const FeatureQuery& query);
 
         private:
-
-            void createDefaultVisualizers();
             
             bool    m_enabled;
             bool    m_selectable;
@@ -55,11 +50,6 @@ namespace BlueMarble
             double  m_minScale;
             bool    m_renderingEnabled;
 
-            std::vector<VisualizerPtr> m_visualizers;
-            std::vector<VisualizerPtr> m_hoverVisualizers;
-            std::vector<VisualizerPtr> m_selectionVisualizers;
-
-            std::vector<EffectPtr> m_effects;
             DrawablePtr m_drawable; // Needed if we need to draw on our own buffer
     };
     typedef std::shared_ptr<Layer> LayerPtr;

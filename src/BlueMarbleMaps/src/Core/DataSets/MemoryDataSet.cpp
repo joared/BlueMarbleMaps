@@ -84,18 +84,23 @@ void MemoryDataSet::clear()
 FeatureEnumeratorPtr MemoryDataSet::getFeatures(const FeatureQuery& featureQuery)
 {
     auto features = std::make_shared<FeatureEnumerator>();
+    
     // TODO: feature animations should be performed before the OnUpdating event, not during rendering
-    int timeStampMs = featureQuery.updateAttributes()->get<int>(UpdateAttributeKeys::UpdateTimeMs);
-    for (const auto& it : m_idToFeatureAnimation)
+    if (featureQuery.updateAttributes())
     {
-        auto& animation = it.second;
-        animation->updateTimeStamp(timeStampMs);
-        if (animation->isFinished())
+        int timeStampMs = featureQuery.updateAttributes()->get<int>(UpdateAttributeKeys::UpdateTimeMs);
+
+        for (const auto& it : m_idToFeatureAnimation)
         {
-            std::cout << "Feature animation finished (" << animation->feature()->id().toString() << ")\n";
-            m_idToFeatureAnimation.erase(it.first);
+            auto& animation = it.second;
+            animation->updateTimeStamp(timeStampMs);
+            if (animation->isFinished())
+            {
+                std::cout << "Feature animation finished (" << animation->feature()->id().toString() << ")\n";
+                m_idToFeatureAnimation.erase(it.first);
+            }
+            featureQuery.updateAttributes()->set(UpdateAttributeKeys::UpdateRequired, true);
         }
-        featureQuery.updateAttributes()->set(UpdateAttributeKeys::UpdateRequired, true);
     }
 
     for (auto f : m_features)
