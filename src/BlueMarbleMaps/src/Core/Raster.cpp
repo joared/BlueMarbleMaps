@@ -54,6 +54,11 @@ int Raster::channels() const
     return m_impl->channels();
 }
 
+Color Raster::getColorAt(int x, int y) const
+{
+    return m_impl->getColorAt(x,y);
+}
+
 void Raster::resize(int width, int height, ResizeInterpolation interpolation)
 {
     m_impl->resize(width, height, interpolation);

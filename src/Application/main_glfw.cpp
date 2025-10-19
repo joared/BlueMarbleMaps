@@ -248,7 +248,7 @@ int main()
     view->center(Point(0, 0));
     view->scale(1.0);
     view->showDebugInfo() = false;
-    view->drawable()->backgroundColor(Color::white(0.0));
+    
     // auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/readme/CompleteGeodata.png");
     auto elevationDataSet = std::make_shared<ImageDataSet>(PATH_TO_FANNY_FILE);
     
@@ -256,7 +256,7 @@ int main()
     auto elevationLayer = std::make_shared<StandardLayer>(false);
     elevationLayer->addDataSet(elevationDataSet);
     auto rasterVis = std::make_shared<RasterVisualizer>();
-    rasterVis->alpha(DirectDoubleAttributeVariable(0.5));
+    rasterVis->alpha(DirectDoubleAttributeVariable(0.7));
     elevationLayer->visualizers().push_back(rasterVis);
     view->addLayer(elevationLayer);
 
@@ -291,6 +291,7 @@ int main()
     mapControl->setTool(tool);
 
     view->scale(10.0);
+    view->drawable()->backgroundColor(Color::gray(0.0));
     view->update(true);
 
     while (!mapControl->windowShouldClose())

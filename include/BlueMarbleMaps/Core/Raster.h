@@ -30,6 +30,7 @@ namespace BlueMarble
             int width() const;
             int height() const;
             int channels() const;
+            Color getColorAt(int x, int y) const;
             void resize(int width, int height, ResizeInterpolation interpolation = ResizeInterpolation::NearestNeighbor);
             void resize(float scaleRatio, ResizeInterpolation interpolation = ResizeInterpolation::NearestNeighbor);
             void rotate(double angle, int cx, int cy, ResizeInterpolation interpolation = ResizeInterpolation::NearestNeighbor);

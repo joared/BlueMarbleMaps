@@ -106,6 +106,25 @@ int Raster::Impl::channels() const
     return m_channels;
 }
 
+Color Raster::Impl::getColorAt(int x, int y) const
+{
+    if (m_channels != 3 && m_channels != 4)
+    {
+        throw std::runtime_error("Raster::getColorAt() called for a raster that does not have 3 or 4 channgels. (I have " + std::to_string(m_channels) + ")");
+    }
+
+    int index = (y * m_width + x) * m_channels;
+
+    unsigned char r = m_data[index + 0];
+    unsigned char g = m_data[index + 1];
+    unsigned char b = m_data[index + 2];
+    unsigned char a = (m_channels == 4) ? m_data[index + 3] : 255;
+
+    float af = a / 255.0f;
+
+    return Color(r, g, b, af);
+}
+
 void Raster::Impl::resize(int width, int height, ResizeInterpolation interpolation)
 {
     if (m_width == width && m_height == height) 
