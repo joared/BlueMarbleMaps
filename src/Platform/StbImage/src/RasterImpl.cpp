@@ -177,8 +177,11 @@ void Raster::Impl::blur(double sigmaX, double sigmaY, double sigmaZ, bool isGaus
 Raster Raster::Impl::getCrop(int x0, int y0, int x1, int y1)
 {
     // Validate input coordinates
-    if (x0 < 0 || y0 < 0 || x1 >= m_width || y1 >= m_height || x0 > x1 || y0 > y1) {
-        throw std::invalid_argument("Invalid crop coordinates.");
+    if (x0 < 0 || y0 < 0 || x1 >= m_width || y1 >= m_height || x0 > x1 || y0 > y1) 
+    {
+        std::string givenCrop = std::to_string(x0) + "," + std::to_string(y0) + "," + std::to_string(x1) + "," + std::to_string(y1);
+        std::string myDimensions = std::to_string(m_width) + "," + std::to_string(m_height);
+        throw std::invalid_argument("Invalid crop coordinates for size " + myDimensions + ": " + givenCrop);
     }
 
     // Dimensions of the cropped region

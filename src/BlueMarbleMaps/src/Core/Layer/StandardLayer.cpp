@@ -344,7 +344,7 @@ void StandardLayer::createDefaultVisualizers()
     // m_hoverVisualizers.push_back(pointVis);
     
     //m_hoverVisualizers.push_back(polVisHover);
-    //m_hoverVisualizers.push_back(lineVisHover);
+    m_hoverVisualizers.push_back(lineVisHover);
     // m_hoverVisualizers.push_back(rasterVis);
     //m_hoverVisualizers.push_back(nodeVis);
     //m_hoverVisualizers.push_back(textVisHover);

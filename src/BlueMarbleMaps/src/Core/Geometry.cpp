@@ -125,6 +125,8 @@ RasterGeometry::RasterGeometry()
     : Geometry()
     , m_raster()
 {
+    BMM_DEBUG() << "UNINITIALIZED RASTER GEOMETRY!\n";
+    throw std::runtime_error("UNINITIALIZED RASTER GEOMETRY!");
 }
 
 BlueMarble::RasterGeometry::RasterGeometry(const Raster& raster, const Rectangle& bounds, double cellWidth, double cellHeight)
@@ -134,6 +136,10 @@ BlueMarble::RasterGeometry::RasterGeometry(const Raster& raster, const Rectangle
     , m_cellWidth(cellWidth)
     , m_cellHeight(cellHeight)
 {
+    if (cellWidth <= 0 || cellHeight <= 0)
+    {
+        throw std::runtime_error("Invalid cell size: " + std::to_string(cellWidth) + "," + std::to_string(cellHeight));
+    }
 }
 
 RasterGeometryPtr RasterGeometry::getSubRasterGeometry(const Rectangle& subBounds)

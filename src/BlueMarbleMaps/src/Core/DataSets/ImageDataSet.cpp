@@ -25,14 +25,17 @@ void ImageDataSet::init()
     assert(!m_filePath.empty());
 
     // FIXME: Hardcoded
-    constexpr double xPixLen = 0.02222222222222;
-    constexpr double yPixLen = -0.02222222222222;
+    constexpr double xPixLen = 0.02222222222222*2;   // times 2 since we made the image smaller
+    constexpr double yPixLen = -0.02222222222222*2;  // times 2 since we made the image smaller
     constexpr double xTopLeft = -179.98888888888889;
     constexpr double yTopLeft = 89.98888888888889;
 
+    double cellWidth = std::abs(xPixLen);
+    double cellHeight = std::abs(yPixLen);
     auto raster = Raster(m_filePath);
-    auto bounds = Rectangle(xTopLeft, yTopLeft, raster.width()*xPixLen, raster.height()*yPixLen);
-    m_rasterGeometry = std::make_shared<RasterGeometry>(raster, bounds, xPixLen, yPixLen);
+    auto bounds = Rectangle(xTopLeft, yTopLeft, xTopLeft+raster.width()*xPixLen, yTopLeft+raster.height()*yPixLen);
+    BMM_DEBUG() << "MY RASTER ARAE: " << bounds.toString() << "\n";
+    m_rasterGeometry = std::make_shared<RasterGeometry>(raster, bounds, cellWidth, cellHeight);
 
     generateOverViews();
     std::cout << "ImageDataSet: Data loaded!\n";
@@ -101,6 +104,7 @@ void ImageDataSet::generateOverViews()
         overview.resize((int)(overview.width()*factor), 
                         (int)(overview.height()*factor), 
                         Raster::ResizeInterpolation::NearestNeighbor);
+
         if (overview.width() < LIMIT || overview.height() < LIMIT)
         {
             break;

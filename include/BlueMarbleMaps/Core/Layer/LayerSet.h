@@ -17,8 +17,8 @@ namespace BlueMarble
         virtual ~LayerSet() = default;
 
         virtual void hitTest(const MapPtr& map, const Rectangle& bounds, std::vector<PresentationObject>& presObjects) override final;
-        virtual void prepare(const CrsPtr &crs, const FeatureQuery& featureQuery) override final;
-        virtual void update(const MapPtr &crs) override final;
+        virtual void prepare(const CrsPtr &crs, const FeatureQuery& featureQuery) override;
+        virtual void update(const MapPtr &crs) override;
         virtual FeatureEnumeratorPtr getFeatures(const CrsPtr& crs, const FeatureQuery& featureQuery, bool activeLayersOnly) override final;
         
     private:
