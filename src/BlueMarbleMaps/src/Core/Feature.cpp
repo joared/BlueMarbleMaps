@@ -49,10 +49,40 @@ Point Feature::center() const
     return m_geometry->center();
 }
 
-FeatureCollectionPtr BlueMarble::Feature::projectTo(const CrsPtr &crs)
+FeatureCollectionPtr Feature::projectTo(const CrsPtr &crs)
 {
-    // TODO
-    return FeatureCollectionPtr();
+    FeatureCollectionPtr features = std::make_shared<FeatureCollection>();
+    if (geometryType() == GeometryType::Raster)
+    {
+        auto rasterGeometry = geometryAsRaster();
+        rasterGeometry->bounds(m_crs->projectTo(crs, rasterGeometry->bounds()));
+    }
+    else
+    {
+        m_geometry->forEachPoint([&](Point& p)
+        {
+            p = m_crs->projectTo(crs, p);
+        });
+    }
+
+    m_crs = crs;
+
+    // auto newGeometry = std::dynamic_pointer_cast<Geometry>(m_geometry->clone());
+    // newGeometry->forEachPoint([&](Point& p)
+    // {
+    //     p = m_crs->projectTo(crs, p);
+    //     return p;
+    // });
+    // auto newFeature = std::make_shared<Feature>(
+    //     m_id,
+    //     crs,
+    //     newGeometry,
+    //     m_attributes
+    // );
+
+    // features->add(newFeature);
+
+    return features;
 }
 
 bool Feature::isInside(const Rectangle& bounds) const

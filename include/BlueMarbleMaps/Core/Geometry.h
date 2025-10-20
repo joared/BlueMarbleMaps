@@ -55,6 +55,7 @@ namespace BlueMarble
             virtual void moveTo(const Point& point) = 0;
             virtual bool isInside(const Rectangle& bounds) const = 0;
             virtual bool isStrictlyInside(const Rectangle& bounds) const = 0;
+            virtual void forEachPoint(const std::function<void(Point&)>& func) = 0;
             const Transform& getTransForm() { std::cout << "Geometry::getTransForm() Not implemented\n"; throw std::exception(); };
             void setTransForm(const Transform& transform) { std::cout << "Geometry::getTransForm() Not implemented\n"; throw std::exception(); };
         protected:
@@ -76,7 +77,7 @@ namespace BlueMarble
             void moveTo(const Point& point) override final { m_point = point; };
             bool isInside(const Rectangle& bounds) const override final { return bounds.isInside(m_point); };
             bool isStrictlyInside(const Rectangle& bounds) const override final { return isInside(bounds); };
-
+            void forEachPoint(const std::function<void(Point&)>& func) override final { func(m_point); };
             Point& point() { return m_point; }
 
         private:
@@ -102,7 +103,7 @@ namespace BlueMarble
             void moveTo(const Point& point) override final;
             bool isInside(const Rectangle& bounds) const override final { return bounds.isInside(m_points); }; // FIXME: points might not be inside
             bool isStrictlyInside(const Rectangle& bounds) const override final { return bounds.allInside(m_points); };
-
+            void forEachPoint(const std::function<void(Point&)>& func) override final { for(auto& p : m_points) func(p); };
             std::vector<Point>& points() { return m_points; }
         private:
             std::vector<Point> m_points;
@@ -164,7 +165,16 @@ namespace BlueMarble
                 return true;
             };
             bool isStrictlyInside(const Rectangle& bounds) const override final { return bounds.allInside(outerRing()); };
-
+            void forEachPoint(const std::function<void(Point&)>& func) override final
+            { 
+                for (auto& ring : m_rings)
+                {
+                    for(auto& p : ring) 
+                    {
+                        func(p);
+                    }
+                }
+            };
             std::vector<Point>& outerRing() { return m_rings[0]; }
             const std::vector<Point>& outerRing() const { assert(m_rings.size() > 0); return m_rings[0]; }
             std::vector<std::vector<Point>>& rings() { return m_rings; };
@@ -205,7 +215,7 @@ namespace BlueMarble
                 }
                 return true; 
             }; // TODO
-
+            void forEachPoint(const std::function<void(Point&)>& func) override final { throw std::runtime_error("MultiPolygonGeometry::forEachPoint() Not implemented"); }
             std::vector<PolygonGeometry>& polygons() { return m_polygons; }
         private:
             std::vector<PolygonGeometry> m_polygons;
@@ -230,8 +240,13 @@ namespace BlueMarble
             void moveTo(const Point& point) override final { m_bounds.reCenter(point); }; // Not tested
             bool isInside(const Rectangle& /*bounds*/) const override final { return false; }; // TODO
             bool isStrictlyInside(const Rectangle& /*bounds*/) const override final { return false; }; // TODO
+            void forEachPoint(const std::function<void(Point&)>& func) override final 
+            { 
+                throw std::runtime_error("RasterGeometry::forEachPoint() Not implemented");
+            }
 
             Rectangle bounds() { return m_bounds; };
+            void bounds(const Rectangle& bounds) { m_bounds = std::move(bounds); };
             double cellHeight() { return m_cellHeight; };
             double cellWidth() { return m_cellWidth; };
             Raster& raster() { return m_raster; }

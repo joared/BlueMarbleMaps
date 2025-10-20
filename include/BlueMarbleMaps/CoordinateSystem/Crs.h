@@ -19,6 +19,18 @@ namespace BlueMarble
             Crs(const GeodeticDatumPtr& datum, const ProjectionPtr& projection);
             Point projectTo(const CrsPtr& crs, const Point& point);
             Rectangle projectTo(const CrsPtr& crs, const Rectangle& rect);
+            template<typename Iter>
+            PointCollectionPtr projectTo(const CrsPtr& crs, const Iter& pointsFirst, const Iter& pointsLast)
+            {
+                PointCollectionPtr points = std::make_shared<PointCollection>();
+
+                for (auto it=pointsFirst; it!=pointsLast;++it)
+                {
+                    points->emplace(projectTo(crs, *it));
+                }
+
+                return points;
+            }
             const GeodeticDatumPtr& datum() { return m_datum; };
             const ProjectionPtr& projection() { return m_projection; }
         private:

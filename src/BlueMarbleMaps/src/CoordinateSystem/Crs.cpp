@@ -28,4 +28,11 @@ Point Crs::projectTo(const CrsPtr& crs, const Point& point)
 
 Rectangle Crs::projectTo(const CrsPtr& crs, const Rectangle& rect)
 {
+    std::vector<Point> newCorners;
+    for (const auto& p : rect.corners())
+    {
+        newCorners.emplace_back(projectTo(crs, p));
+    }
+
+    return Rectangle::fromPoints(newCorners);
 }

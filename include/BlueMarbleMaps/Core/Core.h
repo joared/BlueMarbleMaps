@@ -1,13 +1,15 @@
 #ifndef BLUEMARBLE_CORE
 #define BLUEMARBLE_CORE
 
+#include "BlueMarbleMaps/Core/Collection.h"
+
 #include <chrono>
 #include <cmath>
 #include <vector>
 #include <cassert>
 #include <limits>
 #include <string>
-
+#include <memory>
 
 namespace BlueMarble
 {
@@ -91,6 +93,9 @@ namespace BlueMarble
             double  m_y;
             bool    m_isUndefined;
     };
+
+    using PointCollection = Collection<Point>;
+    using PointCollectionPtr = std::shared_ptr<PointCollection>;
 
     // Uggly forward declarations
     namespace Utils
