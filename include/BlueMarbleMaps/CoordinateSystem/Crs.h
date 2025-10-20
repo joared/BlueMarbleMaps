@@ -16,9 +16,11 @@ namespace BlueMarble
     {
         public:
             static CrsPtr wgs84LngLat();
-            Crs();
-            void projectTo(const CrsPtr& crs, const Point& point);
-            void projectTo(const CrsPtr& crs, const Rectangle& rect);
+            Crs(const GeodeticDatumPtr& datum, const ProjectionPtr& projection);
+            Point projectTo(const CrsPtr& crs, const Point& point);
+            Rectangle projectTo(const CrsPtr& crs, const Rectangle& rect);
+            const GeodeticDatumPtr& datum() { return m_datum; };
+            const ProjectionPtr& projection() { return m_projection; }
         private:
             GeodeticDatumPtr m_datum;
             ProjectionPtr    m_projection;

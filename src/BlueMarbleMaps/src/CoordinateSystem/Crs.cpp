@@ -4,17 +4,28 @@ using namespace BlueMarble;
 
 CrsPtr Crs::wgs84LngLat()
 {
-    return std::make_shared<Crs>();
+    return std::make_shared<Crs>(
+        GeodeticDatum::wgs84(),
+        Projection::longLat()
+    );
 }
 
-Crs::Crs()
+
+Crs::Crs(const GeodeticDatumPtr& datum, const ProjectionPtr& projection)
+    : m_datum(datum)
+    , m_projection(projection)
 {
 }
 
-void Crs::projectTo(const CrsPtr& crs, const Point& point)
+
+Point Crs::projectTo(const CrsPtr& crs, const Point& point)
 {
+    const auto& ellipsoid = m_datum->ellipsoid();
+    auto lngLat = m_projection->unProject(point, ellipsoid);
+    return crs->projection()->project(lngLat, ellipsoid);
 }
 
-void Crs::projectTo(const CrsPtr& crs, const Rectangle& rect)
+
+Rectangle Crs::projectTo(const CrsPtr& crs, const Rectangle& rect)
 {
 }

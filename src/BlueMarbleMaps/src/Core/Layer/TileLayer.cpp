@@ -2,14 +2,20 @@
 
 using namespace BlueMarble;
 
-BlueMarble::TileLayer::TileLayer()
+class TilingScheme
+{
+
+};
+
+TileLayer::TileLayer()
 {
 }
 
-void BlueMarble::TileLayer::prepare(const CrsPtr &crs, const FeatureQuery &featureQuery)
+void TileLayer::prepare(const CrsPtr &crs, const FeatureQuery &featureQuery)
 {
+
 }
 
-void BlueMarble::TileLayer::update(const MapPtr &crs)
+void TileLayer::update(const MapPtr &crs)
 {
 }

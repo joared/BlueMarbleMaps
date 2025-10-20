@@ -303,7 +303,7 @@ void Map::zoomOn(const Point& mapPoint, double zoomFactor, bool animate)
     // }
 }
 
-void BlueMarble::Map::zoomToArea(const Rectangle& bounds, bool animate)
+void Map::zoomToArea(const Rectangle& bounds, bool animate)
 {
     std::cout << "zoomToArea\n";
     auto to = bounds.center();
@@ -329,7 +329,7 @@ void BlueMarble::Map::zoomToArea(const Rectangle& bounds, bool animate)
     }
 }
 
-void BlueMarble::Map::zoomToMinArea(const Rectangle &bounds, bool animate)
+void Map::zoomToMinArea(const Rectangle &bounds, bool animate)
 {
     auto to = bounds.center();
 

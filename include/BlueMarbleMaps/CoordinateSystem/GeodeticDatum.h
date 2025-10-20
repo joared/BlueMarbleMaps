@@ -1,6 +1,8 @@
 #ifndef BLUEMARBLE_GEODETICDATUM
 #define BLUEMARBLE_GEODETICDATUM
 
+#include "BlueMarbleMaps/CoordinateSystem/Ellipsoid.h"
+
 #include <cstdint>
 #include <memory>
 
@@ -8,45 +10,22 @@ namespace BlueMarble
 {
 
     // Forward declarations and typedefs
-    class Ellipsoid; typedef std::shared_ptr<Ellipsoid> EllipsoidPtr;
     class PrimeMeridian; typedef std::shared_ptr<PrimeMeridian> PrimeMeridianPtr;
     class DatumShift; typedef std::shared_ptr<DatumShift> DatumShiftPtr;
     class GeodeticDatum; typedef std::shared_ptr<GeodeticDatum> GeodeticDatumPtr;
-
-    class Ellipsoid
-    {
-        public:
-            static EllipsoidPtr spheroid(double semiMajorAxisLength, double flatteningFactor);
-            static EllipsoidPtr wgs84Spheroid();
-            Ellipsoid(double a, double b, double c)
-                : m_a(a)
-                , m_b(b)
-                , m_c(c)
-            {}
-
-            double a() const { return m_a; }
-            double b() const { return m_b; }
-            double c() const { return m_c; }
-            double inverseFlattening() const;
-
-        private:
-            double m_a; // X-axis length
-            double m_b; // Y-axis length
-            double m_c; // Z-axis length
-    };
 
     class PrimeMeridian
     {
         public:
             static PrimeMeridianPtr greenwhich();
 
-            double longitudeFromGreenwhich() const { return m_longiTudeFromGreenwhich; };
+            double longitudeFromGreenwhich() const { return m_longitudeFromGreenwhich; };
         private:
             PrimeMeridian(double longitudeFromGreenwhich)
-                : m_longiTudeFromGreenwhich(longitudeFromGreenwhich)
+                : m_longitudeFromGreenwhich(longitudeFromGreenwhich)
             {}
 
-            double m_longiTudeFromGreenwhich;
+            double m_longitudeFromGreenwhich;
     };
 
     class DatumShift
