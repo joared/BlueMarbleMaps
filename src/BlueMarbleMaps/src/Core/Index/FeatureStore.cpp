@@ -32,7 +32,7 @@ FeaturePtr FeatureStore::getFeature(const FeatureId &id)
     return f;
 }
 
-FeatureCollectionPtr FeatureStore::query(const Rectangle &area)
+FeatureCollectionPtr FeatureStore::query(const Rectangle& area)
 {
     // TODO: maybe store a member collection with preallocated size
     auto features = std::make_shared<FeatureCollection>();

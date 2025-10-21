@@ -12,13 +12,15 @@ namespace BlueMarble
     
     class Crs;
     typedef std::shared_ptr<Crs> CrsPtr;
-    class Crs
+    class Crs : public std::enable_shared_from_this<Crs>
     {
         public:
             static CrsPtr wgs84LngLat();
+            static CrsPtr wgs84MercatorWeb();
             Crs(const GeodeticDatumPtr& datum, const ProjectionPtr& projection);
-            Point projectTo(const CrsPtr& crs, const Point& point);
-            Rectangle projectTo(const CrsPtr& crs, const Rectangle& rect);
+            Rectangle bounds();
+            Point projectTo(const CrsPtr& crs, const Point& point) const;
+            Rectangle projectTo(const CrsPtr& crs, const Rectangle& rect) const;
             template<typename Iter>
             PointCollectionPtr projectTo(const CrsPtr& crs, const Iter& pointsFirst, const Iter& pointsLast)
             {

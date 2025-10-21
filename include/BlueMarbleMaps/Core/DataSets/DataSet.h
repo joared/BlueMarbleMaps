@@ -39,8 +39,8 @@ namespace BlueMarble
             Id generateId();
             FeaturePtr createFeature(GeometryPtr geometry);
             const DataSetId& dataSetId() { return m_dataSetId; }
-            const CrsPtr& getCrs() { return m_crs; }
-            void setCrs(const CrsPtr& crs) { m_crs = crs; }
+            const CrsPtr& crs() { return m_crs; }
+            void crs(const CrsPtr& crs) { m_crs = crs; }
             bool isInitialized() { return m_isInitialized; }
             bool isInitializing() { return m_isInitializing; }
             void initialize(DataSetInitializationType initType = DataSetInitializationType::RightHereRightNow);

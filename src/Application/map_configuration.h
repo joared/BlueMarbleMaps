@@ -106,7 +106,7 @@ void configureMap(const MapPtr& map, bool includeBackground=false, bool includeR
         backgroundLayer2->addDataSet(backgroundDataSet2);
     }
     
-    double minScaleCountries = 10.25;
+    double minScaleCountries = 0.00015;
     geoJsonLayer->minScale(minScaleCountries);
 
     bool includeCountryPolygons = true; // TODO add parameter

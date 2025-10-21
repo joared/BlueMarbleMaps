@@ -164,41 +164,41 @@ void Map::renderLayers()
     m_drawable->endBatches();
 }
 
-void Map::center(const Point &center)
+void Map::center(const Point& center)
 {
     m_updateRequired = true;
     m_centerChanged = true;
     m_center = center;
 }
 
-void BlueMarble::Map::scale(double scale)
+void Map::scale(double scale)
 {
     m_updateRequired = true;
     m_scaleChanged = true;
     m_scale = scale;
 }
 
-double BlueMarble::Map::scale() const
+double Map::scale() const
 {
     return m_scale;
 }
 
-double BlueMarble::Map::invertedScale() const
+double Map::invertedScale() const
 {
     return 1.0 / scale();
 }
 
-void BlueMarble::Map::invertedScale(double invScale)
+void Map::invertedScale(double invScale)
 {
     scale(1.0 / invScale);
 }
 
-double BlueMarble::Map::rotation() const
+double Map::rotation() const
 {
     return m_rotation;
 }
 
-void BlueMarble::Map::rotation(double rotation)
+void Map::rotation(double rotation)
 {
     m_updateRequired = true;
     m_rotationChanged = true;
@@ -207,12 +207,12 @@ void BlueMarble::Map::rotation(double rotation)
 
 double BlueMarble::Map::width() const
 {
-    return m_drawable->width() / scale(); // TODO: should we use raster width instead?
+    return m_drawable->width() / m_scale; // TODO: should we use raster width instead?
 }
 
 double BlueMarble::Map::height() const
 {
-    return m_drawable->height() / scale(); // TODO: should we use raster height instead?
+    return m_drawable->height() / m_scale; // TODO: should we use raster height instead?
 }
 
 Rectangle BlueMarble::Map::area() const

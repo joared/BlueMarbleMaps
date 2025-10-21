@@ -13,8 +13,8 @@ namespace BlueMarble
     using ProjectionPtr = std::shared_ptr<Projection>;
     class LongLatProjection; 
     using LongLatProjectionPtr = std::shared_ptr<LongLatProjection>;
-    class MercatorProjection; 
-    using MercatorProjectionPtr = std::shared_ptr<MercatorProjection>;
+    class MercatorWebProjection; 
+    using MercatorWebProjectionPtr = std::shared_ptr<MercatorWebProjection>;
 
     class Projection
     {
@@ -24,6 +24,8 @@ namespace BlueMarble
         static ProjectionPtr longLat();
         virtual Point project(const Point& lngLat, const EllipsoidPtr& ellipsoid) = 0;
         virtual Point unProject(const Point& point, const EllipsoidPtr& ellipsoid) = 0;
+        virtual double globalMeterScale(const EllipsoidPtr& ellipsoid) = 0;                      // meters per unit in the projection
+        virtual double localMeterScaleAt(const Point& point, const EllipsoidPtr& ellipsoid) = 0; // meters per unit in the projection at a specific point
     };
 
     class LongLatProjection : public Projection
@@ -32,12 +34,21 @@ namespace BlueMarble
         LongLatProjection() {}
         virtual Point project(const Point& lngLat, const EllipsoidPtr& ellipsoid) override final { return lngLat; };
         virtual Point unProject(const Point& point, const EllipsoidPtr& ellipsoid) override final { return point; };
+        virtual double globalMeterScale(const EllipsoidPtr& ellipsoid) override final
+        {
+            return M_PI / 180.0 * ellipsoid->a();
+        };
+        virtual double localMeterScaleAt(const Point& point, const EllipsoidPtr& ellipsoid) override final
+        {
+            double lat = lngLat.y() * M_PI / 180.0;
+            return M_PI / 180.0 * ellipsoid->a() * cos(lat);
+        };
     };
 
-    class MercatorProjection : public Projection
+    class MercatorWebProjection : public Projection
     {
     public:
-        MercatorProjection() {}
+        MercatorWebProjection() {}
         virtual Point project(const Point& lngLat, const EllipsoidPtr& ellipsoid) override final
         {
             double R = ellipsoid->a(); // Earth radius in meters
@@ -62,6 +73,17 @@ namespace BlueMarble
             lat = lat * 180.0 / M_PI;
 
             return Point(lon, lat);
+        };
+
+        virtual double globalMeterScale(const EllipsoidPtr& ellipsoid) override final
+        {
+            return 1.0;
+        };
+
+        virtual double localMeterScaleAt(const Point& point, const EllipsoidPtr& ellipsoid) override final
+        {
+            double lat = lngLat.y() * M_PI / 180.0;
+            return 1.0 / cos(lat); // scale distortion increases with latitude
         };
     };
 

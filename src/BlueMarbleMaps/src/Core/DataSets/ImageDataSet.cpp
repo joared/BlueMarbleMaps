@@ -25,10 +25,15 @@ void ImageDataSet::init()
     assert(!m_filePath.empty());
 
     // FIXME: Hardcoded
-    constexpr double xPixLen = 0.02222222222222*2;   // times 2 since we made the image smaller
-    constexpr double yPixLen = -0.02222222222222*2;  // times 2 since we made the image smaller
+    // constexpr double xPixLen = 0.02222222222222*2;   // times 2 since we made the image smaller
+    // constexpr double yPixLen = -0.02222222222222*2;  // times 2 since we made the image smaller
+    // constexpr double xTopLeft = -179.98888888888889;
+    // constexpr double yTopLeft = 89.98888888888889;
+
+    constexpr double xPixLen = 0.015*2;   // times 2 since we made the image smaller
+    constexpr double yPixLen = -0.015*2;  // times 2 since we made the image smaller
     constexpr double xTopLeft = -179.98888888888889;
-    constexpr double yTopLeft = 89.98888888888889;
+    constexpr double yTopLeft = 86.98888888888889;
 
     double cellWidth = std::abs(xPixLen);
     double cellHeight = std::abs(yPixLen);
@@ -66,7 +71,7 @@ FeatureEnumeratorPtr ImageDataSet::getFeatures(const FeatureQuery &featureQuery)
     if(featureQuery.area().overlap(m_rasterGeometry->bounds()))
     {
         //auto feature = std::make_shared<Feature>(Id(0,0), rasterGeometry); // TODO: overviews improves performance for software implementation
-        auto feature = std::make_shared<Feature>(Id(0,0), getCrs(), m_rasterGeometry);
+        auto feature = std::make_shared<Feature>(Id(0,0), crs(), m_rasterGeometry);
         features->add(feature);
     }
 

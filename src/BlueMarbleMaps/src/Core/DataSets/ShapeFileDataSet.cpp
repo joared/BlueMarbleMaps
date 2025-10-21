@@ -14,7 +14,7 @@ void ShapeFileDataSet::read(const std::string& /*filePath*/)
     auto stockholm = std::make_shared<Feature>
     (
         Id(0, 1), 
-        getCrs(),
+        crs(),
         std::make_shared<PointGeometry>(Point(18.063240, 59.334591))
     );
     stockholm->attributes().set("NAME", "Stockholm");
@@ -23,7 +23,7 @@ void ShapeFileDataSet::read(const std::string& /*filePath*/)
     auto goteborg = std::make_shared<Feature>
     (
         Id(0, 2), 
-        getCrs(),
+        crs(),
         std::make_shared<PointGeometry>(Point(11.954, 57.706))
     );
     goteborg->attributes().set("NAME", "Goteborg");

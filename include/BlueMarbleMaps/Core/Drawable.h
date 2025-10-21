@@ -17,6 +17,7 @@
 
 namespace BlueMarble
 {    
+    constexpr double dpi96PixelSize = 1.0/96.0 * 0.0254;
     class Drawable
     {
         public:
@@ -48,6 +49,10 @@ namespace BlueMarble
             virtual void clearBuffer() = 0;
             virtual Raster getRaster() = 0;
             virtual RendererImplementation renderer() = 0;
+
+            // Static methods
+            /* Returns the pixel size of the display in meters */
+            static double pixelSize() const { return dpi96PixelSize; } // TODO: read from system
     };
     typedef std::shared_ptr<Drawable> DrawablePtr;
 

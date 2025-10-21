@@ -66,7 +66,7 @@ void StandardLayer::hitTest(const MapPtr& map, const Rectangle& bounds, std::vec
         return;
     }
 
-    auto features = getFeatures(m_crs, featureQuery, true);
+    auto features = getFeatures(map->crs(), featureQuery, true);
 
     while (features->moveNext())
     {
@@ -189,7 +189,7 @@ void StandardLayer::update(const MapPtr& map)
     }
 }
 
-FeatureEnumeratorPtr StandardLayer::getFeatures(const CrsPtr &crs, const FeatureQuery& featureQuery, bool activeLayersOnly)
+FeatureEnumeratorPtr StandardLayer::getFeatures(const CrsPtr& crs, const FeatureQuery& featureQuery, bool activeLayersOnly)
 {
     auto features = std::make_shared<FeatureEnumerator>();
     if (activeLayersOnly && !isActiveForQuery(featureQuery))
@@ -199,7 +199,15 @@ FeatureEnumeratorPtr StandardLayer::getFeatures(const CrsPtr &crs, const Feature
     
     for (const auto& d : m_dataSets)
     {
-        auto dataSetFeatures = d->getFeatures(featureQuery);
+        auto newQuery = featureQuery;
+        newQuery.area(crs->projectTo(d->crs(), newQuery.area()));
+        auto dataSetFeatures = d->getFeatures(newQuery);
+        while (dataSetFeatures->moveNext())
+        {
+            auto f = dataSetFeatures->current();
+            f->projectTo(crs);
+        }
+        dataSetFeatures->reset();
         features->addEnumerator(dataSetFeatures);
     }
 

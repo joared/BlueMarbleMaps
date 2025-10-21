@@ -54,6 +54,21 @@ int Raster::channels() const
     return m_impl->channels();
 }
 
+int Raster::getCellIndexAt(int x, int y) const
+{
+    return m_impl->getCellIndexAt(x,y);
+}
+
+int Raster::getIntegerAt(int x, int y) const
+{
+    return m_impl->getIntegerAt(x,y);
+}
+
+float Raster::getFloatAt(int x, int y) const
+{
+    return m_impl->getFloatAt(x,y);
+}
+
 Color Raster::getColorAt(int x, int y) const
 {
     return m_impl->getColorAt(x,y);

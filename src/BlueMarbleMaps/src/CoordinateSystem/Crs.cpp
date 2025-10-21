@@ -1,5 +1,6 @@
 #include "BlueMarbleMaps/CoordinateSystem/Crs.h"
 
+
 using namespace BlueMarble;
 
 CrsPtr Crs::wgs84LngLat()
@@ -10,15 +11,29 @@ CrsPtr Crs::wgs84LngLat()
     );
 }
 
-
+CrsPtr BlueMarble::Crs::wgs84MercatorWeb()
+{
+    return std::make_shared<Crs>(
+        GeodeticDatum::wgs84(),
+        std::make_shared<MercatorWebProjection>()
+    );
+}
 Crs::Crs(const GeodeticDatumPtr& datum, const ProjectionPtr& projection)
     : m_datum(datum)
     , m_projection(projection)
 {
 }
 
+Rectangle BlueMarble::Crs::bounds()
+{
+    //auto lngLatBounds = Rectangle(-179.99, -89.99, 179.99, 89.99);
+    auto lngLatBounds = Rectangle(-180.0, -85.05112878, 180.0, 85.05112878);
+    auto defaultCrs = Crs::wgs84LngLat();
+    auto self = shared_from_this();
+    return defaultCrs->projectTo(self, lngLatBounds);
+}
 
-Point Crs::projectTo(const CrsPtr& crs, const Point& point)
+Point Crs::projectTo(const CrsPtr& crs, const Point& point) const
 {
     const auto& ellipsoid = m_datum->ellipsoid();
     auto lngLat = m_projection->unProject(point, ellipsoid);
@@ -26,7 +41,7 @@ Point Crs::projectTo(const CrsPtr& crs, const Point& point)
 }
 
 
-Rectangle Crs::projectTo(const CrsPtr& crs, const Rectangle& rect)
+Rectangle Crs::projectTo(const CrsPtr& crs, const Rectangle& rect) const
 {
     std::vector<Point> newCorners;
     for (const auto& p : rect.corners())
