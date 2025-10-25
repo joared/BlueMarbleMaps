@@ -20,7 +20,16 @@ namespace BlueMarble
             inline bool operator==(const Id& other) const { return m_dataSetId == other.m_dataSetId && m_featureId == other.m_featureId; }
             inline bool operator!=(const Id& other) const { return !(*this == other); }
 
-            inline bool operator<(const Id& other) const { return (m_dataSetId < other.m_dataSetId) ? true : m_featureId<other.m_featureId;  }
+            inline bool operator<(const Id& other) const { 
+                if (m_dataSetId == other.m_dataSetId)
+                {
+                    return m_featureId < other.m_featureId;
+                }
+                else
+                {
+                    return m_dataSetId < other.m_dataSetId;
+                }
+            }
 
             inline std::string toString() const { return "id: " + std::to_string(m_dataSetId) + ", " + std::to_string(m_featureId); }
         private:

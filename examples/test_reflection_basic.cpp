@@ -237,6 +237,7 @@ class LayoutParser
             // auto parser = LayoutParser();
             // parser.parse(jsonData);
             // return parser.getObjects();
+            return std::map<std::string, UiElementProperties>();
         }
         
     private:

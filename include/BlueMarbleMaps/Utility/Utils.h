@@ -21,6 +21,8 @@ namespace BlueMarble
         #define RAD_TO_DEG 57.2957795131
         #define DEG_TO_RAD 0.0174532925
 
+        #define BMM_PI 3.14159265358979323846
+
         inline double clampValue(double val, double minVal, double maxVal) { return std::min(std::max(val, minVal), maxVal); }
         inline double normalizeValue(double val, double minVal, double maxVal)
         {

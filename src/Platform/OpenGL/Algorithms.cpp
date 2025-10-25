@@ -23,13 +23,6 @@ bool Algorithms::triangulatePolygon(std::vector<Vertice>& vertices, std::vector<
 		}
 	}
 	
-	if (!resultAsTriangles)
-	{
-		for (int i = 0; i < vertIndexPair.size(); i++)
-		{
-			result.push_back(vertIndexPair[i].second);
-		}
-	}
 	return triangulatePolygon(vertIndexPair, vertIndexPair.size(), result, indices, resultAsTriangles);
 }
 
@@ -108,7 +101,7 @@ bool Algorithms::triangulatePolygon(std::vector<std::pair<GLuint, Vertice>>& ver
 					triangles.insert(triangles.end(), { vertices[i].second, vertices[j].second, vertices[k].second });
 				}
 				indices.insert(indices.end(), {vertices[i].first ,vertices[j].first,vertices[k].first});
-	
+
 				//  Reduce the remaining polygon to exclude the just-drawn triangle.
 				corners--;
 				for (l = j; l < corners; l++) {

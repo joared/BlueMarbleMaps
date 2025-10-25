@@ -15,7 +15,7 @@
 #include <Keys.h>
 
 #ifdef WIN32
-#define PATH_TO_FANNY_FILE "E:/bilder/knrdoe5tleu51.png"
+#define PATH_TO_FANNY_FILE "../../../bluemarble_index/backgroundmap.png"
 #else 
 #define PATH_TO_FANNY_FILE "../../../bluemarble_index/backgroundmap.png"
 #endif

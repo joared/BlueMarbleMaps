@@ -264,9 +264,9 @@ namespace BlueMarble
                 //brush.setColor(Color::blue());
                 
                 auto c = m_map->screenCenter();
-                m_map->drawable()->drawCircle(c.x(), c.y()+40, 20, pen, brush);
+                m_map->drawable()->drawCircle(c.x(), c.y()+40, 20*10, pen, brush);
                 pen.setAntiAlias(false);
-                m_map->drawable()->drawCircle(c.x()+40, c.y()+40, 20, pen, brush);
+                //_map->drawable()->drawCircle(c.x()+40, c.y()+40, 20*10, pen, brush);
                 //m_map->drawable()->drawArc(c.x(), c.y(), 10, 20, 0.5, pen, brush);
             }
 

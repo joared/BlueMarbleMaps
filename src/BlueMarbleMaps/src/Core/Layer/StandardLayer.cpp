@@ -358,7 +358,7 @@ void StandardLayer::createDefaultVisualizers()
     auto polVisSelect = std::make_shared<PolygonVisualizer>();
     polVisSelect->color(colorEvalSelect);
     polVisSelect->size([=](FeaturePtr f, Attributes& u) { return 1.0*animatedDouble(f,u); });
-    polVisSelect->rotation([=](FeaturePtr f, Attributes& u) { return 2.0*M_PI*animatedDouble(f,u); });
+    polVisSelect->rotation([=](FeaturePtr f, Attributes& u) { return 2.0*BMM_PI*animatedDouble(f,u); });
     //polVisSelect->offsetX([=](FeaturePtr f, Attributes& u) { return 1.0*(1.0-animatedDouble(f,u)); });
     //polVisSelect->offsetY([=](FeaturePtr f, Attributes& u) { return 1.0*(1.0-animatedDouble(f,u)); });
 

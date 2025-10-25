@@ -3,6 +3,7 @@
 
 #include "BlueMarbleMaps/Core/Core.h"
 #include "BlueMarbleMaps/CoordinateSystem/Ellipsoid.h"
+#include "BlueMarbleMaps/Utility/Utils.h"
 
 #include <memory>
 
@@ -44,8 +45,8 @@ namespace BlueMarble
 
             double lon = lngLat.x();
             double lat = lngLat.y();
-            double x = R * lon * M_PI / 180.0;
-            double y = R * log(tan(M_PI/4.0 + (lat * M_PI / 180.0) / 2.0));
+            double x = R * lon * BMM_PI / 180.0;
+            double y = R * log(tan(BMM_PI /4.0 + (lat * BMM_PI / 180.0) / 2.0));
 
             return Point(x,y);
         };
@@ -57,9 +58,9 @@ namespace BlueMarble
             double x = point.x();
             double y = point.y();
 
-            double lon = x / R * 180.0 / M_PI;
-            double lat = 2 * atan(exp(y / R)) - M_PI/2;
-            lat = lat * 180.0 / M_PI;
+            double lon = x / R * 180.0 / BMM_PI;
+            double lat = 2 * atan(exp(y / R)) - BMM_PI/2;
+            lat = lat * 180.0 / BMM_PI;
 
             return Point(lon, lat);
         };
