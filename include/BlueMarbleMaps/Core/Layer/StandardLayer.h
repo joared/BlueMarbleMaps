@@ -33,6 +33,7 @@ namespace BlueMarble
             virtual void prepare(const CrsPtr &crs, const FeatureQuery& featureQuery) override final;
             virtual void update(const MapPtr& map) override final;
             virtual FeatureEnumeratorPtr getFeatures(const CrsPtr& crs, const FeatureQuery& featureQuery, bool activeLayersOnly) override final;
+            virtual void flushCache() override final;
         private:
             void createDefaultVisualizers();
 

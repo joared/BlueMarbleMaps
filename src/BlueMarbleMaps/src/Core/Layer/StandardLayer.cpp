@@ -66,7 +66,7 @@ void StandardLayer::hitTest(const MapPtr& map, const Rectangle& bounds, std::vec
         return;
     }
 
-    auto features = getFeatures(m_crs, featureQuery, true);
+    auto features = getFeatures(map->crs(), featureQuery, true);
 
     while (features->moveNext())
     {
@@ -189,23 +189,55 @@ void StandardLayer::update(const MapPtr& map)
     }
 }
 
-FeatureEnumeratorPtr StandardLayer::getFeatures(const CrsPtr &crs, const FeatureQuery& featureQuery, bool activeLayersOnly)
+FeatureEnumeratorPtr StandardLayer::getFeatures(const CrsPtr& crs, const FeatureQuery& featureQuery, bool activeLayersOnly)
 {
-    auto features = std::make_shared<FeatureEnumerator>();
+    auto features = std::make_shared<FeatureCollection>();
+    auto enumerator = std::make_shared<FeatureEnumerator>();
+    enumerator->setFeatures(features);
     if (activeLayersOnly && !isActiveForQuery(featureQuery))
     {
-        return features;
+        return enumerator;
     }
     
     for (const auto& d : m_dataSets)
     {
-        auto dataSetFeatures = d->getFeatures(featureQuery);
-        features->addEnumerator(dataSetFeatures);
+        auto newQuery = featureQuery;
+        newQuery.area(crs->projectTo(d->crs(), newQuery.area()));
+        auto dataSetFeatures = d->getFeatures(newQuery);
+
+        // If the crs and data set crs is different, we need to reproject them
+        if (!crs->isFunctionallyEquivalent(d->crs()))
+        {
+            BMM_DEBUG() << "Reprojecting features!\n";
+            while (dataSetFeatures->moveNext())
+            {
+                auto f = dataSetFeatures->current();
+                auto newFeatures = f->projectTo(crs);
+                features->addRange(*newFeatures);
+            }
+            dataSetFeatures->reset();
+        }
+        else
+        {
+            enumerator->addEnumerator(dataSetFeatures);
+        }
     }
 
-    return features;
+    return enumerator;
 }
 
+void StandardLayer::flushCache()
+{
+    {
+        std::unique_lock lock2(m_mutex);
+        m_cache->clear();
+    }
+    
+    for (const auto& d : m_dataSets)
+    {
+        d->flushCache();
+    }
+}
 
 void StandardLayer::createDefaultVisualizers()
 {
@@ -334,9 +366,9 @@ void StandardLayer::createDefaultVisualizers()
     auto textVisHover = std::make_shared<TextVisualizer>(*textVis);
     // textVisHover->color([](FeaturePtr, Attributes& updateAttributes) { 
     textVisHover->color(ColorEvaluation([=](FeaturePtr feature, Attributes& updateAttributes) 
-        { 
-            return Color::white(animatedDouble(feature, updateAttributes));
-        }));
+    { 
+        return Color::white(animatedDouble(feature, updateAttributes));
+    }));
     //textVisHover->backgroundColor([](auto) { return Color::black(0.5); });
     textVisHover->offsetX( [](auto, auto) {return -3.0; });
     textVisHover->offsetY( [](auto, auto) {return -3.0; });

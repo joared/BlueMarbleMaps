@@ -49,7 +49,7 @@ void setupAirPlaneLayerVisualization(const BlueMarble::StandardLayerPtr& layer)
 
 void configureMap(const MapPtr& map, bool includeBackground=false, bool includeRoads=false, bool includeAirPlanes=false)
 {
-    const bool asyncBackgroundReading = true;
+    const bool asyncBackgroundReading = false;
     const std::string commonIndexPath = "../../../bluemarble_index"; // Relative to the build/bin/<debug/release>/ folder
     ////////////////////////////////////////////////////////
     static auto backgroundDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/BlueMarbleMaps/geodata/NE1_LR_LC_SR_W/NE1_LR_LC_SR_W.tif");
@@ -106,7 +106,7 @@ void configureMap(const MapPtr& map, bool includeBackground=false, bool includeR
         backgroundLayer2->addDataSet(backgroundDataSet2);
     }
     
-    double minScaleCountries = 10.25;
+    double minScaleCountries = 1.0/20000000.0;
     geoJsonLayer->minScale(minScaleCountries);
 
     bool includeCountryPolygons = true; // TODO add parameter
@@ -127,15 +127,22 @@ void configureMap(const MapPtr& map, bool includeBackground=false, bool includeR
     continentsLayer->addDataSet(continents);
     if (includeRoads)
     {
-        //roadsDataSet->indexPath(commonIndexPath);
-        //roadsDataSet->initialize();
-        //roadsGeoJsonLayer->addDataSet(roadsDataSet);
+        roadsDataSet->indexPath(commonIndexPath);
+        roadsDataSet->initialize();
+
+        // FeatureQuery featureQuery;
+        // featureQuery.area(Rectangle(-180, -90, 180, 90));
+        // auto features = roadsDataSet->getFeatures(featureQuery);
+        // int n = features->size();
+        // BMM_DEBUG() << "NUMBER OF ROAD FEATURES: " << n << "\n";
+
+        roadsGeoJsonLayer->addDataSet(roadsDataSet);
         //sverigeRoadsDataSet->indexPath(commonIndexPath);
         //sverigeRoadsDataSet->initialize(); // Takes very long to initialize (1.4 GB large)
         //roadsGeoJsonLayer->addDataSet(sverigeRoadsDataSet);
         
-        roadsGeoJsonLayer->minScale(50.0);
-        roadsGeoJsonLayer->enabledDuringQuickUpdates(false);
+        roadsGeoJsonLayer->minScale(1.0/2000000.0);
+        //roadsGeoJsonLayer->enabledDuringQuickUpdates(false);
     }
     
     csvLayer->addDataSet(svenskaStader);

@@ -106,6 +106,35 @@ int Raster::Impl::channels() const
     return m_channels;
 }
 
+int Raster::Impl::getCellIndexAt(int x, int y) const
+{
+    assert(x > 0); assert(x < m_width);
+    assert(y > 0); assert(y < m_height);
+    return (y * m_width + x) * m_channels;
+}
+
+int Raster::Impl::getIntegerAt(int x, int y) const
+{
+    // TODO: how can we store 32 bit integers in our unsigned char array?
+    if (m_channels != 1)
+    {
+        throw std::runtime_error("Raster::getFloatAt() called for a raster that does not have 1 channels. (I have " + std::to_string(m_channels) + ")");
+    }
+
+    return m_data[getCellIndexAt(x,y)];
+}
+
+float Raster::Impl::getFloatAt(int x, int y) const
+{
+    // TODO: how can we store 32 bit floats in our unsigned char array?
+    if (m_channels != 1)
+    {
+        throw std::runtime_error("Raster::getFloatAt() called for a raster that does not have 1 channels. (I have " + std::to_string(m_channels) + ")");
+    }
+
+    return m_data[getCellIndexAt(x,y)];
+}
+
 Color Raster::Impl::getColorAt(int x, int y) const
 {
     if (m_channels != 3 && m_channels != 4)
@@ -113,7 +142,7 @@ Color Raster::Impl::getColorAt(int x, int y) const
         throw std::runtime_error("Raster::getColorAt() called for a raster that does not have 3 or 4 channgels. (I have " + std::to_string(m_channels) + ")");
     }
 
-    int index = (y * m_width + x) * m_channels;
+    int index = getCellIndexAt(x,y);
 
     unsigned char r = m_data[index + 0];
     unsigned char g = m_data[index + 1];

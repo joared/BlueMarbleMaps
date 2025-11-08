@@ -32,7 +32,7 @@ FeaturePtr FeatureStore::getFeature(const FeatureId &id)
     return f;
 }
 
-FeatureCollectionPtr FeatureStore::query(const Rectangle &area)
+FeatureCollectionPtr FeatureStore::query(const Rectangle& area)
 {
     // TODO: maybe store a member collection with preallocated size
     auto features = std::make_shared<FeatureCollection>();
@@ -139,7 +139,12 @@ bool FeatureStore::verifyIndex() const
     return true;
 }
 
-void FeatureStore::buildIndex(const FeatureCollectionPtr& features, const std::string& indexPath)
+void FeatureStore::flushCache()
+{
+    m_cache->clear();
+}
+
+void FeatureStore::buildIndex(const FeatureCollectionPtr &features, const std::string &indexPath)
 {
     for (const auto& feature : *features)
     {

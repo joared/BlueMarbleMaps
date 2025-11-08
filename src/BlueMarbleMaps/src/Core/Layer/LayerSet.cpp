@@ -1,5 +1,6 @@
 #include "BlueMarbleMaps/Core/Layer/LayerSet.h"
 
+
 using namespace BlueMarble;
 
 LayerSet::LayerSet()
@@ -42,4 +43,12 @@ FeatureEnumeratorPtr LayerSet::getFeatures(const CrsPtr &crs, const FeatureQuery
     }
 
     return enumerator;
+}
+
+void LayerSet::flushCache()
+{
+    for (const auto& l : m_subLayers)
+    {
+        l->flushCache();
+    }
 }

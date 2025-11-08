@@ -208,7 +208,7 @@ void BlueMarble::OpenGLDrawable::resize(int width, int height)
 
     float w2 = width * 0.5;
     float h2 = height * 0.5;
-    glm::mat4 proj = glm::ortho(-w2, w2, -h2, h2, -10.0f, 10.0f);
+    glm::mat4 proj = glm::ortho(-w2, w2, -h2, h2, -100000000.0f, 100000000.0f);
     //glm::mat4 proj = glm::perspectiveFov(40.0f, (float)width, (float)height, -10.0f, 10.0f);
     
     m_projectionMatrix = proj;
@@ -404,6 +404,10 @@ void BlueMarble::OpenGLDrawable::drawLine(const LineGeometryPtr& geometry, const
     {
         Color bmColor = getColorFromList(pen.getColors(), i);
 
+        auto mat = m_projectionMatrix*m_viewMatrix;
+        auto v = createPoint(bounds[i], bmColor);
+        auto screen = mat*glm::vec4(v.position.x, v.position.y, 0, 1);
+        //BMM_DEBUG() << std::to_string(screen[0]) << ", " << std::to_string(screen[1]) << ", " << std::to_string(screen[2])<< "\n";
         vertices.push_back(createPoint(bounds[i], bmColor));
     }
 

@@ -48,8 +48,10 @@ void DataSet::initialize(DataSetInitializationType initType)
     assert(!m_isInitialized);
     dataSets[m_dataSetId] = shared_from_this();
     
+    
     auto initWork = [this]()
     {
+        bool surpressErrors = false;
         try
         {
             m_isInitializing = true;
@@ -59,6 +61,7 @@ void DataSet::initialize(DataSetInitializationType initType)
         catch(const std::exception& e)
         {
             std::cerr << "Data set initialization failed: " << e.what() << '\n';
+            if (!surpressErrors) throw e;
             m_isInitialized = false;
             return;
         }

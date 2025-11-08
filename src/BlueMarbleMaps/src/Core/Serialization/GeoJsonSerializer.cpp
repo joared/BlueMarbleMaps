@@ -9,19 +9,7 @@ FeatureCollectionPtr GeoJsonSerializer::deserialize(const JsonValue&jsonValue)
 
     if (type == "FeatureCollection")
     {
-        try
-        {
-            return deserializeFeatureCollection(jsonData["features"]);
-        }
-        catch(const std::exception& e)
-        {
-            std::cerr << e.what() << '\n';
-            
-            auto info = jsonValue.toString();
-            std::cerr << info;
-            std::cerr << "Error when handling feature:\n";
-            std::cerr << e.what() << '\n';
-        }
+        return deserializeFeatureCollection(jsonData["features"]);
     }
 
     return FeatureCollectionPtr();
@@ -37,20 +25,7 @@ FeatureCollectionPtr GeoJsonSerializer::deserializeFeatureCollection(const JsonV
     for (auto f : featureList)
     {
         FeaturePtr feature(nullptr);
-        try
-        {
-            feature = deserializeFeature(f);
-        }
-        catch(const std::exception& e)
-        {
-            std::cerr << e.what() << '\n';
-            auto info = jsonValue.toString();
-            std::cerr << info;
-            std::cerr << "Error when handling feature:\n";
-            std::cerr << e.what() << '\n';
-            return nullptr;
-        }
-
+        feature = deserializeFeature(f);
         if (feature)
         {   
             if (auto multiPolygon = feature->geometryAsMultiPolygon())
@@ -206,7 +181,7 @@ Attributes GeoJsonSerializer::deserializeProperties(const JsonValue& jsonValue)
         attr.set("COLOR_B", 50*c9);
         attr.set("COLOR_A", 0.25);
     }
-    else if(jsonData.find("namn1") != jsonData.end())
+    else if(jsonData.find("namn1") != jsonData.end() && jsonData["namn1"].isString())
     {
         attr.set("NAME", jsonData["namn1"].get<std::string>());
     }

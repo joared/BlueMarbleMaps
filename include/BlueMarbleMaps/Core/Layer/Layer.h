@@ -38,6 +38,7 @@ namespace BlueMarble
             virtual void prepare(const CrsPtr &crs, const FeatureQuery& featureQuery) = 0;
             virtual void update(const MapPtr& map) = 0;
             virtual FeatureEnumeratorPtr getFeatures(const CrsPtr& crs, const FeatureQuery& featureQuery, bool activeLayersOnly) = 0;
+            virtual void flushCache() = 0;
 
             bool isActiveForQuery(const FeatureQuery& query);
 

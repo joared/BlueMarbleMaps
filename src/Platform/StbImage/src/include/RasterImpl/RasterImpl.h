@@ -24,6 +24,9 @@ class Raster::Impl
         int width() const;
         int height() const;
         int channels() const;
+        int getCellIndexAt(int x, int y) const;
+        int getIntegerAt(int x, int y) const;
+        float getFloatAt(int x, int y) const;
         Color getColorAt(int x, int y) const;
         void resize(int width, int height, ResizeInterpolation interpolation);
         void resize(float scaleRatio, ResizeInterpolation interpolation);

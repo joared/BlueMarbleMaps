@@ -21,10 +21,11 @@ void MapConstraints::constrainMap(Map &map)
         );
     }
     // Constrain scale
-    map.scale(constrainValue(map.scale(), m_minScale, m_maxScale));
+    //map.scale(constrainValue(map.scale(), m_minScale, m_maxScale)); // TODO add back
 }
 
 double MapConstraints::constrainValue(double val, double minVal, double maxVal)
 {
-    return Utils::clampValue(val, minVal, maxVal);
+    return val;
+    //return Utils::clampValue(val, minVal, maxVal); // TODO add back
 }

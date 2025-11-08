@@ -1,5 +1,6 @@
 #include "BlueMarbleMaps/Core/Feature.h"
 
+
 using namespace BlueMarble;
 
 Feature::Feature(const Id& id, const CrsPtr& crs, const GeometryPtr& geometry)
@@ -49,13 +50,13 @@ Point Feature::center() const
     return m_geometry->center();
 }
 
-FeatureCollectionPtr Feature::projectTo(const CrsPtr &crs)
+void Feature::reProjectTo(const CrsPtr &crs)
 {
-    FeatureCollectionPtr features = std::make_shared<FeatureCollection>();
     if (geometryType() == GeometryType::Raster)
     {
-        auto rasterGeometry = geometryAsRaster();
-        rasterGeometry->bounds(m_crs->projectTo(crs, rasterGeometry->bounds()));
+        // TODO: Unsupported for now
+        // auto rasterGeometry = geometryAsRaster();
+        // rasterGeometry->bounds(m_crs->projectTo(crs, rasterGeometry->bounds()));
     }
     else
     {
@@ -66,26 +67,26 @@ FeatureCollectionPtr Feature::projectTo(const CrsPtr &crs)
     }
 
     m_crs = crs;
+}
 
-    // auto newGeometry = std::dynamic_pointer_cast<Geometry>(m_geometry->clone());
-    // newGeometry->forEachPoint([&](Point& p)
-    // {
-    //     p = m_crs->projectTo(crs, p);
-    //     return p;
-    // });
-    // auto newFeature = std::make_shared<Feature>(
-    //     m_id,
-    //     crs,
-    //     newGeometry,
-    //     m_attributes
-    // );
+FeatureCollectionPtr Feature::projectTo(const CrsPtr &crs)
+{
+    FeatureCollectionPtr features = std::make_shared<FeatureCollection>();
 
-    // features->add(newFeature);
+    if (geometryType() == GeometryType::Raster)
+    {
+        // TODO: Raster Unsupported for now
+        features->add(shared_from_this());
+        return features;
+    }
+    auto newFeature = clone();
+    newFeature->reProjectTo(crs);
+    features->add(newFeature);
 
     return features;
 }
 
-bool Feature::isInside(const Rectangle& bounds) const
+bool Feature::isInside(const Rectangle &bounds) const
 {
     return m_geometry->isInside(bounds);
 }

@@ -118,7 +118,7 @@ std::string JsonValue::toString(const std::string& currentIndentation, const std
     else if (isString())
     {
         // TODO: fix escape
-        return "\"" +escapeString(get<std::string>()) + "\"";
+        return "\"" + escapeString(get<std::string>()) + "\"";
     }
     else
     {
@@ -131,7 +131,7 @@ std::string JsonValue::toString(const std::string& currentIndentation, const std
 void throwParseError(const std::string &text, int &idx, const std::string& error)
 {
     auto e = error + ":\n";
-    e += text.substr(idx-20, idx+1) + "<---\n";
+    e += text.substr(idx-20, 21) + "<---\n";
     throw std::runtime_error(e);
 }
 
@@ -302,9 +302,10 @@ JsonValue parseJson(const std::string &text, int &idx, int level)
                     case 'n': value += '\n'; break;
                     case 'r': value += '\r'; break;
                     case 't': value += '\t'; break;
+                    case 'u': value += "HEX not implemented:"; break;
                     // optionally: handle \uXXXX unicode escapes
                     default:
-                        throw std::runtime_error("Invalid escape sequence");
+                        throwParseError(text, idx, "Invalid escape sequence");
                 }
             }
             else if (c == '"') {

@@ -20,6 +20,16 @@ namespace BlueMarble
                 Cubic,
                 Lanczos
             };
+
+            // TODO: add when necessary
+            // enum class RasterFormat
+            // {
+            //     Rgba,
+            //     Rgb,
+            //     Int,
+            //     Float
+            // };
+
             Raster();
             Raster(const Raster& raster);
             Raster(Raster&& raster) noexcept;
@@ -30,6 +40,9 @@ namespace BlueMarble
             int width() const;
             int height() const;
             int channels() const;
+            int getCellIndexAt(int x, int y) const;
+            int getIntegerAt(int x, int y) const;
+            float getFloatAt(int x, int y) const;
             Color getColorAt(int x, int y) const;
             void resize(int width, int height, ResizeInterpolation interpolation = ResizeInterpolation::NearestNeighbor);
             void resize(float scaleRatio, ResizeInterpolation interpolation = ResizeInterpolation::NearestNeighbor);

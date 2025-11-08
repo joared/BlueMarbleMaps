@@ -1019,6 +1019,30 @@ namespace BlueMarble
                     return true;
                 }
 
+                if (event.keyCode == 33 && // p
+                    event.modificationKey && ModificationKeyCtrl)
+                {
+                    BMM_DEBUG() << "Changing crs...";
+                    auto crs = m_map->crs();
+                    // auto centerLngLat = m_map->crs()->projectTo(Crs::wgs84LngLat(), m_map->center());
+                    // double scale = m_map->scale();
+                    if (auto temp = std::dynamic_pointer_cast<MercatorWebProjection>(crs->projection()))
+                    {
+                        m_map->crs(Crs::wgs84LngLat());
+                        BMM_DEBUG() << "... to long lat!\n";
+                    }
+                    else
+                    {
+                        m_map->crs(Crs::wgs84MercatorWeb());
+                        BMM_DEBUG() << "... to Web  Mercator!\n";
+                    }
+                    // m_map->flushCache();
+                    // m_map->center(Crs::wgs84LngLat()->projectTo(m_map->crs(), centerLngLat));
+                    // m_map->scale(scale);
+                    m_map->update();
+                    return true;
+                }
+
                 // TODO rendering enabled
                 if (event.keyCode == 27 && // r
                     event.modificationKey && ModificationKeyCtrl)

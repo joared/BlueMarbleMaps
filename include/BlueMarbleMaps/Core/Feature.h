@@ -22,7 +22,8 @@ namespace BlueMarble
     class FeatureCollection;
     typedef std::shared_ptr<FeatureCollection> FeatureCollectionPtr;
 
-    class Feature
+    class Feature 
+        : public std::enable_shared_from_this<Feature> // This inheritance is only for projectTo for unssuported raster geometries and should be removed later
     {
         public:
             Feature(const Id& id, const CrsPtr& crs, const GeometryPtr& geometry);
@@ -49,6 +50,8 @@ namespace BlueMarble
             std::string prettyString() const;
         private:
             Feature(const Feature&) = default; // Make copy constructor private. Call clone() to copy.
+            void reProjectTo(const CrsPtr& crs); // Modifies this feature and its geometry. Keep private for now.
+
             Id          m_id;
             GeometryPtr m_geometry;
             Attributes  m_attributes;
