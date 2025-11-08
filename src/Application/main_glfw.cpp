@@ -291,6 +291,7 @@ int main()
     tool->addSubTool(std::make_shared<EditFeatureTool>());
     tool->addSubTool(std::make_shared<PointerTracerTool>());
     tool->addSubTool(std::make_shared<KeyActionTool>());
+    tool->addSubTool(std::make_shared<DebugEventHandler>());
 
     // EventObserver eventObserver1("Observer1");
     // EventObserver eventObserver2("Observer2");

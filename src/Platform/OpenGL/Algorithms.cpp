@@ -2,6 +2,11 @@
 #include "glm.hpp"
 #include <iostream>
 
+bool Algorithms::constrainedDelaunayTriangulate(std::vector<Vertice>& vertices, std::vector<Vertice>& hole, std::vector<Vertice>& result, std::vector<GLuint>& indices)
+{
+	return false;
+}
+
 bool Algorithms::triangulatePolygon(std::vector<Vertice>& vertices, std::vector<Vertice>& hole, std::vector<Vertice>& result, std::vector<GLuint>& indices, int resultAsTriangles)
 {
 	std::vector<Vertice> tmpVerts = vertices;

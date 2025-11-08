@@ -37,12 +37,12 @@ namespace BlueMarble
         virtual Point unProject(const Point& point, const EllipsoidPtr& ellipsoid) override final { return point; };
         virtual double globalMeterScale(const EllipsoidPtr& ellipsoid) override final
         {
-            return M_PI / 180.0 * ellipsoid->a();
+            return BMM_PI / 180.0 * ellipsoid->a();
         };
         virtual double localMeterScaleAt(const Point& lngLat, const EllipsoidPtr& ellipsoid) override final
         {
-            double lat = lngLat.y() * M_PI / 180.0;
-            return M_PI / 180.0 * ellipsoid->a() * cos(lat);
+            double lat = lngLat.y() * BMM_PI / 180.0;
+            return BMM_PI / 180.0 * ellipsoid->a() * cos(lat);
         };
     };
 
@@ -83,7 +83,7 @@ namespace BlueMarble
 
         virtual double localMeterScaleAt(const Point& lngLat, const EllipsoidPtr& ellipsoid) override final
         {
-            double lat = lngLat.y() * M_PI / 180.0;
+            double lat = lngLat.y() * BMM_PI / 180.0;
             return 1.0 / cos(lat); // scale distortion increases with latitude
         };
     };

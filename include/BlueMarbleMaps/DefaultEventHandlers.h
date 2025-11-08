@@ -264,7 +264,7 @@ namespace BlueMarble
                 //brush.setColor(Color::blue());
                 
                 auto c = m_map->screenCenter();
-                m_map->drawable()->drawCircle(c.x(), c.y()+40, 20*10, pen, brush);
+                //m_map->drawable()->drawCircle(c.x(), c.y()+40, 20*10, pen, brush);
                 pen.setAntiAlias(false);
                 //_map->drawable()->drawCircle(c.x()+40, c.y()+40, 20*10, pen, brush);
                 //m_map->drawable()->drawArc(c.x(), c.y(), 10, 20, 0.5, pen, brush);
@@ -1077,5 +1077,42 @@ namespace BlueMarble
     };
     typedef std::shared_ptr<KeyActionTool> KeyActionToolPtr;
 
+    class DebugEventHandler : public Tool
+    {
+    public:
+        DebugEventHandler()
+            : Tool()
+            , m_map(nullptr)
+            , m_mapControl(nullptr)
+            , m_isActive(false)
+        {
+        }
+        void onConnected(const MapControlPtr& control, const MapPtr& map) override
+        {
+            m_map = map;
+            m_mapControl = control;
+            m_map->events.onCustomDraw.subscribe(this,&DebugEventHandler::drawCallback);
+        }
+        void onDisconnected() override
+        {
+            m_map->events.onCustomDraw.unsubscribe(this);
+            m_map = nullptr;
+            m_mapControl = nullptr;
+        }
+        bool isActive() override
+        {
+            return m_isActive;
+        }
+        void drawCallback(Map& map)
+        {
+            
+        }
+
+    private: 
+        MapControlPtr m_mapControl;
+        MapPtr m_map;
+        bool m_isActive;
+    };
 }
+
 #endif /* DEFAULTEVENTHANDLERS */
