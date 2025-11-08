@@ -163,3 +163,7 @@ FeaturePtr AbstractFileDataSet::getFeature(const Id &id)
 
     return nullptr;
 }
+
+void AbstractFileDataSet::flushCache()
+{
+}

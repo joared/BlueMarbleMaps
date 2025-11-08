@@ -15,7 +15,7 @@
 #include <Keys.h>
 
 #ifdef WIN32
-#define PATH_TO_FANNY_FILE "E:/bilder/knrdoe5tleu51.png"
+#define PATH_TO_FANNY_FILE "../../../bluemarble_index/backgroundmap.png"
 #else 
 #define PATH_TO_FANNY_FILE "../../../bluemarble_index/backgroundmap.png"
 #endif
@@ -264,18 +264,26 @@ int main()
     auto vectorDataSet = std::make_shared<MemoryDataSet>();
     vectorDataSet->initialize(DataSetInitializationType::RightHereRightNow);
 
-    auto points = std::vector<Point>({{14,56}, {14,57}, {15,57}});
-    auto testfeature = vectorDataSet->createFeature(std::make_shared<PolygonGeometry>(points));
+    auto polypoints = std::vector<Point>({{14,56}, {14,57}, {15,57}});
+    auto linepoints = std::vector<Point>({{15,57}, {15,58}, {16,58}});
+    auto testfeature = vectorDataSet->createFeature(std::make_shared<PolygonGeometry>(polypoints));
+    auto testfeatureLine = vectorDataSet->createFeature(std::make_shared<LineGeometry>(linepoints));
     vectorDataSet->addFeature(testfeature);
+    vectorDataSet->addFeature(testfeatureLine);
+    using ReadOnlyFeaturePtr = std::shared_ptr<const Feature>;
+    ReadOnlyFeaturePtr readOnlyFeature = testfeature;
+    auto geom = readOnlyFeature->geometry();
+    geom->moveTo({14,58});
 
     auto vectorLayer = std::make_shared<StandardLayer>(true);
     vectorLayer->addDataSet(vectorDataSet);
+    vectorLayer->selectable(true);
 
     auto polyVis = std::make_shared<PolygonVisualizer>();
     vectorLayer->visualizers().push_back(polyVis);
     view->addLayer(vectorLayer);
 
-    configureMap(view, false, false, false);
+    configureMap(view, false, true, false);
 
     mapControl->setView(view);
 
@@ -290,12 +298,12 @@ int main()
     // eventObserver1.installEventFilter(&eventObserver2);
     mapControl->setTool(tool);
 
-    view->crs(Crs::wgs84MercatorWeb());
+    //view->crs(Crs::wgs84MercatorWeb());
     auto startRect = view->crs()->bounds();
     BMM_DEBUG() << "Start bounds: " << startRect.toString() << "\n";
     view->center(startRect.center());
-    view->center(Point(7727736.044037, 10090758.622196));
-    view->scale(view->drawable()->width() / startRect.width());
+    //view->center(Point(7727736.044037, 10090758.622196));
+    view->width(startRect.width());
     //view->mapConstraints().bounds() = startRect;
 
     view->drawable()->backgroundColor(Color::gray(0.0));

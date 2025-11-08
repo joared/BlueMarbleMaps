@@ -52,7 +52,7 @@ namespace BlueMarble
 
             // Static methods
             /* Returns the pixel size of the display in meters */
-            static double pixelSize() const { return dpi96PixelSize; } // TODO: read from system
+            static double pixelSize() { return dpi96PixelSize; } // TODO: read from system
     };
     typedef std::shared_ptr<Drawable> DrawablePtr;
 

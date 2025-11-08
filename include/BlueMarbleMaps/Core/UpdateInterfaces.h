@@ -27,6 +27,7 @@ namespace BlueMarble
 
         private:
             Rectangle   m_area = Rectangle::infinite();
+            FeatureIdCollectionPtr m_ids = std::make_shared<FeatureIdCollection>();
             double      m_scale = 1.0;
             Attributes* m_updateAttributes = nullptr;
             bool        m_quickUpdate = false;

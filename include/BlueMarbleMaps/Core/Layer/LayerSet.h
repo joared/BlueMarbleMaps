@@ -20,7 +20,7 @@ namespace BlueMarble
         virtual void prepare(const CrsPtr &crs, const FeatureQuery& featureQuery) override;
         virtual void update(const MapPtr &crs) override;
         virtual FeatureEnumeratorPtr getFeatures(const CrsPtr& crs, const FeatureQuery& featureQuery, bool activeLayersOnly) override final;
-        
+        virtual void flushCache() override;
     private:
         std::vector<LayerPtr> m_subLayers;
     };

@@ -8,7 +8,7 @@ using namespace BlueMarble;
 
 Layer::Layer()
     : m_enabled(true)
-    , m_selectable(true) // TODO: use this for something
+    , m_selectable(false) // TODO: use this for something
     , m_enabledDuringQuickUpdates(true)
     , m_maxScale(std::numeric_limits<double>::infinity())
     , m_minScale(0)

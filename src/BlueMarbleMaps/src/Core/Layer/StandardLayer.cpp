@@ -191,10 +191,12 @@ void StandardLayer::update(const MapPtr& map)
 
 FeatureEnumeratorPtr StandardLayer::getFeatures(const CrsPtr& crs, const FeatureQuery& featureQuery, bool activeLayersOnly)
 {
-    auto features = std::make_shared<FeatureEnumerator>();
+    auto features = std::make_shared<FeatureCollection>();
+    auto enumerator = std::make_shared<FeatureEnumerator>();
+    enumerator->setFeatures(features);
     if (activeLayersOnly && !isActiveForQuery(featureQuery))
     {
-        return features;
+        return enumerator;
     }
     
     for (const auto& d : m_dataSets)
@@ -202,18 +204,40 @@ FeatureEnumeratorPtr StandardLayer::getFeatures(const CrsPtr& crs, const Feature
         auto newQuery = featureQuery;
         newQuery.area(crs->projectTo(d->crs(), newQuery.area()));
         auto dataSetFeatures = d->getFeatures(newQuery);
-        while (dataSetFeatures->moveNext())
+
+        // If the crs and data set crs is different, we need to reproject them
+        if (!crs->isFunctionallyEquivalent(d->crs()))
         {
-            auto f = dataSetFeatures->current();
-            f->projectTo(crs);
+            BMM_DEBUG() << "Reprojecting features!\n";
+            while (dataSetFeatures->moveNext())
+            {
+                auto f = dataSetFeatures->current();
+                auto newFeatures = f->projectTo(crs);
+                features->addRange(*newFeatures);
+            }
+            dataSetFeatures->reset();
         }
-        dataSetFeatures->reset();
-        features->addEnumerator(dataSetFeatures);
+        else
+        {
+            enumerator->addEnumerator(dataSetFeatures);
+        }
     }
 
-    return features;
+    return enumerator;
 }
 
+void StandardLayer::flushCache()
+{
+    {
+        std::unique_lock lock2(m_mutex);
+        m_cache->clear();
+    }
+    
+    for (const auto& d : m_dataSets)
+    {
+        d->flushCache();
+    }
+}
 
 void StandardLayer::createDefaultVisualizers()
 {
@@ -342,9 +366,9 @@ void StandardLayer::createDefaultVisualizers()
     auto textVisHover = std::make_shared<TextVisualizer>(*textVis);
     // textVisHover->color([](FeaturePtr, Attributes& updateAttributes) { 
     textVisHover->color(ColorEvaluation([=](FeaturePtr feature, Attributes& updateAttributes) 
-        { 
-            return Color::white(animatedDouble(feature, updateAttributes));
-        }));
+    { 
+        return Color::white(animatedDouble(feature, updateAttributes));
+    }));
     //textVisHover->backgroundColor([](auto) { return Color::black(0.5); });
     textVisHover->offsetX( [](auto, auto) {return -3.0; });
     textVisHover->offsetY( [](auto, auto) {return -3.0; });
@@ -366,7 +390,7 @@ void StandardLayer::createDefaultVisualizers()
     auto polVisSelect = std::make_shared<PolygonVisualizer>();
     polVisSelect->color(colorEvalSelect);
     polVisSelect->size([=](FeaturePtr f, Attributes& u) { return 1.0*animatedDouble(f,u); });
-    polVisSelect->rotation([=](FeaturePtr f, Attributes& u) { return 2.0*M_PI*animatedDouble(f,u); });
+    polVisSelect->rotation([=](FeaturePtr f, Attributes& u) { return 2.0*BMM_PI*animatedDouble(f,u); });
     //polVisSelect->offsetX([=](FeaturePtr f, Attributes& u) { return 1.0*(1.0-animatedDouble(f,u)); });
     //polVisSelect->offsetY([=](FeaturePtr f, Attributes& u) { return 1.0*(1.0-animatedDouble(f,u)); });
 

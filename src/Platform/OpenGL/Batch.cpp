@@ -38,6 +38,7 @@ void Batch::begin()
 
 void Batch::submit(std::vector<Vertice> &vertices)
 {
+	if (vertices.size() == 0) return;
 	if (m_indexCount + vertices.size()+1 >= (sizeof(Vertice) * 4 * 60000) - 1) flush();
 	
 	for (int i = 0; i < vertices.size(); i++)
@@ -55,6 +56,7 @@ void Batch::submit(std::vector<Vertice> &vertices)
 }
 void Batch::submit(std::vector<Vertice>& vertices, std::vector<GLuint> &indices)
 {
+	if (vertices.size() == 0 || indices.size() == 0) return;
 	if (m_indexCount + indices.size() + 1 >= (sizeof(Vertice) * 4 * 60000) - 1) flush();
 	for (int i = 0; i < vertices.size(); i++)
 	{
@@ -63,9 +65,9 @@ void Batch::submit(std::vector<Vertice>& vertices, std::vector<GLuint> &indices)
 		m_vertBuffer->texCoord = vertices[i].texCoord;
 		m_vertBuffer++;
 	}
-	for (int i = 0; i < vertices.size(); i++)
+	for (int i = 0; i < indices.size(); i++)
 	{
-		*m_indexBuffer = (GLuint)(i+m_indexCount);
+		*m_indexBuffer = (GLuint)(indices[i] + m_indexCount);
 		m_indexBuffer++;
 	}
 	*m_indexBuffer = (GLuint)MAGIX_NUMBER;

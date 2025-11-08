@@ -225,7 +225,51 @@ void BlueMarble::OpenGLDrawable::drawCircle(double cx, double cy, double radius,
 
 void BlueMarble::OpenGLDrawable::drawArc(double cx, double cy, double rx, double ry, double theta, const Pen& pen, const Brush& brush)
 {
-    
+    if (polyBatch == nullptr)
+    {
+        polyBatch = std::make_shared<Batch>(true);
+        polyBatch->begin();
+    }
+    std::vector<Vertice> vertices;
+    std::vector<GLuint> indices;
+    std::vector<Color> colors = brush.getColors();
+    if (colors.empty())
+    {
+        colors.push_back(Color::black());
+    }
+    if (theta == 0)
+    {
+        theta = 2 * glm::pi<double>();
+    }
+    float angle = theta / float(32);
+    float c = cosf(angle);//precalculate the sine and cosine
+    float s = sinf(angle);
+    float t;
+
+    float x = 1;//we start at angle = theta
+    float y = 0;
+    for (int i = 0; i < 32; i++)
+    {
+        Color color = getColorFromList(colors, i);
+        glm::vec4 glmColor = glm::vec4(color.r(), color.g(), color.b(), color.a());
+        vertices.push_back(Vertice({ glm::vec3(x * rx + cx, y * ry + cy, 0), glmColor, glm::vec2(0, 0) }));
+
+        t = x;
+        x = c * x - s * y;
+        y = s * t + c * y;
+    }
+
+    if (vertices.empty()) return;
+    std::vector<Vertice> holes, triangles;
+    vertices.push_back(vertices[0]);
+    if (Algorithms::triangulatePolygon(vertices, holes, triangles, indices, false) == false)
+    {
+        std::cout << "Couldn't draw object due to not being able to triangulate it" << std::endl;
+        return;
+    }
+    polyBatch->submit(vertices, indices);
+    lineBatch->submit(vertices, indices);
+    //drawLine(lineGeom, pen);
     // #define ARC_SEGMENTS 32
 
     // static GLuint vao;
@@ -328,7 +372,7 @@ void BlueMarble::OpenGLDrawable::drawArc(double cx, double cy, double rx, double
     // glBegin(GL_TRIANGLE_STRIP);
     // float lineWidth = (float)pen.getWidth();
     // for (int i = 0; i <= ARC_SEGMENTS; ++i) {
-    //     float angle = 2.0f * M_PI * float(i) / float(ARC_SEGMENTS);
+    //     float angle = 2.0f * BMM_PI * float(i) / float(ARC_SEGMENTS);
     //     float cosA = cos(angle);
     //     float sinA = sin(angle);
     
@@ -406,7 +450,7 @@ void BlueMarble::OpenGLDrawable::drawPolygon(const PolygonGeometryPtr& geometry,
         return;
     }
     if (vertices.empty()) return;
-    polyBatch->submit(triangles,indices);
+    polyBatch->submit(vertices,indices);
 }
 
 void BlueMarble::OpenGLDrawable::drawRect(const Point& topLeft, const Point& bottomRight, const Color& color)

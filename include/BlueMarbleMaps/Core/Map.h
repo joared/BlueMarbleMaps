@@ -77,11 +77,12 @@ namespace BlueMarble
             double rotation() const;
             void rotation(double rotation);
             double width() const;
+            void width(double newWidth);
             double height() const;
             Rectangle area() const;
             MapConstraints& mapConstraints() { return m_constraints; };
             const CrsPtr& crs() { return m_crs; }
-            void crs(const CrsPtr& crs) { m_crs = crs; }
+            void crs(const CrsPtr& crs);
             // Operations
             void panBy(const Point& deltaScreen, bool animate=false);
             void panTo(const Point& mapPoint, bool animate=false);
@@ -147,6 +148,8 @@ namespace BlueMarble
 
             DrawablePtr drawable();
             void drawable(const DrawablePtr& drawable);
+
+            void flushCache();
 
             // Update flags
             bool centerChanged() { return m_centerChanged; }

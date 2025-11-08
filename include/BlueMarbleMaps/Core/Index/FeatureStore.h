@@ -27,6 +27,8 @@ namespace BlueMarble
         bool load(const std::string& indexPath);
 
         bool verifyIndex() const;
+
+        void flushCache();
     private:
         Id toValidId(const FeatureId& featureId);
 

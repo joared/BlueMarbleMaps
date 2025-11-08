@@ -175,12 +175,12 @@ void Map::scale(double scale)
 {
     m_updateRequired = true;
     m_scaleChanged = true;
-    m_scale = scale;
+    m_scale = scale*m_crs->globalMeterScale() / m_drawable->pixelSize();
 }
 
 double Map::scale() const
 {
-    return m_scale;
+    return m_scale * m_drawable->pixelSize() / m_crs->globalMeterScale();
 }
 
 double Map::invertedScale() const
@@ -205,14 +205,19 @@ void Map::rotation(double rotation)
     m_rotation = rotation;
 }
 
-double BlueMarble::Map::width() const
+double Map::width() const
 {
-    return m_drawable->width() / m_scale; // TODO: should we use raster width instead?
+    return m_drawable->width() / m_scale;
 }
 
-double BlueMarble::Map::height() const
+void Map::width(double newWidth)
 {
-    return m_drawable->height() / m_scale; // TODO: should we use raster height instead?
+    m_scale *= width() / newWidth;
+}
+
+double Map::height() const
+{
+    return m_drawable->height() / m_scale;
 }
 
 Rectangle BlueMarble::Map::area() const
@@ -226,7 +231,23 @@ Rectangle BlueMarble::Map::area() const
     );
 }
 
-void Map::panBy(const Point& deltaScreen, bool animate)
+void Map::crs(const CrsPtr& newCrs)
+{
+    auto lngLatCrs = Crs::wgs84LngLat();
+
+    auto oldCrs = crs();
+    auto centerLngLat = crs()->projectTo(lngLatCrs, center());
+    double oldScale = scale();
+
+    m_crs = newCrs;
+
+    center(lngLatCrs->projectTo(newCrs, centerLngLat));
+    scale(oldScale);
+
+    flushCache(); // We need to flush layer caches since the crs has changed
+}
+
+void Map::panBy(const Point &deltaScreen, bool animate) 
 {
     //center(m_center + Point(deltaScreen.x(), deltaScreen.y())*(1/m_scale));
     // TODO: add this back when fixed, or?
@@ -353,12 +374,12 @@ void Map::zoomToMinArea(const Rectangle &bounds, bool animate)
     }
 }
 
-Point BlueMarble::Map::screenToMap(const Point& screenPos) const
+Point Map::screenToMap(const Point& screenPos) const
 {
     return screenToMap(screenPos.x(), screenPos.y());
 }
 
-Point BlueMarble::Map::screenToMap(double x, double y) const
+Point Map::screenToMap(double x, double y) const
 {
     // NOTE: this methods treats screen coordinates as "pixel indexes", not the geometrical point
     auto sCenter = screenCenter();
@@ -529,7 +550,8 @@ const std::vector<PresentationObject>& BlueMarble::Map::hitTest(const Rectangle&
     m_presentationObjects.clear();
     for (const auto& l : m_layers)
     {
-        l->hitTest(shared_from_this(), bounds, m_presentationObjects);
+        if (l->selectable())
+            l->hitTest(shared_from_this(), bounds, m_presentationObjects);
         // auto features = l->getFeatures(m_crs, featureQuery, true);
 
         // while (features->moveNext())
@@ -692,7 +714,7 @@ void Map::hover(const std::vector<FeaturePtr>& features)
     }
 }
 
-bool BlueMarble::Map::isHovered(const Id& id)
+bool Map::isHovered(const Id& id)
 {
     for (auto id2 : m_hoveredFeatures)
     {
@@ -702,25 +724,33 @@ bool BlueMarble::Map::isHovered(const Id& id)
     return false;
 }
 
-bool BlueMarble::Map::isHovered(FeaturePtr feature)
+bool Map::isHovered(FeaturePtr feature)
 {
     if (!feature)
         return m_hoveredFeatures.empty();
     return isHovered(feature->id());
 }
 
-BlueMarble::DrawablePtr Map::drawable()
+DrawablePtr Map::drawable()
 {
     // TODO: should be own m_drawable
     return m_drawable;
 }
 
-void BlueMarble::Map::drawable(const DrawablePtr &drawable)
+void Map::drawable(const DrawablePtr &drawable)
 {
     m_drawable = drawable;
 }
 
-void BlueMarble::Map::renderingEnabled(bool enabled)
+void Map::flushCache()
+{
+    for (const auto& l : m_layers)
+    {
+        l->flushCache();
+    }
+}
+
+void Map::renderingEnabled(bool enabled)
 {
     m_renderingEnabled = enabled;
     for (const auto& l : m_layers)
@@ -819,8 +849,9 @@ void Map::drawDebugInfo(int elapsedMs)
     std::string info = "------ Debug -------\n";
     info += "Center: " + std::to_string(m_center.x()) + ", " + std::to_string(m_center.y());
     info += "\nCenter LngLat: " + std::to_string(centerLngLat.x()) + ", " + std::to_string(centerLngLat.y());
-    info += "\nScale: " + std::to_string(m_scale);
+    info += "\nScale: " + std::to_string(scale());
     info += "\nScale inv: " + std::to_string(invertedScale());
+    info += "\nScale (crs)): " + std::to_string(m_scale);
     
     if (std::abs(screenError.x()) > 0 || std::abs(screenError.y()) > 0)
     {

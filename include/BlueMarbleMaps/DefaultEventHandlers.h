@@ -264,9 +264,9 @@ namespace BlueMarble
                 //brush.setColor(Color::blue());
                 
                 auto c = m_map->screenCenter();
-                m_map->drawable()->drawCircle(c.x(), c.y()+40, 20, pen, brush);
+                m_map->drawable()->drawCircle(c.x(), c.y()+40, 20*10, pen, brush);
                 pen.setAntiAlias(false);
-                m_map->drawable()->drawCircle(c.x()+40, c.y()+40, 20, pen, brush);
+                //_map->drawable()->drawCircle(c.x()+40, c.y()+40, 20*10, pen, brush);
                 //m_map->drawable()->drawArc(c.x(), c.y(), 10, 20, 0.5, pen, brush);
             }
 
@@ -1016,6 +1016,30 @@ namespace BlueMarble
                     BMM_DEBUG() << "Saving drawable buffer to file...\n";
                     auto raster = m_map->drawable()->getRaster();
                     raster.save("temporary.png");
+                    return true;
+                }
+
+                if (event.keyCode == 33 && // p
+                    event.modificationKey && ModificationKeyCtrl)
+                {
+                    BMM_DEBUG() << "Changing crs...";
+                    auto crs = m_map->crs();
+                    // auto centerLngLat = m_map->crs()->projectTo(Crs::wgs84LngLat(), m_map->center());
+                    // double scale = m_map->scale();
+                    if (auto temp = std::dynamic_pointer_cast<MercatorWebProjection>(crs->projection()))
+                    {
+                        m_map->crs(Crs::wgs84LngLat());
+                        BMM_DEBUG() << "... to long lat!\n";
+                    }
+                    else
+                    {
+                        m_map->crs(Crs::wgs84MercatorWeb());
+                        BMM_DEBUG() << "... to Web  Mercator!\n";
+                    }
+                    // m_map->flushCache();
+                    // m_map->center(Crs::wgs84LngLat()->projectTo(m_map->crs(), centerLngLat));
+                    // m_map->scale(scale);
+                    m_map->update();
                     return true;
                 }
 

@@ -139,7 +139,12 @@ bool FeatureStore::verifyIndex() const
     return true;
 }
 
-void FeatureStore::buildIndex(const FeatureCollectionPtr& features, const std::string& indexPath)
+void FeatureStore::flushCache()
+{
+    m_cache->clear();
+}
+
+void FeatureStore::buildIndex(const FeatureCollectionPtr &features, const std::string &indexPath)
 {
     for (const auto& feature : *features)
     {
