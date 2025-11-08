@@ -7,6 +7,7 @@ class Algorithms final
 {
 
 public:
+	bool constrainedDelaunayTriangulate(std::vector<Vertice>& vertices, std::vector<Vertice>& hole, std::vector<Vertice>& result, std::vector<GLuint>& indices);
 	static bool triangulatePolygon(std::vector<Vertice>& vertices, std::vector<Vertice>& hole, std::vector<Vertice>& result, std::vector<GLuint>& indices, int resultAsTriangles);
 	static double distSq(Vertice& v1, Vertice& v2);
 	static bool isRightAngled(Vertice& v1, Vertice& v2, Vertice& v3);

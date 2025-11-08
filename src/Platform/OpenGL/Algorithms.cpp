@@ -89,7 +89,7 @@ bool Algorithms::triangulatePolygon(std::vector<std::pair<GLuint, Vertice>>& ver
 		//  Verify that the candidate triangle is inside, not outside the
 		if (((vertices[i].second.position.x != vertices[j].second.position.x || vertices[i].second.position.y != vertices[j].second.position.y) &&
 			(vertices[k].second.position.y - vertices[i].second.position.y) * (vertices[j].second.position.x - vertices[i].second.position.x) >=
-			(vertices[k].second.position.x - vertices[i].second.position.x) * (vertices[j].second.position.y - vertices[i].second.position.y))||
+			(vertices[k].second.position.x - vertices[i].second.position.x) * (vertices[j].second.position.y - vertices[i].second.position.y)) ||
 			isRightAngled(vertices[i].second, vertices[j].second, vertices[k].second)) {
 			//  Verify that the candidate triangle's interior does not contain any corners of the polygon.
 			for (l = 0; l < corners; l++) {
@@ -169,7 +169,7 @@ bool Algorithms::lineSegmentsIntersect(Vertice A, Vertice B, Vertice C, Vertice 
 }
 
 double Algorithms::distSq(Vertice& v1, Vertice& v2) {
-	return std::pow((v2.position.x - v1.position.x), 2) + std::pow((v2.position.y - v1.position.y), 2);
+	return (v2.position.x - v1.position.x) * (v2.position.x - v1.position.x) +  (v2.position.y - v1.position.y)*(v2.position.y - v1.position.y);
 }
 
 bool Algorithms::isRightAngled(Vertice& v1, Vertice& v2, Vertice& v3) {
