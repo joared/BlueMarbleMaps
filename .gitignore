@@ -5,4 +5,4 @@ geodata/*
 *.tif
 build/
 *.sln
-blueMarble_index/europe-road.geojson.database
+bluemarble_index/europe-road.geojson.database
