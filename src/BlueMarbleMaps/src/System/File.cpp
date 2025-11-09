@@ -96,11 +96,9 @@ std::string File::getLine(size_t n)
 {
     if (m_offsets.empty())
     {
-        BMM_DEBUG() << "File::getLine() File empty or index not built. Call buildIndex to build index.\n";
+        BMM_DEBUG() << "File::getLine() File empty or index not built. Call buildIndex() to build index.\n";
         return "";
     }
-
-    if (m_offsets.empty()) return {};
 
     // Use nearest checkpoint (for step > 1)
     size_t base = (n / m_step) * m_step;
@@ -113,21 +111,46 @@ std::string File::getLine(size_t n)
     for (size_t i = base; i <= n && std::getline(m_file, line); ++i) {
         if (i == n) return line;
     }
-    return {};
+    return "";
 }
 
 void File::buildIndex()
 {
+    m_offsets.clear();
+    m_file.clear();
+    m_file.seekg(0, std::ios::beg);
+
     std::string line;
-    std::streampos pos = m_file.tellg();
     size_t lineNo = 0;
-    while (std::getline(m_file, line)) 
-    {
-        if (lineNo % m_step == 0)
+
+    while (true) {
+        std::streampos pos = m_file.tellg();  // ← Save position FIRST
+        if (m_file.eof()) break;
+
+        if (lineNo % m_step == 0) {
             m_offsets.push_back(pos);
-        pos = m_file.tellg();
+        }
+
+        if (!std::getline(m_file, line)) {
+            break;
+        }
+
         ++lineNo;
     }
+
+    // Optional: store final position if needed
     m_file.clear();
-    m_file.seekg(0);
+    m_file.seekg(0, std::ios::beg);
+    // std::string line;
+    // std::streampos pos = m_file.tellg();
+    // size_t lineNo = 0;
+    // while (std::getline(m_file, line)) 
+    // {
+    //     if (lineNo % m_step == 0)
+    //         m_offsets.push_back(pos);
+    //     pos = m_file.tellg();
+    //     ++lineNo;
+    // }
+    // m_file.clear();
+    // m_file.seekg(0);
 }

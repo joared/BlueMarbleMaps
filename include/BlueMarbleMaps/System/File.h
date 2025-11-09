@@ -7,6 +7,18 @@
 
 namespace BlueMarble
 {
+    class File2
+    {
+        public:
+            virtual bool isOpen() const = 0;
+    };
+
+    class FileReader
+    {
+        public:
+
+    };
+
     class File
     {
         public:

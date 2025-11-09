@@ -105,8 +105,10 @@ bool FeatureStore::load(const std::string& indexPath)
     // We allow to rebuild the index on load
     if (!indexOk)
     {
+        BMM_DEBUG() << "Building spatial index...\n";
         auto features = m_dataBase->getAllFeatures();
         m_index->build(features, indexPath + ".index");
+        BMM_DEBUG() << "... spatial index done!\n";
     }
 
     return true;
