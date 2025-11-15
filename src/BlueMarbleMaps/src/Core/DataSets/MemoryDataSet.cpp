@@ -1,5 +1,6 @@
 #include "BlueMarbleMaps/Core/DataSets/MemoryDataSet.h"
 
+
 using namespace BlueMarble;
 
 MemoryDataSet::MemoryDataSet()
@@ -81,7 +82,22 @@ void MemoryDataSet::clear()
     m_features.clear();
 }
 
-FeatureEnumeratorPtr MemoryDataSet::getFeatures(const FeatureQuery& featureQuery)
+IdCollectionPtr MemoryDataSet::getFeatureIds(const FeatureQuery& featureQuery)
+{
+    auto ids = std::make_shared<IdCollection>();
+
+    for (auto f : m_features)
+    {
+        if (f->bounds().overlap(featureQuery.area()))
+        {
+            ids->add(f->id());
+        }
+    }
+
+    return ids;
+}
+
+FeatureEnumeratorPtr MemoryDataSet::getFeatures(const FeatureQuery &featureQuery)
 {
     auto features = std::make_shared<FeatureEnumerator>();
     

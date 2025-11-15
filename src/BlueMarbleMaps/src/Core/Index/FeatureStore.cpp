@@ -1,5 +1,6 @@
 #include "BlueMarbleMaps/Core/Index/FeatureStore.h"
 #include <fstream>
+#include <unordered_set>
 
 
 using namespace BlueMarble;
@@ -32,15 +33,12 @@ FeaturePtr FeatureStore::getFeature(const FeatureId &id)
     return f;
 }
 
-FeatureCollectionPtr FeatureStore::query(const Rectangle& area)
+FeatureCollectionPtr FeatureStore::getFeatures(const FeatureIdCollectionPtr& featureIds)
 {
     // TODO: maybe store a member collection with preallocated size
     auto features = std::make_shared<FeatureCollection>();
     features->reserve(10000); // TODO: Fix this
     features->clear();
-
-    auto featureIds = m_index->query(area);
-
     // First try to retrieve the features from the cache
     auto cacheMissingIds = std::make_shared<FeatureIdCollection>();
     if (m_cache)
@@ -83,7 +81,7 @@ FeatureCollectionPtr FeatureStore::query(const Rectangle& area)
         // Add the noncached features to the result
         features->addRange(*nonCachedFeatures);
 
-        BMM_DEBUG() << "FeatureStore::query()\n";
+        BMM_DEBUG() << "FeatureStore::getFeatures()\n";
         BMM_DEBUG() << "Queried " << nonCachedFeatures->size() << " new features from database\n";
         BMM_DEBUG() << "Database size: " << m_dataBase->size() << "\n";
         //BMM_DEBUG() << "Index size: " << m_index->size() << "\n";
@@ -92,6 +90,24 @@ FeatureCollectionPtr FeatureStore::query(const Rectangle& area)
     }
 
     return features;
+}
+
+FeatureIdCollectionPtr FeatureStore::queryIds(const Rectangle& area)
+{
+    return m_index->query(area);
+}
+
+FeatureCollectionPtr FeatureStore::query(const Rectangle& area, const FeatureIdCollectionPtr& featureIds)
+{
+    auto queriedIds = queryIds(area);
+    if (featureIds && !featureIds->empty())
+    {
+        int sizeQueried = queriedIds->size();
+        int sizeRequested = featureIds->size();
+        queriedIds = idIntersection(featureIds, queriedIds);
+        BMM_DEBUG() << "FeatureStore::query() Queried #" << sizeQueried << ", requested #" << sizeRequested << ", got #" << queriedIds->size() << "\n";
+    }
+    return getFeatures(queriedIds);
 }
 
 bool FeatureStore::load(const std::string& indexPath)
@@ -146,7 +162,7 @@ void FeatureStore::flushCache()
     m_cache->clear();
 }
 
-void FeatureStore::buildIndex(const FeatureCollectionPtr &features, const std::string &indexPath)
+void FeatureStore::buildIndex(const FeatureCollectionPtr& features, const std::string &indexPath)
 {
     for (const auto& feature : *features)
     {
@@ -162,4 +178,31 @@ void FeatureStore::buildIndex(const FeatureCollectionPtr &features, const std::s
 Id FeatureStore::toValidId(const FeatureId& featureId)
 {
     return Id(m_dataSetId, featureId);
+}
+
+FeatureIdCollectionPtr FeatureStore::idIntersection(const FeatureIdCollectionPtr& requested, const FeatureIdCollectionPtr& candidates)
+{
+    // 1. Use smaller list for hash set (minimize memory)
+    const auto& smaller = requested->size() <= candidates->size() ? requested : candidates;
+    const auto& larger  = requested->size() >  candidates->size() ? requested : candidates;
+
+    // 2. Build hash set from smaller list
+    std::unordered_set<FeatureId> set;
+    set.reserve(smaller->size());  // ← critical for performance
+    set.insert(smaller->begin(), smaller->end());
+
+    // 3. Scan larger list, keep matches
+    auto result = std::make_shared<FeatureIdCollection>();
+    result->reserve(std::min(requested->size(), candidates->size()));  // optimistic
+
+    for (auto id : *larger) 
+    {
+        auto it = set.find(id);
+        if (it != set.end()) 
+        {
+            result->add(*it);
+        }
+    }
+
+    return result;
 }

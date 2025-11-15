@@ -16,8 +16,11 @@ namespace BlueMarble
     class Feature;
     typedef std::shared_ptr<Feature> FeaturePtr;
 
-    typedef Collection<FeatureId>              FeatureIdCollection;
+    typedef Collection<FeatureId>                FeatureIdCollection;
     typedef std::shared_ptr<FeatureIdCollection> FeatureIdCollectionPtr;
+
+    typedef Collection<Id>                IdCollection;
+    typedef std::shared_ptr<IdCollection> IdCollectionPtr;
 
     class FeatureCollection;
     typedef std::shared_ptr<FeatureCollection> FeatureCollectionPtr;
@@ -81,74 +84,6 @@ namespace BlueMarble
         }
 
     };
-
-    
-    // class FeatureCollection
-    // {
-    //     public:
-    //         FeatureCollection()
-    //             : m_features()
-    //         {}
-    //         void add(FeaturePtr feature)
-    //         {
-    //             m_features.push_back(feature);
-    //         }
-
-    //         void remove(const Id& id)
-    //         {
-    //             for (auto it=m_features.begin(); it!=m_features.end(); it++)
-    //             {
-    //                 if ((*it)->id() == id)
-    //                 {
-    //                     m_features.erase(it);
-    //                     return;
-    //                 }
-    //             }
-
-    //             std::cout << "FeatureCollection::remove() Feature with id '(" << id.dataSetId() << ", " << id.featureId() << ")' doesn't exist!";
-    //             throw std::exception();
-    //         }
-
-    //         const FeaturePtr& getFeature(const Id& id)
-    //         {
-    //             for (auto& f : m_features)
-    //             {
-    //                 if (f->id() == id)
-    //                 {
-    //                     return f;
-    //                 }
-    //             }
-
-    //             return nullptr;
-    //         }
-
-    //         Rectangle bounds() const 
-    //         {
-    //             auto boundsList = std::vector<Rectangle>();
-    //             for (auto f : m_features) 
-    //             { 
-    //                 if (!f->bounds().isUndefined())
-    //                     boundsList.push_back(f->bounds()); 
-    //             }
-    //             return Rectangle::mergeBounds(boundsList);
-    //         }
-
-    //         std::vector<FeaturePtr>& getVector() { return m_features; }
-
-    //         const FeaturePtr& get(size_t i) { return m_features[i]; }
-
-    //         void clear() { m_features.clear(); }
-    //         bool empty() const { return m_features.empty(); }
-    //         inline size_t size() const { return m_features.size(); }
-    //         inline auto begin() { return m_features.begin(); }
-    //         inline auto end() { return m_features.end(); }
-    //         inline auto begin() const { return m_features.cbegin(); }
-    //         inline auto end() const { return m_features.cend(); }
-    //         void reserve(size_t size) { m_features.reserve(size); }
-
-    //     private:
-    //         std::vector<FeaturePtr> m_features;
-    // };
 }
 
 #endif /* BLUEMARBLE_FEATURE */

@@ -250,9 +250,6 @@ bool FileDatabase::load(const std::string& path)
     }
 
     return m_index.size() > 0;
-    // m_isLoaded = true;
-
-    // return m_isLoaded;
 }
 
 bool FileDatabase::build(const FeatureCollectionPtr& features, const std::string& path)

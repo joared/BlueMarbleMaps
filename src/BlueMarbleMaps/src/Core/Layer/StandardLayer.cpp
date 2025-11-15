@@ -106,16 +106,32 @@ void StandardLayer::prepare(const CrsPtr &crs, const FeatureQuery &featureQuery)
     {
         {
             std::lock_guard lock(m_mutex);
-            auto cachedFeatures = m_cache->getAllFeatures();
-            for (const auto& f : *cachedFeatures)
+            // New
+            auto ids = getFeatureIds(crs, featureQuery);
+            auto cacheMissingIds = std::make_shared<IdCollection>();
+            for (auto const& id : *ids)
             {
-                if (f->bounds().overlap(featureQuery.area()))
+                if (m_cache->contains(id))
                 {
-                    m_queriedFeatures->add(f);
+                    m_queriedFeatures->add(m_cache->getFeature(id));
+                }
+                else
+                {
+                    cacheMissingIds->add(id);
                 }
             }
+            // Old
+            // auto cachedFeatures = m_cache->getAllFeatures();
+            // for (const auto& f : *cachedFeatures)
+            // {
+            //     if (f->bounds().overlap(featureQuery.area()))
+            //     {
+            //         m_queriedFeatures->add(f);
+            //     }
+            // }
             m_doRead = true;
             m_query = featureQuery;
+            m_query.ids(cacheMissingIds);
             m_crs = crs;
         }
         m_cond.notify_one();
@@ -239,6 +255,20 @@ void StandardLayer::flushCache()
     }
 }
 
+IdCollectionPtr StandardLayer::getFeatureIds(const CrsPtr& crs, const FeatureQuery& featureQuery)
+{
+    auto ids = std::make_shared<IdCollection>();
+    for (const auto& d : m_dataSets)
+    {
+        auto newQuery = featureQuery;
+        newQuery.area(crs->projectTo(d->crs(), newQuery.area()));
+        auto dataSetIds = d->getFeatureIds(newQuery);
+        ids->addRange(*dataSetIds);
+    }
+
+    return ids;
+}
+
 void StandardLayer::createDefaultVisualizers()
 {
     auto animatedDouble = [](FeaturePtr feature, Attributes& updateAttributes) 
@@ -249,6 +279,7 @@ void StandardLayer::createDefaultVisualizers()
             from, 
             to, 
             700,
+            0,
             EasingFunctionType::Linear);
         
         return value(feature, updateAttributes);
@@ -289,7 +320,7 @@ void StandardLayer::createDefaultVisualizers()
 
     ColorEvaluation colorEvalSelect = [colorEval, animatedDouble](FeaturePtr f, Attributes& updateAttributes)
     {
-        auto toColor = Color(250, 134, 196, 0.75);
+        auto toColor = Color(250, 250, 196, 0.75);
         Color fromColor = colorEval(f, updateAttributes);
         double progress = animatedDouble(f, updateAttributes);
 
@@ -317,7 +348,8 @@ void StandardLayer::createDefaultVisualizers()
 
     // Line visualizer
     auto lineVis = std::make_shared<LineVisualizer>();
-    lineVis->color(ColorEvaluation([](FeaturePtr, Attributes&) { return Color(50,50,50,1.0); }));
+    //lineVis->color(ColorEvaluation([](FeaturePtr, Attributes&) { return Color(50,50,50,1.0); }));
+    lineVis->color(colorEvalSelect);
     lineVis->width([](FeaturePtr, Attributes&) -> double { return 3.0; });
 
     // Polygon visualizer
@@ -345,7 +377,7 @@ void StandardLayer::createDefaultVisualizers()
     );
 
     m_visualizers.push_back(rasterVis);
-    m_visualizers.push_back(polVis);
+    //m_visualizers.push_back(polVis);
     //m_visualizers.push_back(pointVis);
     m_visualizers.push_back(lineVis);
     //m_visualizers.push_back(nodeVis);

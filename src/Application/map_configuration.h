@@ -49,7 +49,7 @@ void setupAirPlaneLayerVisualization(const BlueMarble::StandardLayerPtr& layer)
 
 void configureMap(const MapPtr& map, bool includeBackground=false, bool includeRoads=false, bool includeAirPlanes=false)
 {
-    const bool asyncBackgroundReading = false;
+    const bool asyncBackgroundReading = true;
     const std::string commonIndexPath = "../../../bluemarble_index"; // Relative to the build/bin/<debug/release>/ folder
     ////////////////////////////////////////////////////////
     static auto backgroundDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/BlueMarbleMaps/geodata/NE1_LR_LC_SR_W/NE1_LR_LC_SR_W.tif");

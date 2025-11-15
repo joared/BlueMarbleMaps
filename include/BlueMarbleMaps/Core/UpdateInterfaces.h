@@ -24,10 +24,12 @@ namespace BlueMarble
             void updateAttributes(Attributes* attr) { m_updateAttributes = attr; }
             bool quickUpdate() const { return m_quickUpdate; }
             void quickUpdate(bool quickpdate) { m_quickUpdate = quickpdate; }
+            void ids(const IdCollectionPtr& ids) { m_ids = ids; }
+            IdCollectionPtr ids() const { return m_ids; }
 
         private:
             Rectangle   m_area = Rectangle::infinite();
-            FeatureIdCollectionPtr m_ids = std::make_shared<FeatureIdCollection>();
+            IdCollectionPtr m_ids = std::make_shared<IdCollection>();
             double      m_scale = 1.0;
             Attributes* m_updateAttributes = nullptr;
             bool        m_quickUpdate = false;

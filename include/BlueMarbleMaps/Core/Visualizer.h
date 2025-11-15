@@ -289,7 +289,7 @@ namespace BlueMarble
         protected:
             bool isValidGeometry(GeometryType type) override final;
         private:
-            Pen createPen(const FeaturePtr& feature, Attributes& attributes) const;
+            Pen createPen(const FeaturePtr& feature, Attributes& attributes);
 
             DoubleEvaluation m_widthEval;
     };
@@ -305,7 +305,7 @@ namespace BlueMarble
         protected:
             bool isValidGeometry(GeometryType type) override final;
         private:
-            Brush createBrush(const FeaturePtr& feature, Attributes& attributes) const;
+            Brush createBrush(const FeaturePtr& feature, Attributes& attributes);
 
             LineVisualizerPtr   m_lineVisualizer;
             SymbolVisualizerPtr m_nodeVisualizer;

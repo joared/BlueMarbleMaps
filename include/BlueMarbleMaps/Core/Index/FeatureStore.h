@@ -22,7 +22,9 @@ namespace BlueMarble
         void addFeature(const FeaturePtr& feature);
 
         FeaturePtr getFeature(const FeatureId& id);
-        FeatureCollectionPtr query(const Rectangle& area);
+        FeatureCollectionPtr getFeatures(const FeatureIdCollectionPtr& ids);
+        FeatureIdCollectionPtr queryIds(const Rectangle& area);
+        FeatureCollectionPtr query(const Rectangle& area, const FeatureIdCollectionPtr& featureIds=nullptr);
 
         bool load(const std::string& indexPath);
 
@@ -31,6 +33,7 @@ namespace BlueMarble
         void flushCache();
     private:
         Id toValidId(const FeatureId& featureId);
+        static FeatureIdCollectionPtr idIntersection(const FeatureIdCollectionPtr& requested, const FeatureIdCollectionPtr& candidates);
 
         DataSetId                           m_dataSetId;
         std::unique_ptr<IFeatureDataBase>   m_dataBase;

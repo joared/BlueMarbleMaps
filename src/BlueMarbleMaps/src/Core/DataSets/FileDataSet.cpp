@@ -21,6 +21,19 @@ AbstractFileDataSet::AbstractFileDataSet(const std::string& filePath, const std:
     m_featureStore = std::make_unique<FeatureStore>(dataSetId(), std::move(db), std::move(index), cache);
 }
 
+IdCollectionPtr BlueMarble::AbstractFileDataSet::getFeatureIds(const FeatureQuery& featureQuery)
+{
+    auto featureIds = m_featureStore->queryIds(featureQuery.area());
+    auto ids = std::make_shared<IdCollection>();
+    ids->reserve(featureIds->size());
+    for (const auto& fid : *featureIds)
+    {
+        ids->emplace(Id(dataSetId(), fid));
+    }
+
+    return ids;
+}
+
 FeatureEnumeratorPtr AbstractFileDataSet::getFeatures(const FeatureQuery &featureQuery)
 {
     auto enumerator = std::make_shared<FeatureEnumerator>();
@@ -30,7 +43,21 @@ FeatureEnumeratorPtr AbstractFileDataSet::getFeatures(const FeatureQuery &featur
         return enumerator;
     }
 
-    enumerator->setFeatures(m_featureStore->query(featureQuery.area()));
+    FeatureIdCollectionPtr featureIds = nullptr;
+    if (!featureQuery.ids()->empty())
+    {
+        featureIds = std::make_shared<FeatureIdCollection>();
+        featureIds->reserve(featureQuery.ids()->size());
+        for (const auto& id : *featureQuery.ids())
+        {
+            assert(id.dataSetId() == dataSetId());
+            featureIds->add(id.featureId());
+        }
+    }
+     
+    auto features = m_featureStore->query(featureQuery.area(), featureIds);
+
+    enumerator->setFeatures(features);
 
     return enumerator;
 }
@@ -108,46 +135,10 @@ void BlueMarble::AbstractFileDataSet::indexPath(const std::string& indexPath)
     m_indexPath = indexPath;
 }
 
-const std::string &BlueMarble::AbstractFileDataSet::indexPath()
+const std::string& BlueMarble::AbstractFileDataSet::indexPath()
 {
     return m_indexPath;
 }
-
-// void AbstractFileDataSet::onGetFeaturesRequest(const Attributes &attributes, std::vector<FeaturePtr>& features)
-// {
-//     std::cout << "AbstractFileDataSet::onGetFeaturesRequest\n";
-//     if (attributes.size() == 0)
-//     {
-//         for (auto f : m_features)
-//             features.push_back(f);
-//         return;
-//     }
-
-//     for (auto f : m_features)
-//     {
-//         for (auto attr : attributes)
-//         {
-//             if (f->attributes().contains(attr.first))
-//             {
-//                 try
-//                 {
-//                     if (f->attributes().get<std::string>(attr.first)
-//                         == attributes.get<std::string>(attr.first))
-//                     {
-//                         // Its a match! Add to feature list
-//                         features.push_back(f);
-//                     }
-//                 }
-//                 catch(const std::exception& e)
-//                 {
-//                     std::cerr << e.what() << '\n';
-//                 }
-                
-                
-//             }
-//         }
-//     }
-// }
 
 FeaturePtr AbstractFileDataSet::getFeature(const Id &id)
 {

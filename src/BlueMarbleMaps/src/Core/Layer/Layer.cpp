@@ -24,7 +24,6 @@ void Layer::enabled(bool enabled)
     m_enabled = enabled;
 }
 
-
 bool Layer::enabled() const
 {
     return m_enabled;

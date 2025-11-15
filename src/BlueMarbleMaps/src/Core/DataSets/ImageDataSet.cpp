@@ -1,5 +1,6 @@
 #include "BlueMarbleMaps/Core/DataSets/ImageDataSet.h"
 
+
 using namespace BlueMarble;
 
 ImageDataSet::ImageDataSet()
@@ -40,13 +41,25 @@ void ImageDataSet::init()
     double cellHeight = std::abs(yPixLen);
     auto raster = Raster(m_filePath);
     auto bounds = Rectangle(xTopLeft, yTopLeft, xTopLeft+raster.width()*xPixLen, yTopLeft+raster.height()*yPixLen);
-    BMM_DEBUG() << "MY RASTER ARAE: " << bounds.toString() << "\n";
+    BMM_DEBUG() << "MY RASTER AREA: " << bounds.toString() << "\n";
     m_rasterGeometry = std::make_shared<RasterGeometry>(raster, bounds, cellWidth, cellHeight);
+    m_rasterFeature = std::make_shared<Feature>(generateId(), crs(), m_rasterGeometry);
 
-    generateOverViews();
+    // Overviews
+    //generateOverViews();
     std::cout << "ImageDataSet: Data loaded!\n";
 }
 
+IdCollectionPtr ImageDataSet::getFeatureIds(const FeatureQuery &featureQuery)
+{
+    auto ids = std::make_shared<IdCollection>();
+    if(featureQuery.area().overlap(m_rasterGeometry->bounds()))
+    {
+        ids->add(m_rasterFeature->id());
+    }
+
+    return ids;
+}
 
 FeatureEnumeratorPtr ImageDataSet::getFeatures(const FeatureQuery &featureQuery)
 {
@@ -56,24 +69,24 @@ FeatureEnumeratorPtr ImageDataSet::getFeatures(const FeatureQuery &featureQuery)
         return features;
     }
 
-    int invScaleIndex = 1.0 / featureQuery.scale() / 2.0;
+    // Overviews
+    // int invScaleIndex = 1.0 / featureQuery.scale() / 2.0;
     
-    if (m_overViews.find(invScaleIndex) != m_overViews.end())
-    {
-        // Found an overview!
-    }
-    else
-    {
-        // Did not find an overview, use lowest resolution
-        invScaleIndex = m_overViews.size()-1;
-    }
+    // if (m_overViews.find(invScaleIndex) != m_overViews.end())
+    // {
+    //     // Found an overview!
+    // }
+    // else
+    // {
+    //     // Did not find an overview, use lowest resolution
+    //     invScaleIndex = m_overViews.size()-1;
+    // }
 
-    auto& rasterGeometry = m_overViews[invScaleIndex];
+    // auto& rasterGeometry = m_overViews[invScaleIndex];
     if(featureQuery.area().overlap(m_rasterGeometry->bounds()))
     {
         //auto feature = std::make_shared<Feature>(Id(0,0), rasterGeometry); // TODO: overviews improves performance for software implementation
-        auto feature = std::make_shared<Feature>(Id(0,0), crs(), m_rasterGeometry);
-        features->add(feature);
+        features->add(m_rasterFeature);
     }
 
     return features;
@@ -82,6 +95,9 @@ FeatureEnumeratorPtr ImageDataSet::getFeatures(const FeatureQuery &featureQuery)
 FeaturePtr ImageDataSet::getFeature(const Id &id)
 {
     // TODO
+    if (id == m_rasterFeature->id())
+        return m_rasterFeature;
+
     return nullptr;
 }
 

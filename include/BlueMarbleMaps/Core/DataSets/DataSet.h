@@ -47,6 +47,7 @@ namespace BlueMarble
             int64_t getVisualizationTimeStampForFeature(const Id& id);
             void restartVisualizationAnimation(FeaturePtr feature, int64_t timeStamp = -1);
 
+            virtual IdCollectionPtr getFeatureIds(const FeatureQuery& featureQuery) = 0;
             virtual FeatureEnumeratorPtr getFeatures(const FeatureQuery& featureQuery) = 0;
             virtual FeaturePtr getFeature(const Id& id) = 0;
             virtual void flushCache() {}; // TODO: make pure virtual?

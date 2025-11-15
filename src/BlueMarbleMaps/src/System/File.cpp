@@ -45,7 +45,7 @@ File::File(const std::string &filePath)
     , m_offsets()
     , m_step(1)
 {
-    m_file = std::ifstream(filePath);
+    m_file = std::ifstream(filePath, std::ios::in | std::ios::binary);
     if (!isOpen())
     {
         std::cerr << "Failed to open file: " << filePath << "\n";
@@ -94,6 +94,34 @@ std::string File::asString()
 
 std::string File::getLine(size_t n)
 {
+    // Try this if the below doesnt work
+    // if (m_offsets.empty())
+    // {
+    //     BMM_DEBUG() << "File::getLine() File empty or index not built.\n";
+    //     return "";
+    // }
+
+    // size_t base = (n / m_step) * m_step;
+    // if (base >= m_offsets.size()) return {};
+
+    // m_file.clear();
+    // m_file.seekg(m_offsets[base], std::ios::beg);
+
+    // std::string line;
+    // for (size_t i = base; i <= n; ++i)
+    // {
+    //     if (!std::getline(m_file, line))
+    //         return "";
+
+    //     // Remove \r if present (Windows line endings)
+    //     if (!line.empty() && line.back() == '\r')
+    //         line.pop_back();
+
+    //     if (i == n)
+    //         return line;
+    // }
+    // return "";
+
     if (m_offsets.empty())
     {
         BMM_DEBUG() << "File::getLine() File empty or index not built. Call buildIndex() to build index.\n";
@@ -105,10 +133,11 @@ std::string File::getLine(size_t n)
     if (base >= m_offsets.size()) return {};
 
     m_file.clear();
-    m_file.seekg(m_offsets[base]);
+    m_file.seekg(m_offsets[base], std::ios::beg);
 
     std::string line;
-    for (size_t i = base; i <= n && std::getline(m_file, line); ++i) {
+    for (size_t i = base; i <= n && std::getline(m_file, line); ++i) 
+    {
         if (i == n) return line;
     }
     return "";
@@ -116,6 +145,41 @@ std::string File::getLine(size_t n)
 
 void File::buildIndex()
 {
+    // Try this if the below doesn't work
+    // m_offsets.clear();
+    // m_file.clear();
+    // m_file.seekg(0, std::ios::beg);
+
+    // std::string line;
+    // size_t lineNo = 0;
+    // std::streampos pos;
+
+    // while (true)
+    // {
+    //     pos = m_file.tellg();  // Save position at start of line
+    //     if (m_file.eof()) break;
+
+    //     if (!std::getline(m_file, line))
+    //         break;
+
+    //     if (lineNo % m_step == 0)
+    //     {
+    //         m_offsets.push_back(pos);  // Now correct: points to start of line
+    //     }
+
+    //     ++lineNo;
+    // }
+
+    // // Handle last line if needed
+    // if (m_file.eof() && !line.empty() && lineNo % m_step == 0)
+    // {
+    //     m_offsets.push_back(pos);
+    // }
+
+    // m_file.clear();
+    // m_file.seekg(0, std::ios::beg);
+
+
     m_offsets.clear();
     m_file.clear();
     m_file.seekg(0, std::ios::beg);
@@ -123,11 +187,13 @@ void File::buildIndex()
     std::string line;
     size_t lineNo = 0;
 
-    while (true) {
+    while (true) 
+    {
         std::streampos pos = m_file.tellg();  // ← Save position FIRST
         if (m_file.eof()) break;
 
-        if (lineNo % m_step == 0) {
+        if (lineNo % m_step == 0) 
+        {
             m_offsets.push_back(pos);
         }
 
@@ -141,16 +207,4 @@ void File::buildIndex()
     // Optional: store final position if needed
     m_file.clear();
     m_file.seekg(0, std::ios::beg);
-    // std::string line;
-    // std::streampos pos = m_file.tellg();
-    // size_t lineNo = 0;
-    // while (std::getline(m_file, line)) 
-    // {
-    //     if (lineNo % m_step == 0)
-    //         m_offsets.push_back(pos);
-    //     pos = m_file.tellg();
-    //     ++lineNo;
-    // }
-    // m_file.clear();
-    // m_file.seekg(0);
 }

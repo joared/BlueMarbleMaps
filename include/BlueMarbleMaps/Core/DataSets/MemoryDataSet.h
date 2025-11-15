@@ -44,6 +44,7 @@ namespace BlueMarble
             // void onGetFeaturesRequest(const Attributes& attributes, std::vector<FeaturePtr>& features) override final {};
             // FeaturePtr onGetFeatureRequest(const Id& id) override final;
 
+            virtual IdCollectionPtr getFeatureIds(const FeatureQuery& featureQuery) override final;
             virtual FeatureEnumeratorPtr getFeatures(const FeatureQuery& featureQuery) override final;
             virtual FeaturePtr getFeature(const Id& id) override final;
 

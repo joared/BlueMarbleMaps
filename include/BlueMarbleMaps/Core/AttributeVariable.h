@@ -13,9 +13,9 @@ namespace BlueMarble
     {
         public:
             virtual ~AttributeVariable() = default;
-            virtual bool tryGetValue(const FeaturePtr& f, Attributes& attributes, T& val) const { return false; };
+            virtual bool tryGetValue(const FeaturePtr& f, Attributes& attributes, T& val) { return false; };
 
-            T operator() (const FeaturePtr& f, Attributes& attributes) const
+            T operator() (const FeaturePtr& f, Attributes& attributes)
             {
                 T val;
                 if(!tryGetValue(f, attributes, val))
@@ -63,7 +63,7 @@ namespace BlueMarble
                 m_function = function;
             }
 
-            bool tryGetValue(const FeaturePtr& f, Attributes& attributes, T& val) const override final
+            bool tryGetValue(const FeaturePtr& f, Attributes& attributes, T& val) override final
             {
                 val = T(m_function(f, attributes));
                 return true;
@@ -87,7 +87,7 @@ namespace BlueMarble
                 : m_value(value)
             {}
             
-            bool tryGetValue(const FeaturePtr& /*f*/, Attributes& /*attributes*/, T& val) const override final
+            bool tryGetValue(const FeaturePtr& /*f*/, Attributes& /*attributes*/, T& val) override final
             {
                 val = T(m_value);
                 return true;
@@ -119,7 +119,7 @@ namespace BlueMarble
                 , m_hasDefaultValue(true)
             {}
 
-            bool tryGetValue(const FeaturePtr& f, Attributes& attributes, T& val) const override final
+            bool tryGetValue(const FeaturePtr& f, Attributes& attributes, T& val) override final
             {
                 if (f->attributes().contains(m_key))
                 {
@@ -158,16 +158,19 @@ namespace BlueMarble
             AnimatedAttributeVariable(AttributeVariable<T>& from,
                                       AttributeVariable<T>& to,
                                       double duration, 
+                                      int repeat=1,
                                       EasingFunctionType easingFunc=EasingFunctionType::Linear)
                 //: AttributeVariable(key, defaultValue)
                 : AbstractAnimation(duration, easingFunc)
                 , m_from(from)
                 , m_to(to)
                 , m_value()
+                , m_repeat(repeat)
+                , m_invert(false)
             {}
 
             // template <typename T>
-            bool tryGetValue(const FeaturePtr& f, Attributes& attributes, T& val) const override final
+            bool tryGetValue(const FeaturePtr& f, Attributes& attributes, T& val) override final
             {
                 // TODO: since we are using int, timestamps may be negative
                 int timeMs = attributes.get<int>(UpdateAttributeKeys::UpdateTimeMs);
@@ -242,6 +245,8 @@ namespace BlueMarble
             AttributeVariable<T>& m_from;
             AttributeVariable<T>& m_to;
             T                     m_value;
+            int                   m_repeat;
+            bool                  m_invert;
     };
 
     typedef AnimatedAttributeVariable<double> AnimatedDoubleAttributeVariable;

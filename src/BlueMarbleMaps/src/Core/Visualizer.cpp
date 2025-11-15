@@ -289,7 +289,7 @@ bool LineVisualizer::isValidGeometry(GeometryType type)
             || type == GeometryType::Polygon);
 }
 
-Pen LineVisualizer::createPen(const FeaturePtr &feature, Attributes &attributes) const
+Pen LineVisualizer::createPen(const FeaturePtr &feature, Attributes &attributes)
 {
     Pen pen;
     pen.setAntiAlias(m_antialiasEval(feature, attributes));
@@ -347,7 +347,7 @@ PolygonVisualizer::PolygonVisualizer()
 {
 }
 
-Brush PolygonVisualizer::createBrush(const FeaturePtr &feature, Attributes &attributes) const
+Brush PolygonVisualizer::createBrush(const FeaturePtr &feature, Attributes &attributes)
 {
     Brush brush;
     brush.setAntiAlias(m_antialiasEval(feature, attributes));
