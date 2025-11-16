@@ -11,7 +11,7 @@ Feature::Feature(const Id& id, const CrsPtr& crs, const GeometryPtr& geometry)
 {
 }
 
-BlueMarble::Feature::Feature(const Id& id, const CrsPtr& crs, const GeometryPtr& geometry, const Attributes &attributes)
+Feature::Feature(const Id& id, const CrsPtr& crs, const GeometryPtr& geometry, const Attributes &attributes)
     : m_id(id)
     , m_geometry(geometry)
     , m_attributes(attributes)
@@ -19,7 +19,12 @@ BlueMarble::Feature::Feature(const Id& id, const CrsPtr& crs, const GeometryPtr&
 {
 }
 
-FeaturePtr BlueMarble::Feature::clone()
+Feature::~Feature()
+{
+    BMM_DEBUG() << "~Feature()\n";
+}
+
+FeaturePtr Feature::clone()
 {
     const GeometryPtr& geom = std::static_pointer_cast<Geometry>(m_geometry->clone());
     return std::make_shared<Feature>(m_id, m_crs, geom, m_attributes);
@@ -30,12 +35,12 @@ Id Feature::id() const
     return m_id;
 }
 
-void BlueMarble::Feature::move(const Point &delta)
+void Feature::move(const Point &delta)
 {
     m_geometry->move(delta);
 }
 
-void BlueMarble::Feature::moveTo(const Point &point)
+void Feature::moveTo(const Point &point)
 {
     m_geometry->moveTo(point);
 }

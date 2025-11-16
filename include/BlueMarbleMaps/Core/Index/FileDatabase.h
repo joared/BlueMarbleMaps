@@ -32,7 +32,6 @@ namespace BlueMarble
         std::string m_filePath;
         File        m_file;
         std::map<FeatureId, FeatureRecord> m_index;
-        std::map<FeatureId, FeatureRecord> m_indexReverse;
         bool m_isLoaded;
 
     };

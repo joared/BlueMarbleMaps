@@ -1,5 +1,6 @@
 #include "BlueMarbleMaps/Core/DataSets/FileDataSet.h"
 #include "BlueMarbleMaps/Core/Index/QuadTreeIndex.h"
+#include "BlueMarbleMaps/Core/Index/DummyIndex.h"
 #include "BlueMarbleMaps/Core/Index/FileDatabase.h"
 #include "BlueMarbleMaps/Core/Index/MemoryDatabase.h"
 #include "BlueMarbleMaps/Core/Index/FIFOCache.h"
@@ -14,14 +15,13 @@ AbstractFileDataSet::AbstractFileDataSet(const std::string& filePath, const std:
     , m_featureStore()
     , m_progress(0)
 {
-    //auto db = std::make_unique<MemoryDatabase>();
     auto db = std::make_unique<FileDatabase>();
     auto index = std::make_unique<QuadTreeIndex>(Rectangle(-180, -90, 180, 90), 0.05);
     auto cache = std::make_shared<FIFOCache>();
     m_featureStore = std::make_unique<FeatureStore>(dataSetId(), std::move(db), std::move(index), cache);
 }
 
-IdCollectionPtr BlueMarble::AbstractFileDataSet::getFeatureIds(const FeatureQuery& featureQuery)
+IdCollectionPtr AbstractFileDataSet::getFeatureIds(const FeatureQuery& featureQuery)
 {
     auto featureIds = m_featureStore->queryIds(featureQuery.area());
     auto ids = std::make_shared<IdCollection>();
@@ -62,6 +62,19 @@ FeatureEnumeratorPtr AbstractFileDataSet::getFeatures(const FeatureQuery &featur
     return enumerator;
 }
 
+FeatureCollectionPtr AbstractFileDataSet::getFeatures(const IdCollectionPtr& ids)
+{
+    auto featureIds = std::make_shared<FeatureIdCollection>();
+    featureIds->reserve(ids->size());
+    for (const auto& id : *ids)
+    {
+        if (dataSetId() == id.dataSetId())
+            featureIds->add(id.featureId());
+    }
+
+    return m_featureStore->getFeatures(featureIds);
+}
+
 void AbstractFileDataSet::init()
 {
     if (m_indexPath.empty())
@@ -88,19 +101,17 @@ void AbstractFileDataSet::init()
     {
         BMM_DEBUG() << "Reading features for build...\n";
         auto startRead = getTimeStampMs();
-        read(m_filePath); // TODO: change to readFeatures returning FeatureCollectionPtr
+        FeatureCollectionPtr readFeatures = read(m_filePath); // TODO: change to readFeatures returning FeatureCollectionPtr
         auto elapsedRead = getTimeStampMs() - startRead;
         BMM_DEBUG() << "Reading took " << elapsedRead << " ms\n";
 
-        auto featureColl = std::make_shared<FeatureCollection>();
-        for (const auto& f : m_features)
+        for (const auto& f : *readFeatures)
         {
             f->id(generateId());
-            featureColl->add(f);
         }
 
         BMM_DEBUG() << "Building feature store...\n";
-        m_featureStore->buildIndex(featureColl, indexPath);
+        m_featureStore->buildIndex(readFeatures, indexPath);
 
         m_featureStore->load(indexPath);
 
@@ -126,7 +137,7 @@ double AbstractFileDataSet::progress()
     return (isInitialized()) ? 1.0 : (double)m_progress;
 }
 
-void BlueMarble::AbstractFileDataSet::indexPath(const std::string& indexPath)
+void AbstractFileDataSet::indexPath(const std::string& indexPath)
 { 
     if (isInitialized())
     {
@@ -135,7 +146,7 @@ void BlueMarble::AbstractFileDataSet::indexPath(const std::string& indexPath)
     m_indexPath = indexPath;
 }
 
-const std::string& BlueMarble::AbstractFileDataSet::indexPath()
+const std::string& AbstractFileDataSet::indexPath()
 {
     return m_indexPath;
 }
@@ -143,18 +154,12 @@ const std::string& BlueMarble::AbstractFileDataSet::indexPath()
 FeaturePtr AbstractFileDataSet::getFeature(const Id &id)
 {
     std::cout << "AbstractFileDataSet::onGetFeatureRequest\n";
-    for (auto f : m_features)
-    {
-        if (f->id() == id)
-        {
-            std::cout << "Found a match!\n";
-            return f;
-        }
-    }
+    assert(dataSetId() == id.dataSetId());
 
-    return nullptr;
+    return m_featureStore->getFeature(id.featureId());
 }
 
 void AbstractFileDataSet::flushCache()
 {
+    m_featureStore->flushCache();
 }

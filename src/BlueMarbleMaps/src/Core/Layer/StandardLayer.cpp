@@ -269,6 +269,31 @@ IdCollectionPtr StandardLayer::getFeatureIds(const CrsPtr& crs, const FeatureQue
     return ids;
 }
 
+FeatureCollectionPtr StandardLayer::getFeatures(const CrsPtr &crs, const IdCollectionPtr& ids)
+{
+    auto features = std::make_shared<FeatureCollection>();
+    for (const auto& d : m_dataSets)
+    {
+        auto dataSetFeatures = d->getFeatures(ids);
+        // If the crs and data set crs is different, we need to reproject them
+        if (!crs->isFunctionallyEquivalent(d->crs()))
+        {
+            BMM_DEBUG() << "Reprojecting features!\n";
+            for (const auto& f : *dataSetFeatures)
+            {
+                auto newFeatures = f->projectTo(crs);
+                features->addRange(*newFeatures);
+            }
+        }
+        else
+        {
+            features->addRange(*dataSetFeatures);
+        }
+    }
+
+    return features;
+}
+
 void StandardLayer::createDefaultVisualizers()
 {
     auto animatedDouble = [](FeaturePtr feature, Attributes& updateAttributes) 
@@ -408,7 +433,7 @@ void StandardLayer::createDefaultVisualizers()
     // m_hoverVisualizers.push_back(pointVis);
     
     //m_hoverVisualizers.push_back(polVisHover);
-    m_hoverVisualizers.push_back(lineVisHover);
+    //m_hoverVisualizers.push_back(lineVisHover);
     // m_hoverVisualizers.push_back(rasterVis);
     //m_hoverVisualizers.push_back(nodeVis);
     //m_hoverVisualizers.push_back(textVisHover);
@@ -459,14 +484,23 @@ void StandardLayer::backgroundReadingThread()
         BMM_DEBUG() << "StandardLayer::backgroundReadingThread() LOAD for some time\n";
         std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // Faking load
         BMM_DEBUG() << "StandardLayer::backgroundReadingThread() LOAD done!\n";
-        auto features = getFeatures(crs, query, true);
         
+        // New
+        auto features = getFeatures(crs, query.ids());
         std::unique_lock lock2(m_mutex);
-        while (features->moveNext())
+        for (const auto& f : *features)
         {
-            const auto& f = features->current();
             m_cache->insert(f->id(), f);
         }
+        
+        // Old
+        // auto features = getFeatures(crs, query, true);
+        // std::unique_lock lock2(m_mutex);
+        // while (features->moveNext())
+        // {
+        //     const auto& f = features->current();
+        //     m_cache->insert(f->id(), f);
+        // }
         lock2.unlock();
         
         m_cond.notify_one();

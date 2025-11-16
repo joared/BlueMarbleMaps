@@ -31,6 +31,7 @@ namespace BlueMarble
         public:
             Feature(const Id& id, const CrsPtr& crs, const GeometryPtr& geometry);
             Feature(const Id& id, const CrsPtr& crs, const GeometryPtr& geometry, const Attributes& attributes);
+            ~Feature();
             FeaturePtr clone();
             Id id() const;
             void id(const Id& id) { m_id = id; }; // TODO: remove, temporary fix for setting id

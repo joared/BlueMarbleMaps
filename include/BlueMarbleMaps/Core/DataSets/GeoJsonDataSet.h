@@ -11,7 +11,7 @@ namespace BlueMarble
         public:
             GeoJsonFileDataSet(const std::string& filePath);
         protected:
-            void read(const std::string& filePath) override final;
+            FeatureCollectionPtr read(const std::string& filePath) override final;
             void save(const std::string& filePath) const;
             // void handleJsonData(JsonValue* jsonValue);
             // void handleFeatureCollection(JsonValue* jsonValue);

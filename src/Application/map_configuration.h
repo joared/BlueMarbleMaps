@@ -49,7 +49,8 @@ void setupAirPlaneLayerVisualization(const BlueMarble::StandardLayerPtr& layer)
 
 void configureMap(const MapPtr& map, bool includeBackground=false, bool includeRoads=false, bool includeAirPlanes=false)
 {
-    const bool asyncBackgroundReading = true;
+    const bool asyncBackgroundReading = false;
+    const bool backgroundLayersSelectable = true;
     const std::string commonIndexPath = "../../../bluemarble_index"; // Relative to the build/bin/<debug/release>/ folder
     ////////////////////////////////////////////////////////
     static auto backgroundDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/BlueMarbleMaps/geodata/NE1_LR_LC_SR_W/NE1_LR_LC_SR_W.tif");
@@ -89,8 +90,8 @@ void configureMap(const MapPtr& map, bool includeBackground=false, bool includeR
 
     auto backgroundLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer());
     auto backgroundLayer2 = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer());
-    auto geoJsonLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer()); //geoJsonLayer->asyncRead(asyncBackgroundReading);
-    auto continentsLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer()); //continentsLayer->asyncRead(asyncBackgroundReading);
+    auto geoJsonLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer()); geoJsonLayer->asyncRead(asyncBackgroundReading);
+    auto continentsLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer()); continentsLayer->asyncRead(asyncBackgroundReading);
     auto roadsGeoJsonLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer());
     auto shapeFileLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer());
     auto airPlaneLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer(false)); 
@@ -108,6 +109,7 @@ void configureMap(const MapPtr& map, bool includeBackground=false, bool includeR
     
     double minScaleCountries = 1.0/20000000.0;
     geoJsonLayer->minScale(minScaleCountries);
+    geoJsonLayer->selectable(backgroundLayersSelectable);
 
     bool includeCountryPolygons = true; // TODO add parameter
     if (includeCountryPolygons) 
@@ -125,6 +127,7 @@ void configureMap(const MapPtr& map, bool includeBackground=false, bool includeR
 
     continentsLayer->maxScale(minScaleCountries);
     continentsLayer->addDataSet(continents);
+    continentsLayer->selectable(backgroundLayersSelectable);
     if (includeRoads)
     {
         roadsDataSet->indexPath(commonIndexPath);

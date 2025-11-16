@@ -35,7 +35,10 @@ namespace BlueMarble
             virtual FeatureEnumeratorPtr getFeatures(const CrsPtr& crs, const FeatureQuery& featureQuery, bool activeLayersOnly) override final;
             virtual void flushCache() override final;
         private:
-            IdCollectionPtr getFeatureIds(const CrsPtr& crs, const FeatureQuery& featureQuery); // TODO: possibly make this part of base "Layer"
+            // TODO: possibly make these part of base "Layer"
+            IdCollectionPtr getFeatureIds(const CrsPtr& crs, const FeatureQuery& featureQuery);
+            FeatureCollectionPtr getFeatures(const CrsPtr& crs, const IdCollectionPtr& ids);
+
             void createDefaultVisualizers();
 
             void backgroundReadingThread();

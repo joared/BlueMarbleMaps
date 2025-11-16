@@ -289,7 +289,7 @@ int main()
 
     auto tool = std::make_shared<PanEventHandler>();
     tool->addSubTool(std::make_shared<EditFeatureTool>());
-    tool->addSubTool(std::make_shared<PointerTracerTool>());
+    //tool->addSubTool(std::make_shared<PointerTracerTool>());
     tool->addSubTool(std::make_shared<KeyActionTool>());
     tool->addSubTool(std::make_shared<DebugEventHandler>());
 

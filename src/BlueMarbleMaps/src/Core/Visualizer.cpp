@@ -315,6 +315,7 @@ void LineVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feature
         for (auto ring : feature->geometryAsPolygon()->rings())
         {
             // Note: ring as copy!!!
+            // TODO: use line geometry with isClosed=true
             ring.push_back(ring[0]); // Make a closed loop
             lines.push_back(ring);
         }

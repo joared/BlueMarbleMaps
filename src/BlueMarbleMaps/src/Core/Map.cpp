@@ -153,15 +153,15 @@ void Map::renderLayers()
         renderLayer(l, featureQuery);
     }
 
-    // Debug draw update are
-    m_drawable->beginBatches();
-    auto line = std::make_shared<LineGeometry>(updateArea);
-    Pen p;
-    p.setColor(Color::red());
-    p.setThickness(5.0);
-    //m_drawable->setTransform(Transform::screenTransform(m_drawable->width(), m_drawable->height()));
-    m_drawable->drawLine(line, p);
-    m_drawable->endBatches();
+    // Debug draw update area
+    // m_drawable->beginBatches();
+    // auto line = std::make_shared<LineGeometry>(updateArea);
+    // Pen p;
+    // p.setColor(Color::red());
+    // p.setThickness(5.0);
+    // //m_drawable->setTransform(Transform::screenTransform(m_drawable->width(), m_drawable->height()));
+    // m_drawable->drawLine(line, p);
+    // m_drawable->endBatches();
 }
 
 void Map::center(const Point& center)
@@ -616,14 +616,14 @@ void Map::select(FeaturePtr feature, SelectMode mode)
     {
         m_selectedFeatures.push_back(feature->id());
         
-        // Testing restartVisualizationAnimation
-        if (auto dataSet = DataSet::getDataSetById(feature->id().dataSetId()))
-        {
-            dataSet->restartVisualizationAnimation(feature, getTimeStampMs());
-        }
+        // // Testing restartVisualizationAnimation
+        // if (auto dataSet = DataSet::getDataSetById(feature->id().dataSetId()))
+        // {
+        //     dataSet->restartVisualizationAnimation(feature, getTimeStampMs());
+        // }
 
-        // std::cout << "Selected feature, Id: " << "Id(" << feature->id().dataSetId() << ", " << feature->id().featureId() << ")\n";
-        std::cout << feature->prettyString();
+        // // std::cout << "Selected feature, Id: " << "Id(" << feature->id().dataSetId() << ", " << feature->id().featureId() << ")\n";
+        // std::cout << feature->prettyString();
     }
 }
 
@@ -689,14 +689,14 @@ void Map::hover(FeaturePtr feature)
     }
 
     // Testing visualization animation
-    if (!isHovered(id) && !isSelected(id))
-    {
-        if (auto dataSet = DataSet::getDataSetById(id.dataSetId()))
-        {
-            dataSet->restartVisualizationAnimation(feature, getTimeStampMs());
-            BMM_DEBUG() << "Hover restart (id: " << id.toString() << ")\n";
-        }
-    }
+    // if (!isHovered(id) && !isSelected(id))
+    // {
+    //     if (auto dataSet = DataSet::getDataSetById(id.dataSetId()))
+    //     {
+    //         dataSet->restartVisualizationAnimation(feature, getTimeStampMs());
+    //         BMM_DEBUG() << "Hover restart (id: " << id.toString() << ")\n";
+    //     }
+    // }
     hover(id);
 }
 

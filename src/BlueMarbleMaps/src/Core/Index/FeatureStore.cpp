@@ -22,23 +22,22 @@ void FeatureStore::addFeature(const FeaturePtr &feature)
     throw std::runtime_error("FeatureStore::addFeature() Not implemented.");
 }
 
-FeaturePtr FeatureStore::getFeature(const FeatureId &id)
+FeaturePtr FeatureStore::getFeature(const FeatureId& id)
 {
-    auto f = m_dataBase->getFeature(id);
-    if (f)
-    {
-        f->id(toValidId(id));
-    }
+    auto featureIds = std::make_shared<FeatureIdCollection>();
+    featureIds->add(id);
+    auto features = getFeatures(featureIds);
+    assert(features->size() == 1);
 
-    return f;
+    return features->get(0);
 }
 
 FeatureCollectionPtr FeatureStore::getFeatures(const FeatureIdCollectionPtr& featureIds)
 {
     // TODO: maybe store a member collection with preallocated size
     auto features = std::make_shared<FeatureCollection>();
-    features->reserve(10000); // TODO: Fix this
-    features->clear();
+    features->reserve(featureIds->size());
+
     // First try to retrieve the features from the cache
     auto cacheMissingIds = std::make_shared<FeatureIdCollection>();
     if (m_cache)
@@ -125,6 +124,8 @@ bool FeatureStore::load(const std::string& indexPath)
         auto features = m_dataBase->getAllFeatures();
         m_index->build(features, indexPath + ".index");
         BMM_DEBUG() << "... spatial index done!\n";
+
+        //m_tempFeatures = features;
     }
 
     return true;

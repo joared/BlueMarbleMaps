@@ -25,6 +25,8 @@ namespace BlueMarble
         using iterator = typename CollectionDef::iterator;
         using const_iterator = typename CollectionDef::const_iterator;
 
+        virtual ~Collection() = default;
+
         inline void add(const T& obj) { m_collection.push_back(obj); }
 
         template<typename... Args>

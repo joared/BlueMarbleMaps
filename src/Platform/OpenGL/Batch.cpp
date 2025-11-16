@@ -64,6 +64,7 @@ void Batch::submit(std::vector<Vertice> &vertices)
 	m_indexCount += vertices.size();
 	m_verticeCounter += vertices.size();
 }
+
 void Batch::submit(std::vector<Vertice>& vertices, std::vector<GLuint> &indices)
 {
 	if (vertices.size() == 0 || indices.size() == 0) return;
@@ -110,7 +111,6 @@ void Batch::flush()
 	GLuint drawType;
 	if (!m_isPolygon) drawType = GL_LINE_STRIP;
 	else drawType = GL_TRIANGLES;
-	std::cout << "count: " << m_indexCount << "\n";
 	m_vao.bind();
 	m_ibo.bind();
 	glEnable(GL_PRIMITIVE_RESTART);

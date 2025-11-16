@@ -42,6 +42,16 @@ void DataSet::restartVisualizationAnimation(FeaturePtr feature, int64_t timeStam
     m_idToVisualizationTimeStamp[feature->id()] = timeStamp;
 }
 
+FeatureCollectionPtr DataSet::getFeatures(const IdCollectionPtr& ids)
+{
+    auto features = std::make_shared<FeatureCollection>();
+    for (const auto& id : *ids)
+    {
+        features->add(getFeature(id));
+    }
+    
+    return features;
+}
 
 void DataSet::initialize(DataSetInitializationType initType)
 {

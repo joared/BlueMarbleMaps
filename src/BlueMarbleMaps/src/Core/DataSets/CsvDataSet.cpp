@@ -10,8 +10,9 @@ CsvFileDataSet::CsvFileDataSet(const std::string& filePath)
 }
 
 
-void CsvFileDataSet::read(const std::string& filePath)
+FeatureCollectionPtr CsvFileDataSet::read(const std::string& filePath)
 {
+    auto features = std::make_shared<FeatureCollection>();
     auto csv = CSVFile(filePath, ",");
     
     // First line has the name of each column/attribute
@@ -49,7 +50,7 @@ void CsvFileDataSet::read(const std::string& filePath)
             j++;
         }
 
-        m_features.push_back(feature);
+        features->add(feature);
 
         i++;
     }
@@ -59,7 +60,7 @@ void CsvFileDataSet::read(const std::string& filePath)
     // Testing generating counties with convex hull
 
     // Set NAME attribute from "Locality"
-    for (auto f : m_features)
+    for (const auto& f : *features)
     {
         f->attributes().set("NAME", f->attributes().get<std::string>("Locality"));
     }

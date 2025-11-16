@@ -8,9 +8,10 @@ ShapeFileDataSet::ShapeFileDataSet(const std::string& filePath)
 
 }
 
-void ShapeFileDataSet::read(const std::string& /*filePath*/)
+FeatureCollectionPtr ShapeFileDataSet::read(const std::string& /*filePath*/)
 {
-        // 59.334591, 18.063240
+    auto features = std::make_shared<FeatureCollection>();
+    // 59.334591, 18.063240
     auto stockholm = std::make_shared<Feature>
     (
         Id(0, 1), 
@@ -28,6 +29,8 @@ void ShapeFileDataSet::read(const std::string& /*filePath*/)
     );
     goteborg->attributes().set("NAME", "Goteborg");
 
-    m_features.push_back(stockholm);
-    m_features.push_back(goteborg);
+    features->add(stockholm);
+    features->add(goteborg);
+
+    return features;
 }

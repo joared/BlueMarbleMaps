@@ -10,7 +10,7 @@ namespace BlueMarble
         public:
             CsvFileDataSet(const std::string& filePath);
         protected:
-            void read(const std::string& filePath) override final;
+            FeatureCollectionPtr read(const std::string& filePath) override final;
     };
 }
 
