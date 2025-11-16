@@ -1,4 +1,5 @@
 #include "Batch.h"
+#include <iostream>
 
 Batch::Batch(bool isPolygon)
 	:m_vao()
@@ -7,14 +8,15 @@ Batch::Batch(bool isPolygon)
 	,m_vertBuffer()
 	,m_indexBuffer()
 	,m_indexCount(0)
+	,m_verticeCounter(0)
 	,m_isPolygon(isPolygon)
 {
 	m_vao.init();
 	m_vbo.init();
 	m_ibo.init();
 	m_vao.bind();
-	m_ibo.allocateDynamicBuffer(60000*20);
-	m_vbo.allocateDynamicBuffer(sizeof(Vertice)*4*60000);
+	m_ibo.allocateDynamicBuffer(600000);
+	m_vbo.allocateDynamicBuffer(sizeof(Vertice)*600000);
 	m_vao.link(m_vbo, 0, 3, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, position));
 	m_vao.link(m_vbo, 1, 4, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, color));
 	m_vao.link(m_vbo, 2, 2, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, texCoord));
@@ -39,25 +41,43 @@ void Batch::begin()
 void Batch::submit(std::vector<Vertice> &vertices)
 {
 	if (vertices.size() == 0) return;
-	if (m_indexCount + vertices.size()+1 >= (sizeof(Vertice) * 4 * 60000) - 1) flush();
-	
+	if (m_indexCount + vertices.size()+1 >= (600000) - 1)
+	{
+		std::cout << "flushing in submit" << "\n";
+		flush();
+	}
+	if (m_indexCount != 0)
+	{
+		*m_indexBuffer = (GLuint)MAGIX_NUMBER;
+		m_indexBuffer++;
+		m_indexCount++;
+	}
 	for (int i = 0; i < vertices.size(); i++)
 	{
 		m_vertBuffer->position = vertices[i].position;
 		m_vertBuffer->color = vertices[i].color;
 		m_vertBuffer->texCoord = vertices[i].texCoord;
 		m_vertBuffer++;
-		*m_indexBuffer = (GLuint)(i + m_indexCount);
+		*m_indexBuffer = (GLuint)(i + m_verticeCounter);
 		m_indexBuffer++;
 	}
-	*m_indexBuffer = (GLuint)MAGIX_NUMBER;
-	m_indexBuffer++;
 	m_indexCount += vertices.size();
+	m_verticeCounter += vertices.size();
 }
 void Batch::submit(std::vector<Vertice>& vertices, std::vector<GLuint> &indices)
 {
 	if (vertices.size() == 0 || indices.size() == 0) return;
-	if (m_indexCount + indices.size() + 1 >= (sizeof(Vertice) * 4 * 60000) - 1) flush();
+	if (m_indexCount + indices.size() + 1 >= (600000) - 1) 
+	{
+		std::cout << "flushing in submit" << "\n";
+		flush(); 
+	}
+	if (m_indexCount != 0)
+	{
+		*m_indexBuffer = (GLuint)MAGIX_NUMBER;
+		m_indexBuffer++;
+		m_indexCount++;
+	}
 	for (int i = 0; i < vertices.size(); i++)
 	{
 		m_vertBuffer->position = vertices[i].position;
@@ -67,12 +87,11 @@ void Batch::submit(std::vector<Vertice>& vertices, std::vector<GLuint> &indices)
 	}
 	for (int i = 0; i < indices.size(); i++)
 	{
-		*m_indexBuffer = (GLuint)(indices[i] + m_indexCount);
+		*m_indexBuffer = (GLuint)(indices[i] + m_verticeCounter);
 		m_indexBuffer++;
 	}
-	*m_indexBuffer = (GLuint)MAGIX_NUMBER;
-	m_indexBuffer++;
-	m_indexCount += indices.size();
+    m_indexCount += indices.size();
+	m_verticeCounter += vertices.size();
 }
 
 void Batch::end()
@@ -91,6 +110,7 @@ void Batch::flush()
 	GLuint drawType;
 	if (!m_isPolygon) drawType = GL_LINE_STRIP;
 	else drawType = GL_TRIANGLES;
+	std::cout << "count: " << m_indexCount << "\n";
 	m_vao.bind();
 	m_ibo.bind();
 	glEnable(GL_PRIMITIVE_RESTART);
@@ -100,4 +120,5 @@ void Batch::flush()
 	m_ibo.unbind();
 	m_vao.unbind();
 	m_indexCount = 0;
+	m_verticeCounter = 0;
 }

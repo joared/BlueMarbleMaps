@@ -23,7 +23,8 @@ private:
 	VBO m_vbo;
 	Vertice* m_vertBuffer;
 	GLuint* m_indexBuffer;
-	GLsizei m_indexCount;
+	GLuint m_indexCount;
+	GLuint m_verticeCounter;
 	bool m_isPolygon;
 };
 typedef std::shared_ptr<Batch> BatchPtr;
