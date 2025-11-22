@@ -66,11 +66,48 @@ void StandardLayer::hitTest(const MapPtr& map, const Rectangle& bounds, std::vec
         return;
     }
 
-    auto features = getFeatures(map->crs(), featureQuery, true);
-
-    while (features->moveNext())
+    FeatureEnumeratorPtr featureEnum;
+    if (m_readAsync)
     {
-        const auto& f = features->current();
+        featureEnum = std::make_shared<FeatureEnumerator>();
+        // If we are reading asynchronously, we are filling the cache and the features SHOULD be there
+        // Additionally, if we try to call getFeatures() as in the else statement, we are concurrently 
+        // querying datasets in two different threads. That should be okay, but doesnt work atm.
+        auto ids = getFeatureIds(map->crs(), featureQuery);
+        auto features = std::make_shared<FeatureCollection>();
+        features->reserve(ids->size());
+        // The cache needs to be locked
+        std::lock_guard lock(m_mutex);
+        for (const auto& id : *ids)
+        {
+            if (!m_cache->contains(id))
+            {
+                // There is something that is potentially is hit here that we haven't cached,
+                // and in turn haven't rendered yet. Maybe it's okay not to return a result for something that hasn't been rendered?
+
+                // Some debug info in case we change our minds
+                // for (const auto& idd : *m_query.ids())
+                // {
+                //     BMM_DEBUG() << "Id in query: " << idd.toString() << "\n";
+                // }
+                //BMM_DEBUG() << "StandardLayer::hitTest() Feature with id '" + id.toString() + "' missing in cache, should not happen!\n";
+            }
+            else
+            {
+                auto f = m_cache->getFeature(id);
+                features->add(f);
+            }
+        }
+        featureEnum->setFeatures(features);
+    }
+    else
+    {
+        featureEnum = getFeatures(map->crs(), featureQuery, true);
+    }
+
+    while (featureEnum->moveNext())
+    {
+        const auto& f = featureEnum->current();
 
         for (const auto& vis : visualizers())
         {
@@ -373,8 +410,8 @@ void StandardLayer::createDefaultVisualizers()
 
     // Line visualizer
     auto lineVis = std::make_shared<LineVisualizer>();
-    //lineVis->color(ColorEvaluation([](FeaturePtr, Attributes&) { return Color(50,50,50,1.0); }));
-    lineVis->color(colorEvalSelect);
+    lineVis->color(ColorEvaluation([](FeaturePtr, Attributes&) { return Color(50,50,50,1.0); }));
+    //lineVis->color(colorEvalSelect);
     lineVis->width([](FeaturePtr, Attributes&) -> double { return 3.0; });
 
     // Polygon visualizer
@@ -433,7 +470,7 @@ void StandardLayer::createDefaultVisualizers()
     // m_hoverVisualizers.push_back(pointVis);
     
     //m_hoverVisualizers.push_back(polVisHover);
-    //m_hoverVisualizers.push_back(lineVisHover);
+    m_hoverVisualizers.push_back(lineVisHover);
     // m_hoverVisualizers.push_back(rasterVis);
     //m_hoverVisualizers.push_back(nodeVis);
     //m_hoverVisualizers.push_back(textVisHover);
@@ -479,6 +516,11 @@ void StandardLayer::backgroundReadingThread()
         m_doRead = false;
         auto crs = m_crs;
         auto query = m_query;
+
+        // reset just so I can debug
+        m_query = FeatureQuery();
+        m_crs = nullptr;
+
         lock.unlock();
 
         BMM_DEBUG() << "StandardLayer::backgroundReadingThread() LOAD for some time\n";

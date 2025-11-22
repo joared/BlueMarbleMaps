@@ -21,7 +21,7 @@ Feature::Feature(const Id& id, const CrsPtr& crs, const GeometryPtr& geometry, c
 
 Feature::~Feature()
 {
-    BMM_DEBUG() << "~Feature()\n";
+    
 }
 
 FeaturePtr Feature::clone()

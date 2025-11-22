@@ -112,8 +112,16 @@ const std::map<DataSetId, DataSetPtr> &BlueMarble::DataSet::getDataSets()
 
 DataSetPtr DataSet::getDataSetById(const DataSetId &dataSetId)
 {
-    if (dataSets.find(dataSetId) == dataSets.end())
-        return nullptr;
+    auto it = dataSets.find(dataSetId);
+    if (it == dataSets.end())
+    {
+        std::string availableDataSetIds;
+        for (const auto& el : dataSets)
+        {
+            availableDataSetIds += std::to_string(el.first) + "\n";
+        }
+        throw std::runtime_error("DataSet::getDataSetById() Available data sets:\n" + availableDataSetIds + "\nCould not find data set with id: " + std::to_string(dataSetId));
+    }
     
     return dataSets[dataSetId];
 }

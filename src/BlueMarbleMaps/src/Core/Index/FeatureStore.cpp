@@ -67,14 +67,11 @@ FeatureCollectionPtr FeatureStore::getFeatures(const FeatureIdCollectionPtr& fea
         m_dataBase->getFeatures(cacheMissingIds, nonCachedFeatures);
 
         // Add the noncached features to the cache
-        if (m_cache)
+        for (const auto& f : *nonCachedFeatures)
         {
-            for (const auto& f : *nonCachedFeatures)
-            {
-                //break; // Testing without cache to see performance
-                f->id(Id(m_dataSetId, f->id().featureId())); // The database has no idea about the dataset id, but we do!
+            f->id(Id(m_dataSetId, f->id().featureId())); // The database has no idea about the dataset id, but we do!
+            if (m_cache)
                 m_cache->insert(f->id(), f);
-            }
         }
 
         // Add the noncached features to the result
@@ -124,8 +121,6 @@ bool FeatureStore::load(const std::string& indexPath)
         auto features = m_dataBase->getAllFeatures();
         m_index->build(features, indexPath + ".index");
         BMM_DEBUG() << "... spatial index done!\n";
-
-        //m_tempFeatures = features;
     }
 
     return true;
@@ -160,7 +155,8 @@ bool FeatureStore::verifyIndex() const
 
 void FeatureStore::flushCache()
 {
-    m_cache->clear();
+    if (m_cache)
+        m_cache->clear();
 }
 
 void FeatureStore::buildIndex(const FeatureCollectionPtr& features, const std::string &indexPath)

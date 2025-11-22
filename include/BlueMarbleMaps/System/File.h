@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <mutex>
 
 namespace BlueMarble
 {
@@ -34,7 +35,7 @@ namespace BlueMarble
             File(File&& __rhs) = default;
             ~File();
 
-            File& operator=(File&& other) = default;
+            File& operator=(File&& other) = default; // does not work with mutex
 
             bool isOpen() const;
             std::string asString();
@@ -46,6 +47,7 @@ namespace BlueMarble
             std::string m_filePath;
             std::vector<std::string> m_lines;
             std::ifstream m_file;
+            std::mutex m_indexMutex;
             std::vector<std::streampos> m_offsets;
             size_t m_step;
     };

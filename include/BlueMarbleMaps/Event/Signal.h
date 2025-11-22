@@ -29,6 +29,10 @@ class ISignalHandler
                 s->unsubscribe(this);
             }
         }
+        void unSubscribe(ISignal* signal)
+        {
+
+        }
         void addSignal(ISignal* signal) { m_subscribedSignals.push_back(signal); }
         void removeSignal(ISignal* signal) 
         { 
@@ -59,15 +63,10 @@ class Signal : public ISignal
         class Subscription
         {
             public:
-                // static Subscription emptySubscription()
-                // {
-
-                // }
-
-                
                 Subscription(const Subscription& other) = delete;
                 Subscription(Subscription&& other) noexcept
                     : m_isValid(other.m_isValid)
+                    , m_isPermanent(other.m_isPermanent)
                     , m_signal(other.m_signal)
                     , m_id(other.m_id)
                 {
@@ -100,6 +99,11 @@ class Signal : public ISignal
                 {
                     if (m_isValid)
                     {
+                        if (m_isPermanent)
+                        {
+                            BMM_DEBUG() << "Subscription died but is marked permanent\n";
+                            return;
+                        }
                         //BMM_DEBUG() << "Subcription canceled\n";
                         m_isValid = false;
                         m_signal.unsubscribe(m_id);
@@ -110,18 +114,25 @@ class Signal : public ISignal
                     }
                 }
 
+                void permanent()
+                {
+                    m_isPermanent = true;
+                }
+
                 friend Subscription Signal::subscribe(Handler);
                 friend Subscription Signal::createSubscription(const Handler& handler);
 
             private:
                 Subscription(Signal& signal, SubscriptionID id) 
                     : m_isValid(true)
+                    , m_isPermanent(false)
                     , m_signal(signal)
                     , m_id(id)
                 {
                     //BMM_DEBUG() << "Subscription() id: " << id << "\n";
                 }
                 bool m_isValid;
+                bool m_isPermanent;
                 Signal& m_signal;
                 SubscriptionID m_id;
         };
@@ -163,10 +174,10 @@ class Signal : public ISignal
                 BMM_DEBUG() << "SIGNALHANDLER";
                 ((ISignalHandler*)instance)->addSignal(this);
             }
-            Handler handler = [instance, method](Args... args)
+            Handler handler = Handler([instance, method](Args... args)
             {
                 (instance->*method)(args...);
-            };
+            });
             // This limits to ONE subscription per instance of this signal 
             SubscriptionID id = reinterpret_cast<SubscriptionID>(instance);
             subscribeInternal(id, std::move(handler));
@@ -232,6 +243,7 @@ class Signal : public ISignal
             throw std::exception();
         }
 
+        // Notify subscribers
         void notify(Args... args)
         {
             for (auto& [id, handler] : m_listeners)
@@ -240,6 +252,7 @@ class Signal : public ISignal
             }
         }
 
+        // Notify subscribers with an action to be performed before each subscriber is notified
         template <typename Action>
         void notify(Args... args, Action&& preNotifyAction)
         {
@@ -250,6 +263,7 @@ class Signal : public ISignal
             }
         }
 
+        // Notify subscribers with an action to be performed before and after each subscriber is notified
         template <typename Action1, typename Action2>
         void notify(Args... args, Action1&& preNotifyAction, Action2&& postNotifyAction)
         {
@@ -267,8 +281,6 @@ class Signal : public ISignal
             subscribeInternal(id, std::move(handler));
             BMM_DEBUG() << "(Permanent)";
         }
-
-        //bool isSubcribed()
 
     private:
         void subscribeInternal(SubscriptionID id, Handler handler)

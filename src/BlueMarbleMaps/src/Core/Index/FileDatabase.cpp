@@ -176,7 +176,7 @@ FileDatabase::FileDatabase()
 FeaturePtr FileDatabase::getFeature(const FeatureId& id)
 {   
     auto record = m_index.at(id);
-    auto str = m_file.getLine(record.lineOffset);
+    auto str = m_file->getLine(record.lineOffset);
     auto f = deserializeFeature(str);
 
     return f;
@@ -189,7 +189,7 @@ FeatureCollectionPtr FileDatabase::getFeatures(const FeatureIdCollectionPtr& ids
     return features;
 }
 
-void BlueMarble::FileDatabase::getFeatures(const FeatureIdCollectionPtr &ids, FeatureCollectionPtr &featuresOut)
+void FileDatabase::getFeatures(const FeatureIdCollectionPtr &ids, FeatureCollectionPtr &featuresOut)
 {
     for (const auto& id : *ids)
     {
@@ -235,12 +235,12 @@ bool FileDatabase::load(const std::string& path)
     }
 
     m_filePath = path;
-    m_file = std::move(File(path));
-    m_file.buildIndex();
+    m_file = std::make_unique<File>(path);
+    m_file->buildIndex();
     m_index.clear();
 
     int64_t lineIdx = 0;
-    auto lines = m_file.getLines();
+    auto lines = m_file->getLines();
     for (const auto& line : lines)
     {
         // TODO

@@ -165,11 +165,17 @@ namespace BlueMarble
 
             struct MapEvents
             {
+                // Update events
                 Signal<Map&> onAreaChanged;
                 Signal<Map&> onUpdating;
                 Signal<Map&> onCustomDraw;
                 Signal<Map&> onUpdated;
                 Signal<Map&> onIdle;
+
+                // State events
+                Signal<Map&, const Id&> onHoverChanged;
+                Signal<Map&, const IdCollectionPtr&> onSelectionChanged;
+
             } events;
 
             // Debug options
@@ -180,6 +186,7 @@ namespace BlueMarble
             void updateUpdateAttributes(int64_t timeStampMs);
             void beforeRender();
             void renderLayers();
+            FeatureQuery produceUpdateQuery();
             void renderLayer(const LayerPtr& layer, const FeatureQuery& featureQuery);
             void afterRender();
             

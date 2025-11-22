@@ -30,7 +30,7 @@ namespace BlueMarble
         void verifyLoaded() const;
 
         std::string m_filePath;
-        File        m_file;
+        std::unique_ptr<File>        m_file;
         std::map<FeatureId, FeatureRecord> m_index;
         bool m_isLoaded;
 

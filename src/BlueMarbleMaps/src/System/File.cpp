@@ -36,7 +36,11 @@ void File::writeString(const std::string& filePath, const std::string & string)
 }
 
 File::File()
-    : m_filePath(""), m_file(), m_offsets(), m_step(1)
+    : m_filePath("")
+    , m_file()
+    , m_indexMutex()
+    , m_offsets()
+    , m_step(1)
 {}
 
 File::File(const std::string &filePath)
@@ -132,6 +136,8 @@ std::string File::getLine(size_t n)
     size_t base = (n / m_step) * m_step;
     if (base >= m_offsets.size()) return {};
 
+    // We want this to be thread safe.
+    std::lock_guard lock(m_indexMutex);
     m_file.clear();
     m_file.seekg(m_offsets[base], std::ios::beg);
 

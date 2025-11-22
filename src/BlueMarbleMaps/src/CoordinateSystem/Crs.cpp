@@ -59,7 +59,6 @@ Point Crs::projectTo(const CrsPtr& crs, const Point& point) const
     return crs->projection()->project(lngLat, ellipsoid);
 }
 
-
 Rectangle Crs::projectTo(const CrsPtr& crs, const Rectangle& rect) const
 {
     std::vector<Point> newCorners;

@@ -11,6 +11,7 @@
 #include <vector>
 #include <set>
 
+
 using namespace BlueMarble;
 
 constexpr double xPixLen = 0.02222222222222;
@@ -137,14 +138,8 @@ void Map::renderLayer(const LayerPtr& layer, const FeatureQuery& featureQuery)
 void Map::renderLayers()
 {
     m_presentationObjects.clear(); // Clear presentation objects, layers will add new
-    auto updateArea = area();
-    updateArea.scale(.5);
-
-    FeatureQuery featureQuery;
-    featureQuery.area(updateArea);
-    featureQuery.scale(scale());
-    featureQuery.quickUpdate(quickUpdateEnabled());
-    featureQuery.updateAttributes(&updateAttributes());
+    
+    FeatureQuery featureQuery = std::move(produceUpdateQuery());
 
     for (const auto& l : m_layers)
     {
@@ -164,7 +159,23 @@ void Map::renderLayers()
     // m_drawable->endBatches();
 }
 
-void Map::center(const Point& center)
+FeatureQuery BlueMarble::Map::produceUpdateQuery()
+{
+    FeatureQuery featureQuery;
+
+    // TODO: this scaling is for debugging querying, remove 
+    auto updateArea = area();
+    updateArea.scale(.5);
+
+    featureQuery.area(updateArea);
+    featureQuery.scale(scale());
+    featureQuery.quickUpdate(quickUpdateEnabled());
+    featureQuery.updateAttributes(&updateAttributes());
+
+    return featureQuery;
+}
+
+void Map::center(const Point &center)
 {
     m_updateRequired = true;
     m_centerChanged = true;
@@ -532,7 +543,7 @@ void BlueMarble::Map::featuresInside(const Rectangle& bounds, FeatureCollection&
     }
 }
 
-const std::vector<PresentationObject>& BlueMarble::Map::hitTest(int x, int y, double pointerRadius)
+const std::vector<PresentationObject>& Map::hitTest(int x, int y, double pointerRadius)
 {
     auto area = Rectangle({(double)x,(double)y}, pointerRadius, pointerRadius);
     area = screenToMap(area);
@@ -540,55 +551,29 @@ const std::vector<PresentationObject>& BlueMarble::Map::hitTest(int x, int y, do
     return hitTest(area);
 }
 
-const std::vector<PresentationObject>& BlueMarble::Map::hitTest(const Rectangle& bounds)
+const std::vector<PresentationObject>& Map::hitTest(const Rectangle& bounds)
 {
-    FeatureQuery featureQuery;
-    featureQuery.area(bounds);
-    featureQuery.scale(scale());
-    featureQuery.updateAttributes(&updateAttributes());
+    FeatureQuery featureQuery = produceUpdateQuery();
+
+    // TODO: this is to limit hittesting within the visible view area
+    // auto boundsNew = Rectangle(
+    //     std::max(featureQuery.area().xMin(), bounds.xMin()),
+    //     std::max(featureQuery.area().yMin(), bounds.yMin()),
+    //     std::min(featureQuery.area().xMax(), bounds.xMax()),
+    //     std::min(featureQuery.area().yMax(), bounds.yMax())
+    // );
 
     m_presentationObjects.clear();
-    for (const auto& l : m_layers)
+
+    // Iterate in reverse such that the last rendered layer is hittested first
+    for (auto iter = m_layers.rbegin(); iter!=m_layers.rend(); ++iter)
     {
+        auto l = *iter;
         if (l->selectable())
+        {
             l->hitTest(shared_from_this(), bounds, m_presentationObjects);
-        // auto features = l->getFeatures(m_crs, featureQuery, true);
-
-        // while (features->moveNext())
-        // {
-        //     const auto& f = features->current();
-
-        //     for (const auto& vis : l->visualizers())
-        //     {
-        //         vis->hitTest(f, drawable(), bounds, m_presentationObjects);
-        //     }
-
-        //     if (isSelected(f->id()))
-        //     {
-        //         for (const auto& vis : l->selectionVisualizers())
-        //         {
-        //             vis->hitTest(f, drawable(), bounds, m_presentationObjects);
-        //         }
-        //     }
-        //     else if (isHovered(f->id()))
-        //     {
-        //         for (const auto& vis : l->hoverVisualizers())
-        //         {
-        //             vis->hitTest(f, drawable(), bounds, m_presentationObjects);
-        //         }
-        //     }
-        // }
+        }
     }
-
-    // Iterate in reverse order such that the first rendered presentation objects are first
-    // for (auto it=m_presentationObjects.end()-1; it!=m_presentationObjects.begin()-1; it--)
-    // {
-    //     auto& p = *it;
-    //     if (p.hitTest(bounds))
-    //     {
-    //         hitObjects.push_back(p);
-    //     }
-    // }
 
     return m_presentationObjects;
 }
@@ -625,6 +610,9 @@ void Map::select(FeaturePtr feature, SelectMode mode)
         // // std::cout << "Selected feature, Id: " << "Id(" << feature->id().dataSetId() << ", " << feature->id().featureId() << ")\n";
         // std::cout << feature->prettyString();
     }
+    auto ids = std::make_shared<IdCollection>();
+    ids->addRange(m_selectedFeatures.begin(), m_selectedFeatures.end());
+    events.onSelectionChanged.notify(*this, ids);
 }
 
 void Map::select(const PresentationObject& presentationObject)
@@ -678,6 +666,13 @@ void Map::hover(const Id& id)
     m_hoveredFeatures.clear();
     if (id != Id(0,0))
         m_hoveredFeatures.push_back(id);
+    
+    auto notifyId = Id(0,0);
+    if (!m_hoveredFeatures.empty())
+    {
+        notifyId = m_hoveredFeatures[0];
+    }
+    events.onHoverChanged.notify(*this, notifyId);
 }
 
 void Map::hover(FeaturePtr feature)
