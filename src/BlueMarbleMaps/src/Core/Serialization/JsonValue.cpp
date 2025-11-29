@@ -188,7 +188,7 @@ std::pair<std::string, JsonValue> retrieveKeyValuePair(const std::string& text, 
     idx++;
     parseWhiteSpace(text, idx);
 
-    return { std::move(key), parseJson(text, idx, level) };
+    return { std::move(key), std::move(parseJson(text, idx, level)) };
 }
 
 JsonValue parseJson(const std::string &text, int &idx, int level)
@@ -214,7 +214,7 @@ JsonValue parseJson(const std::string &text, int &idx, int level)
             parseWhiteSpace(text, idx);
             try
             {
-                jsonObject.emplace(retrieveKeyValuePair(text, idx, level));
+                jsonObject.emplace(std::move(retrieveKeyValuePair(text, idx, level)));
                 parseWhiteSpace(text, idx);
                 // FIXME: this is needed if comma is forgotten, but parseValue should not step over ','
                 if (text[idx] != '}')
@@ -261,7 +261,7 @@ JsonValue parseJson(const std::string &text, int &idx, int level)
             {
                 // parse element value ',' or '['
                 parseWhiteSpace(text, idx);
-                list.emplace_back(parseJson(text, idx, level));
+                list.emplace_back(std::move(parseJson(text, idx, level)));
                 parseWhiteSpace(text, idx);
                 if (text[idx] != ']')
                 {

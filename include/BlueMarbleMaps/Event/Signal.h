@@ -5,6 +5,7 @@
 #include <functional>
 #include <cassert>
 #include <vector>
+#include <mutex>
 
 namespace BlueMarble
 {
@@ -51,8 +52,21 @@ class ISignalHandler
         std::vector<ISignal*> m_subscribedSignals;
 };
 
-template<typename... Args>
-class Signal : public ISignal
+struct NoLockPolicy 
+{
+    void lock() {}
+    void unlock() {}
+};
+
+struct MutexLockPolicy 
+{
+    std::mutex m;
+    void lock()   { m.lock(); }
+    void unlock() { m.unlock(); }
+};
+
+template<typename LockPolicy = NoLockPolicy, typename... Args>
+class SignalImpl : public ISignal
 {
     //using Handler = void(*)(Args...);
     using Handler = std::function<void(Args...)>;
@@ -119,11 +133,11 @@ class Signal : public ISignal
                     m_isPermanent = true;
                 }
 
-                friend Subscription Signal::subscribe(Handler);
-                friend Subscription Signal::createSubscription(const Handler& handler);
+                friend Subscription SignalImpl::subscribe(Handler);
+                friend Subscription SignalImpl::createSubscription(const Handler& handler);
 
             private:
-                Subscription(Signal& signal, SubscriptionID id) 
+                Subscription(SignalImpl& signal, SubscriptionID id) 
                     : m_isValid(true)
                     , m_isPermanent(false)
                     , m_signal(signal)
@@ -133,9 +147,17 @@ class Signal : public ISignal
                 }
                 bool m_isValid;
                 bool m_isPermanent;
-                Signal& m_signal;
+                SignalImpl& m_signal;
                 SubscriptionID m_id;
         };
+
+        SignalImpl()
+            : m_nextId(0)
+            , m_listeners()
+            , m_lockPolicy()
+        {
+
+        }
 
         Subscription createSubscription(const Handler& handler)
         {
@@ -172,6 +194,7 @@ class Signal : public ISignal
             if (std::is_base_of_v<ISignalHandler, T>)
             {
                 BMM_DEBUG() << "SIGNALHANDLER";
+                std::lock_guard<LockPolicy> guard(m_lockPolicy);
                 ((ISignalHandler*)instance)->addSignal(this);
             }
             Handler handler = Handler([instance, method](Args... args)
@@ -211,9 +234,11 @@ class Signal : public ISignal
         void unsubscribe(T* instance)
         {
             BMM_DEBUG() << "(instance)";
+            
             if (std::is_base_of_v<ISignalHandler, T>)
             {
                 BMM_DEBUG() << "SIGNALHANDLER";
+                std::lock_guard<LockPolicy> guard(m_lockPolicy);
                 ((ISignalHandler*)instance)->removeSignal(this);
             }
 
@@ -230,7 +255,7 @@ class Signal : public ISignal
         void unsubscribe(SubscriptionID id)
         {
             BMM_DEBUG() << "Unsubscribe: "  << id << "\n";
-            
+            std::lock_guard<LockPolicy> guard(m_lockPolicy);
             for (auto it=m_listeners.begin(); it!=m_listeners.end(); it++)
             {
                 if (it->first == id)
@@ -246,6 +271,7 @@ class Signal : public ISignal
         // Notify subscribers
         void notify(Args... args)
         {
+            std::lock_guard<LockPolicy> guard(m_lockPolicy);
             for (auto& [id, handler] : m_listeners)
             {
                 handler(args...);
@@ -256,6 +282,7 @@ class Signal : public ISignal
         template <typename Action>
         void notify(Args... args, Action&& preNotifyAction)
         {
+            std::lock_guard<LockPolicy> guard(m_lockPolicy);
             for (auto& [id, handler] : m_listeners)
             {
                 preNotifyAction();
@@ -267,6 +294,7 @@ class Signal : public ISignal
         template <typename Action1, typename Action2>
         void notify(Args... args, Action1&& preNotifyAction, Action2&& postNotifyAction)
         {
+            std::lock_guard<LockPolicy> guard(m_lockPolicy);
             for (auto& [id, handler] : m_listeners)
             {
                 preNotifyAction();
@@ -285,6 +313,7 @@ class Signal : public ISignal
     private:
         void subscribeInternal(SubscriptionID id, Handler handler)
         {
+            std::lock_guard<LockPolicy> guard(m_lockPolicy);
             for (auto it=m_listeners.begin(); it!=m_listeners.end(); it++)
             {
                 if (it->first == id)
@@ -300,12 +329,20 @@ class Signal : public ISignal
 
         SubscriptionID generateAnonymousUniqueId() 
         {
+            std::lock_guard<LockPolicy> guard(m_lockPolicy);
             return m_nextId++ | 0x8000000000000000; // Set high bit to avoid pointer conflict
         }
 
-        SubscriptionID m_nextId = 0;
+        SubscriptionID m_nextId;
         std::vector<std::pair<SubscriptionID, Handler>> m_listeners; // Possibility to unsubscribe
+        mutable LockPolicy m_lockPolicy;
 };
+
+template <typename... Args>
+using Signal = SignalImpl<NoLockPolicy, Args...>;
+
+template <typename... Args>
+using SafeSignal = SignalImpl<MutexLockPolicy, Args...>;
 
 } // BlueMarble
 

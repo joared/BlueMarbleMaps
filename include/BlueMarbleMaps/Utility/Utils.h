@@ -39,6 +39,11 @@ namespace BlueMarble
         inline double normalizeLongitude(double lng) { return normalizeValue(lng, LONGITUDE_MIN, LONGITUDE_MAX); }
         inline double normalizeLatitude(double lat) { return normalizeValue(lat, LATITUDE_MIN, LATITUDE_MAX); }
 
+        inline double minAngleDiff(double a1, double a2)
+        {
+            return normalizeValue(a1-a2, 0.0, BMM_PI*2.0);
+        };
+
         // Calculates the unit area of a polygon using the
         // sholace formula: https://en.wikipedia.org/wiki/Shoelace_formula
         inline double polygonArea(const std::vector<Point>& polygon)

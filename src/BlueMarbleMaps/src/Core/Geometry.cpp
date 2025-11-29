@@ -142,7 +142,29 @@ BlueMarble::RasterGeometry::RasterGeometry(const Raster& raster, const Rectangle
     }
 }
 
-RasterGeometryPtr RasterGeometry::getSubRasterGeometry(const Rectangle& subBounds)
+Point RasterGeometry::pointToRasterIndex(const Point& point) const
+{
+    if (!m_bounds.isInside(point))
+        return Point::undefined();
+
+    double xRel = point.x() - m_bounds.xMin();
+    double yRel = m_bounds.yMax() - point.y();
+
+    int xInd = (int)std::round(xRel / cellWidth());
+    int yInd = (int)std::round(yRel / cellHeight());
+
+    return Point(xInd, yInd);
+}
+
+Point BlueMarble::RasterGeometry::rasterIndexToPoint(int x, int y) const
+{
+    assert(x < raster().width());
+    assert(y < raster().height());
+
+    return Point(bounds().xMin() + cellWidth()*x, bounds().yMax() - cellHeight()*y);
+}
+
+RasterGeometryPtr RasterGeometry::getSubRasterGeometry(const Rectangle &subBounds)
 {
     if (!subBounds.overlap(bounds()))
     {

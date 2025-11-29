@@ -47,6 +47,113 @@ void setupAirPlaneLayerVisualization(const BlueMarble::StandardLayerPtr& layer)
     //layer.effects().push_back(std::make_shared<BlueMarble::DropShadowEffect>(0.0, 10, 10, 0.5));
 }
 
+void addDataSetInitializationObserver(const MapPtr& map)
+{
+    static std::vector<DataSetPtr> dataSetsInitializing;
+    static int64_t startTs = getTimeStampMs();
+    static std::mutex m;
+
+    DataSet::globalEvents.onInitializing += [&](auto d)
+    {
+        // These signals might be notified from a different thread
+        std::lock_guard lock(m);
+        dataSetsInitializing.push_back(d);
+    };
+
+    DataSet::globalEvents.onInitialized += [&](auto d)
+    {
+        // These signals might be notified from a different thread
+        std::lock_guard lock(m);
+        for (auto it = dataSetsInitializing.begin(); it != dataSetsInitializing.end(); ++it)
+        {
+            if (*it == d)
+            {
+                dataSetsInitializing.erase(it);
+                break;
+            }
+        }
+    };
+
+    auto generateArcLine = [](double r, double theta1, double theta2)
+    {
+        auto line = std::make_shared<LineGeometry>();
+
+        int pointsPerRev = 30;
+        double diff = Utils::normalizeValue(theta2-theta1, 0.0, BMM_PI*2.0);
+        int nPoints = diff / (BMM_PI*2.0) * pointsPerRev;
+
+        for (int i(0); i<nPoints; ++i)
+        {
+            double a = theta1 + i*diff/(double)nPoints;
+            double x = r*std::cos(a);
+            double y = r*std::sin(a);
+            auto p = Point(x,y);
+            line->points().push_back(p);
+        }
+
+        return line;
+    };
+
+    auto drawLoadingSymbol = [&](const DrawablePtr& drawable, int x, int y, double radius, double progress)
+    {
+        
+        double radiusProgress = progress*2.0;
+        radiusProgress = radiusProgress > 1.0 ? 2.0-radiusProgress : radiusProgress;
+        radiusProgress = 1 - std::pow(1 - radiusProgress, 2.5); // ease out
+        double r =  (1.0-radiusProgress) * 5.0 + std::max(radius - 5.0, 5.0);
+        
+        double ratio1 = progress+0.5;
+        if (ratio1 > 1.0) ratio1 -= 1.0;
+        double ratio2 = progress;
+        
+        ratio1 = 1 - std::pow(1 - ratio1, 2.5); // ease out
+        ratio2 = 1 - std::pow(1 - ratio2, 2.5); // ease out
+
+        double aTo = ratio1 * BMM_PI * 2.0 - BMM_PI * 0.2;
+        double aFrom = ratio2 * BMM_PI * 2.0 - BMM_PI * 0.2;
+        auto line = generateArcLine(r, aFrom, aTo);
+        
+        line->move(Point(x, y));
+        Pen p;
+        p.setColors(Color::colorRamp(Color::red(0.2), Color::red(), line->points().size()));
+        p.setThickness(5.0);
+        drawable->drawLine(line, p);
+    };
+
+    map->events.onCustomDraw += ([=](Map& view)
+    {
+        int64_t elapsed = getTimeStampMs()-startTs;
+        elapsed = elapsed % 1000;
+        
+        int nDataSets = 0;
+        {
+            std::lock_guard lock(m);
+            nDataSets = dataSetsInitializing.size();
+        }
+
+        if (nDataSets == 0) return;
+
+        auto drawable = view.drawable();
+        double radius = 10.0;
+        double offset = radius*3.0;
+        int baseX = drawable->width() - offset;
+        int baseY = drawable->height() - offset;
+        double progress = elapsed/1000.0;
+        for (int i(0); i<nDataSets; ++i)
+        {
+            int x = baseX;
+            int y = baseY - offset*i;
+            drawLoadingSymbol(drawable, x, y, radius, progress);
+
+        }
+        Pen defaultPen;
+        Brush defaultBrush;
+        drawable->drawArc(drawable->width()*0.5, drawable->height()*0.5, 200, 100, BMM_PI, defaultPen, defaultBrush);
+        view.update();
+
+    });
+}
+
 void configureGui(const MapPtr& map)
 {
     auto northArrowDataSet = std::make_shared<MemoryDataSet>();northArrowDataSet->initialize();
@@ -115,7 +222,12 @@ void configureMap(const MapPtr& map, bool includeBackground=false, bool includeR
 {
     const bool asyncBackgroundReading = true;
     const bool backgroundLayersSelectable = true;
+    const DataSetInitializationType dataSetInitialization = DataSetInitializationType::BackgroundThread;
     const std::string commonIndexPath = "../../../bluemarble_index"; // Relative to the build/bin/<debug/release>/ folder
+
+
+    addDataSetInitializationObserver(map);
+
     ////////////////////////////////////////////////////////
     static auto backgroundDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/BlueMarbleMaps/geodata/NE1_LR_LC_SR_W/NE1_LR_LC_SR_W.tif");
     static auto backgroundDataSet2 = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/BlueMarbleMaps/geodata/BlueMarble.jpeg");
@@ -133,7 +245,7 @@ void configureMap(const MapPtr& map, bool includeBackground=false, bool includeR
     static auto airPlaneDataSet = std::make_shared<BlueMarble::MemoryDataSet>(); airPlaneDataSet->name("AirPlanesDataSet");
 
     continents->indexPath(commonIndexPath);
-    continents->initialize();
+    continents->initialize(dataSetInitialization);
     // svenskaStader->initialize();
     // svenskaLandskapDataSet->initialize();
     // markerDataSet->initialize();
@@ -181,9 +293,9 @@ void configureMap(const MapPtr& map, bool includeBackground=false, bool includeR
         northAmerica->indexPath(commonIndexPath);
         southAmerica->indexPath(commonIndexPath);
         world->indexPath(commonIndexPath);
-        northAmerica->initialize();
-        southAmerica->initialize();
-        world->initialize();
+        northAmerica->initialize(dataSetInitialization);
+        southAmerica->initialize(dataSetInitialization);
+        world->initialize(dataSetInitialization);
         geoJsonLayer->addDataSet(northAmerica); 
         geoJsonLayer->addDataSet(southAmerica); 
         geoJsonLayer->addDataSet(world);
@@ -195,7 +307,7 @@ void configureMap(const MapPtr& map, bool includeBackground=false, bool includeR
     if (includeRoads)
     {
         roadsDataSet->indexPath(commonIndexPath);
-        roadsDataSet->initialize();
+        roadsDataSet->initialize(dataSetInitialization);
 
         // FeatureQuery featureQuery;
         // featureQuery.area(Rectangle(-180, -90, 180, 90));
@@ -205,9 +317,9 @@ void configureMap(const MapPtr& map, bool includeBackground=false, bool includeR
 
         roadsGeoJsonLayer->addDataSet(roadsDataSet);
         roadsGeoJsonLayer->asyncRead(asyncBackgroundReading);
-        //sverigeRoadsDataSet->indexPath(commonIndexPath);
-        //sverigeRoadsDataSet->initialize(); // Takes very long to initialize (1.4 GB large)
-        //roadsGeoJsonLayer->addDataSet(sverigeRoadsDataSet);
+        // sverigeRoadsDataSet->indexPath(commonIndexPath);
+        // sverigeRoadsDataSet->initialize(dataSetInitialization); // Takes very long to initialize (1.4 GB large)
+        // roadsGeoJsonLayer->addDataSet(sverigeRoadsDataSet);
         
         roadsGeoJsonLayer->minScale(1.0/2000000.0);
         //roadsGeoJsonLayer->enabledDuringQuickUpdates(false);
@@ -228,7 +340,7 @@ void configureMap(const MapPtr& map, bool includeBackground=false, bool includeR
     map->addLayer(airPlaneLayer);
     //map->addLayer(debugLayer);
     ////////////////////////////////////////////////////////OLD
-    configureGui(map);
+    //configureGui(map);
 }
 
 #endif /* MAP_CONFIGURATION */

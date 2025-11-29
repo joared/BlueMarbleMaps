@@ -6,6 +6,7 @@
 #include "BlueMarbleMaps/CoordinateSystem/Crs.h"
 #include "BlueMarbleMaps/System/File.h"
 #include "BlueMarbleMaps/System/JsonFile.h"
+#include "BlueMarbleMaps/Event/Signal.h"
 
 #include <atomic>
 #include <memory>
@@ -32,6 +33,13 @@ namespace BlueMarble
         public:
             static const std::map<DataSetId, DataSetPtr>& getDataSets(); 
             static DataSetPtr getDataSetById(const DataSetId& dataSetId);
+            static struct GlobalDataSetEvents
+            {
+                SafeSignal<DataSetPtr> onInitializing;
+                SafeSignal<DataSetPtr> onInitialized;
+            } globalEvents;
+
+
             DataSet();
             virtual ~DataSet();
             DataSet(const DataSet&) = delete;
@@ -47,21 +55,27 @@ namespace BlueMarble
             int64_t getVisualizationTimeStampForFeature(const Id& id);
             void restartVisualizationAnimation(FeaturePtr feature, int64_t timeStamp = -1);
 
-            virtual IdCollectionPtr getFeatureIds(const FeatureQuery& featureQuery) = 0;
-            virtual FeatureEnumeratorPtr getFeatures(const FeatureQuery& featureQuery) = 0;
-            virtual FeatureCollectionPtr getFeatures(const IdCollectionPtr& ids); // Default implementation recursively calls getFeature()
-            virtual FeaturePtr getFeature(const Id& id) = 0;
+            IdCollectionPtr getFeatureIds(const FeatureQuery& featureQuery);
+            FeatureEnumeratorPtr getFeatures(const FeatureQuery& featureQuery);
+            FeatureCollectionPtr getFeatures(const IdCollectionPtr& ids);
+            FeaturePtr getFeature(const Id& id);
             virtual void flushCache() {}; // TODO: make pure virtual?
 
         protected:
+            virtual IdCollectionPtr queryFeatureIds(const FeatureQuery& featureQuery) = 0;
+            virtual FeatureEnumeratorPtr queryFeatures(const FeatureQuery& featureQuery) = 0;
+            virtual FeatureCollectionPtr queryFeatures(const IdCollectionPtr& ids); // Default implementation recursively calls getFeature()
+            virtual FeaturePtr queryFeature(const Id& id) = 0;
             virtual void init() = 0;
         private:
-            DataSetId        m_dataSetId;
-            FeatureId        m_featureIdCounter;
-            CrsPtr           m_crs;
-            std::atomic_bool m_isInitialized;
-            std::atomic_bool m_isInitializing;
-            std::map<Id, int64_t> m_idToVisualizationTimeStamp;
+            bool ensureInitialized();
+
+            DataSetId               m_dataSetId;
+            FeatureId               m_featureIdCounter;
+            CrsPtr                  m_crs;
+            std::atomic_bool        m_isInitialized;
+            std::atomic_bool        m_isInitializing;
+            std::map<Id, int64_t>   m_idToVisualizationTimeStamp;
     };
 }
 

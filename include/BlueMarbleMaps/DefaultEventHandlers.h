@@ -94,7 +94,9 @@ namespace BlueMarble
                 }
                 else
                 {
-                    m_editFeature->move(delta);
+                    fromPos = m_map->crs()->projectTo(m_editFeature->crs(), fromPos);
+                    toPos = m_map->crs()->projectTo(m_editFeature->crs(), toPos);
+                    m_editFeature->move(toPos-fromPos);
                 }
 
                 m_map->update();

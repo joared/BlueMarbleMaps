@@ -11,7 +11,7 @@ MemoryDataSet::MemoryDataSet()
 {
 }
 
-FeaturePtr MemoryDataSet::getFeature(const Id &id)
+FeaturePtr MemoryDataSet::queryFeature(const Id &id)
 {
     for (auto& f : m_features)
     {
@@ -82,7 +82,7 @@ void MemoryDataSet::clear()
     m_features.clear();
 }
 
-IdCollectionPtr MemoryDataSet::getFeatureIds(const FeatureQuery& featureQuery)
+IdCollectionPtr MemoryDataSet::queryFeatureIds(const FeatureQuery& featureQuery)
 {
     auto ids = std::make_shared<IdCollection>();
 
@@ -97,7 +97,7 @@ IdCollectionPtr MemoryDataSet::getFeatureIds(const FeatureQuery& featureQuery)
     return ids;
 }
 
-FeatureEnumeratorPtr MemoryDataSet::getFeatures(const FeatureQuery &featureQuery)
+FeatureEnumeratorPtr MemoryDataSet::queryFeatures(const FeatureQuery &featureQuery)
 {
     auto features = std::make_shared<FeatureEnumerator>();
     

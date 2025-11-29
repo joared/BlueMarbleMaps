@@ -40,19 +40,15 @@ namespace BlueMarble
             void addFeature(FeaturePtr feature);
             void removeFeature(const Id& id);
             void clear();
-            // void onUpdateRequest(Map& map, const Rectangle& updateArea, FeatureHandler* handler) override final;
-            // void onGetFeaturesRequest(const Attributes& attributes, std::vector<FeaturePtr>& features) override final {};
-            // FeaturePtr onGetFeatureRequest(const Id& id) override final;
-
-            virtual IdCollectionPtr getFeatureIds(const FeatureQuery& featureQuery) override final;
-            virtual FeatureEnumeratorPtr getFeatures(const FeatureQuery& featureQuery) override final;
-            virtual FeaturePtr getFeature(const Id& id) override final;
 
             void startFeatureAnimation(FeaturePtr feature);
             void startFeatureAnimation(FeaturePtr feature, const Point& from, const Point& to);
             void triggerFeatureUpdated(const FeaturePtr& id);
         protected:
             void init() override final;
+            virtual IdCollectionPtr queryFeatureIds(const FeatureQuery& featureQuery) override final;
+            virtual FeatureEnumeratorPtr queryFeatures(const FeatureQuery& featureQuery) override final;
+            virtual FeaturePtr queryFeature(const Id& id) override final;
         private:
             FeatureCollection m_features;
             std::map<Id, FeatureAnimationPtr> m_idToFeatureAnimation;

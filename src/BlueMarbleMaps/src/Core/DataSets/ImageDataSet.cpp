@@ -50,7 +50,7 @@ void ImageDataSet::init()
     std::cout << "ImageDataSet: Data loaded!\n";
 }
 
-IdCollectionPtr ImageDataSet::getFeatureIds(const FeatureQuery &featureQuery)
+IdCollectionPtr ImageDataSet::queryFeatureIds(const FeatureQuery &featureQuery)
 {
     auto ids = std::make_shared<IdCollection>();
     if(featureQuery.area().overlap(m_rasterGeometry->bounds()))
@@ -61,7 +61,7 @@ IdCollectionPtr ImageDataSet::getFeatureIds(const FeatureQuery &featureQuery)
     return ids;
 }
 
-FeatureEnumeratorPtr ImageDataSet::getFeatures(const FeatureQuery &featureQuery)
+FeatureEnumeratorPtr ImageDataSet::queryFeatures(const FeatureQuery &featureQuery)
 {
     auto features = std::make_shared<FeatureEnumerator>();
     if (!isInitialized()) // TODO: move to base class
@@ -92,7 +92,7 @@ FeatureEnumeratorPtr ImageDataSet::getFeatures(const FeatureQuery &featureQuery)
     return features;
 }
 
-FeaturePtr ImageDataSet::getFeature(const Id &id)
+FeaturePtr ImageDataSet::queryFeature(const Id &id)
 {
     // TODO
     if (id == m_rasterFeature->id())

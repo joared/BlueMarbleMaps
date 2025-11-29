@@ -4,7 +4,7 @@
 
 using namespace BlueMarble;
 
-class MySignalTester : public ISignalHandler
+class MySignalTester// : public ISignalHandler
 {
     public:
         void slot(std::string s, int num) 

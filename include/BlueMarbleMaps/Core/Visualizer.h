@@ -60,7 +60,9 @@ namespace BlueMarble
                 if (feature->isInside(area))
                 {
                     // TODO: source feature
-                    outPresentation.push_back(PresentationObject(feature, feature, this, false, -1));
+                    auto dataSet = DataSet::getDataSetById(feature->id().dataSetId());
+                    auto source = dataSet->getFeature(feature->id());
+                    outPresentation.push_back(PresentationObject(feature, source, this, false, -1));
                     return true;
                 }
                 return false;

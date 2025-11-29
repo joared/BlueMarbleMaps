@@ -245,10 +245,14 @@ namespace BlueMarble
                 throw std::runtime_error("RasterGeometry::forEachPoint() Not implemented");
             }
 
-            Rectangle bounds() { return m_bounds; };
+            Rectangle bounds() const { return m_bounds; };
             void bounds(const Rectangle& bounds) { m_bounds = std::move(bounds); };
-            double cellHeight() { return m_cellHeight; };
-            double cellWidth() { return m_cellWidth; };
+            double cellHeight() const { return m_cellHeight; };
+            double cellWidth() const { return m_cellWidth; };
+
+            Point pointToRasterIndex(const Point& point) const;
+            Point rasterIndexToPoint(int x, int y) const;
+
             Raster& raster() { return m_raster; }
             RasterGeometryPtr getSubRasterGeometry(const Rectangle& bounds);
         private:

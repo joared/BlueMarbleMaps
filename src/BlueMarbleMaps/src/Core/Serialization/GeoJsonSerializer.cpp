@@ -5,11 +5,11 @@ using namespace BlueMarble;
 FeatureCollectionPtr GeoJsonSerializer::deserialize(const JsonValue&jsonValue)
 {
     auto jsonData = jsonValue.get<JsonValue::Object>();
-    auto type = jsonData["type"].get<std::string>();
+    auto type = jsonData.at("type").get<std::string>();
 
     if (type == "FeatureCollection")
     {
-        return deserializeFeatureCollection(jsonData["features"]);
+        return deserializeFeatureCollection(jsonData.at("features"));
     }
 
     return FeatureCollectionPtr();
@@ -17,12 +17,12 @@ FeatureCollectionPtr GeoJsonSerializer::deserialize(const JsonValue&jsonValue)
 
 FeatureCollectionPtr GeoJsonSerializer::deserializeFeatureCollection(const JsonValue& jsonValue)
 {
-    auto featureList = jsonValue.get<JsonValue::Array>();
+    auto& featureList = jsonValue.get<JsonValue::Array>();
     auto features = std::make_shared<FeatureCollection>();
     features->reserve(featureList.size());
 
     int i = 0;
-    for (auto f : featureList)
+    for (auto& f : featureList)
     {
         FeaturePtr feature(nullptr);
         feature = deserializeFeature(f);
@@ -61,15 +61,15 @@ FeaturePtr GeoJsonSerializer::deserializeFeature(const JsonValue& jsonValue)
 {
     // std::cout << "deserializeFeature\n";
 
-    auto jsonData = jsonValue.get<JsonValue::Object>();
-    auto type = jsonData["type"].get<std::string>();
+    auto& jsonData = jsonValue.get<JsonValue::Object>();
+    const auto& type = jsonData.at("type").get<std::string>();
     assert(type == "Feature");
 
-    auto geometry = deserializeGeometry(jsonData["geometry"]);
+    auto geometry = deserializeGeometry(jsonData.at("geometry"));
     if (geometry)
     {
         auto feature = std::make_shared<Feature>(Id(0,0), Crs::wgs84LngLat(), geometry);
-        feature->attributes() = deserializeProperties(jsonData["properties"]);
+        feature->attributes() = deserializeProperties(jsonData.at("properties"));
 
         return feature;
     }
@@ -85,30 +85,10 @@ GeometryPtr GeoJsonSerializer::deserializeGeometry(const JsonValue& jsonValue)
 {
     // std::cout << "deserializeGeometry\n";
 
-    JsonValue::Object jsonData;
-    try
-    {
-        jsonData = jsonValue.get<JsonValue::Object>();
-    }
-    catch (...)
-    {
-        std::cout << "Failed to read geometry...\n";
-        return nullptr;
-    }
+    const auto& jsonData = jsonValue.get<JsonValue::Object>();
+    const auto& type = jsonData.at("type").get<std::string>();
     
-    // std::cout << "Geometry type\n";
-    std::string type;
-    try
-    {
-        type = jsonData["type"].get<std::string>();
-    }
-    catch(const std::exception& e)
-    {
-        std::cout << "Failed to read geometry type...\n";
-        return nullptr;
-    }
-    
-    auto coordinates = jsonData["coordinates"];
+    const auto& coordinates = jsonData.at("coordinates");
     if (type == "Point")
     {
         return deserializePointGeometry(coordinates);
@@ -137,7 +117,7 @@ Attributes GeoJsonSerializer::deserializeProperties(const JsonValue& jsonValue)
 {
     // std::cout << "deserializeProperties\n";
     
-    auto jsonData = jsonValue.get<JsonValue::Object>();
+    const auto& jsonData = jsonValue.get<JsonValue::Object>();
     auto attr = Attributes();
 
     for (auto& pair : jsonData)
@@ -169,11 +149,11 @@ Attributes GeoJsonSerializer::deserializeProperties(const JsonValue& jsonValue)
     if (jsonData.find("name_en") != jsonData.end())
     {
         // "mapcolor7":2,"mapcolor8":5,"mapcolor9":7,"mapcolor13":7
-        auto name = jsonData["name_en"].get<std::string>();
-        int c7 = jsonData["mapcolor7"].asInteger();
-        int c8 = jsonData["mapcolor8"].asInteger();
-        int c9 = jsonData["mapcolor9"].asInteger();
-        //auto c13 = jsonData["mapcolor13"].asInteger();
+        auto name = jsonData.at("name_en").get<std::string>();
+        int c7 = jsonData.at("mapcolor7").asInteger();
+        int c8 = jsonData.at("mapcolor8").asInteger();
+        int c9 = jsonData.at("mapcolor9").asInteger();
+        //auto c13 = jsonData.at("mapcolor13").asInteger();
 
         attr.set("NAME", name);
         attr.set("COLOR_R", 50*c7);
@@ -181,15 +161,15 @@ Attributes GeoJsonSerializer::deserializeProperties(const JsonValue& jsonValue)
         attr.set("COLOR_B", 50*c9);
         attr.set("COLOR_A", 0.25);
     }
-    else if(jsonData.find("namn1") != jsonData.end() && jsonData["namn1"].isString())
+    else if(jsonData.find("namn1") != jsonData.end() && jsonData.at("namn1").isString())
     {
-        attr.set("NAME", jsonData["namn1"].get<std::string>());
+        attr.set("NAME", jsonData.at("namn1").get<std::string>());
     }
     else if(jsonData.find("landskap") != jsonData.end())
     {
-        attr.set("NAME", jsonData["landskap"].get<std::string>());
-        int c1 = jsonData["landsdelskod"].asInteger();
-        int c2 = jsonData["landskapskod"].asInteger();
+        attr.set("NAME", jsonData.at("landskap").get<std::string>());
+        int c1 = jsonData.at("landsdelskod").asInteger();
+        int c2 = jsonData.at("landskapskod").asInteger();
         int c3 = 1;
         if (c2 > 15)
         {
@@ -203,7 +183,7 @@ Attributes GeoJsonSerializer::deserializeProperties(const JsonValue& jsonValue)
     }
     else if (jsonData.find("CONTINENT") != jsonData.end())
     {
-        attr.set("NAME", jsonData["CONTINENT"].get<std::string>());
+        attr.set("NAME", jsonData.at("CONTINENT").get<std::string>());
     }
 
 
@@ -220,9 +200,9 @@ GeometryPtr GeoJsonSerializer::deserializeLineGeometry(const JsonValue& coorcina
 {
     // std::cout << "GeoJsonSerializer::deserializeLineGeometry\n";
 
-    JsonValue::Array ringList = coorcinates.get<JsonValue::Array>();
+    const auto& ringList = coorcinates.get<JsonValue::Array>();
     auto lineGeometry = std::make_shared<LineGeometry>();
-    lineGeometry->points() = extractPoints(coorcinates);
+    lineGeometry->points() = std::move(extractPoints(coorcinates));
 
     // std::cout << "line length: " << lineGeometry->points().size() << "\n";
 
@@ -233,23 +213,17 @@ GeometryPtr GeoJsonSerializer::deserializePolygon(const JsonValue& coorcinates)
 {
     // std::cout << "deserializePolygon\n";
 
-    JsonValue::Array ringList = coorcinates.get<JsonValue::Array>();
+    const auto& ringList = coorcinates.get<JsonValue::Array>();
     auto polygon = std::make_shared<PolygonGeometry>();
 
     // std::cout << "Polly coord size: " << coordinates.size() << "\n";
-    for (auto ring : ringList)
+    for (const auto& ring : ringList)
     {
-        auto points = extractPoints(ring);
+        auto points = std::move(extractPoints(ring));
         assert(points.size() > 3);          // An extra point exist in points where the last is the same as the first
         points.erase(points.end()-1);       // Remove the last point, we don't use it in our representation (redundant)
 
-        auto r = std::vector<Point>();
-        for (auto& p : points)
-        {
-            r.push_back(p);
-        }
-
-        polygon->rings().push_back(r);
+        polygon->rings().emplace_back(points);
     }
 
     return polygon;
@@ -260,13 +234,13 @@ GeometryPtr GeoJsonSerializer::deserializeMultiPolygon(const JsonValue& coorcina
 {
     // std::cout << "deserializeMultiPolygon\n";
 
-    JsonValue::Array polygonList = coorcinates.get<JsonValue::Array>();
+    const auto& polygonList = coorcinates.get<JsonValue::Array>();
 
     auto multiPolygon = std::make_shared<MultiPolygonGeometry>();
-    for (auto p : polygonList)
+    for (const auto& p : polygonList)
     {
         auto polGeom = std::static_pointer_cast<PolygonGeometry>(deserializePolygon(p));
-        multiPolygon->polygons().push_back(PolygonGeometry(*polGeom));
+        multiPolygon->polygons().emplace_back(*polGeom);
     }
 
     return multiPolygon;
@@ -276,7 +250,7 @@ GeometryPtr GeoJsonSerializer::deserializeMultiPolygon(const JsonValue& coorcina
 std::vector<Point> GeoJsonSerializer::extractPoints(const JsonValue& pointListValue)
 {
     // std::cout << "GeoJsonSerializer::extractPoints\n";
-    auto& pointList = pointListValue.get<JsonValue::Array>();
+    const auto& pointList = pointListValue.get<JsonValue::Array>();
     std::vector<Point> points;
     for (auto p : pointList)
     {

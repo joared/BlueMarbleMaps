@@ -22,60 +22,6 @@ AbstractFileDataSet::AbstractFileDataSet(const std::string& filePath, const std:
     m_featureStore = std::make_unique<FeatureStore>(dataSetId(), std::move(db), std::move(index), cache);
 }
 
-IdCollectionPtr AbstractFileDataSet::getFeatureIds(const FeatureQuery& featureQuery)
-{
-    auto featureIds = m_featureStore->queryIds(featureQuery.area());
-    auto ids = std::make_shared<IdCollection>();
-    ids->reserve(featureIds->size());
-    for (const auto& fid : *featureIds)
-    {
-        ids->emplace(Id(dataSetId(), fid));
-    }
-
-    return ids;
-}
-
-FeatureEnumeratorPtr AbstractFileDataSet::getFeatures(const FeatureQuery &featureQuery)
-{
-    auto enumerator = std::make_shared<FeatureEnumerator>();
-
-    if (!isInitialized()) // TODO: move to base class
-    {
-        return enumerator;
-    }
-
-    FeatureIdCollectionPtr featureIds = nullptr;
-    if (!featureQuery.ids()->empty())
-    {
-        featureIds = std::make_shared<FeatureIdCollection>();
-        featureIds->reserve(featureQuery.ids()->size());
-        for (const auto& id : *featureQuery.ids())
-        {
-            assert(id.dataSetId() == dataSetId());
-            featureIds->add(id.featureId());
-        }
-    }
-     
-    auto features = m_featureStore->query(featureQuery.area(), featureIds);
-
-    enumerator->setFeatures(features);
-
-    return enumerator;
-}
-
-FeatureCollectionPtr AbstractFileDataSet::getFeatures(const IdCollectionPtr& ids)
-{
-    auto featureIds = std::make_shared<FeatureIdCollection>();
-    featureIds->reserve(ids->size());
-    for (const auto& id : *ids)
-    {
-        if (dataSetId() == id.dataSetId())
-            featureIds->add(id.featureId());
-    }
-
-    return m_featureStore->getFeatures(featureIds);
-}
-
 void AbstractFileDataSet::init()
 {
     if (m_indexPath.empty())
@@ -152,9 +98,63 @@ const std::string& AbstractFileDataSet::indexPath()
     return m_indexPath;
 }
 
-FeaturePtr AbstractFileDataSet::getFeature(const Id &id)
+
+IdCollectionPtr AbstractFileDataSet::queryFeatureIds(const FeatureQuery& featureQuery)
 {
-    std::cout << "AbstractFileDataSet::onGetFeatureRequest\n";
+    auto featureIds = m_featureStore->queryIds(featureQuery.area());
+    auto ids = std::make_shared<IdCollection>();
+    ids->reserve(featureIds->size());
+    for (const auto& fid : *featureIds)
+    {
+        ids->emplace(Id(dataSetId(), fid));
+    }
+
+    return ids;
+}
+
+FeatureEnumeratorPtr AbstractFileDataSet::queryFeatures(const FeatureQuery &featureQuery)
+{
+    auto enumerator = std::make_shared<FeatureEnumerator>();
+
+    if (!isInitialized()) // TODO: move to base class
+    {
+        return enumerator;
+    }
+
+    FeatureIdCollectionPtr featureIds = nullptr;
+    if (!featureQuery.ids()->empty())
+    {
+        featureIds = std::make_shared<FeatureIdCollection>();
+        featureIds->reserve(featureQuery.ids()->size());
+        for (const auto& id : *featureQuery.ids())
+        {
+            assert(id.dataSetId() == dataSetId());
+            featureIds->add(id.featureId());
+        }
+    }
+     
+    auto features = m_featureStore->query(featureQuery.area(), featureIds);
+
+    enumerator->setFeatures(features);
+
+    return enumerator;
+}
+
+FeatureCollectionPtr AbstractFileDataSet::queryFeatures(const IdCollectionPtr& ids)
+{
+    auto featureIds = std::make_shared<FeatureIdCollection>();
+    featureIds->reserve(ids->size());
+    for (const auto& id : *ids)
+    {
+        if (dataSetId() == id.dataSetId())
+            featureIds->add(id.featureId());
+    }
+
+    return m_featureStore->getFeatures(featureIds);
+}
+
+FeaturePtr AbstractFileDataSet::queryFeature(const Id &id)
+{
     assert(dataSetId() == id.dataSetId());
 
     return m_featureStore->getFeature(id.featureId());

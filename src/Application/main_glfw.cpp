@@ -248,7 +248,7 @@ int main()
     view->center(Point(0, 0));
     view->scale(1.0);
     view->showDebugInfo() = false;
-    
+
     // auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/readme/CompleteGeodata.png");
     auto elevationDataSet = std::make_shared<ImageDataSet>(PATH_TO_FANNY_FILE);
     
@@ -259,6 +259,8 @@ int main()
     rasterVis->alpha(DirectDoubleAttributeVariable(0.7));
     elevationLayer->visualizers().push_back(rasterVis);
     view->addLayer(elevationLayer);
+
+    configureMap(view, false, true, false);
 
     // Test Polygon/Line/Symbol visualizers
     auto vectorDataSet = std::make_shared<MemoryDataSet>();
@@ -283,13 +285,12 @@ int main()
     vectorLayer->visualizers().push_back(polyVis);
     view->addLayer(vectorLayer);
 
-    configureMap(view, false, true, false);
 
     mapControl->setView(view);
 
     auto tool = std::make_shared<PanEventHandler>();
     tool->addSubTool(std::make_shared<EditFeatureTool>());
-    //tool->addSubTool(std::make_shared<PointerTracerTool>());
+    tool->addSubTool(std::make_shared<PointerTracerTool>());
     tool->addSubTool(std::make_shared<KeyActionTool>());
     tool->addSubTool(std::make_shared<DebugEventHandler>());
 

@@ -523,9 +523,9 @@ void StandardLayer::backgroundReadingThread()
 
         lock.unlock();
 
-        BMM_DEBUG() << "StandardLayer::backgroundReadingThread() LOAD for some time\n";
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // Faking load
-        BMM_DEBUG() << "StandardLayer::backgroundReadingThread() LOAD done!\n";
+        // BMM_DEBUG() << "StandardLayer::backgroundReadingThread() LOAD for some time\n";
+        // std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // Faking load
+        // BMM_DEBUG() << "StandardLayer::backgroundReadingThread() LOAD done!\n";
         
         // New
         auto features = getFeatures(crs, query.ids());

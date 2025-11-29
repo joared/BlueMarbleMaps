@@ -17,12 +17,12 @@ namespace BlueMarble
             void indexPath(const std::string& indexPath);
             const std::string& indexPath();
 
-            virtual IdCollectionPtr getFeatureIds(const FeatureQuery& featureQuery) override final;
-            virtual FeatureEnumeratorPtr getFeatures(const FeatureQuery& featureQuery) override final;
-            virtual FeatureCollectionPtr getFeatures(const IdCollectionPtr& id) override final;
-            virtual FeaturePtr getFeature(const Id& id) override final;
             virtual void flushCache() override final;
         protected:
+            virtual IdCollectionPtr queryFeatureIds(const FeatureQuery& featureQuery) override final;
+            virtual FeatureEnumeratorPtr queryFeatures(const FeatureQuery& featureQuery) override final;
+            virtual FeatureCollectionPtr queryFeatures(const IdCollectionPtr& id) override final;
+            virtual FeaturePtr queryFeature(const Id& id) override final;
             void init() override final;
             virtual FeatureCollectionPtr read(const std::string& filePath) = 0; // TODO: change to readFeatures returning FeatureCollectionPtr
 

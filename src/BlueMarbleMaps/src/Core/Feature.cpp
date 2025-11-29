@@ -62,6 +62,27 @@ void Feature::reProjectTo(const CrsPtr &crs)
         // TODO: Unsupported for now
         // auto rasterGeometry = geometryAsRaster();
         // rasterGeometry->bounds(m_crs->projectTo(crs, rasterGeometry->bounds()));
+        
+        // TODO
+        // auto rasterGeom = geometryAsRaster();
+        // auto& currRaster = geometryAsRaster()->raster();
+
+        // auto newBounds = this->crs()->projectTo(crs, bounds());
+        // double cellWidth = newBounds.width() / currRaster.width();
+        // double cellheight = newBounds.height() / currRaster.height();
+        // RasterGeometryPtr newRaster = std::make_shared<RasterGeometry>(currRaster, newBounds, cellWidth, cellheight);
+
+        // for (int i(0); i < currRaster.width(); ++i)
+        // {
+        //     for (int j(0); j < currRaster.height(); ++j)
+        //     {
+        //         auto p = newRaster->rasterIndexToPoint(i,j);
+        //         auto pOld = crs->projectTo(m_crs, p);
+        //         auto ind = rasterGeom->pointToRasterIndex(pOld);
+        //         // newRaster->raster().data()
+        //         // TODO
+        //     }
+        // }
     }
     else
     {
