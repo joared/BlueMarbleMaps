@@ -144,13 +144,7 @@ void addDataSetInitializationObserver(const MapPtr& map)
             int x = baseX;
             int y = baseY - offset*i;
             drawLoadingSymbol(drawable, x, y, radius, progress);
-
         }
-        Pen defaultPen;
-        Brush defaultBrush;
-        drawable->drawArc(drawable->width()*0.5, drawable->height()*0.5, 200, 100, BMM_PI, defaultPen, defaultBrush);
-        view.update();
-
     });
 }
 
