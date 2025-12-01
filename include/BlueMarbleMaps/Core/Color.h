@@ -14,6 +14,7 @@ namespace BlueMarble
             inline static Color red(double a=1.0) { return Color(255, 0, 0, a); }
             inline static Color green(double a=1.0) { return Color(0, 255, 0, a); }
             inline static Color blue(double a=1.0) { return Color(0, 0, 255, a); }
+            inline static Color yellow(double a=1.0) { return Color(255, 255, 0, a); }
             inline static Color white(double a=1.0) { return Color(255, 255, 255, a); }
             inline static Color black(double a=1.0) { return Color(0, 0, 0, a); }
             inline static Color gray(double a=1.0) { return Color(128, 128, 128, a); }

@@ -2,6 +2,7 @@
 #define BLUEMARBLE_CORE
 
 #include "BlueMarbleMaps/Core/Collection.h"
+#include "BlueMarbleMaps/Logging/Logging.h"
 
 #include <chrono>
 #include <cmath>
@@ -10,6 +11,7 @@
 #include <limits>
 #include <string>
 #include <memory>
+
 
 namespace BlueMarble
 {

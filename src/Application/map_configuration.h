@@ -96,22 +96,19 @@ void addDataSetInitializationObserver(const MapPtr& map)
 
     auto drawLoadingSymbol = [&](const DrawablePtr& drawable, int x, int y, double radius, double progress)
     {
+        static auto radiusEval = AnimationFunctions::AnimationBuilder().subDivide(2).easeInCubic().inverseAt(0.5).build();
+        static auto theta1Eval = AnimationFunctions::AnimationBuilder().subDivide(2).offset(0.5).easeOut(2.5).build();
+        static auto theta2Eval = AnimationFunctions::AnimationBuilder().subDivide(2).easeOut(2.5).build();
+
+        double radiusProgress = radiusEval(progress);
+        radius =  (1.0-radiusProgress) * 5.0 + std::max(radius - 5.0, 5.0);
         
-        double radiusProgress = progress*2.0;
-        radiusProgress = radiusProgress > 1.0 ? 2.0-radiusProgress : radiusProgress;
-        radiusProgress = 1 - std::pow(1 - radiusProgress, 2.5); // ease out
-        double r =  (1.0-radiusProgress) * 5.0 + std::max(radius - 5.0, 5.0);
-        
-        double ratio1 = progress+0.5;
-        if (ratio1 > 1.0) ratio1 -= 1.0;
-        double ratio2 = progress;
-        
-        ratio1 = 1 - std::pow(1 - ratio1, 2.5); // ease out
-        ratio2 = 1 - std::pow(1 - ratio2, 2.5); // ease out
+        double ratio1 = theta1Eval(progress);
+        double ratio2 = theta2Eval(progress);
 
         double aTo = ratio1 * BMM_PI * 2.0 - BMM_PI * 0.2;
         double aFrom = ratio2 * BMM_PI * 2.0 - BMM_PI * 0.2;
-        auto line = generateArcLine(r, aFrom, aTo);
+        auto line = generateArcLine(radius, aFrom, aTo);
         
         line->move(Point(x, y));
         Pen p;
@@ -120,10 +117,60 @@ void addDataSetInitializationObserver(const MapPtr& map)
         drawable->drawLine(line, p);
     };
 
+    auto tempAnimationView = [&](Map& view)
+    {
+        static auto anim1 = AnimationFunctions::AnimationBuilder().alternate().inverse().build();
+        static auto anim2 = AnimationFunctions::AnimationBuilder().alternate().inverse().easeInCubic().build();
+        static auto anim3 = AnimationFunctions::AnimationBuilder().alternate().inverse().easeInCubic().inverse().build();
+
+        static auto functions = std::vector<AnimationFunctions::AnimFunc>{anim1, anim2, anim3};
+        static auto colors    = Color::colorRamp(Color::red(), Color::blue(), functions.size());
+
+        auto d = view.drawable();
+        auto delta = Point(d->width()*0.05, d->height()*0.25);
+        std::vector<LineGeometryPtr> lines;
+        lines.reserve(functions.size());
+        for (int x(0); x < functions.size(); ++x) 
+        {
+            LineGeometryPtr line = std::make_shared<LineGeometry>();
+            lines.push_back(line);
+        }
+
+        int nSamples = 100;
+        for (int i(0); i<nSamples; ++i)
+        {
+            double progress = i / double(nSamples);
+            for (int j(0); j < functions.size(); ++j)
+            {
+                double outP = functions[j](progress);
+                auto line = lines[j];
+                line->points().push_back(Point(i, -outP*100) + delta);
+            }
+        }
+        
+        auto backgroundRect = Rectangle(0, 0, nSamples, nSamples);
+        backgroundRect.offset(delta.x(), delta.y()-nSamples);
+        auto polyBackground = std::make_shared<PolygonGeometry>(backgroundRect.corners());
+        Pen penBack; penBack.setColors(Color::colorRamp(Color::yellow(), Color::gray(), 4));
+        Brush brushBack; brushBack.setColor(Color::gray(0.5));
+        d->drawPolygon(polyBackground, penBack, brushBack);
+
+        for (int k(0); k < lines.size(); ++k)
+        {
+            auto l = lines[k];
+            auto c = colors[k];
+            Pen pen;
+            pen.setColor(c);
+            d->drawLine(l, pen);
+        }
+    };
+    //map->events.onCustomDraw += tempAnimationView;
+
     map->events.onCustomDraw += ([=](Map& view)
     {
+        constexpr int animationTime = 2000;
         int64_t elapsed = getTimeStampMs()-startTs;
-        elapsed = elapsed % 1000;
+        elapsed = elapsed % animationTime;
         
         int nDataSets = 0;
         {
@@ -134,17 +181,19 @@ void addDataSetInitializationObserver(const MapPtr& map)
         if (nDataSets == 0) return;
 
         auto drawable = view.drawable();
-        double radius = 10.0;
+        double radius = 15.0;
         double offset = radius*3.0;
         int baseX = drawable->width() - offset;
         int baseY = drawable->height() - offset;
-        double progress = elapsed/1000.0;
+        double progress = elapsed/double(animationTime);
         for (int i(0); i<nDataSets; ++i)
         {
             int x = baseX;
             int y = baseY - offset*i;
             drawLoadingSymbol(drawable, x, y, radius, progress);
         }
+
+        view.update();
     });
 }
 
@@ -169,7 +218,7 @@ void configureGui(const MapPtr& map)
         auto dataSetPoints = view.crs()->projectTo(northArrowDataSet->crs(), mapPoints.begin(), mapPoints.end());
         auto temp = std::vector<Point>(dataSetPoints->begin(), dataSetPoints->end());
         polyGeometry->rings()[0] = temp;
-        BMM_DEBUG() << polyGeometry->rings()[0][0].toString() << "\n";
+        // BMM_DEBUG() << polyGeometry->rings()[0][0].toString() << "\n";
     }).permanent();
     static bool exist = true;
     map->events.onUpdated += ([=](Map& view)
@@ -311,6 +360,7 @@ void configureMap(const MapPtr& map, bool includeBackground=false, bool includeR
 
         roadsGeoJsonLayer->addDataSet(roadsDataSet);
         roadsGeoJsonLayer->asyncRead(asyncBackgroundReading);
+        roadsGeoJsonLayer->selectable(backgroundLayersSelectable);
         // sverigeRoadsDataSet->indexPath(commonIndexPath);
         // sverigeRoadsDataSet->initialize(dataSetInitialization); // Takes very long to initialize (1.4 GB large)
         // roadsGeoJsonLayer->addDataSet(sverigeRoadsDataSet);
@@ -334,7 +384,7 @@ void configureMap(const MapPtr& map, bool includeBackground=false, bool includeR
     map->addLayer(airPlaneLayer);
     //map->addLayer(debugLayer);
     ////////////////////////////////////////////////////////OLD
-    //configureGui(map);
+    configureGui(map);
 }
 
 #endif /* MAP_CONFIGURATION */

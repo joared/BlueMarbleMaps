@@ -9,6 +9,7 @@
 #include "BlueMarbleMaps/Core/MapControl.h"
 #include "BlueMarbleMaps/Core/AnimationFunctions.h"
 #include "BlueMarbleMaps/Core/DataSets/MemoryDataSet.h"
+#include "Keys.h"
 
 namespace BlueMarble
 {
@@ -538,6 +539,7 @@ namespace BlueMarble
                         ? SelectMode::Add : SelectMode::Replace;
                 if (!m_map->isSelected(selFeat))
                 {   
+                    
                     m_map->select(selFeat, mode);
                 }
                 else if (mode == SelectMode::Replace)
@@ -1011,8 +1013,13 @@ namespace BlueMarble
 
             bool OnKeyDown(const KeyDownEvent& event) override final
             {
+                Key keyStroke(event.keyCode);
+            
+                if (keyStroke == Key::S)
+                    BMM_DEBUG() << "OHHH YAAS\n";
+
                 BMM_DEBUG() << "Key action controller: " << event.keyCode << "\n";
-                if (event.keyCode == 39 && // s
+                if (keyStroke == Key::S &&
                     event.modificationKey && ModificationKeyCtrl)
                 {
                     BMM_DEBUG() << "Saving drawable buffer to file...\n";
@@ -1021,7 +1028,7 @@ namespace BlueMarble
                     return true;
                 }
 
-                if (event.keyCode == 33 && // p
+                if (keyStroke == Key::P &&
                     event.modificationKey && ModificationKeyCtrl)
                 {
                     BMM_DEBUG() << "Changing crs...";
@@ -1046,7 +1053,7 @@ namespace BlueMarble
                 }
 
                 // TODO rendering enabled
-                if (event.keyCode == 27 && // r
+                if (keyStroke == Key::R && // r
                     event.modificationKey && ModificationKeyCtrl)
                 {
                     bool enabled = !m_map->renderingEnabled();
@@ -1059,7 +1066,7 @@ namespace BlueMarble
                         BMM_DEBUG() << "Disabled rendering!\n";
                 }
                 
-                if (event.keyCode == 40 && // d
+                if (keyStroke == Key::D && // d
                     event.modificationKey && ModificationKeyCtrl)
                 {
                     bool enabled = !m_map->showDebugInfo();

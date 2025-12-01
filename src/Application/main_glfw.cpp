@@ -48,6 +48,7 @@ public:
     void keyEvent(WindowGL* window, int key, int scanCode, int action, int modifier) override
     {
         Key keyStroke(scanCode);
+        std::cout << "Key is: " << keyStroke << " " << keyStroke.toString() << "\n"; 
         if (keyStroke == Key::F && action == GLFW_PRESS)
         {
             m_wireFrameMode = !m_wireFrameMode;
@@ -57,11 +58,11 @@ public:
 
         if (action == GLFW_PRESS)
         {
-            keyUp(scanCode, getModificationKeyMask(), getGinotonicTimeStampMs());
+            keyDown(scanCode, getModificationKeyMask(), getGinotonicTimeStampMs());
         }
         else
         {
-            keyDown(scanCode, getModificationKeyMask(), getGinotonicTimeStampMs());
+            keyUp(scanCode, getModificationKeyMask(), getGinotonicTimeStampMs());
         }
     }
 
