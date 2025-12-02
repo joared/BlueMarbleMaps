@@ -74,6 +74,11 @@ Color Raster::getColorAt(int x, int y) const
     return m_impl->getColorAt(x,y);
 }
 
+void Raster::setColorAt(int x, int y, const Color& c)
+{
+    return m_impl->setColorAt(x,y,c);
+}
+
 void Raster::resize(int width, int height, ResizeInterpolation interpolation)
 {
     m_impl->resize(width, height, interpolation);

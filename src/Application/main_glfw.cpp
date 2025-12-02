@@ -256,6 +256,7 @@ int main()
     elevationDataSet->initialize(DataSetInitializationType::RightHereRightNow);
     auto elevationLayer = std::make_shared<StandardLayer>(false);
     elevationLayer->addDataSet(elevationDataSet);
+    elevationLayer->asyncRead(true);
     auto rasterVis = std::make_shared<RasterVisualizer>();
     rasterVis->alpha(DirectDoubleAttributeVariable(0.7));
     elevationLayer->visualizers().push_back(rasterVis);

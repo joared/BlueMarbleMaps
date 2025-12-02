@@ -44,6 +44,7 @@ namespace BlueMarble
             int getIntegerAt(int x, int y) const;
             float getFloatAt(int x, int y) const;
             Color getColorAt(int x, int y) const;
+            void setColorAt(int x, int y, const Color& c);
             void resize(int width, int height, ResizeInterpolation interpolation = ResizeInterpolation::NearestNeighbor);
             void resize(float scaleRatio, ResizeInterpolation interpolation = ResizeInterpolation::NearestNeighbor);
             void rotate(double angle, int cx, int cy, ResizeInterpolation interpolation = ResizeInterpolation::NearestNeighbor);

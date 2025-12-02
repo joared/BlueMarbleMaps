@@ -52,10 +52,11 @@ namespace BlueMarble
         MercatorWebProjection() {}
         virtual Point project(const Point& lngLat, const EllipsoidPtr& ellipsoid) override final
         {
+            constexpr double MAX_LAT_WEB_MERCATOR = 85.05112878;
             double R = ellipsoid->a(); // Earth radius in meters
 
             double lon = lngLat.x();
-            double lat = lngLat.y();
+            double lat = Utils::clampValue(lngLat.y(), -MAX_LAT_WEB_MERCATOR, MAX_LAT_WEB_MERCATOR);
             double x = R * lon * BMM_PI / 180.0;
             double y = R * log(tan(BMM_PI /4.0 + (lat * BMM_PI / 180.0) / 2.0));
 

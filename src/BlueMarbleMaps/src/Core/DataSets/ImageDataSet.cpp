@@ -32,8 +32,8 @@ void ImageDataSet::init()
     constexpr double yTopLeft = 89.98888888888889;
 
     // Playing arround with web mercator
-    // constexpr double xPixLen = 0.015*2;   // times 2 since we made the image smaller
-    // constexpr double yPixLen = -0.015*2;  // times 2 since we made the image smaller
+    // constexpr double xPixLen = 0.02199999*2;   // times 2 since we made the image smaller
+    // constexpr double yPixLen = -0.02199999*2;  // times 2 since we made the image smaller
     // constexpr double xTopLeft = -179.98888888888889;
     // constexpr double yTopLeft = 86.98888888888889;
 

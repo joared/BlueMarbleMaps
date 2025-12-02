@@ -28,6 +28,7 @@ class Raster::Impl
         int getIntegerAt(int x, int y) const;
         float getFloatAt(int x, int y) const;
         Color getColorAt(int x, int y) const;
+        void setColorAt(int x, int y, const Color& c);
         void resize(int width, int height, ResizeInterpolation interpolation);
         void resize(float scaleRatio, ResizeInterpolation interpolation);
         void rotate(double angle, int cx, int cy, ResizeInterpolation interpolation);

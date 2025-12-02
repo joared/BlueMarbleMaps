@@ -64,25 +64,26 @@ void Feature::reProjectTo(const CrsPtr &crs)
         // rasterGeometry->bounds(m_crs->projectTo(crs, rasterGeometry->bounds()));
         
         // TODO
-        // auto rasterGeom = geometryAsRaster();
-        // auto& currRaster = geometryAsRaster()->raster();
+        auto rasterGeom = geometryAsRaster();
+        auto& currRaster = geometryAsRaster()->raster();
 
-        // auto newBounds = this->crs()->projectTo(crs, bounds());
-        // double cellWidth = newBounds.width() / currRaster.width();
-        // double cellheight = newBounds.height() / currRaster.height();
-        // RasterGeometryPtr newRaster = std::make_shared<RasterGeometry>(currRaster, newBounds, cellWidth, cellheight);
+        auto newBounds = this->crs()->projectTo(crs, bounds());
+        double cellWidth = (double)newBounds.width() / currRaster.width();
+        double cellheight = (double)newBounds.height() / currRaster.height();
+        RasterGeometryPtr newRaster = std::make_shared<RasterGeometry>(currRaster, newBounds, cellWidth, cellheight);
 
-        // for (int i(0); i < currRaster.width(); ++i)
-        // {
-        //     for (int j(0); j < currRaster.height(); ++j)
-        //     {
-        //         auto p = newRaster->rasterIndexToPoint(i,j);
-        //         auto pOld = crs->projectTo(m_crs, p);
-        //         auto ind = rasterGeom->pointToRasterIndex(pOld);
-        //         // newRaster->raster().data()
-        //         // TODO
-        //     }
-        // }
+        for (int i(0); i < currRaster.width(); ++i)
+        {
+            for (int j(0); j < currRaster.height(); ++j)
+            {
+                auto p = newRaster->rasterIndexToPoint(i,j);
+                auto pOld = crs->projectTo(m_crs, p);
+                auto ind = rasterGeom->pointToRasterIndex(pOld);
+                auto color = rasterGeom->raster().getColorAt(ind.x(), ind.y());
+                newRaster->raster().setColorAt(i,j, color);
+            }
+        }
+        m_geometry = newRaster;
     }
     else
     {
@@ -99,12 +100,12 @@ FeatureCollectionPtr Feature::projectTo(const CrsPtr &crs)
 {
     FeatureCollectionPtr features = std::make_shared<FeatureCollection>();
 
-    if (geometryType() == GeometryType::Raster)
-    {
-        // TODO: Raster Unsupported for now
-        features->add(shared_from_this());
-        return features;
-    }
+    // if (geometryType() == GeometryType::Raster)
+    // {
+    //     // TODO: Raster Unsupported for now
+    //     features->add(shared_from_this());
+    //     return features;
+    // }
     auto newFeature = clone();
     newFeature->reProjectTo(crs);
     features->add(newFeature);
