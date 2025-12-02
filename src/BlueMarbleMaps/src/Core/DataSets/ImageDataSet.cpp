@@ -37,12 +37,10 @@ void ImageDataSet::init()
     // constexpr double xTopLeft = -179.98888888888889;
     // constexpr double yTopLeft = 86.98888888888889;
 
-    double cellWidth = std::abs(xPixLen);
-    double cellHeight = std::abs(yPixLen);
     auto raster = Raster(m_filePath);
     auto bounds = Rectangle(xTopLeft, yTopLeft, xTopLeft+raster.width()*xPixLen, yTopLeft+raster.height()*yPixLen);
     BMM_DEBUG() << "MY RASTER AREA: " << bounds.toString() << "\n";
-    m_rasterGeometry = std::make_shared<RasterGeometry>(raster, bounds, cellWidth, cellHeight);
+    m_rasterGeometry = std::make_shared<RasterGeometry>(raster, bounds);
     m_rasterFeature = std::make_shared<Feature>(generateId(), crs(), m_rasterGeometry);
 
     // Overviews
@@ -135,7 +133,7 @@ void ImageDataSet::generateOverViews()
         double cellWidth = 1.0/factor;
         double cellHeight = 1.0/factor;
         auto bounds = boundsOrig; // Same bounds
-        auto rasterGeometry = std::make_shared<RasterGeometry>(overview, bounds, cellWidth, cellHeight);
+        auto rasterGeometry = std::make_shared<RasterGeometry>(overview, bounds);
         m_overViews.emplace(s, rasterGeometry);
 
         std::cout << "Overview: " << s << "\n";

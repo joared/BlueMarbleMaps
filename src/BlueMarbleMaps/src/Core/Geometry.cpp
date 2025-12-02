@@ -129,16 +129,14 @@ RasterGeometry::RasterGeometry()
     throw std::runtime_error("UNINITIALIZED RASTER GEOMETRY!");
 }
 
-BlueMarble::RasterGeometry::RasterGeometry(const Raster& raster, const Rectangle& bounds, double cellWidth, double cellHeight)
+BlueMarble::RasterGeometry::RasterGeometry(const Raster& raster, const Rectangle& bounds)
     : Geometry()
     , m_raster(raster)
     , m_bounds(bounds)
-    , m_cellWidth(cellWidth)
-    , m_cellHeight(cellHeight)
 {
-    if (cellWidth <= 0 || cellHeight <= 0)
+    if (cellWidth() <= 0 || cellHeight() <= 0)
     {
-        throw std::runtime_error("Invalid cell size: " + std::to_string(cellWidth) + "," + std::to_string(cellHeight));
+        throw std::runtime_error("Invalid cell size: " + std::to_string(cellWidth()) + "," + std::to_string(cellHeight()));
     }
 }
 
@@ -172,21 +170,21 @@ RasterGeometryPtr RasterGeometry::getSubRasterGeometry(const Rectangle &subBound
         throw std::exception();
     }
 
-    double cellWidth = m_cellWidth;
-    double cellHeight = m_cellHeight;
+    double cellW = cellWidth();
+    double cellH = cellHeight();
     auto& raster = m_raster;
 
     // Retrie the crop that is inside the update area
-    int x0 = std::max((int)(subBounds.xMin()/cellWidth), 0);
-    int y0 = std::max((int)(subBounds.yMin()/cellHeight), 0);
-    int x1 = std::min((int)(subBounds.xMax()/cellWidth), (int)(raster.width()-1));
-    int y1 = std::min((int)(subBounds.yMax()/cellHeight), (int)(raster.height()-1));
+    int x0 = std::max((int)(subBounds.xMin()/cellW), 0);
+    int y0 = std::max((int)(subBounds.yMin()/cellH), 0);
+    int x1 = std::min((int)(subBounds.xMax()/cellW), (int)(raster.width()-1));
+    int y1 = std::min((int)(subBounds.yMax()/cellH), (int)(raster.height()-1));
 
     // New bounds of sub/cropped raster. Assuming 0 at the very left pixel
-    Rectangle rasterBounds(x0*cellWidth, 
-                           y0*cellHeight, 
-                           (x1+1)*cellWidth, 
-                           (y1+1)*cellHeight);
+    Rectangle rasterBounds(x0*cellW, 
+                           y0*cellH, 
+                           (x1+1)*cellW, 
+                           (y1+1)*cellH);
 
     // Create new sub geometry
     // auto subGeometry =  std::make_shared<RasterGeometry>();
@@ -197,7 +195,7 @@ RasterGeometryPtr RasterGeometry::getSubRasterGeometry(const Rectangle &subBound
 
     // return subGeometry;
     auto cropped = raster.getCrop(x0, y0, x1, y1);
-    return std::make_shared<RasterGeometry>(cropped, rasterBounds, cellWidth, cellHeight);
+    return std::make_shared<RasterGeometry>(cropped, rasterBounds);
 }
 
 MultiPolygonGeometry::MultiPolygonGeometry()

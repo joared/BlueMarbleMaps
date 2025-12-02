@@ -229,7 +229,7 @@ namespace BlueMarble
     {
         public:
             RasterGeometry();
-            RasterGeometry(const Raster& raster, const Rectangle& bounds, double cellWidth, double cellHeight);
+            RasterGeometry(const Raster& raster, const Rectangle& bounds);
             EngineObjectPtr clone() override final { return std::make_shared<RasterGeometry>(*this); };
             GeometryType type() override final { return GeometryType::Raster; };
             
@@ -247,8 +247,8 @@ namespace BlueMarble
 
             Rectangle bounds() const { return m_bounds; };
             void bounds(const Rectangle& bounds) { m_bounds = std::move(bounds); };
-            double cellHeight() const { return m_cellHeight; };
-            double cellWidth() const { return m_cellWidth; };
+            double cellHeight() const { return m_bounds.height() / m_raster.height(); };
+            double cellWidth() const { return m_bounds.width() / m_raster.width(); };
 
             Point pointToRasterIndex(const Point& point) const;
             Point rasterIndexToPoint(int x, int y) const;
@@ -258,8 +258,6 @@ namespace BlueMarble
         private:
             Raster m_raster;
             Rectangle m_bounds;
-            double m_cellWidth;
-            double m_cellHeight;
     };
 
 
