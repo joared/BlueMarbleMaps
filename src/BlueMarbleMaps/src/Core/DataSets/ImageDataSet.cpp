@@ -31,14 +31,11 @@ void ImageDataSet::init()
     constexpr double xTopLeft = -179.98888888888889;
     constexpr double yTopLeft = 89.98888888888889;
 
-    // Playing arround with web mercator
-    // constexpr double xPixLen = 0.02199999*2;   // times 2 since we made the image smaller
-    // constexpr double yPixLen = -0.02199999*2;  // times 2 since we made the image smaller
-    // constexpr double xTopLeft = -179.98888888888889;
-    // constexpr double yTopLeft = 86.98888888888889;
-
     auto raster = Raster(m_filePath);
-    auto bounds = Rectangle(xTopLeft, yTopLeft, xTopLeft+raster.width()*xPixLen, yTopLeft+raster.height()*yPixLen);
+    //auto bounds = Rectangle(xTopLeft, yTopLeft+raster.height()*yPixLen, xTopLeft+raster.width()*xPixLen, yTopLeft);
+    auto bounds = Rectangle(-179.98888888888889, -90.011111111093086, 180.01111111107508, 89.98888888888889);
+    
+    
     BMM_DEBUG() << "MY RASTER AREA: " << bounds.toString() << "\n";
     m_rasterGeometry = std::make_shared<RasterGeometry>(raster, bounds);
     m_rasterFeature = std::make_shared<Feature>(generateId(), crs(), m_rasterGeometry);

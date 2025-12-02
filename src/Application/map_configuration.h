@@ -308,7 +308,7 @@ void configureMap(const MapPtr& map, bool includeBackground=false, bool includeR
     }
 
     auto backgroundLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer());
-    auto backgroundLayer2 = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer());
+    
     auto geoJsonLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer()); geoJsonLayer->asyncRead(asyncBackgroundReading);
     auto continentsLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer()); continentsLayer->asyncRead(asyncBackgroundReading);
     auto roadsGeoJsonLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer());
@@ -320,13 +320,20 @@ void configureMap(const MapPtr& map, bool includeBackground=false, bool includeR
     auto debugLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer());
     if (includeBackground)
     {
-        backgroundDataSet->initialize();
+        //backgroundDataSet->initialize();
+        //backgroundLayer->addDataSet(backgroundDataSet);
+
+        auto backgroundLayer2 = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer(false));
+        auto rasterVis = std::make_shared<RasterVisualizer>();
+        rasterVis->alpha(DirectDoubleAttributeVariable(0.3));
+        backgroundLayer2->visualizers().push_back(rasterVis);
         backgroundDataSet2->initialize();
-        backgroundLayer->addDataSet(backgroundDataSet);
         backgroundLayer2->addDataSet(backgroundDataSet2);
+        backgroundLayer2->asyncRead(true);
+        map->addLayer(backgroundLayer2);
     }
     
-    double minScaleCountries = 1.0/20000000.0;
+    double minScaleCountries = 1.0/60000000.0;
     geoJsonLayer->minScale(minScaleCountries);
     geoJsonLayer->selectable(backgroundLayersSelectable);
 
@@ -365,7 +372,7 @@ void configureMap(const MapPtr& map, bool includeBackground=false, bool includeR
         // sverigeRoadsDataSet->initialize(dataSetInitialization); // Takes very long to initialize (1.4 GB large)
         // roadsGeoJsonLayer->addDataSet(sverigeRoadsDataSet);
         
-        roadsGeoJsonLayer->minScale(1.0/2000000.0);
+        roadsGeoJsonLayer->minScale(1.0/2500000.0);
         //roadsGeoJsonLayer->enabledDuringQuickUpdates(false);
     }
     
@@ -375,7 +382,7 @@ void configureMap(const MapPtr& map, bool includeBackground=false, bool includeR
     
     
     map->addLayer(backgroundLayer);
-    map->addLayer(backgroundLayer2);
+    
     map->addLayer(geoJsonLayer);
     map->addLayer(continentsLayer);
     //map->addLayer(sverigeLayer);

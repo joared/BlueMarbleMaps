@@ -18,7 +18,6 @@ Layer::Layer()
     
 }
 
-
 void Layer::enabled(bool enabled)
 {
     m_enabled = enabled;
