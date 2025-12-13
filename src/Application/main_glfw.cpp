@@ -262,7 +262,7 @@ int main()
     elevationLayer->visualizers().push_back(rasterVis);
     view->addLayer(elevationLayer);
 
-    configureMap(view, true, true, false);
+    configureMap(view, false, true, false);
 
     // Test Polygon/Line/Symbol visualizers
     auto vectorDataSet = std::make_shared<MemoryDataSet>();

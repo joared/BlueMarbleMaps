@@ -111,12 +111,21 @@
 
 struct Key
 {
+#ifdef _WIN32
 #define X(name, id, string) name = id,
 	enum KeyStroke
 	{
 		KEY_STROKES
 	};
 #undef X
+#elif __linux__
+#define X(name, id, string) name = id-8,
+    enum KeyStroke
+    {
+        KEY_STROKES
+    };
+#undef X
+#endif
 
 	Key() = default;
 	constexpr Key(KeyStroke key):keyValue(key) {};

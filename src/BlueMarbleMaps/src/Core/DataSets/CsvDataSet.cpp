@@ -93,4 +93,5 @@ FeatureCollectionPtr CsvFileDataSet::read(const std::string& filePath)
     //     countyPolygon->attributes().set("NAME", name);
     //     m_features.insert(m_features.begin(), countyPolygon);
     // }
+    return nullptr;
 }
