@@ -31,6 +31,14 @@ target_include_directories(BlueMarbleMapsLib
   PUBLIC ${CMAKE_SOURCE_DIR}/include
 )
 
+# Add external stuff
+target_include_directories(BlueMarbleMapsLib
+  PUBLIC ${CMAKE_SOURCE_DIR}/external
+)
+
+message("Linking BlueMarbleMapsLib to glm")
+target_link_libraries(BlueMarbleMapsLib PRIVATE glm)
+
 if(LINK_TO_CIMG)
     message("Linking BlueMarbleMapsLib to CImgImplementation")
     target_link_libraries(BlueMarbleMapsLib PRIVATE CImgImplementation)

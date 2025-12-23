@@ -21,10 +21,11 @@ namespace BlueMarble
     {
         public:
             inline static Point undefined() { Point p; p.m_isUndefined = true; return p; }
-            inline Point(double x=0, double y=0) : m_x(x), m_y(y), m_isUndefined(false) {}
+            inline Point(double x=0, double y=0, double z=0) : m_x(x), m_y(y), m_z(z), m_isUndefined(false) {}
             inline bool isUndefined() const { return m_isUndefined; }
-            inline  double x() const { return m_x; }
-            inline  double y() const { return m_y; }
+            inline double x() const { return m_x; }
+            inline double y() const { return m_y; }
+            inline double z() const { return m_z; }
 
             inline Point round() const
             {
@@ -39,6 +40,11 @@ namespace BlueMarble
             inline double length()
             {
                 return std::sqrt(m_x*m_x + m_y*m_y);
+            }
+
+            inline double length3D()
+            {
+                return std::sqrt(m_x*m_x + m_y*m_y + m_z*m_z);
             }
 
             inline double distanceTo(const Point& other)
@@ -66,13 +72,14 @@ namespace BlueMarble
 
             inline Point operator+(const Point& other) const
             {
-                return Point(m_x + other.x(), m_y+other.y());
+                return Point(m_x + other.x(), m_y+other.y(), m_z+other.z());
             }
 
             inline void operator+=(const Point& other)
             {
                 m_x += other.x();
                 m_y += other.y();
+                m_z += other.z();
             }
 
             inline Point operator-(const Point& other) const
@@ -93,6 +100,7 @@ namespace BlueMarble
         private:
             double  m_x;
             double  m_y;
+            double  m_z;
             bool    m_isUndefined;
     };
 

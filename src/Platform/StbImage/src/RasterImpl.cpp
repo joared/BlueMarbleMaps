@@ -108,8 +108,8 @@ int Raster::Impl::channels() const
 
 int Raster::Impl::getCellIndexAt(int x, int y) const
 {
-    assert(x > 0); assert(x < m_width);
-    assert(y > 0); assert(y < m_height);
+    assert(x >= 0); assert(x < m_width);
+    assert(y >= 0); assert(y < m_height);
     return (y * m_width + x) * m_channels;
 }
 

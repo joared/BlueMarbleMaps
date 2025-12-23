@@ -341,8 +341,19 @@ void StandardLayer::createDefaultVisualizers()
             from, 
             to, 
             700,
-            0,
-            EasingFunctionType::Linear);
+            0);
+        
+        return value(feature, updateAttributes);
+    };
+    auto animatedDouble2 = [](FeaturePtr feature, Attributes& updateAttributes) 
+    { 
+        static auto from = DirectDoubleAttributeVariable(0.0);
+        static auto to = DirectDoubleAttributeVariable(1.0);
+        static auto value = AnimatedDoubleAttributeVariable(
+            from, 
+            to, 
+            300,
+            0);
         
         return value(feature, updateAttributes);
     };
@@ -410,7 +421,7 @@ void StandardLayer::createDefaultVisualizers()
 
     // Line visualizer
     auto lineVis = std::make_shared<LineVisualizer>();
-    lineVis->color(ColorEvaluation([](FeaturePtr, Attributes&) { return Color(50,50,50,1.0); }));
+    lineVis->color(ColorEvaluation([](FeaturePtr, Attributes&) { return Color(50,50,50,0.2); }));
     //lineVis->color(colorEvalSelect);
     lineVis->width([](FeaturePtr, Attributes&) -> double { return 3.0; });
 
@@ -448,7 +459,7 @@ void StandardLayer::createDefaultVisualizers()
 
     // Line visualizer
     auto lineVisHover = std::make_shared<LineVisualizer>();
-    lineVisHover->color([](auto, auto) { return Color(255,255,255,1.0); });
+    lineVisHover->color([=](auto f, auto& u) { return Color(255,255,255,1.0); });
     lineVisHover->width(DirectDoubleAttributeVariable(3.0)); //[](auto, auto) { return 3.0; });
 
     auto pointVisHover = std::make_shared<SymbolVisualizer>();
@@ -490,9 +501,14 @@ void StandardLayer::createDefaultVisualizers()
 
     // Line visualizer
     auto lineVisSelect = std::make_shared<LineVisualizer>();
-    lineVisSelect->color([](auto, auto) { return Color(255,255,0,1.0); });
+    lineVisSelect->color([=](auto f, auto& u) { 
+        auto an = animatedDouble(f,u);
+        return Color(255*an,255,255*(1.0-an),1.0); });
     lineVisSelect->width(DirectDoubleAttributeVariable(3.0)); //[](auto, auto) { return 3.0; });
-    
+    lineVisSelect->offsetZ([=](auto f, Attributes& u) { 
+        return (1.0/100.0)/u.get<double>(UpdateAttributeKeys::UpdateViewScale)*animatedDouble(f,u); 
+    }); // FIXME: not providing "auto&" with "&" causes update attributes to be copied. This is fragile, since e.g. animation depends on setting the UpdateRequired attribute
+
     auto textVisSelect = std::make_shared<TextVisualizer>(*textVisHover);
 
     //m_selectionVisualizers.push_back(polVisSelectShadow);

@@ -16,6 +16,7 @@ Visualizer::Visualizer()
     , m_rotationEval([](auto, auto) { return 0.0; })
     , m_offsetXEval([](auto, auto) { return 0.0; })
     , m_offsetYEval([](auto, auto) { return 0.0; })
+    , m_offsetZEval([](auto, auto) { return 0.0; })
     , m_lengthUnit(VisualizerLengtUnit::Pixels)
 {
 }
@@ -325,9 +326,13 @@ void LineVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feature
         throw std::exception();
     }
 
+    double offsetZ = m_offsetZEval(feature, updateAttributes);
+    offsetZ /= feature->crs()->globalMeterScale(); // Meters
+
     for (auto& line : lines)
     {
         LineGeometryPtr linePtr = std::make_shared<LineGeometry>(line);
+        linePtr->move(Point(0,0,offsetZ));
         drawable.drawLine(linePtr, Pen(m_colorEval(feature, updateAttributes), m_widthEval(feature, updateAttributes)));
     }
 }

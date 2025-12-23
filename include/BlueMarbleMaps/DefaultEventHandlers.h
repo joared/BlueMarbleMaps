@@ -218,8 +218,12 @@ namespace BlueMarble
                 auto linePtr = std::make_shared<PolygonGeometry>(line);
                 drawable->drawPolygon(linePtr, pen, brush); 
 
-                auto l2 = Rectangle(0,0,100,100).corners();
+                double offsetRect = 0.0;
+                auto l2 = Rectangle(offsetRect,offsetRect,100,100).corners();
                 drawable->drawPolygon(std::make_shared<PolygonGeometry>(l2), pen, brush);
+
+                auto l3 = Rectangle(drawable->width()-100,drawable->height()-100,drawable->width()-1-offsetRect,drawable->height()-1-offsetRect).corners();
+                drawable->drawPolygon(std::make_shared<PolygonGeometry>(l3), pen, brush);
             }
 
             void OnCustomDraw(BlueMarble::Map& /*map*/)
@@ -235,10 +239,8 @@ namespace BlueMarble
 
                 if (!m_rectangle.isUndefined())
                 {
-                    auto screenRect = m_map->mapToScreen(m_rectangle);
-                    screenRect.floor();
-                    drawRect(screenRect);
-                    BMM_DEBUG() << "Draw rect: " << screenRect.toString() << "\n";
+                    drawRect(m_rectangle);
+                    BMM_DEBUG() << "Draw rect: " << m_rectangle.toString() << "\n";
                 }
 
                 if (m_drawDataSetInfo)
@@ -637,14 +639,20 @@ namespace BlueMarble
                             // zoom to rect
                             std::cout << "Mod key: " << dragEvent.modificationKey << "\n";
                             m_zoomToRect = true;
-                            auto rect = BlueMarble::Rectangle(dragEvent.startPos.x, dragEvent.startPos.y, dragEvent.pos.x, dragEvent.pos.y);
-                            m_rectangle = m_map->screenToMap(rect);
+                            m_rectangle = Rectangle(dragEvent.startPos.x, dragEvent.startPos.y, dragEvent.pos.x, dragEvent.pos.y);
                             m_map->update();
                         }
                         else
                         {
-                            m_map->panBy({(double)(dragEvent.lastPos.x - dragEvent.pos.x), 
-                                        (double)(dragEvent.lastPos.y - dragEvent.pos.y)});
+                            // New
+                            auto screen1 = Point(dragEvent.pos.x, dragEvent.pos.y);
+                            auto screen2 = Point(dragEvent.lastPos.x, dragEvent.lastPos.y);
+                            auto offsetWorld = m_map->screenToMap(screen2) - m_map->screenToMap(screen1);
+                            auto to = m_map->center() + offsetWorld;
+                            m_map->center(to); 
+                            // Old
+                            // m_map->panBy({(double)(dragEvent.lastPos.x - dragEvent.pos.x), 
+                            //             (double)(dragEvent.lastPos.y - dragEvent.pos.y)});
                             m_map->update();
                         }
                         
@@ -687,8 +695,14 @@ namespace BlueMarble
                 case BlueMarble::MouseButtonMiddle:
                     {
                         // Pan navigation thing
-                        m_map->panBy({-(double)(dragEvent.lastPos.x - dragEvent.pos.x), 
-                                      -(double)(dragEvent.lastPos.y - dragEvent.pos.y)});
+                        // m_map->panBy({-(double)(dragEvent.lastPos.x - dragEvent.pos.x), 
+                        //               -(double)(dragEvent.lastPos.y - dragEvent.pos.y)});
+                        
+                        constexpr double tiltFactor = 0.5; // Should be dependent on focal length
+
+                        double deltaTilt = (dragEvent.lastPos.y - dragEvent.pos.y) * tiltFactor;
+                        m_map->tilt(m_map->tilt() + deltaTilt);
+
                         m_map->update();
 
                         // Draw a rectangle
@@ -713,10 +727,9 @@ namespace BlueMarble
                 if (m_zoomToRect)
                 {
                     m_zoomToRect = false;
-                    auto topLeft = m_map->screenToMap(BlueMarble::Point(dragEndEvent.startPos.x, dragEndEvent.startPos.y));
-                    auto bottomRight = m_map->screenToMap(BlueMarble::Point(dragEndEvent.pos.x, dragEndEvent.pos.y));
-                    auto rect = BlueMarble::Rectangle(topLeft.x(), topLeft.y(), bottomRight.x(), bottomRight.y());
-                    m_map->zoomToArea(rect, true);
+                    auto rect = Rectangle(dragEndEvent.startPos.x, dragEndEvent.startPos.y, 
+                                          dragEndEvent.pos.x, dragEndEvent.pos.y);
+                    m_map->zoomToArea(m_map->screenToMap(rect), true);
                     m_map->update();
                     m_rectangle = BlueMarble::Rectangle::undefined();
                     
@@ -747,7 +760,11 @@ namespace BlueMarble
                             
                         double animationDuration = speed / (alpha * linearity);
                         auto offset = velocity * (-animationDuration / 2.0);
-                        auto to = m_map->screenToMap(m_map->screenCenter() + offset);
+                        // New
+                        auto offsetWorld = m_map->screenToMap(m_map->screenCenter() + offset) - m_map->screenToMap(m_map->screenCenter());
+                        auto to = m_map->center() + offsetWorld;
+                        // Previous
+                        //m_map->screenToMap(m_map->screenCenter() + offset);
 
                         auto animation = BlueMarble::Animation::Create(*m_map,
                                                                     m_map->center(), 

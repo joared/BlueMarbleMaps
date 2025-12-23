@@ -156,10 +156,12 @@ Point RasterGeometry::pointToRasterIndex(const Point& point) const
 
 Point BlueMarble::RasterGeometry::rasterIndexToPoint(int x, int y) const
 {
-    assert(x < raster().width());
-    assert(y < raster().height());
+    // TODO make Raster::width()/height() const
+    // assert(x < raster().width());
+    // assert(y < raster().height());
 
-    return Point(bounds().xMin() + cellWidth()*x, bounds().yMax() - cellHeight()*y);
+    return Point(bounds().xMin() + cellWidth()*x, 
+                 bounds().yMax() - cellHeight()*y);
 }
 
 RasterGeometryPtr RasterGeometry::getSubRasterGeometry(const Rectangle &subBounds)

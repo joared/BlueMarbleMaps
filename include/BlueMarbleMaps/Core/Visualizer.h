@@ -50,6 +50,7 @@ namespace BlueMarble
             void color(const ColorEvaluation& colorEval);
             void offsetX(DoubleEvaluation intEval) { m_offsetXEval = intEval; }
             void offsetY(DoubleEvaluation intEval) { m_offsetYEval = intEval; }
+            void offsetZ(DoubleEvaluation intEval) { m_offsetZEval = intEval; }
             void size(const DoubleEvaluation& sizeEval);
             void sizeAdd(const DoubleEvaluation& sizeAddEval);
             void rotation(const DoubleEvaluation& rotationEval);
@@ -81,6 +82,7 @@ namespace BlueMarble
             DoubleEvaluation        m_rotationEval;
             DoubleEvaluation        m_offsetXEval;
             DoubleEvaluation        m_offsetYEval;
+            DoubleEvaluation        m_offsetZEval;
         private:
             bool                    m_renderingEnabled;
             std::vector<FeaturePtr> m_attachedFeatures;

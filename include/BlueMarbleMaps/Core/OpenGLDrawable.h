@@ -22,6 +22,11 @@ namespace BlueMarble
         const Color& backgroundColor();
         virtual void backgroundColor(const Color& color);
 
+        
+        // New stuff
+        void setProjectionMatrix(const glm::mat4& proj);
+        void setViewMatrix(const glm::mat4& viewMatrix);
+
         // Methods
         const Transform& getTransform();
         void setTransform(const Transform& transform);

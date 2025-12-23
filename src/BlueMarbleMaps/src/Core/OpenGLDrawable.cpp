@@ -136,6 +136,36 @@ const Transform& BlueMarble::OpenGLDrawable::getTransform()
     return m_transform;
 }
 
+void BlueMarble::OpenGLDrawable::resize(int width, int height)
+{
+    m_width = width;
+    m_height = height;
+    //std::cout << "I shalle be doing a glViewPort resize yes" << "\n";
+    glViewport(0, 0, width, height);
+
+    float w2 = width * 0.5;
+    float h2 = height * 0.5;
+    glm::mat4 proj = glm::ortho(-w2, w2, -h2, h2, -100000000.0f, 100000000.0f);
+    // float fov = glm::radians(85.0);
+    // glm::mat4 proj = glm::perspectiveFov(fov, (float)width, (float)height, 0.1f, 100000000.0f);
+
+    m_projectionMatrix = proj;
+
+    // Legacy opengl
+    // glMatrixMode(GL_PROJECTION);
+    // glLoadMatrixf(glm::value_ptr(m_projectionMatrix));
+}
+
+void BlueMarble::OpenGLDrawable::setProjectionMatrix(const glm::mat4& proj)
+{
+    m_projectionMatrix = proj;
+}
+
+void BlueMarble::OpenGLDrawable::setViewMatrix(const glm::mat4& viewMatrix)
+{
+    m_viewMatrix = viewMatrix;
+}
+
 void BlueMarble::OpenGLDrawable::setTransform(const Transform& transform)
 {
     m_transform = transform;
@@ -155,6 +185,33 @@ void BlueMarble::OpenGLDrawable::setTransform(const Transform& transform)
     ));
 
     m_viewMatrix = view;
+    return;
+
+    // Fake ortho/2.5 d camera
+    // float fov = glm::radians(85.0);
+    // m_transform = transform;
+
+    // auto center = m_transform.translation();
+    // double scaleX = m_transform.scaleX();
+    // double scaleY = m_transform.scaleY();
+    // double rotation = m_transform.rotation() * DEG_TO_RAD;
+
+    // int t = glfwGetTime();
+    // double prog = t % 5 / 5.0;
+    // double pitch = prog * 45 * DEG_TO_RAD;
+    // //pitch = 0.0;
+    // glm::mat4 cam = glm::mat4(1.0f);
+    
+    // cam = glm::translate(cam, glm::vec3(
+    //     center.x(),
+    //     center.y(),
+    //     float(height()/(2.0*scaleX*std::tan(fov * 0.5)))
+    // ));
+    // if (scaleY < 0) cam = glm::scale(cam, glm::vec3(1.0, scaleY, 1.0f)); // Cheating
+    // cam = glm::rotate(cam, (float)rotation, glm::vec3(0.0f, 0.0f, 1.0f));
+    // //cam = glm::rotate(cam, float(pitch), glm::vec3(1.0f, 0.0f, 0.0f));
+    
+    // m_viewMatrix = glm::inverse(cam);
     
     // Legacy opengl
     // glMatrixMode(GL_MODELVIEW);  // Set to model-view matrix
@@ -166,6 +223,14 @@ void BlueMarble::OpenGLDrawable::setTransform(const Transform& transform)
     // glVertex2f(100, 100);
     // glVertex2f(0, 100);
     // glEnd();
+    double z = 1;
+    auto testLine3D = std::make_shared<LineGeometry>(std::vector<Point>{{0.0,0.5,}, {-0.5,-0.5}, {0.5,-0.5}});
+    auto testLineScree = std::make_shared<LineGeometry>(std::vector<Point>{{0.0,0.5,}, {-0.5,-0.5}, {0.5,-0.5}});
+    beginBatches();
+    Pen p; p.setColor(Color::red());
+    drawLine(testLine3D, p);
+    endBatches();
+
 }
 
 void BlueMarble::OpenGLDrawable::beginBatches()
@@ -197,25 +262,6 @@ void BlueMarble::OpenGLDrawable::endBatches()
         lineBatch->end();
         lineBatch->flush();
     }
-}
-
-void BlueMarble::OpenGLDrawable::resize(int width, int height)
-{
-    m_width = width;
-    m_height = height;
-    //std::cout << "I shalle be doing a glViewPort resize yes" << "\n";
-    glViewport(0, 0, width, height);
-
-    float w2 = width * 0.5;
-    float h2 = height * 0.5;
-    glm::mat4 proj = glm::ortho(-w2, w2, -h2, h2, -100000000.0f, 100000000.0f);
-    //glm::mat4 proj = glm::perspectiveFov(40.0f, (float)width, (float)height, -10.0f, 10.0f);
-    
-    m_projectionMatrix = proj;
-
-    // Legacy opengl
-    // glMatrixMode(GL_PROJECTION);
-    // glLoadMatrixf(glm::value_ptr(m_projectionMatrix));
 }
 
 void BlueMarble::OpenGLDrawable::drawCircle(double cx, double cy, double radius, const Pen& pen, const Brush& brush)
@@ -616,7 +662,7 @@ glm::mat4x4 BlueMarble::OpenGLDrawable::transformToMatrix(const Transform& trans
 
 Vertice BlueMarble::OpenGLDrawable::createPoint(Point& point, Color color)
 {
-    glm::vec3 pos(point.x(), point.y(), 0);
+    glm::vec3 pos(point.x(), point.y(), point.z());
     glm::vec4 glColor((float)color.r() / 255, (float)color.g() / 255, (float)color.b() / 255, color.a());
     return Vertice{ pos, glColor };
 }

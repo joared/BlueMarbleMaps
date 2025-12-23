@@ -6,6 +6,8 @@
 #include "BlueMarbleMaps/Core/SoftwareDrawable.h"
 #include "BlueMarbleMaps/Logging/Logging.h"
 
+#include "BlueMarbleMaps/Core/OpenGLDrawable.h"
+
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -28,6 +30,7 @@ Map::Map()
     : m_center(lngLatToMap(Point(30, 36)))
     , m_scale(1.0)
     , m_rotation(0.0)
+    , m_tilt(0.0)
     , m_constraints(5000.0, 0.0001, Rectangle(0, 0, 100000, 100000))
     , m_crs(Crs::wgs84LngLat())
     , m_updateRequired(true)
@@ -45,17 +48,19 @@ Map::Map()
     , m_showDebugInfo(true)
     , m_isUpdating(false)
     , m_renderingEnabled(true)
-{   
+{
     m_drawable = std::make_shared<SoftwareBitmapDrawable>(500, 500, 4);
     m_presentationObjects.reserve(1000000); // Reserve a good amount for efficiency
     resetUpdateFlags();
     m_constraints.bounds().scale(3.0);
 
     updateUpdateAttributes(getTimeStampMs());
+
+    setCamera();
 }
 
 bool Map::update(bool forceUpdate)
-{   
+{
     if (!forceUpdate && m_mapControl)
     {
         // Let MapControl schedule update
@@ -83,7 +88,7 @@ bool Map::update(bool forceUpdate)
     }
 
     events.onUpdating.notify(*this);
-    
+
     // Constrain map pose
     m_constraints.constrainMap(*this);
 
@@ -91,18 +96,26 @@ bool Map::update(bool forceUpdate)
     beforeRender();
     renderLayers(); // Let layers do their work
 
+    // FIXME camera stuff:
+    if (auto glDrawable = std::dynamic_pointer_cast<OpenGLDrawable>(m_drawable))
+    {
+        auto proj = ScreenCameraProjection(m_drawable->width(), m_drawable->height(), ScreenCameraProjection::ScreenUnit::ScreenSpace);
+        glDrawable->setProjectionMatrix(proj.projectionMatrix());
+    }
+
     // Each onCustomDraw notification should have the transform set to "screen".
     // Since handlers are allowed to modify the transform, we need to make sure to reset it
     // each time a handler is called.
-    auto preNotifyAction = [this]() 
-    { 
-        m_drawable->setTransform(Transform::screenTransform(m_drawable->width(), m_drawable->height()));
+    auto preNotifyAction = [this]()
+    {
+        //m_drawable->setTransform(Transform::screenTransform(m_drawable->width(), m_drawable->height()));
+        m_drawable->setTransform(Transform());
         m_drawable->beginBatches();
     };
     auto postNotifyAction = [this]()
     {
         m_drawable->endBatches();
-    };    
+    };
     events.onCustomDraw.notify(*this, preNotifyAction, postNotifyAction);
 
     if (m_showDebugInfo)
@@ -111,11 +124,11 @@ bool Map::update(bool forceUpdate)
     }
 
     afterRender();
-    
+
     events.onUpdated.notify(*this);
-    
+
     m_updateRequired = m_updateAttributes.get<bool>(UpdateAttributeKeys::UpdateRequired); // Someone in the operator chain needs more updates (e.g. Visualization evaluations)
-    //m_updateRequired = m_updateRequired || m_animation != nullptr;
+
     resetUpdateFlags();
 
     m_isUpdating = false;
@@ -138,7 +151,7 @@ void Map::renderLayer(const LayerPtr& layer, const FeatureQuery& featureQuery)
 void Map::renderLayers()
 {
     m_presentationObjects.clear(); // Clear presentation objects, layers will add new
-    
+
     FeatureQuery featureQuery = std::move(produceUpdateQuery());
 
     for (const auto& l : m_layers)
@@ -149,26 +162,60 @@ void Map::renderLayers()
     }
 
     // Debug draw update area
-    // m_drawable->beginBatches();
-    // auto line = std::make_shared<LineGeometry>(updateArea);
-    // Pen p;
-    // p.setColor(Color::red());
-    // p.setThickness(5.0);
-    // //m_drawable->setTransform(Transform::screenTransform(m_drawable->width(), m_drawable->height()));
-    // m_drawable->drawLine(line, p);
-    // m_drawable->endBatches();
+    m_drawable->beginBatches();
+    auto line = std::make_shared<LineGeometry>(featureQuery.area());
+    Pen p;
+    p.setColor(Color::red());
+    p.setThickness(5.0);
+    //m_drawable->setTransform(Transform::screenTransform(m_drawable->width(), m_drawable->height()));
+    m_drawable->drawLine(line, p);
+    m_drawable->endBatches();
 }
 
 FeatureQuery BlueMarble::Map::produceUpdateQuery()
 {
     FeatureQuery featureQuery;
 
-    // TODO: this scaling is for debugging querying, remove 
-    auto updateArea = area();
-    updateArea.scale(.5);
+    // TODO: this scaling is for debugging querying, remove
+    //auto updateArea = area();
+    
+    
+
+    int w = m_drawable->width();
+    int h = m_drawable->height();
+    auto screenArea = Rectangle(0,0,w,h);
+    screenArea.scale(0.5);
+
+    // std::vector<Point> visibleRegionWorld;
+    // visibleRegionWorld.push_back(screenToMap(0,0));
+    // visibleRegionWorld.push_back(screenToMap(0,w-1));
+    // visibleRegionWorld.push_back(screenToMap(h-1,w-1));
+    // visibleRegionWorld.push_back(screenToMap(h-1,0));
+    // auto updateArea = Rectangle::fromPoints(visibleRegionWorld);
+    auto updateArea = screenToMap(screenArea);
+    
 
     featureQuery.area(updateArea);
-    featureQuery.scale(scale());
+    // featureQuery.scale(scale());
+    // New: calculate scale based on camera
+    auto centerMap = screenToMap(screenCenter());
+    // Map to camera
+    glm::vec3 glmCenterMap(centerMap.x(), centerMap.y(), centerMap.z());
+    auto centerCam = glm::xyz(m_camera->viewMatrix() * glm::vec4(glmCenterMap, 1.0f));
+    double zCam = centerCam.z;
+    auto p1 = rayDirectionCamera(0,0);
+    auto p2 = rayDirectionCamera(m_drawable->width()-1,0);
+    p1 = p1 * (zCam / p1.z());
+    p2 = p2 * (zCam / p2.z());
+    double widthCam = (p1-p2).length3D();
+    double queryScale = m_drawable->width() / widthCam * m_drawable->pixelSize() / m_crs->globalMeterScale();
+
+    BMM_DEBUG() << "Query scale numerical: " << queryScale << "\n";
+    queryScale = 1.0 / m_camera->unitsPerPixelAtDistance(std::abs(zCam)) * m_drawable->pixelSize() / m_crs->globalMeterScale();
+    BMM_DEBUG() << "Query scale analytical: " << queryScale << "\n";
+    BMM_DEBUG() << "Scale: " << scale() << "\n";
+    featureQuery.scale(queryScale);
+
     featureQuery.quickUpdate(quickUpdateEnabled());
     featureQuery.updateAttributes(&updateAttributes());
 
@@ -180,6 +227,8 @@ void Map::center(const Point &center)
     m_updateRequired = true;
     m_centerChanged = true;
     m_center = center;
+    
+    setCamera();
 }
 
 void Map::scale(double scale)
@@ -187,6 +236,8 @@ void Map::scale(double scale)
     m_updateRequired = true;
     m_scaleChanged = true;
     m_scale = scale*m_crs->globalMeterScale() / m_drawable->pixelSize();
+
+    setCamera();
 }
 
 double Map::scale() const
@@ -214,6 +265,21 @@ void Map::rotation(double rotation)
     m_updateRequired = true;
     m_rotationChanged = true;
     m_rotation = rotation;
+
+    setCamera();
+}
+
+double Map::tilt() const
+{
+    return m_tilt;
+}
+
+void Map::tilt(double tilt)
+{
+    m_updateRequired = true;
+    m_tilt = tilt;
+
+    setCamera();
 }
 
 double Map::width() const
@@ -223,7 +289,9 @@ double Map::width() const
 
 void Map::width(double newWidth)
 {
-    m_scale *= width() / newWidth;
+    m_scale = m_scale * width() / newWidth;
+
+    setCamera();
 }
 
 double Map::height() const
@@ -258,14 +326,15 @@ void Map::crs(const CrsPtr& newCrs)
     flushCache(); // We need to flush layer caches since the crs has changed
 }
 
-void Map::panBy(const Point &deltaScreen, bool animate) 
+void Map::panBy(const Point &deltaScreen, bool animate)
 {
     //center(m_center + Point(deltaScreen.x(), deltaScreen.y())*(1/m_scale));
     // TODO: add this back when fixed, or?
     auto centerScreen = screenCenter();
     auto newScreenCenter = centerScreen + deltaScreen;
-    auto to = screenToMap(newScreenCenter.x(), newScreenCenter.y());
-
+    auto fromWord = screenToMap(centerScreen);
+    auto toWorld = screenToMap(newScreenCenter.x(), newScreenCenter.y());
+    auto to = m_center + toWorld-fromWord;
     if (animate)
     {
         auto animation = Animation::Create(*this, center(), to, 500, false);
@@ -312,14 +381,14 @@ void Map::zoomOn(const Point& mapPoint, double zoomFactor, bool animate)
         zoomFactor = m_animation->toScale()/scale() * zoomFactor;
     }
 
-    double newScale = m_constraints.constrainValue(scale()*zoomFactor, 
-                                                   m_constraints.minScale(), 
+    double newScale = m_constraints.constrainValue(scale()*zoomFactor,
+                                                   m_constraints.minScale(),
                                                    m_constraints.maxScale());
     zoomFactor = newScale / scale();
 
-    auto delta = Point((mapPoint.x() - center().x()), 
+    auto delta = Point((mapPoint.x() - center().x()),
                        (mapPoint.y() - center().y()));
-    
+
     auto newCenter = mapPoint - delta*(1.0/zoomFactor);
 
     zoomTo(newCenter, newScale, animate);
@@ -338,27 +407,27 @@ void Map::zoomOn(const Point& mapPoint, double zoomFactor, bool animate)
 void Map::zoomToArea(const Rectangle& bounds, bool animate)
 {
     std::cout << "zoomToArea\n";
-    auto to = bounds.center();
+    
+    // auto to = bounds.center();
 
-    double toScale = scale() * width() / bounds.width();
-    if (width() / height() > bounds.width() / bounds.height())
-        toScale = scale() * height() / bounds.height();
+    // double toScale = scale() * width() / bounds.width();
+    // if (width() / height() > bounds.width() / bounds.height())
+    //     toScale = scale() * height() / bounds.height();
 
-    toScale = m_constraints.constrainValue(toScale, 
-                                           m_constraints.minScale(), 
-                                           m_constraints.maxScale());
+    // toScale = m_constraints.constrainValue(toScale,
+    //                                        m_constraints.minScale(),
+    //                                        m_constraints.maxScale());
 
-    //zoomTo(to, toScale, animate);
-    if (animate)
-    {
-        auto animation = Animation::Create(*this, center(), to, scale(), toScale, 1000, false);
-        startAnimation(animation);
-    }
-    else
-    {
-        center(to);
-        scale(toScale);
-    }
+    // if (animate)
+    // {
+    //     auto animation = Animation::Create(*this, center(), toCenter, scale(), toScale, 1000, false);
+    //     startAnimation(animation);
+    // }
+    // else
+    // {
+    //     center(toCenter);
+    //     scale(toScale);
+    // }
 }
 
 void Map::zoomToMinArea(const Rectangle &bounds, bool animate)
@@ -369,8 +438,8 @@ void Map::zoomToMinArea(const Rectangle &bounds, bool animate)
     if (width() / height() < bounds.width() / bounds.height())
         toScale = scale() * height() / bounds.height();
 
-    toScale = m_constraints.constrainValue(toScale, 
-                                           m_constraints.minScale(), 
+    toScale = m_constraints.constrainValue(toScale,
+                                           m_constraints.minScale(),
                                            m_constraints.maxScale());
 
     if (animate)
@@ -393,27 +462,108 @@ Point Map::screenToMap(const Point& screenPos) const
 Point Map::screenToMap(double x, double y) const
 {
     // NOTE: this methods treats screen coordinates as "pixel indexes", not the geometrical point
-    auto sCenter = screenCenter();
-    double mapX = (x - sCenter.x()) / m_scale + m_center.x();// + m_img.width() / 2.0;
-    double mapY = -(y - sCenter.y()) / m_scale + m_center.y();// + m_img.height() / 2.0;
+    
+    auto projMatrix = m_camera->projectionMatrix();
+    auto cameraTransform = m_camera->transform(); 
+    
+    double xNdc,yNdc;
+    pixelToNDC(x, y, xNdc, yNdc);
 
-    return Utils::rotatePointDegrees(Point(mapX, mapY), m_rotation, m_center);
+    glm::vec4 nearPointNdc(xNdc, yNdc, -1.0f, 1.0f);
+    glm::vec4 farPointNdc(xNdc, yNdc, 1.0f, 1.0f);
+
+    glm::mat4 invVP = glm::inverse(projMatrix);
+    glm::vec3 nearCamera = glm::xyz(invVP * nearPointNdc) / (invVP * nearPointNdc).w;
+    glm::vec3 farCamera  = glm::xyz(invVP * farPointNdc)  / (invVP * farPointNdc).w;
+
+    glm::vec3 nearWorld = glm::xyz(cameraTransform * glm::vec4(nearCamera, 1.0));
+    glm::vec3 farWorld = glm::xyz(cameraTransform * glm::vec4(farCamera, 1.0));
+
+    glm::vec3 dir = glm::normalize(farWorld - nearWorld);
+    float t = -nearWorld.z / dir.z; // intersect z = 0 plane
+
+    if (t < 0.0)
+    {
+        // The ray does not intersect the world plane in front of the camera
+        return Point::undefined();
+    }
+
+    return Point(nearWorld.x + t*dir.x, nearWorld.y + t*dir.y);
+
+    // OLD
+    // auto sCenter = screenCenter();
+    // double mapX = (x - sCenter.x()) / m_scale + m_center.x();// + m_img.width() / 2.0;
+    // double mapY = -(y - sCenter.y()) / m_scale + m_center.y();// + m_img.height() / 2.0;
+
+    // return Utils::rotatePointDegrees(Point(mapX, mapY), m_rotation, m_center);
 }
 
-Point Map::mapToScreen(const Point& point) const
+
+Point Map::mapToScreen(const Point &point) const
 {
     // NOTE: this methods treats screen coordinates as "pixel indexes", not the geometrical point
-    auto screenC = screenCenter();
-    //auto screenC = Point(m_drawable->width()*0.5, m_drawable->height()*0.5);
 
-    auto delta = Utils::rotatePointDegrees(point, -m_rotation, m_center) - m_center;
-    double x = delta.x()*m_scale + screenC.x();
-    double y = -delta.y()*m_scale + screenC.y();
+    glm::vec4 p = glm::vec4((float)point.x(), (float)point.y(), 0.0f, 1.0f);
+    glm::vec4 clipSpace = m_camera->viewProjMatrix() * p;
+    glm::vec3 ndc = glm::xyz(clipSpace) / clipSpace.w;
+    
+    double x,y;
+    ndcToPixel(ndc.x, ndc.y, x, y);
 
     return Point(x, y);
+
+    // OLD
+    // auto screenC = screenCenter();
+    // //auto screenC = Point(m_drawable->width()*0.5, m_drawable->height()*0.5);
+
+    // auto delta = Utils::rotatePointDegrees(point, -m_rotation, m_center) - m_center;
+    // double x = delta.x()*m_scale + screenC.x();
+    // double y = -delta.y()*m_scale + screenC.y();
+
+    // return Point(x, y);
 }
 
-std::vector<Point> BlueMarble::Map::screenToMap(const std::vector<Point> &points) const
+Point Map::rayDirectionCamera(double pixelX, double pixelY) const
+{
+    double xNdc,yNdc;
+    pixelToNDC(pixelX, pixelY, xNdc, yNdc);
+
+    glm::vec4 nearPointNdc(xNdc, yNdc, -1.0f, 1.0f);
+    glm::vec4 farPointNdc(xNdc, yNdc, 1.0f, 1.0f);
+
+    glm::mat4 invVP = glm::inverse(m_camera->projectionMatrix());
+    glm::vec3 nearCamera = glm::xyz(invVP * nearPointNdc) / (invVP * nearPointNdc).w;
+    glm::vec3 farCamera  = glm::xyz(invVP * farPointNdc)  / (invVP * farPointNdc).w;
+
+    glm::vec3 dir = glm::normalize(farCamera - nearCamera);
+
+    return Point(dir.x, dir.y, dir.z);
+}
+
+Point Map::rayDirectionMap(double pixelX, double pixelY) const
+{
+    auto dirCamera = rayDirectionCamera(pixelX, pixelY);
+
+    auto cameraTransform = m_camera->transform();
+    glm::vec3 glmDirCamera{dirCamera.x(), dirCamera.y(), dirCamera.z()};
+    glm::vec3 dirMap = glm::xyz(cameraTransform * glm::vec4(glmDirCamera, 1.0));
+
+    return Point(dirMap.x, dirMap.y, dirMap.z);
+}
+
+void Map::pixelToNDC(double x, double y, double& ndcX, double& ndcY) const
+{
+    ndcX = float(x * 2.0 / float(m_drawable->width() -1) - 1.0); // FIXME: -1 might be wrong
+    ndcY = float(1.0 - y * 2.0 / float(m_drawable->height()-1)); // FIXME: -1 might be wrong
+}
+
+void Map::ndcToPixel(double ndcx, double ndcy, double &x, double &y) const
+{
+    x = (ndcx + 1.0f) * 0.5f * m_drawable->width();
+    y = -(ndcy + 1.0f) * 0.5f * m_drawable->height();
+}
+
+std::vector<Point> Map::screenToMap(const std::vector<Point> &points) const
 {
     std::vector<Point> mapPoints;
     for (auto& p : points)
@@ -424,7 +574,7 @@ std::vector<Point> BlueMarble::Map::screenToMap(const std::vector<Point> &points
     return mapPoints;
 }
 
-std::vector<Point> BlueMarble::Map::mapToScreen(const std::vector<Point> &points) const
+std::vector<Point> Map::mapToScreen(const std::vector<Point> &points) const
 {
     std::vector<Point> screenPoints;
     for (auto& p : points)
@@ -434,7 +584,7 @@ std::vector<Point> BlueMarble::Map::mapToScreen(const std::vector<Point> &points
     return screenPoints;
 }
 
-std::vector<Point> BlueMarble::Map::lngLatToMap(const std::vector<Point> &points) const
+std::vector<Point> Map::lngLatToMap(const std::vector<Point> &points) const
 {
     std::vector<Point> mapPoints;
     for (auto& p : points)
@@ -445,20 +595,23 @@ std::vector<Point> BlueMarble::Map::lngLatToMap(const std::vector<Point> &points
     return mapPoints;
 }
 
-Rectangle BlueMarble::Map::screenToMap(const Rectangle &rect) const
+Rectangle Map::screenToMap(const Rectangle& rect) const
 {
-    auto topLeft = screenToMap(Point(rect.xMin(), rect.yMin()));
-    auto bottomRight = screenToMap(Point(rect.xMax(), rect.yMax()));
-    
-    return Rectangle(topLeft.x(), topLeft.y(), bottomRight.x(), bottomRight.y());
+    return Rectangle::fromPoints(screenToMap(rect.corners()));
+    // Old
+    // auto topLeft = screenToMap(Point(rect.xMin(), rect.yMin()));
+    // auto bottomRight = screenToMap(Point(rect.xMax(), rect.yMax()));
+
+    // return Rectangle(topLeft.x(), topLeft.y(), bottomRight.x(), bottomRight.y());
 }
 
-Rectangle BlueMarble::Map::mapToScreen(const Rectangle &rect) const
+Rectangle BlueMarble::Map::mapToScreen(const Rectangle& rect) const
 {
-    auto topLeft = mapToScreen(Point(rect.xMin(), rect.yMin()));
-    auto bottomRight = mapToScreen(Point(rect.xMax(), rect.yMax()));
-    
-    return Rectangle(topLeft.x(), topLeft.y(), bottomRight.x(), bottomRight.y());
+    return Rectangle::fromPoints(mapToScreen(rect.corners()));
+    // auto topLeft = mapToScreen(Point(rect.xMin(), rect.yMin()));
+    // auto bottomRight = mapToScreen(Point(rect.xMax(), rect.yMax()));
+
+    // return Rectangle(topLeft.x(), topLeft.y(), bottomRight.x(), bottomRight.y());
 }
 
 Point Map::screenCenter() const
@@ -482,7 +635,7 @@ void Map::stopAnimation()
     {
         std::cout << "Stoppped animation\n";
     }
-    
+
     m_animation = nullptr;
     quickUpdateEnabled(false);
 }
@@ -502,7 +655,7 @@ std::vector<LayerPtr>& Map::layers()
 // {
 //     for (auto l : m_layers)
 //     {
-//         l->onGetFeaturesRequest(attributes, features);    
+//         l->onGetFeaturesRequest(attributes, features);
 //     }
 // }
 
@@ -588,7 +741,7 @@ void Map::select(FeaturePtr feature, SelectMode mode)
     case SelectMode::Replace:
         m_selectedFeatures.clear();
         break;
-    
+
     case SelectMode::Add:
         break;
 
@@ -600,12 +753,12 @@ void Map::select(FeaturePtr feature, SelectMode mode)
     if (!isSelected(feature))
     {
         m_selectedFeatures.push_back(feature->id());
-        
-        // // Testing restartVisualizationAnimation
-        // if (auto dataSet = DataSet::getDataSetById(feature->id().dataSetId()))
-        // {
-        //     dataSet->restartVisualizationAnimation(feature, getTimeStampMs());
-        // }
+
+        // Testing restartVisualizationAnimation
+        if (auto dataSet = DataSet::getDataSetById(feature->id().dataSetId()))
+        {
+            dataSet->restartVisualizationAnimation(feature, getTimeStampMs());
+        }
 
         // // std::cout << "Selected feature, Id: " << "Id(" << feature->id().dataSetId() << ", " << feature->id().featureId() << ")\n";
         // std::cout << feature->prettyString();
@@ -665,8 +818,18 @@ void Map::hover(const Id& id)
         return;
     m_hoveredFeatures.clear();
     if (id != Id(0,0))
+    {
+        // TESTING animated visualization
+        if (!isSelected(id))
+        {
+            if (auto dataSet = DataSet::getDataSetById(id.dataSetId()))
+            {
+                dataSet->restartVisualizationAnimation(dataSet->getFeature(id), getTimeStampMs());
+            }
+        }
         m_hoveredFeatures.push_back(id);
-    
+    }
+        
     auto notifyId = Id(0,0);
     if (!m_hoveredFeatures.empty())
     {
@@ -737,6 +900,12 @@ void Map::drawable(const DrawablePtr &drawable)
     m_drawable = drawable;
 }
 
+void Map::resize(int width, int height)
+{
+    m_drawable->resize(width, height);
+    m_camera->setViewPort(width, height);
+}
+
 void Map::flushCache()
 {
     for (const auto& l : m_layers)
@@ -752,6 +921,53 @@ void Map::renderingEnabled(bool enabled)
     {
         l->renderingEnabled(enabled);
     }
+}
+
+void Map::setCamera()
+{
+    // Orthographic 2.5D
+    auto c = m_center;
+    double rot = m_rotation;
+    double scaleFactor = m_scale;
+    double fov = 45.0;
+    double dHeight = m_drawable->height();
+    double tilt = m_tilt;
+
+    
+    
+    // Adjusted in update()
+    float near = 0.1f;
+    float far = 1000000.0f;
+
+    m_camera = Camera::perspectiveCamera(m_drawable->width(), m_drawable->height(), near, far, float(fov));
+    glm::mat4 cam = glm::mat4(1.0f);
+    cam = glm::translate(cam, glm::vec3(
+        c.x(),
+        c.y(),
+        0.0f
+    ));
+    cam = glm::rotate(cam, (float)glm::radians(rot), glm::vec3(0.0f, 0.0f, 1.0f));
+    cam = glm::rotate(cam, float(glm::radians(m_tilt)), glm::vec3(1.0f, 0.0f, 0.0f));
+    cam = glm::translate(cam, glm::vec3(
+        0.0f,
+        0.0f,
+        float(dHeight/(2.0*scaleFactor*std::tan(glm::radians(fov) * 0.5)))
+    ));
+    
+
+    // Orthographic
+    // m_camera = Camera::orthoGraphicCamera(m_drawable->width(), m_drawable->height(), -100000000.0f, 10000000.0f, 1.0f);
+
+    // glm::mat4 cam = glm::mat4(1.0f);
+    // cam = glm::translate(cam, glm::vec3(
+    //     m_center.x(),
+    //     m_center.y(),
+    //     1.0
+    // ));
+    // cam = glm::rotate(cam, float(m_rotation), glm::vec3(0.0f, 0.0f, 1.0f));
+    // cam = glm::scale(cam, glm::vec3(float(1.0/m_scale), float(1.0/m_scale), 1.0f));
+    
+    m_camera->setTransform(cam);
 }
 
 void Map::updateUpdateAttributes(int64_t timeStampMs)
@@ -771,25 +987,60 @@ void Map::updateUpdateAttributes(int64_t timeStampMs)
     // For others in the operator chain to set (or elsewhere).
     // These are reset in the beginning of each update
     m_updateAttributes.set(UpdateAttributeKeys::UpdateRequired, false);
-    
+
 }
 
 void Map::beforeRender()
 {
-    m_drawable->clearBuffer();
-    auto sc = screenCenter();
-    sc = Point(sc.x(), sc.y());
-    
-    auto center = Point(
-        m_center.x(),// - (float)width()  / (2.0f * (float)m_scale),
-        m_center.y()// - (float)height() / (2.0f * (float)m_scale)
-    );
-    m_drawable->setTransform(Transform(center, m_scale, m_scale, m_rotation));
+    // TODO: near and far plane might need to be adjusted
+    // during cmaera manipulation. Maybe the camera controller should
+    float near = std::numeric_limits<float>::max();
+    float far = 0.0f;
+    auto visibleRegionWorld = m_crs->bounds().corners();
+    // int w = m_drawable->width();
+    // int h = m_drawable->height();
+    // std::vector<Point> visibleRegionWorld;
+    // visibleRegionWorld.push_back(screenToMap(0,0));
+    // visibleRegionWorld.push_back(screenToMap(0,w-1));
+    // visibleRegionWorld.push_back(screenToMap(h-1,w-1));
+    // visibleRegionWorld.push_back(screenToMap(h-1,0));
+    // visibleRegionWorld.push_back(screenToMap(screenCenter()));
+    for (auto& point : visibleRegionWorld)
+    {
+        glm::vec3 p(float(point.x()), float(point.y()), 0.0f);
+        float d = glm::dot(p-m_camera->translation(), m_camera->forward());
+
+        if (d <= 0.0f)
+            continue; // behind camera, ignore
+
+        near = std::min(near, d);
+        far = std::max(far, d);
+    }
+    m_camera->setFrustum(near*0.001, far*2.0);
+
+    if (auto glDrawable = std::dynamic_pointer_cast<OpenGLDrawable>(m_drawable))
+    {
+        m_drawable->clearBuffer();
+
+        glDrawable->setProjectionMatrix(m_camera->projectionMatrix());
+        glDrawable->setViewMatrix(m_camera->viewMatrix());
+    }
+    else
+    {
+        m_drawable->clearBuffer();
+        auto sc = screenCenter();
+        sc = Point(sc.x(), sc.y());
+
+        auto center = Point(
+            m_center.x(),// - (float)width()  / (2.0f * (float)m_scale),
+            m_center.y()// - (float)height() / (2.0f * (float)m_scale)
+        );
+        m_drawable->setTransform(Transform(center, m_scale, m_scale, m_rotation));
+    }
 }
 
 void Map::afterRender()
 {
-    //m_drawable->setTransform(Transform(m_center, m_scale, m_scale, m_rotation)); // TODO: remove, temp fix
     m_drawable->swapBuffers();
 }
 
@@ -802,14 +1053,14 @@ void Map::resetUpdateFlags()
 
 void Map::startInitialAnimation()
 {
-    auto animation = Animation::Create(*this, 
+    auto animation = Animation::Create(*this,
                                        center(),
                                        center(),
                                        scale()*10.0,
                                        scale(),
                                        1000,
                                        false);
-    startAnimation(animation);                                
+    startAnimation(animation);
 }
 
 void BlueMarble::Map::doCommand(const std::function<void()>& action)
@@ -847,7 +1098,7 @@ void Map::drawDebugInfo(int elapsedMs)
     info += "\nScale: " + std::to_string(scale());
     info += "\nScale inv: " + std::to_string(invertedScale());
     info += "\nScale (crs)): " + std::to_string(m_scale);
-    
+
     if (std::abs(screenError.x()) > 0 || std::abs(screenError.y()) > 0)
     {
         // Only display this when error occurs
@@ -860,7 +1111,7 @@ void Map::drawDebugInfo(int elapsedMs)
 
     info += "\nUpdate time: " + std::to_string(elapsedMs);
     info += "\nPresentationObjects: " + std::to_string(m_presentationObjects.size());
-    
+
     info += "\n";
     // auto presentationObjects = hitTest(mousePos.x, mousePos.y, 10.0);
     // for (auto& p : presentationObjects)
@@ -871,7 +1122,7 @@ void Map::drawDebugInfo(int elapsedMs)
     //     info += ", Node: " + std::to_string(p.nodeIndex());
     //     info += "\n";
     // }
-    
+
 
     int fontSize = 16;
     m_drawable->drawText(0, 0, info.c_str(), Color(0, 0, 0), fontSize);
@@ -896,7 +1147,7 @@ const Point Map::mapToLngLat(const Point& mapPoint, bool normalize)
     // Line 4: negative length of a pixel in the y direction (vertical)
     // Line 5: x coordinate at the center of the pixel in the top left corner of the image
     // Line 6: y coordinate at the center of the pixel in the top left corner of the image
-    
+
 
     // The origin is defined at the center of the top left pixel.
     // Map coordinates (image coordinates) are currently center in the top left corner
@@ -905,7 +1156,7 @@ const Point Map::mapToLngLat(const Point& mapPoint, bool normalize)
 
     // double lng = xTopLeft + xPixLen * imagePoint.x();
     // double lat = yTopLeft + yPixLen * imagePoint.y();
-    
+
     // if (normalize)
     // {
     //     lng = Utils::normalizeLongitude(lng);
@@ -931,7 +1182,7 @@ const Point BlueMarble::Map::lngLatToScreen(const Point& lngLat)
 }
 
 std::vector<Point> BlueMarble::Map::lngLatToScreen(const std::vector<Point> &points)
-{   
+{
     std::vector<Point> newPoints;
     for (auto& p : points)
     {
@@ -945,7 +1196,7 @@ Rectangle BlueMarble::Map::lngLatToMap(const Rectangle &rect)
 {
     auto topLeft = lngLatToMap(Point(rect.xMin(), rect.yMin()));
     auto bottomRight = lngLatToMap(Point(rect.xMax(), rect.yMax()));
-    
+
     return Rectangle(topLeft.x(), topLeft.y(), bottomRight.x(), bottomRight.y());
 }
 
@@ -953,7 +1204,7 @@ Rectangle BlueMarble::Map::mapToLngLat(const Rectangle &rect)
 {
     auto topLeft = mapToLngLat(Point(rect.xMin(), rect.yMin()), false);     // FIXME: not sure if not normalizing is always correct
     auto bottomRight = mapToLngLat(Point(rect.xMax(), rect.yMax()), false); // FIXME: not sure if not normalizing is always correct
-    
+
     return Rectangle(topLeft.x(), topLeft.y(), bottomRight.x(), bottomRight.y());
 }
 
@@ -961,7 +1212,7 @@ Rectangle BlueMarble::Map::lngLatToScreen(const Rectangle &rect)
 {
     auto topLeft = lngLatToScreen(Point(rect.xMin(), rect.yMin()));
     auto bottomRight = lngLatToScreen(Point(rect.xMax(), rect.yMax()));
-    
+
     return Rectangle(topLeft.x(), topLeft.y(), bottomRight.x(), bottomRight.y());
 }
 

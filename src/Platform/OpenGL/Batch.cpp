@@ -15,7 +15,7 @@ Batch::Batch(bool isPolygon)
 	m_vbo.init();
 	m_ibo.init();
 	m_vao.bind();
-	m_ibo.allocateDynamicBuffer(600000);
+	m_ibo.allocateDynamicBuffer(sizeof(GLuint)*600000);
 	m_vbo.allocateDynamicBuffer(sizeof(Vertice)*600000);
 	m_vao.link(m_vbo, 0, 3, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, position));
 	m_vao.link(m_vbo, 1, 4, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, color));

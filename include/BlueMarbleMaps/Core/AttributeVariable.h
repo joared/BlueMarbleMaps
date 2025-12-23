@@ -13,7 +13,7 @@ namespace BlueMarble
     {
         public:
             virtual ~AttributeVariable() = default;
-            virtual bool tryGetValue(const FeaturePtr& f, Attributes& attributes, T& val) { return false; };
+            virtual bool tryGetValue(const FeaturePtr& f, Attributes& attributes, T& val) = 0; //{ return false; };
 
             T operator() (const FeaturePtr& f, Attributes& attributes)
             {
@@ -159,6 +159,7 @@ namespace BlueMarble
                                       AttributeVariable<T>& to,
                                       double duration, 
                                       int repeat=1,
+                                      IndirectAttributeVariable<bool> invert = IndirectAttributeVariable<bool>("", false),
                                       EasingFunctionType easingFunc=EasingFunctionType::Linear)
                 //: AttributeVariable(key, defaultValue)
                 : AbstractAnimation(duration, easingFunc)
@@ -166,7 +167,7 @@ namespace BlueMarble
                 , m_to(to)
                 , m_value()
                 , m_repeat(repeat)
-                , m_invert(false)
+                , m_invert(std::move(invert))
             {}
 
             // template <typename T>
@@ -188,7 +189,8 @@ namespace BlueMarble
                 double elapsed = timeMs - startTimeMs;
 
                 if (elapsed < 0)
-                {
+                {   
+                    BMM_DEBUG() << "AnimatedAttributeVariable::tryGetValue() Elapsed less than 0!!!\n";
                     return m_to.tryGetValue(f, attributes, val);
                 }
 
@@ -199,7 +201,7 @@ namespace BlueMarble
                 if (!m_to.tryGetValue(f, attributes, to))
                 {
                     retVal = false;
-                    std::cout << "AnimatedAttributeVariable::tryGetValue(): Failed to retrieve to value\n";
+                    BMM_DEBUG() << "AnimatedAttributeVariable::tryGetValue(): Failed to retrieve to value\n";
                 }
 
                 if (p >= 1.0)
@@ -213,10 +215,9 @@ namespace BlueMarble
                 {
                     // TODO: error handling
                     retVal = false;
-                    std::cout << "AnimatedAttributeVariable::tryGetValue(): Failed to retrieve from value\n";
+                    BMM_DEBUG() << "AnimatedAttributeVariable::tryGetValue(): Failed to retrieve from value\n";
                 }
                 
-
                 val = from + (to-from)*p;
 
                 // Set update required such that the animation continues
@@ -242,11 +243,11 @@ namespace BlueMarble
                 
             };
         private:
-            AttributeVariable<T>& m_from;
-            AttributeVariable<T>& m_to;
-            T                     m_value;
-            int                   m_repeat;
-            bool                  m_invert;
+            AttributeVariable<T>&               m_from;
+            AttributeVariable<T>&               m_to;
+            T                                   m_value;
+            int                                 m_repeat;
+            IndirectAttributeVariable<bool>     m_invert;
     };
 
     typedef AnimatedAttributeVariable<double> AnimatedDoubleAttributeVariable;

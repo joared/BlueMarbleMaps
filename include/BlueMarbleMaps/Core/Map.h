@@ -2,6 +2,7 @@
 #define MAP
 
 #include "BlueMarbleMaps/Core/Core.h"
+#include "BlueMarbleMaps/Core/Camera.h"
 #include "BlueMarbleMaps/Core/MapConstraints.h"
 #include "BlueMarbleMaps/Core/Animation.h"
 #include "BlueMarbleMaps/Core/Drawable.h"
@@ -65,9 +66,10 @@ namespace BlueMarble
             Map(Map&&) = delete;
             Map& operator=(Map&&) = delete;
 
-            
             bool update(bool forceUpdate=false);
  
+            // TODO: move to camera/camera controller
+            // Camera properties
             const Point& center() const;
             void center(const Point& center);
             void scale(double scale);
@@ -76,6 +78,8 @@ namespace BlueMarble
             void invertedScale(double invScale);
             double rotation() const;
             void rotation(double rotation);
+            double tilt() const;
+            void tilt(double tilt);
             double width() const;
             void width(double newWidth);
             double height() const;
@@ -83,7 +87,9 @@ namespace BlueMarble
             MapConstraints& mapConstraints() { return m_constraints; };
             const CrsPtr& crs() { return m_crs; }
             void crs(const CrsPtr& crs);
-            // Operations
+            
+            // TODO: move to cameracontroller class
+            // Camera controlling
             void panBy(const Point& deltaScreen, bool animate=false);
             void panTo(const Point& mapPoint, bool animate=false);
             void zoomTo(const Point& mapPoint, double newScale, bool animate=false);
@@ -94,6 +100,10 @@ namespace BlueMarble
             Point screenToMap(const Point& screenPos) const;
             Point screenToMap(double x, double y) const;
             Point mapToScreen(const Point& point) const;
+            Point rayDirectionCamera(double pixelX, double pixelY) const;
+            Point rayDirectionMap(double pixelX, double pixelY) const;
+            void pixelToNDC(double x, double y, double& ndcX, double& ndcY) const;
+            void ndcToPixel(double ndcx, double ndcy, double& x, double& y) const;
             std::vector<Point> screenToMap(const std::vector<Point>& points) const;
             std::vector<Point> mapToScreen(const std::vector<Point>& points) const;
             std::vector<Point> lngLatToMap(const std::vector<Point>& points) const;
@@ -148,6 +158,7 @@ namespace BlueMarble
 
             DrawablePtr drawable();
             void drawable(const DrawablePtr& drawable);
+            void resize(int width, int height);
 
             void flushCache();
 
@@ -183,6 +194,7 @@ namespace BlueMarble
             void renderingEnabled(bool enabled);
 
         private:
+            void setCamera();
             void updateUpdateAttributes(int64_t timeStampMs);
             void beforeRender();
             void renderLayers();
@@ -200,6 +212,7 @@ namespace BlueMarble
             Point m_center;
             double m_scale;
             double m_rotation;
+            double m_tilt;
 
             CrsPtr m_crs;
 
@@ -213,6 +226,7 @@ namespace BlueMarble
             bool m_centerChanged;
             bool m_scaleChanged;
             bool m_rotationChanged;
+            mutable CameraPtr m_camera;
 
             AnimationPtr    m_animation;
             int m_animationStartTimeStamp;

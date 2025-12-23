@@ -150,7 +150,7 @@ void MapControl::setMouseCursor(MouseCursor cursor)
 void MapControl::handleResize(int width, int height)
 {
     double prevMapWidth = m_mapView->width();
-    m_mapView->drawable()->resize(width, height);
+    m_mapView->resize(width, height);
     // TODO: Use options for resizing
     // 1. Keep center and map width
     m_mapView->width(prevMapWidth);

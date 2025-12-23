@@ -46,13 +46,16 @@ namespace BlueMarble
             inline double scaleY() const { return m_scaleY; }
             inline double scaleXY() const { return m_scaleXY; }
             inline double rotation() const { return m_rotation; }
-
+            inline double tilt() const { return m_tilt; }
+            inline void setTilt(double tilt) { m_tilt = tilt; }
+            
         private:
             Point m_translation;
             double m_scaleX;
             double m_scaleY;
             double m_scaleXY;
             double m_rotation;
+            double m_tilt = 0.0;
     };
 }
 
