@@ -94,7 +94,7 @@ namespace BlueMarble
 
             inline std::string toString() const
             {
-                return "Point(" + std::to_string(m_x) + ", " + std::to_string(m_y) + ")";
+                return "Point(" + std::to_string(m_x) + ", " + std::to_string(m_y) + ", " + std::to_string(m_z) + ")";
             }
 
         private:

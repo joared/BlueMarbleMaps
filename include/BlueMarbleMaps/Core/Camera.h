@@ -1,12 +1,16 @@
 #ifndef BLUEMARBLE_CAMERA
 #define BLUEMARBLE_CAMERA
 
+#include "BlueMarbleMaps/Core/Core.h"
 #include "BlueMarbleMaps/Core/Transform.h"
 
 #include "glm/include/glm.hpp"
 #include "glm/include/ext/matrix_clip_space.hpp"
 #include "glm/include/ext/matrix_transform.hpp"
 #include "glm/include/gtx/vec_swizzle.hpp"
+
+namespace BlueMarble
+{
 
 // Abstract base class for a camera projection.
 class CameraProjection
@@ -28,10 +32,15 @@ public:
     float near() const { return m_near; }
     float far() const { return m_far; }
 
+    Point viewToNdc(const Point& view) const;
+    Point ndcToView(const Point& ndc) const;
+    Point ndcToViewRay(const Point& ndc) const;
+
     double unitsPerPixelAtDistanceNumerical(double zDistCamera) const;
     
-    virtual double unitsPerPixelAtDistance(double zDistCamera) = 0;
-    virtual glm::mat4 projectionMatrix() = 0;
+    // Must map the principal view point to NDC (0,0)
+    virtual glm::mat4 projectionMatrix() const = 0;
+    virtual double unitsPerPixelAtDistance(double zDistCamera) const = 0;
 
 private:
     int   m_w,   m_h;
@@ -41,35 +50,16 @@ private:
 class ScreenCameraProjection : public CameraProjection
 {
     public:
-        enum class ScreenUnit
-        {
-            Pixels,
-            ScreenSpace
-        };
-
-        ScreenCameraProjection(int width, int height, ScreenUnit unit)
+        ScreenCameraProjection(int width, int height)
             : CameraProjection(width, height, -1.0f, 1.0f)
-            , m_unit(unit)
         {}
     
-        glm::mat4 projectionMatrix() override final
+        glm::mat4 projectionMatrix() const override final
         {
-            switch (m_unit)
-            {
-            case ScreenUnit::Pixels:
-                // TODO: not sure if this is needed
-                return glm::ortho(0.5f, (float)width()-0.5f, (float)height()-0.5f, 0.5f, near(), far());
-            case ScreenUnit::ScreenSpace:
-                return glm::ortho(0.0f, (float)width(), (float)height(), 0.0f, near(), far()); 
-            default:
-                throw std::runtime_error("ScreenSpaceCameraProjection::projectionMatrix() Unhandled ScreenUnit: " + std::to_string(int(m_unit)));
-            }
+            return glm::ortho(0.0f, (float)width(), (float)height(), 0.0f, near(), far()); 
         };
 
-        double unitsPerPixelAtDistance(double zDistCamera) override final { return 1.0; }
-
-    private:
-        ScreenUnit m_unit;
+        double unitsPerPixelAtDistance(double zDistCamera) const override final { return 1.0; }
 };
 
 class OrthographicCameraProjection : public CameraProjection
@@ -80,14 +70,14 @@ public:
         , m_unitsPerPixel(unitsPerPixel)
     {}
 
-    glm::mat4 projectionMatrix() override final
+    glm::mat4 projectionMatrix() const override final
     {
         float w2 = width() * 0.5 * unitsPerPixel();
         float h2 = height() * 0.5 * unitsPerPixel();
         return glm::ortho(-w2, w2, -h2, h2, near(), far());
     };
 
-    double unitsPerPixelAtDistance(double zDistCamera) override final { return unitsPerPixel(); }
+    double unitsPerPixelAtDistance(double zDistCamera) const override final { return unitsPerPixel(); }
 
     float unitsPerPixel() const { return m_unitsPerPixel; }
     void setUnitsPerPixel(float unitsPerPixel) { m_unitsPerPixel = unitsPerPixel; }
@@ -104,14 +94,14 @@ public:
         , m_fovDeg(fovDegrees)
     {}
 
-    glm::mat4 projectionMatrix() override final
+    glm::mat4 projectionMatrix() const override final
     {
         return glm::perspectiveFov(glm::radians(fov()), (float)width(), (float)height(), near(), far());
     };
 
-    double unitsPerPixelAtDistance(double zDistCamera) override final { return zDistCamera / focalLengthPixels(); }
+    double unitsPerPixelAtDistance(double zDistCamera) const override final { return zDistCamera / focalLengthPixelsY(); }
 
-    float focalLengthPixels() const { return height()/(2.0*std::tan(glm::radians(fov() * 0.5))); }
+    float focalLengthPixelsY() const { return height()/(2.0*std::tan(glm::radians(fov() * 0.5))); }
 
     float fov() const { return m_fovDeg; }
     void setFov(float fovDegrees) { m_fovDeg = fovDegrees; }
@@ -148,13 +138,14 @@ public:
     {}
 
     // Projection, these methods are needed for the view
+    const std::unique_ptr<CameraProjection>& projection() { return m_projection; }
     void setViewPort(int width, int height) { m_projection->setViewPort(width, height); };
     void setFrustum(float near, float far) { m_projection->setFrustum(near, far); }
     glm::mat4 projectionMatrix() const { return m_projection->projectionMatrix(); };
     // Optimization for the view to calculate a scale factor for feature queries
     double unitsPerPixelAtDistance(double zDistCamera) const { return m_projection->unitsPerPixelAtDistance(zDistCamera); }
 
-    glm::vec3 translation() { return glm::vec3(m_transform[3]); }
+    Point translation() { return Point(m_transform[3][0], m_transform[3][1], m_transform[3][2]); }
     glm::vec3 forward() { return -glm::normalize(glm::vec3(m_transform[2])); }
     glm::vec3 up() { return glm::normalize(glm::vec3(m_transform[1])); }
     
@@ -163,10 +154,9 @@ public:
     glm::mat4 viewMatrix() const { return glm::inverse(m_transform); };
     glm::mat4 viewProjMatrix() const { return projectionMatrix()*viewMatrix(); };
 
-    // Converting points
-    void pixelToNDC(double x, double y, double& ndcX, double& ndcY) const;
-
-    void ndcToPixel(double ndcx, double ndcy, double &x, double &y) const;
+    Point worldToNdc(const Point& world) const;
+    Point ndcToWorldRay(const Point& ndc) const;
+    // Point ndcToWorld(const Point& ndc) const; // TODO: Needs surface to work
 
 private:
     std::unique_ptr<CameraProjection>   m_projection;
@@ -175,5 +165,7 @@ private:
     // TODO: abstraction of pose
     // Pose m_pose;
 };
+
+} /* BlueMarble */
 
 #endif /* CAMERA */

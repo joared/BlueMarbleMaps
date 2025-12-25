@@ -99,7 +99,7 @@ bool Map::update(bool forceUpdate)
     // FIXME camera stuff:
     if (auto glDrawable = std::dynamic_pointer_cast<OpenGLDrawable>(m_drawable))
     {
-        auto proj = ScreenCameraProjection(m_drawable->width(), m_drawable->height(), ScreenCameraProjection::ScreenUnit::ScreenSpace);
+        auto proj = ScreenCameraProjection(m_drawable->width(), m_drawable->height());
         glDrawable->setProjectionMatrix(proj.projectionMatrix());
     }
 
@@ -462,65 +462,47 @@ Point Map::screenToMap(const Point& screenPos) const
 Point Map::screenToMap(double x, double y) const
 {
     // NOTE: this methods treats screen coordinates as "pixel indexes", not the geometrical point
-    
+    constexpr glm::vec3 worldPlaneOrigin = glm::vec3(0.0f);
+    constexpr glm::vec3 worldPlaneNormal = glm::vec3(0.0f, 0.0f, 1.0f);
+
     auto projMatrix = m_camera->projectionMatrix();
     auto cameraTransform = m_camera->transform(); 
     
     double xNdc,yNdc;
     pixelToNDC(x, y, xNdc, yNdc);
 
-    glm::vec4 nearPointNdc(xNdc, yNdc, -1.0f, 1.0f);
-    glm::vec4 farPointNdc(xNdc, yNdc, 1.0f, 1.0f);
+    Point rayDirWorldPoint = m_camera->ndcToWorldRay(Point(xNdc, yNdc, -1.0));
+    Point rayOriginWorldPoint = m_camera->translation();
 
-    glm::mat4 invVP = glm::inverse(projMatrix);
-    glm::vec3 nearCamera = glm::xyz(invVP * nearPointNdc) / (invVP * nearPointNdc).w;
-    glm::vec3 farCamera  = glm::xyz(invVP * farPointNdc)  / (invVP * farPointNdc).w;
+    glm::vec3 rayDirWorld = glm::vec3(rayDirWorldPoint.x(), rayDirWorldPoint.y(), rayDirWorldPoint.z());
+    glm::vec3 rayOriginWorld = glm::vec3(rayOriginWorldPoint.x(), rayOriginWorldPoint.y(), rayOriginWorldPoint.z());
 
-    glm::vec3 nearWorld = glm::xyz(cameraTransform * glm::vec4(nearCamera, 1.0));
-    glm::vec3 farWorld = glm::xyz(cameraTransform * glm::vec4(farCamera, 1.0));
+    // Intersection of the ray with the "world" (Plane at z=0)
+    float denom = glm::dot(worldPlaneNormal, rayDirWorld);
 
-    glm::vec3 dir = glm::normalize(farWorld - nearWorld);
-    float t = -nearWorld.z / dir.z; // intersect z = 0 plane
-
-    if (t < 0.0)
-    {
-        // The ray does not intersect the world plane in front of the camera
+    // Ray parallel to plane
+    if (std::abs(denom) < 1e-6f)
         return Point::undefined();
-    }
 
-    return Point(nearWorld.x + t*dir.x, nearWorld.y + t*dir.y);
+    float t = glm::dot(worldPlaneNormal, worldPlaneOrigin - rayOriginWorld) / denom;
 
-    // OLD
-    // auto sCenter = screenCenter();
-    // double mapX = (x - sCenter.x()) / m_scale + m_center.x();// + m_img.width() / 2.0;
-    // double mapY = -(y - sCenter.y()) / m_scale + m_center.y();// + m_img.height() / 2.0;
+    // Intersection behind the ray origin
+    if (t < 0.0f)
+        return Point::undefined();
 
-    // return Utils::rotatePointDegrees(Point(mapX, mapY), m_rotation, m_center);
+    glm::vec3 hitPoint = rayOriginWorld + t * rayDirWorld;
+
+    return Point(hitPoint.x, hitPoint.y, hitPoint.z);
 }
 
 
 Point Map::mapToScreen(const Point &point) const
-{
-    // NOTE: this methods treats screen coordinates as "pixel indexes", not the geometrical point
-
-    glm::vec4 p = glm::vec4((float)point.x(), (float)point.y(), 0.0f, 1.0f);
-    glm::vec4 clipSpace = m_camera->viewProjMatrix() * p;
-    glm::vec3 ndc = glm::xyz(clipSpace) / clipSpace.w;
-    
+{   
+    Point ndc = m_camera->worldToNdc(point);
     double x,y;
-    ndcToPixel(ndc.x, ndc.y, x, y);
+    ndcToPixel(ndc.x(), ndc.y(), x, y);
 
     return Point(x, y);
-
-    // OLD
-    // auto screenC = screenCenter();
-    // //auto screenC = Point(m_drawable->width()*0.5, m_drawable->height()*0.5);
-
-    // auto delta = Utils::rotatePointDegrees(point, -m_rotation, m_center) - m_center;
-    // double x = delta.x()*m_scale + screenC.x();
-    // double y = -delta.y()*m_scale + screenC.y();
-
-    // return Point(x, y);
 }
 
 Point Map::rayDirectionCamera(double pixelX, double pixelY) const
@@ -553,12 +535,14 @@ Point Map::rayDirectionMap(double pixelX, double pixelY) const
 
 void Map::pixelToNDC(double x, double y, double& ndcX, double& ndcY) const
 {
+    // TODO make sure this is right
     ndcX = float(x * 2.0 / float(m_drawable->width() -1) - 1.0); // FIXME: -1 might be wrong
     ndcY = float(1.0 - y * 2.0 / float(m_drawable->height()-1)); // FIXME: -1 might be wrong
 }
 
 void Map::ndcToPixel(double ndcx, double ndcy, double &x, double &y) const
 {
+    // TODO make sure this is right
     x = (ndcx + 1.0f) * 0.5f * m_drawable->width();
     y = -(ndcy + 1.0f) * 0.5f * m_drawable->height();
 }
@@ -1005,10 +989,12 @@ void Map::beforeRender()
     // visibleRegionWorld.push_back(screenToMap(h-1,w-1));
     // visibleRegionWorld.push_back(screenToMap(h-1,0));
     // visibleRegionWorld.push_back(screenToMap(screenCenter()));
+    auto temp = m_camera->translation();
+    glm::vec3 cameraTranslation = glm::vec3(temp.x(), temp.y(), temp.z());
     for (auto& point : visibleRegionWorld)
     {
         glm::vec3 p(float(point.x()), float(point.y()), 0.0f);
-        float d = glm::dot(p-m_camera->translation(), m_camera->forward());
+        float d = glm::dot(p-cameraTranslation, m_camera->forward());
 
         if (d <= 0.0f)
             continue; // behind camera, ignore
