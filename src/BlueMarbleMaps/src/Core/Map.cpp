@@ -176,44 +176,20 @@ FeatureQuery BlueMarble::Map::produceUpdateQuery()
 {
     FeatureQuery featureQuery;
 
-    // TODO: this scaling is for debugging querying, remove
-    //auto updateArea = area();
-    
-    
-
     int w = m_drawable->width();
     int h = m_drawable->height();
     auto screenArea = Rectangle(0,0,w,h);
-    screenArea.scale(0.5);
+    screenArea.scale(0.5); // TODO: this scaling is for debugging querying, remove
 
-    // std::vector<Point> visibleRegionWorld;
-    // visibleRegionWorld.push_back(screenToMap(0,0));
-    // visibleRegionWorld.push_back(screenToMap(0,w-1));
-    // visibleRegionWorld.push_back(screenToMap(h-1,w-1));
-    // visibleRegionWorld.push_back(screenToMap(h-1,0));
-    // auto updateArea = Rectangle::fromPoints(visibleRegionWorld);
     auto updateArea = screenToMap(screenArea);
-    
-
     featureQuery.area(updateArea);
-    // featureQuery.scale(scale());
-    // New: calculate scale based on camera
-    auto centerMap = screenToMap(screenCenter());
     // Map to camera
-    glm::vec3 glmCenterMap(centerMap.x(), centerMap.y(), centerMap.z());
-    auto centerCam = glm::xyz(m_camera->viewMatrix() * glm::vec4(glmCenterMap, 1.0f));
-    double zCam = centerCam.z;
-    auto p1 = rayDirectionCamera(0,0);
-    auto p2 = rayDirectionCamera(m_drawable->width()-1,0);
-    p1 = p1 * (zCam / p1.z());
-    p2 = p2 * (zCam / p2.z());
-    double widthCam = (p1-p2).length3D();
-    double queryScale = m_drawable->width() / widthCam * m_drawable->pixelSize() / m_crs->globalMeterScale();
-
-    BMM_DEBUG() << "Query scale numerical: " << queryScale << "\n";
-    queryScale = 1.0 / m_camera->unitsPerPixelAtDistance(std::abs(zCam)) * m_drawable->pixelSize() / m_crs->globalMeterScale();
-    BMM_DEBUG() << "Query scale analytical: " << queryScale << "\n";
-    BMM_DEBUG() << "Scale: " << scale() << "\n";
+    auto centerMap = screenToMap(screenCenter());
+    auto centerCam = m_camera->worldToView(centerMap);
+    double zCam = centerCam.z();
+    // double unitsPerPixel = m_camera->projection()->unitsPerPixelAtDistanceNumerical(std::abs(zCam));
+    double unitsPerPixel = m_camera->unitsPerPixelAtDistance(std::abs(zCam));
+    double queryScale = 1.0 / unitsPerPixel * m_drawable->pixelSize() / m_crs->globalMeterScale();
     featureQuery.scale(queryScale);
 
     featureQuery.quickUpdate(quickUpdateEnabled());
@@ -505,38 +481,41 @@ Point Map::mapToScreen(const Point &point) const
     return Point(x, y);
 }
 
-Point Map::rayDirectionCamera(double pixelX, double pixelY) const
+Point Map::screenToViewRay(double pixelX, double pixelY) const
 {
     double xNdc,yNdc;
     pixelToNDC(pixelX, pixelY, xNdc, yNdc);
 
-    glm::vec4 nearPointNdc(xNdc, yNdc, -1.0f, 1.0f);
-    glm::vec4 farPointNdc(xNdc, yNdc, 1.0f, 1.0f);
+    return m_camera->projection()->ndcToViewRay(Point(xNdc, yNdc));
+    // glm::vec4 nearPointNdc(xNdc, yNdc, -1.0f, 1.0f);
+    // glm::vec4 farPointNdc(xNdc, yNdc, 1.0f, 1.0f);
 
-    glm::mat4 invVP = glm::inverse(m_camera->projectionMatrix());
-    glm::vec3 nearCamera = glm::xyz(invVP * nearPointNdc) / (invVP * nearPointNdc).w;
-    glm::vec3 farCamera  = glm::xyz(invVP * farPointNdc)  / (invVP * farPointNdc).w;
+    // glm::mat4 invVP = glm::inverse(m_camera->projectionMatrix());
+    // glm::vec3 nearCamera = glm::xyz(invVP * nearPointNdc) / (invVP * nearPointNdc).w;
+    // glm::vec3 farCamera  = glm::xyz(invVP * farPointNdc)  / (invVP * farPointNdc).w;
 
-    glm::vec3 dir = glm::normalize(farCamera - nearCamera);
+    // glm::vec3 dir = glm::normalize(farCamera - nearCamera);
 
-    return Point(dir.x, dir.y, dir.z);
+    // return Point(dir.x, dir.y, dir.z);
 }
 
-Point Map::rayDirectionMap(double pixelX, double pixelY) const
+Point Map::screenToMapRay(double x, double y) const
 {
-    auto dirCamera = rayDirectionCamera(pixelX, pixelY);
+    double ndcX, ndcY;
+    pixelToNDC(x, y, ndcX, ndcY);
 
-    auto cameraTransform = m_camera->transform();
-    glm::vec3 glmDirCamera{dirCamera.x(), dirCamera.y(), dirCamera.z()};
-    glm::vec3 dirMap = glm::xyz(cameraTransform * glm::vec4(glmDirCamera, 1.0));
+    return m_camera->ndcToWorldRay({ndcX, ndcY});
+    // auto cameraTransform = m_camera->transform();
+    // glm::vec3 glmDirCamera{dirCamera.x(), dirCamera.y(), dirCamera.z()};
+    // glm::vec3 dirMap = glm::xyz(cameraTransform * glm::vec4(glmDirCamera, 1.0));
 
-    return Point(dirMap.x, dirMap.y, dirMap.z);
+    // return Point(dirMap.x, dirMap.y, dirMap.z);
 }
 
 void Map::pixelToNDC(double x, double y, double& ndcX, double& ndcY) const
 {
     // TODO make sure this is right
-    ndcX = float(x * 2.0 / float(m_drawable->width() -1) - 1.0); // FIXME: -1 might be wrong
+    ndcX = float(x * 2.0 / float(m_drawable->width() - 1) - 1.0); // FIXME: -1 might be wrong
     ndcY = float(1.0 - y * 2.0 / float(m_drawable->height()-1)); // FIXME: -1 might be wrong
 }
 

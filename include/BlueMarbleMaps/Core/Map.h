@@ -100,8 +100,8 @@ namespace BlueMarble
             Point screenToMap(const Point& screenPos) const;
             Point screenToMap(double x, double y) const;
             Point mapToScreen(const Point& point) const;
-            Point rayDirectionCamera(double pixelX, double pixelY) const;
-            Point rayDirectionMap(double pixelX, double pixelY) const;
+            Point screenToViewRay(double x, double y) const;
+            Point screenToMapRay(double x, double y) const;
             void pixelToNDC(double x, double y, double& ndcX, double& ndcY) const;
             void ndcToPixel(double ndcx, double ndcy, double& x, double& y) const;
             std::vector<Point> screenToMap(const std::vector<Point>& points) const;

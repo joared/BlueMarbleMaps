@@ -58,6 +58,12 @@ namespace BlueMarble
                 return Point(m_x / l, m_y / l);
             }
 
+            inline Point norm3D()
+            {
+                double l = length3D();
+                return Point(m_x / l, m_y / l, m_z / l);
+            }
+
             inline double dotProduct(const Point& point)
             {
                 return m_x*point.x() + m_y*point.y();

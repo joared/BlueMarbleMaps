@@ -155,6 +155,8 @@ public:
     glm::mat4 viewProjMatrix() const { return projectionMatrix()*viewMatrix(); };
 
     Point worldToNdc(const Point& world) const;
+    Point worldToView(const Point& world) const;
+    Point viewToWorld(const Point& view) const;
     Point ndcToWorldRay(const Point& ndc) const;
     // Point ndcToWorld(const Point& ndc) const; // TODO: Needs surface to work
 
