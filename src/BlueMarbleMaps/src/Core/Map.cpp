@@ -44,7 +44,6 @@ Map::Map()
     , m_presentationObjects()
     , m_selectedFeatures()
     , m_hoveredFeatures()
-    , m_commmand(nullptr)
     , m_showDebugInfo(true)
     , m_isUpdating(false)
     , m_renderingEnabled(true)
@@ -430,7 +429,17 @@ void Map::zoomToMinArea(const Rectangle &bounds, bool animate)
     }
 }
 
-Point Map::screenToMap(const Point& screenPos) const
+Point Map::pixelToScreen(int px, int py) const
+{
+    return Point(px+0.5, py+0.5);
+}
+
+Point Map::screenToPixel(double x, double y) const
+{
+    return Point(std::floor(x), std::floor(y));
+}
+
+Point Map::screenToMap(const Point &screenPos) const
 {
     return screenToMap(screenPos.x(), screenPos.y());
 }
@@ -445,7 +454,7 @@ Point Map::screenToMap(double x, double y) const
     auto cameraTransform = m_camera->transform(); 
     
     double xNdc,yNdc;
-    pixelToNDC(x, y, xNdc, yNdc);
+    screenToNDC(x, y, xNdc, yNdc);
 
     Point rayDirWorldPoint = m_camera->ndcToWorldRay(Point(xNdc, yNdc, -1.0));
     Point rayOriginWorldPoint = m_camera->translation();
@@ -472,11 +481,11 @@ Point Map::screenToMap(double x, double y) const
 }
 
 
-Point Map::mapToScreen(const Point &point) const
+Point Map::mapToScreen(const Point& point) const
 {   
     Point ndc = m_camera->worldToNdc(point);
     double x,y;
-    ndcToPixel(ndc.x(), ndc.y(), x, y);
+    ndcToScreen(ndc.x(), ndc.y(), x, y);
 
     return Point(x, y);
 }
@@ -484,44 +493,27 @@ Point Map::mapToScreen(const Point &point) const
 Point Map::screenToViewRay(double pixelX, double pixelY) const
 {
     double xNdc,yNdc;
-    pixelToNDC(pixelX, pixelY, xNdc, yNdc);
+    screenToNDC(pixelX, pixelY, xNdc, yNdc);
 
     return m_camera->projection()->ndcToViewRay(Point(xNdc, yNdc));
-    // glm::vec4 nearPointNdc(xNdc, yNdc, -1.0f, 1.0f);
-    // glm::vec4 farPointNdc(xNdc, yNdc, 1.0f, 1.0f);
-
-    // glm::mat4 invVP = glm::inverse(m_camera->projectionMatrix());
-    // glm::vec3 nearCamera = glm::xyz(invVP * nearPointNdc) / (invVP * nearPointNdc).w;
-    // glm::vec3 farCamera  = glm::xyz(invVP * farPointNdc)  / (invVP * farPointNdc).w;
-
-    // glm::vec3 dir = glm::normalize(farCamera - nearCamera);
-
-    // return Point(dir.x, dir.y, dir.z);
 }
 
 Point Map::screenToMapRay(double x, double y) const
 {
     double ndcX, ndcY;
-    pixelToNDC(x, y, ndcX, ndcY);
+    screenToNDC(x, y, ndcX, ndcY);
 
     return m_camera->ndcToWorldRay({ndcX, ndcY});
-    // auto cameraTransform = m_camera->transform();
-    // glm::vec3 glmDirCamera{dirCamera.x(), dirCamera.y(), dirCamera.z()};
-    // glm::vec3 dirMap = glm::xyz(cameraTransform * glm::vec4(glmDirCamera, 1.0));
-
-    // return Point(dirMap.x, dirMap.y, dirMap.z);
 }
 
-void Map::pixelToNDC(double x, double y, double& ndcX, double& ndcY) const
+void Map::screenToNDC(double x, double y, double &ndcX, double &ndcY) const
 {
-    // TODO make sure this is right
-    ndcX = float(x * 2.0 / float(m_drawable->width() - 1) - 1.0); // FIXME: -1 might be wrong
-    ndcY = float(1.0 - y * 2.0 / float(m_drawable->height()-1)); // FIXME: -1 might be wrong
+    ndcX = float(x * 2.0 / float(m_drawable->width()) - 1.0); // FIXME: -1 might be wrong
+    ndcY = float(1.0 - y * 2.0 / float(m_drawable->height())); // FIXME: -1 might be wrong
 }
 
-void Map::ndcToPixel(double ndcx, double ndcy, double &x, double &y) const
+void Map::ndcToScreen(double ndcx, double ndcy, double &x, double &y) const
 {
-    // TODO make sure this is right
     x = (ndcx + 1.0f) * 0.5f * m_drawable->width();
     y = -(ndcy + 1.0f) * 0.5f * m_drawable->height();
 }
@@ -561,25 +553,17 @@ std::vector<Point> Map::lngLatToMap(const std::vector<Point> &points) const
 Rectangle Map::screenToMap(const Rectangle& rect) const
 {
     return Rectangle::fromPoints(screenToMap(rect.corners()));
-    // Old
-    // auto topLeft = screenToMap(Point(rect.xMin(), rect.yMin()));
-    // auto bottomRight = screenToMap(Point(rect.xMax(), rect.yMax()));
-
-    // return Rectangle(topLeft.x(), topLeft.y(), bottomRight.x(), bottomRight.y());
 }
 
 Rectangle BlueMarble::Map::mapToScreen(const Rectangle& rect) const
 {
     return Rectangle::fromPoints(mapToScreen(rect.corners()));
-    // auto topLeft = mapToScreen(Point(rect.xMin(), rect.yMin()));
-    // auto bottomRight = mapToScreen(Point(rect.xMax(), rect.yMax()));
-
-    // return Rectangle(topLeft.x(), topLeft.y(), bottomRight.x(), bottomRight.y());
 }
 
 Point Map::screenCenter() const
 {
-    return Point((m_drawable->width()-1)*0.5, (m_drawable->height()-1)*0.5);
+    return Point(m_drawable->width()*0.5, m_drawable->height()*0.5); // Screen center
+    //return Point((m_drawable->width()-1)*0.5, (m_drawable->height()-1)*0.5); // Pixel center
 }
 
 void Map::startAnimation(AnimationPtr animation)
@@ -641,7 +625,7 @@ std::vector<FeaturePtr> Map::featuresAt(int X, int Y, double pointerRadius)
     return hitFeatures;
 }
 
-void BlueMarble::Map::featuresInside(const Rectangle& bounds, FeatureCollection& hitFeatures)
+void Map::featuresInside(const Rectangle& bounds, FeatureCollection& hitFeatures)
 {
     assert(hitFeatures.size() == 0);
 
@@ -1028,25 +1012,6 @@ void Map::startInitialAnimation()
     startAnimation(animation);
 }
 
-void BlueMarble::Map::doCommand(const std::function<void()>& action)
-{
-    delete m_commmand;
-    m_commmand = new MapCommand(*this, action);
-    m_commmand->execute();
-}
-
-bool BlueMarble::Map::undoCommand()
-{
-    if(m_commmand)
-    {
-        m_commmand->revert();
-        delete m_commmand;
-        m_commmand = nullptr;
-        return true;
-    }
-    return false;
-}
-
 void Map::drawDebugInfo(int elapsedMs)
 {
     ScreenPos mousePos;
@@ -1179,6 +1144,20 @@ Rectangle BlueMarble::Map::lngLatToScreen(const Rectangle &rect)
     auto bottomRight = lngLatToScreen(Point(rect.xMax(), rect.yMax()));
 
     return Rectangle(topLeft.x(), topLeft.y(), bottomRight.x(), bottomRight.y());
+}
+
+// TODO: remove this
+void Map::setDrawableFromCamera(const CameraPtr &camera)
+{
+    if (auto glDrawable = std::dynamic_pointer_cast<OpenGLDrawable>(m_drawable))
+    {
+        glDrawable->setProjectionMatrix(camera->projectionMatrix());
+        glDrawable->setViewMatrix(camera->viewMatrix());
+    }
+    else
+    {
+        throw std::runtime_error("NOOOOT GUUUD!");
+    }
 }
 
 const Point &Map::center() const

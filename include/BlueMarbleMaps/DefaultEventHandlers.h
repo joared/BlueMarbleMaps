@@ -317,11 +317,6 @@ namespace BlueMarble
                 case BlueMarble::KeyButton::ArrowRight:
                     direction = BlueMarble::Point(1, 0);
                     break;
-                
-                case BlueMarble::KeyButton::BackSpace:
-                    if (m_map->undoCommand())
-                        return true;
-                    break;
                 case BlueMarble::KeyButton::Space:
                 {                    
                     if (m_map->selected().size() > 0)
@@ -357,19 +352,6 @@ namespace BlueMarble
                             bounds = m_map->lngLatToMap(Rectangle::fromPoints(pointList));
                             // Add some margin
                             bounds.extend(50.0/m_map->scale(), 50.0/m_map->scale());
-                        }
-
-                        
-                        if (!bounds.isUndefined())
-                        {
-                            //m_map->zoomToArea(rect, true);
-                            // TODO
-                            m_map->doCommand([this, bounds]() 
-                            {
-                                this->m_map->zoomToArea(bounds, true);
-                            }
-                            );
-                            
                         }
                     }
                     return true;
@@ -538,10 +520,9 @@ namespace BlueMarble
                 }
 
                 auto mode = (event.modificationKey == ModificationKeyCtrl) 
-                        ? SelectMode::Add : SelectMode::Replace;
+                            ? SelectMode::Add : SelectMode::Replace;
                 if (!m_map->isSelected(selFeat))
                 {   
-                    
                     m_map->select(selFeat, mode);
                 }
                 else if (mode == SelectMode::Replace)
@@ -694,10 +675,6 @@ namespace BlueMarble
                     }
                 case BlueMarble::MouseButtonMiddle:
                     {
-                        // Pan navigation thing
-                        // m_map->panBy({-(double)(dragEvent.lastPos.x - dragEvent.pos.x), 
-                        //               -(double)(dragEvent.lastPos.y - dragEvent.pos.y)});
-                        
                         constexpr double tiltFactor = 0.5; // Should be dependent on focal length
 
                         double deltaTilt = (dragEvent.lastPos.y - dragEvent.pos.y) * tiltFactor;
@@ -705,12 +682,6 @@ namespace BlueMarble
 
                         m_map->update();
 
-                        // Draw a rectangle
-                        // auto corner1 = m_map->screenToMap(dragEvent.pos.x, dragEvent.pos.y);
-                        // auto corner2 = m_map->screenToMap(dragEvent.startPos.x, dragEvent.startPos.y);
-                        // m_rectangle = BlueMarble::Rectangle(corner1.x(), corner1.y(), corner2.x(), corner2.y());
-                        // std::cout << "Rectangle set: " << std::to_string(m_rectangle.xMin()) << ", " << std::to_string(m_rectangle.yMin()) << ", " << std::to_string(m_rectangle.xMax()) << ", " << std::to_string(m_rectangle.yMax()) << "\n";
-                        // m_map->update();
                         break;
                     }
                 default:
@@ -1112,6 +1083,8 @@ namespace BlueMarble
             , m_mapControl(nullptr)
             , m_isActive(false)
         {
+            m_hitTestLine = std::make_shared<LineGeometry>();
+            m_hitTestLinePixel = std::make_shared<LineGeometry>();
         }
         void onConnected(const MapControlPtr& control, const MapPtr& map) override
         {
@@ -1129,15 +1102,54 @@ namespace BlueMarble
         {
             return m_isActive;
         }
+
+        bool OnClick(const ClickEvent& event) override final
+        {
+            auto rayOrig = m_map->camera()->translation();
+            auto mapPos = m_map->screenToMap(event.pos.x, event.pos.y);
+
+            m_hitTestLine->points().clear();
+            m_hitTestLine->points().push_back(rayOrig);
+            m_hitTestLine->points().push_back(mapPos);
+
+            auto mapPosPixel = m_map->screenToMap(event.pos.x, event.pos.y);
+            m_hitTestLinePixel->points().clear();
+            m_hitTestLinePixel->points().push_back(rayOrig);
+            m_hitTestLinePixel->points().push_back(mapPosPixel);
+
+            m_map->update();
+
+            return false;
+        }
+
         void drawCallback(Map& map)
         {
-            
+            if (m_hitTestLine)
+            {
+                // auto screenLine = std::make_shared<LineGeometry>();
+                // screenLine->points().assign({{ 1, 0 }, {20, 0.0}});
+                // Pen pen;
+                // pen.setColor(Color::red());
+                // map.drawable()->drawLine(screenLine, pen);
+
+                map.setDrawableFromCamera(map.camera());
+                Pen p;
+                p.setColor(Color::red());
+                map.drawable()->drawLine(m_hitTestLine, p);
+
+                Pen p2;
+                p2.setColor(Color::green());
+                map.drawable()->drawLine(m_hitTestLinePixel, p2);
+            }
         }
 
     private: 
         MapControlPtr m_mapControl;
         MapPtr m_map;
         bool m_isActive;
+
+        LineGeometryPtr m_hitTestLine;
+        LineGeometryPtr m_hitTestLinePixel;
     };
 }
 

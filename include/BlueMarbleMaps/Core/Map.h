@@ -34,31 +34,6 @@ namespace BlueMarble
         : public std::enable_shared_from_this<Map>
         , public ResourceObject
     {
-        class MapCommand
-        {
-            public:
-                inline MapCommand(Map& map, const std::function<void()>& action)
-                    : m_map(map)
-                    , m_action(action)
-                {
-
-                }
-                inline void execute()
-                {
-                    m_from = m_map.area();
-                    m_action();
-                }
-
-                inline void revert()
-                {
-                    m_map.zoomToArea(m_from, true);
-                }
-
-            private:
-                Map& m_map;
-                const std::function<void()>& m_action;
-                Rectangle m_from;
-        };
         public:
             Map();
             Map(const Map&) = delete;
@@ -70,6 +45,8 @@ namespace BlueMarble
  
             // TODO: move to camera/camera controller
             // Camera properties
+            CameraPtr camera() { return m_camera; }
+            void setDrawableFromCamera(const CameraPtr& camera);
             const Point& center() const;
             void center(const Point& center);
             void scale(double scale);
@@ -97,13 +74,16 @@ namespace BlueMarble
             void zoomToArea(const Rectangle& bounds, bool animate=false);
             void zoomToMinArea(const Rectangle& bounds, bool animate=false);
 
+            Point screenCenter() const;
+            Point pixelToScreen(int px, int py) const;
+            Point screenToPixel(double x, double y) const;
             Point screenToMap(const Point& screenPos) const;
             Point screenToMap(double x, double y) const;
             Point mapToScreen(const Point& point) const;
             Point screenToViewRay(double x, double y) const;
             Point screenToMapRay(double x, double y) const;
-            void pixelToNDC(double x, double y, double& ndcX, double& ndcY) const;
-            void ndcToPixel(double ndcx, double ndcy, double& x, double& y) const;
+            void screenToNDC(double x, double y, double& ndcX, double& ndcY) const;
+            void ndcToScreen(double ndcx, double ndcy, double& x, double& y) const;
             std::vector<Point> screenToMap(const std::vector<Point>& points) const;
             std::vector<Point> mapToScreen(const std::vector<Point>& points) const;
             std::vector<Point> lngLatToMap(const std::vector<Point>& points) const;
@@ -117,8 +97,6 @@ namespace BlueMarble
             Rectangle lngLatToMap(const Rectangle& rect);                   // Temporary test, should be removed
             Rectangle mapToLngLat(const Rectangle& rect);                   // Temporary test, should be removed
             Rectangle lngLatToScreen(const Rectangle& rect);                   // Temporary test, should be removed
-
-            Point screenCenter() const;
 
             void startAnimation(AnimationPtr animation);
             void stopAnimation();
@@ -237,8 +215,6 @@ namespace BlueMarble
             std::vector<Id>                 m_selectedFeatures;
             std::vector<Id>                 m_hoveredFeatures;
             std::vector<PresentationObject> m_selectedPresentationObjects;
-
-            MapCommand*                     m_commmand;
 
             bool m_showDebugInfo;
             bool m_isUpdating; // Not allowed to call update() within an update() call
