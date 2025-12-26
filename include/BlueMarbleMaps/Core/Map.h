@@ -204,7 +204,7 @@ namespace BlueMarble
             bool m_centerChanged;
             bool m_scaleChanged;
             bool m_rotationChanged;
-            mutable CameraPtr m_camera;
+            CameraPtr m_camera;
 
             AnimationPtr    m_animation;
             int m_animationStartTimeStamp;

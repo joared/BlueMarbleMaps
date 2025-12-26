@@ -274,7 +274,7 @@ double Map::height() const
     return m_drawable->height() / m_scale;
 }
 
-Rectangle BlueMarble::Map::area() const
+Rectangle Map::area() const
 {
     return Rectangle
     (
