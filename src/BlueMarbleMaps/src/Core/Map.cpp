@@ -7,6 +7,7 @@
 #include "BlueMarbleMaps/Logging/Logging.h"
 
 #include "BlueMarbleMaps/Core/OpenGLDrawable.h"
+#include "BlueMarbleMaps/Core/PlaneCameraController.h" // TODO remove
 
 #include <cmath>
 #include <iostream>
@@ -33,6 +34,7 @@ Map::Map()
     , m_tilt(0.0)
     , m_constraints(5000.0, 0.0001, Rectangle(0, 0, 100000, 100000))
     , m_crs(Crs::wgs84LngLat())
+    , m_surfaceModel(std::make_shared<PlaneSurfaceModel>(Point{0,0,0}, Point{0,0,1}))
     , m_updateRequired(true)
     , m_updateEnabled(true)
     , m_animation(nullptr)
@@ -41,6 +43,8 @@ Map::Map()
     , m_centerChanged(false)
     , m_scaleChanged(false)
     , m_rotationChanged(false)
+    , m_cameraController(nullptr)
+    , m_lastUpdateTimeStamp(-1)
     , m_presentationObjects()
     , m_selectedFeatures()
     , m_hoveredFeatures()
@@ -48,14 +52,18 @@ Map::Map()
     , m_isUpdating(false)
     , m_renderingEnabled(true)
 {
+    
     m_drawable = std::make_shared<SoftwareBitmapDrawable>(500, 500, 4);
+    setCamera(); // TODO remove
+
     m_presentationObjects.reserve(1000000); // Reserve a good amount for efficiency
     resetUpdateFlags();
     m_constraints.bounds().scale(3.0);
 
-    updateUpdateAttributes(getTimeStampMs());
+    m_lastUpdateTimeStamp = getTimeStampMs();
+    updateUpdateAttributes(m_lastUpdateTimeStamp);
 
-    setCamera();
+    setCamera(); // TODO remove
 }
 
 bool Map::update(bool forceUpdate)
@@ -69,22 +77,57 @@ bool Map::update(bool forceUpdate)
     }
 
     assert(!m_isUpdating);
+    
     m_isUpdating = true;
     // TODO: should be handled as int64_t
     int timeStampMs = getTimeStampMs();
+    int64_t deltaMs = timeStampMs - m_lastUpdateTimeStamp;
+    m_lastUpdateTimeStamp = timeStampMs;
+
     if (!m_updateEnabled || (!forceUpdate && !m_animation && !m_updateRequired))
     {
         std::cout << "Map::update() No update required!\n";
         return false;
     }
+
+    m_updateRequired = false;
     updateUpdateAttributes(timeStampMs); // Set update attributes that contains useful information about the update
 
+    // Update camera using the camera controller
+    if (m_cameraController)
+    {
+        ICameraController::ControllerStatus status = m_cameraController->updateCamera(m_camera, deltaMs);
+        if (hasFlag(status, ICameraController::ControllerStatus::Updated))
+        {
+            events.onAreaChanged.notify(*this);
+        }
+        if (hasFlag(status, ICameraController::ControllerStatus::NeedsUpdate))
+        {
+            m_updateRequired = true;
+        }
+        else
+        {
+            BMM_DEBUG() << "To camera update needed\n";
+        }
+    }
     // FIXME: should animations be before onUpdating?
+    stopAnimation(); // TODO: remove, use camera controller instead
     if(m_animation && m_animation->update(timeStampMs - m_animationStartTimeStamp))
     {
         // Animation finished
         stopAnimation();
     }
+
+    // TODO remove, testing bug
+    // auto contrl = dynamic_cast<PlaneCameraController*>(m_cameraController);
+    // if (contrl)
+    // {
+    //     // center(contrl->center());
+    //     // scale(contrl->zoom());
+    //     // rotation(contrl->rotation());
+    //     // tilt(contrl->tilt());
+    //     setCamera();
+    // }
 
     events.onUpdating.notify(*this);
 
@@ -107,6 +150,7 @@ bool Map::update(bool forceUpdate)
     // each time a handler is called.
     auto preNotifyAction = [this]()
     {
+        // TODO: set both projection and transform/view matrix in prenotify action
         //m_drawable->setTransform(Transform::screenTransform(m_drawable->width(), m_drawable->height()));
         m_drawable->setTransform(Transform());
         m_drawable->beginBatches();
@@ -126,7 +170,7 @@ bool Map::update(bool forceUpdate)
 
     events.onUpdated.notify(*this);
 
-    m_updateRequired = m_updateAttributes.get<bool>(UpdateAttributeKeys::UpdateRequired); // Someone in the operator chain needs more updates (e.g. Visualization evaluations)
+    m_updateRequired |= m_updateAttributes.get<bool>(UpdateAttributeKeys::UpdateRequired); // Someone in the operator chain needs more updates (e.g. Visualization evaluations)
 
     resetUpdateFlags();
 
@@ -137,6 +181,7 @@ bool Map::update(bool forceUpdate)
     {
         events.onIdle.notify(*this);
     }
+
 
     return updateRequired;
 }
@@ -178,7 +223,7 @@ FeatureQuery BlueMarble::Map::produceUpdateQuery()
     int w = m_drawable->width();
     int h = m_drawable->height();
     auto screenArea = Rectangle(0,0,w,h);
-    screenArea.scale(0.5); // TODO: this scaling is for debugging querying, remove
+    screenArea.scale(0.25); // TODO: this scaling is for debugging querying, remove
 
     auto updateArea = screenToMap(screenArea);
     featureQuery.area(updateArea);
@@ -217,7 +262,15 @@ void Map::scale(double scale)
 
 double Map::scale() const
 {
-    return m_scale * m_drawable->pixelSize() / m_crs->globalMeterScale();
+    auto centerMap = screenToMap(screenCenter());
+    auto centerCam = m_camera->worldToView(centerMap);
+    double zCam = centerCam.z();
+    // double unitsPerPixel = m_camera->projection()->unitsPerPixelAtDistanceNumerical(std::abs(zCam));
+    double unitsPerPixel = m_camera->unitsPerPixelAtDistance(std::abs(zCam));
+    double aprroximateScale = 1.0 / unitsPerPixel * m_drawable->pixelSize() / m_crs->globalMeterScale();
+
+    return aprroximateScale;
+    // return m_scale * m_drawable->pixelSize() / m_crs->globalMeterScale();
 }
 
 double Map::invertedScale() const
@@ -297,6 +350,11 @@ void Map::crs(const CrsPtr& newCrs)
 
     center(lngLatCrs->projectTo(newCrs, centerLngLat));
     scale(oldScale);
+
+    if (m_cameraController)
+    {
+        m_cameraController->onActivated(m_camera, m_crs->bounds());
+    }
 
     flushCache(); // We need to flush layer caches since the crs has changed
 }
@@ -382,8 +440,22 @@ void Map::zoomOn(const Point& mapPoint, double zoomFactor, bool animate)
 void Map::zoomToArea(const Rectangle& bounds, bool animate)
 {
     std::cout << "zoomToArea\n";
+
+    center(bounds.center());
+    // double div = m_crs->globalMeterScale() / m_drawable->pixelSize(); // THIS FIXES IT!!!
+    double H = m_camera->projection()->height();
+    double h = bounds.height();
+    m_scale = H/h; //m_camera->projection()->height()/bounds.height();
+    //scale(m_camera->projection()->height()/bounds.height() / div);
+    rotation(0.0);
+    tilt(0.0);
     
-    // auto to = bounds.center();
+    BMM_DEBUG() << "DOS\n";
+    BMM_DEBUG() << "H: " << H << "\n";
+    BMM_DEBUG() << "h: " << h << "\n";
+    BMM_DEBUG() << "S: " << m_scale << "\n";
+
+    // auto toCenter = bounds.center();
 
     // double toScale = scale() * width() / bounds.width();
     // if (width() / height() > bounds.width() / bounds.height())
@@ -393,6 +465,7 @@ void Map::zoomToArea(const Rectangle& bounds, bool animate)
     //                                        m_constraints.minScale(),
     //                                        m_constraints.maxScale());
 
+    
     // if (animate)
     // {
     //     auto animation = Animation::Create(*this, center(), toCenter, scale(), toScale, 1000, false);
@@ -429,9 +502,30 @@ void Map::zoomToMinArea(const Rectangle &bounds, bool animate)
     }
 }
 
+void Map::setCameraController(ICameraController* controller)
+{
+    if (!controller)
+    {
+        throw std::runtime_error("GGG WPWPWPWP!!!");
+    }
+
+    m_cameraController = controller;
+    m_camera = m_cameraController->onActivated(m_camera, m_crs->bounds());
+}
+
+Point Map::pixelToScreen(const Point& pixel) const
+{
+    return pixelToScreen((int)std::round(pixel.x()), (int)std::round(pixel.y()));
+}
+
 Point Map::pixelToScreen(int px, int py) const
 {
-    return Point(px+0.5, py+0.5);
+    return Point(double(px)+0.5, double(py)+0.5);
+}
+
+Point Map::screenToPixel(const Point& screen) const
+{
+    return screenToPixel(screen.x(), screen.y());
 }
 
 Point Map::screenToPixel(double x, double y) const
@@ -439,47 +533,54 @@ Point Map::screenToPixel(double x, double y) const
     return Point(std::floor(x), std::floor(y));
 }
 
-Point Map::screenToMap(const Point &screenPos) const
+Point Map::screenToMap(const Point& screenPos) const
 {
     return screenToMap(screenPos.x(), screenPos.y());
 }
 
 Point Map::screenToMap(double x, double y) const
 {
-    // NOTE: this methods treats screen coordinates as "pixel indexes", not the geometrical point
-    constexpr glm::vec3 worldPlaneOrigin = glm::vec3(0.0f);
-    constexpr glm::vec3 worldPlaneNormal = glm::vec3(0.0f, 0.0f, 1.0f);
-
-    auto projMatrix = m_camera->projectionMatrix();
-    auto cameraTransform = m_camera->transform(); 
-    
     double xNdc,yNdc;
     screenToNDC(x, y, xNdc, yNdc);
 
     Point rayDirWorldPoint = m_camera->ndcToWorldRay(Point(xNdc, yNdc, -1.0));
     Point rayOriginWorldPoint = m_camera->translation();
 
-    glm::vec3 rayDirWorld = glm::vec3(rayDirWorldPoint.x(), rayDirWorldPoint.y(), rayDirWorldPoint.z());
-    glm::vec3 rayOriginWorld = glm::vec3(rayOriginWorldPoint.x(), rayOriginWorldPoint.y(), rayOriginWorldPoint.z());
-
-    // Intersection of the ray with the "world" (Plane at z=0)
-    float denom = glm::dot(worldPlaneNormal, rayDirWorld);
-
-    // Ray parallel to plane
-    if (std::abs(denom) < 1e-6f)
-        return Point::undefined();
-
-    float t = glm::dot(worldPlaneNormal, worldPlaneOrigin - rayOriginWorld) / denom;
-
-    // Intersection behind the ray origin
-    if (t < 0.0f)
-        return Point::undefined();
-
-    glm::vec3 hitPoint = rayOriginWorld + t * rayDirWorld;
-
-    return Point(hitPoint.x, hitPoint.y, hitPoint.z);
+    Point surfacePoint = Point::undefined();
+    Point surfaceNormal = Point::undefined();
+    if (!m_surfaceModel->rayIntersection(rayOriginWorldPoint, 
+                                         rayDirWorldPoint.norm3D(), 
+                                         0.0,
+                                         surfacePoint, 
+                                         surfaceNormal))
+    {
+        BMM_DEBUG() << "Map::screenToMap() No map intersection!\n";
+    }
+    
+    return surfacePoint;
 }
 
+Point Map::screenToMapAtHeight(const Point& screenPos, double heightMeters) const
+{
+    double xNdc,yNdc;
+    screenToNDC(screenPos.x(), screenPos.y(), xNdc, yNdc);
+
+    Point rayDirWorldPoint = m_camera->ndcToWorldRay(Point(xNdc, yNdc, -1.0));
+    Point rayOriginWorldPoint = m_camera->translation();
+
+    Point surfacePoint = Point::undefined();
+    Point surfaceNormal = Point::undefined();
+    if (!m_surfaceModel->rayIntersection(rayOriginWorldPoint, 
+                                         rayDirWorldPoint.norm3D(), 
+                                         heightMeters/m_crs->globalMeterScale(),
+                                         surfacePoint, 
+                                         surfaceNormal))
+    {
+        BMM_DEBUG() << "Map::screenToMapAtHeight() No map intersection!\n";
+    }
+    
+    return surfacePoint;
+}
 
 Point Map::mapToScreen(const Point& point) const
 {   
@@ -508,14 +609,14 @@ Point Map::screenToMapRay(double x, double y) const
 
 void Map::screenToNDC(double x, double y, double &ndcX, double &ndcY) const
 {
-    ndcX = float(x * 2.0 / float(m_drawable->width()) - 1.0); // FIXME: -1 might be wrong
-    ndcY = float(1.0 - y * 2.0 / float(m_drawable->height())); // FIXME: -1 might be wrong
+    ndcX = float(x * 2.0 / float(m_drawable->width()) - 1.0);
+    ndcY = float(1.0 - y * 2.0 / float(m_drawable->height()));
 }
 
 void Map::ndcToScreen(double ndcx, double ndcy, double &x, double &y) const
 {
     x = (ndcx + 1.0f) * 0.5f * m_drawable->width();
-    y = -(ndcy + 1.0f) * 0.5f * m_drawable->height();
+    y = (1.0f- ndcy) * 0.5f * m_drawable->height();
 }
 
 std::vector<Point> Map::screenToMap(const std::vector<Point> &points) const
@@ -529,7 +630,7 @@ std::vector<Point> Map::screenToMap(const std::vector<Point> &points) const
     return mapPoints;
 }
 
-std::vector<Point> Map::mapToScreen(const std::vector<Point> &points) const
+std::vector<Point> Map::mapToScreen(const std::vector<Point>& points) const
 {
     std::vector<Point> screenPoints;
     for (auto& p : points)
@@ -886,7 +987,8 @@ void Map::setCamera()
     float near = 0.1f;
     float far = 1000000.0f;
 
-    m_camera = Camera::perspectiveCamera(m_drawable->width(), m_drawable->height(), near, far, float(fov));
+    if (!m_camera)
+        m_camera = Camera::perspectiveCamera(m_drawable->width(), m_drawable->height(), near, far, float(fov));
     glm::mat4 cam = glm::mat4(1.0f);
     cam = glm::translate(cam, glm::vec3(
         c.x(),

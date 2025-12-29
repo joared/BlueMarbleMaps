@@ -10,6 +10,7 @@
 #include "BlueMarbleMaps/Core/AnimationFunctions.h"
 #include "BlueMarbleMaps/Core/DataSets/MemoryDataSet.h"
 #include "Keys.h"
+#include "BlueMarbleMaps/Core/PlaneCameraController.h"
 
 namespace BlueMarble
 {
@@ -179,6 +180,7 @@ namespace BlueMarble
                 m_map->events.onCustomDraw.subscribe(this, &PanEventHandler::OnCustomDraw);
                 m_map->events.onUpdated.subscribe(this, &PanEventHandler::OnUpdated);
                 m_map->events.onIdle.subscribe(this, &PanEventHandler::OnIdle);
+                m_map->setCameraController(&m_cameraController);
             }
 
             void onDisconnected() override final 
@@ -201,14 +203,14 @@ namespace BlueMarble
 
             }
 
-            void OnUpdating(BlueMarble::Map& /*map*/)
+            void OnUpdating(BlueMarble::Map& map)
             {
-                
             }
 
             void drawRect(const BlueMarble::Rectangle& bounds)
             {
                 auto drawable = m_map->drawable();
+                m_map->setDrawableFromCamera(m_map->camera());
                 auto pen = BlueMarble::Pen();
                 pen.setColor(BlueMarble::Color{0, 0, 0});
                 auto brush = Brush();
@@ -582,11 +584,13 @@ namespace BlueMarble
                 {
                     if (event.mouseButton == MouseButton::MouseButtonRight)
                     {
-                        m_map->center({0,0}); // Recenter, there is a bug in this shiet
+                        // m_map->center({0,0}); // Recenter, there is a bug in this shiet
+                        m_cameraController.center({0,0});
                     }
                     else
                     {
-                        m_map->zoomOn(mapPoint, zoomFactor, true);
+                        //m_map->zoomOn(mapPoint, zoomFactor, true);
+                        m_cameraController.zoomOn(mapPoint, zoomFactor);
                     }
                 }
                 m_map->update();
@@ -620,7 +624,10 @@ namespace BlueMarble
                             // zoom to rect
                             std::cout << "Mod key: " << dragEvent.modificationKey << "\n";
                             m_zoomToRect = true;
-                            m_rectangle = Rectangle(dragEvent.startPos.x, dragEvent.startPos.y, dragEvent.pos.x, dragEvent.pos.y);
+                            auto points = std::vector<Point>(); 
+                            points.push_back(m_map->screenToMap(Point{dragEvent.pos.x, dragEvent.pos.y}));
+                            points.push_back(m_map->screenToMap(Point{dragEvent.startPos.x, dragEvent.startPos.y}));
+                            m_rectangle = Rectangle::fromPoints(points);
                             m_map->update();
                         }
                         else
@@ -629,8 +636,10 @@ namespace BlueMarble
                             auto screen1 = Point(dragEvent.pos.x, dragEvent.pos.y);
                             auto screen2 = Point(dragEvent.lastPos.x, dragEvent.lastPos.y);
                             auto offsetWorld = m_map->screenToMap(screen2) - m_map->screenToMap(screen1);
-                            auto to = m_map->center() + offsetWorld;
-                            m_map->center(to); 
+                            auto to = m_cameraController.center() + offsetWorld;
+                            //m_cameraController.center(to);
+                            m_cameraController.panBy(offsetWorld);
+                            //m_map->center(to);
                             // Old
                             // m_map->panBy({(double)(dragEvent.lastPos.x - dragEvent.pos.x), 
                             //             (double)(dragEvent.lastPos.y - dragEvent.pos.y)});
@@ -656,18 +665,20 @@ namespace BlueMarble
 
                             double deltaAngle = currAngle-startAngle;
 
-                            m_map->rotation(m_map->rotation() + deltaAngle*RAD_TO_DEG);
+                            // m_map->rotation(m_map->rotation() + deltaAngle*RAD_TO_DEG);
+                            m_cameraController.rotateBy(deltaAngle*RAD_TO_DEG);
                             m_map->update();
                         }
                         else
                         {
                             // Zoom
                             const double ZOOM_SCALE = 0.01;
-                            auto mapPoint = m_map->screenToMap(BlueMarble::Point(dragEvent.startPos.x, dragEvent.startPos.y));
+                            auto mapPoint = m_map->screenToMap(m_map->pixelToScreen(Point{dragEvent.startPos.x, dragEvent.startPos.y}));
                             double deltaY = dragEvent.pos.y - dragEvent.lastPos.y;
                             double scale = 1 + abs(deltaY)*ZOOM_SCALE;
                             double zoomFactor = deltaY > 0 ? scale : 1.0/scale;
-                            m_map->zoomOn(mapPoint, zoomFactor);
+                            // m_map->zoomOn(mapPoint, zoomFactor);
+                            m_cameraController.zoomOn(mapPoint, zoomFactor);
                             m_map->update();
                         }
                         
@@ -678,7 +689,8 @@ namespace BlueMarble
                         constexpr double tiltFactor = 0.5; // Should be dependent on focal length
 
                         double deltaTilt = (dragEvent.lastPos.y - dragEvent.pos.y) * tiltFactor;
-                        m_map->tilt(m_map->tilt() + deltaTilt);
+                        // m_map->tilt(m_map->tilt() + deltaTilt);
+                        m_cameraController.tiltBy(deltaTilt);
 
                         m_map->update();
 
@@ -700,7 +712,10 @@ namespace BlueMarble
                     m_zoomToRect = false;
                     auto rect = Rectangle(dragEndEvent.startPos.x, dragEndEvent.startPos.y, 
                                           dragEndEvent.pos.x, dragEndEvent.pos.y);
-                    m_map->zoomToArea(m_map->screenToMap(rect), true);
+                    
+                    m_cameraController.zoomTo(m_map->screenToMap(rect));
+                    m_map->zoomToArea(m_map->screenToMap(rect), false);
+                    
                     m_map->update();
                     m_rectangle = BlueMarble::Rectangle::undefined();
                     
@@ -767,7 +782,8 @@ namespace BlueMarble
                 {
                     m_map->stopAnimation(); // Need to stop animation for this to have an affect when not animating
                 }
-                m_map->zoomOn(m_map->screenToMap(BlueMarble::Point(wheelEvent.pos.x, wheelEvent.pos.y)), zoomFactor, animate);
+                // m_map->zoomOn(m_map->screenToMap(BlueMarble::Point(wheelEvent.pos.x, wheelEvent.pos.y)), zoomFactor, animate);
+                m_cameraController.zoomOn(m_map->screenToMap(m_map->pixelToScreen(Point(wheelEvent.pos.x, wheelEvent.pos.y))), zoomFactor);
                 m_map->update();
                 return true;
             }
@@ -827,6 +843,7 @@ namespace BlueMarble
             
             BlueMarble::MapPtr m_map;
             MapControlPtr m_mapControl;
+            PlaneCameraController m_cameraController;
             BlueMarble::Rectangle m_rectangle;
             bool m_zoomToRect;
             std::vector<int> m_timeStamps;
@@ -889,8 +906,6 @@ namespace BlueMarble
                 auto drawable = map.drawable();
 
                 auto line = std::make_shared<LineGeometry>();
-                
-                
 
                 auto c1 = drawable->readPixel(m_currPos.x, m_currPos.y);
 
@@ -925,6 +940,20 @@ namespace BlueMarble
                     //double radius = 10.0*std::min(1.0, line->length() / 200.0);
 
                     drawable->drawCircle(lastPos.x, lastPos.y, radius, Pen::transparent(), b);
+
+                    // Testing map at height
+                    auto mapPointAtHeight = map.screenToMapAtHeight(Point(lastPos.x, lastPos.y), 10000.0);
+                    
+                    auto screenP = map.mapToScreen(Point(mapPointAtHeight.x(), mapPointAtHeight.y()));
+                    Pen pennis;
+                    pennis.setColor(Color::green());
+                    drawable->drawCircle(lastPos.x, lastPos.y, 5, pennis, Brush::transparent());
+                    pennis.setColor(Color::red());
+                    drawable->drawCircle(screenP.x(), screenP.y(), 5, pennis, Brush::transparent());
+                    auto lll = std::make_shared<LineGeometry>();
+                    lll->points().push_back(Point(lastPos.x, lastPos.y));
+                    lll->points().push_back(screenP);
+                    drawable->drawLine(lll, pennis);
 
                     // We still have stuff left
                     map.update(); // TODO: This may trigger more updates than needed. Use timer instead

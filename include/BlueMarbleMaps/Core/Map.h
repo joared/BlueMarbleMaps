@@ -11,6 +11,8 @@
 #include "BlueMarbleMaps/Core/ResourceObject.h"
 #include "BlueMarbleMaps/CoordinateSystem/Crs.h"
 #include "BlueMarbleMaps/Event/Signal.h"
+#include "BlueMarbleMaps/Core/ICameraController.h"
+#include "BlueMarbleMaps/CoordinateSystem/SurfaceModel.h"
 
 #include <map>
 #include <functional>
@@ -64,6 +66,8 @@ namespace BlueMarble
             MapConstraints& mapConstraints() { return m_constraints; };
             const CrsPtr& crs() { return m_crs; }
             void crs(const CrsPtr& crs);
+            SurfaceModelPtr surfaceModel() { return m_surfaceModel; };
+            void setSurfaceModel(const SurfaceModelPtr& model) { m_surfaceModel=model; };
             
             // TODO: move to cameracontroller class
             // Camera controlling
@@ -73,12 +77,16 @@ namespace BlueMarble
             void zoomOn(const Point& mapPoint, double zoomFactor, bool animate=false);
             void zoomToArea(const Rectangle& bounds, bool animate=false);
             void zoomToMinArea(const Rectangle& bounds, bool animate=false);
+            void setCameraController(ICameraController* controller);
 
-            Point screenCenter() const;
+            Point pixelToScreen(const Point& pixel) const;
             Point pixelToScreen(int px, int py) const;
+            Point screenToPixel(const Point& screen) const;
             Point screenToPixel(double x, double y) const;
+            Point screenCenter() const;
             Point screenToMap(const Point& screenPos) const;
             Point screenToMap(double x, double y) const;
+            Point screenToMapAtHeight(const Point& screenPos, double heightMeters) const;
             Point mapToScreen(const Point& point) const;
             Point screenToViewRay(double x, double y) const;
             Point screenToMapRay(double x, double y) const;
@@ -192,7 +200,8 @@ namespace BlueMarble
             double m_rotation;
             double m_tilt;
 
-            CrsPtr m_crs;
+            CrsPtr          m_crs;
+            SurfaceModelPtr m_surfaceModel;
 
             MapConstraints m_constraints;
 
@@ -204,7 +213,9 @@ namespace BlueMarble
             bool m_centerChanged;
             bool m_scaleChanged;
             bool m_rotationChanged;
-            CameraPtr m_camera;
+            CameraPtr           m_camera;
+            ICameraController*  m_cameraController;
+            ino64_t             m_lastUpdateTimeStamp;
 
             AnimationPtr    m_animation;
             int m_animationStartTimeStamp;

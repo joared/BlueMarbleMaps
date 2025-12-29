@@ -32,53 +32,54 @@ namespace BlueMarble
                 return Point
                 (
                     std::round(m_x),
-                    std::round(m_y)
+                    std::round(m_y),
+                    std::round(m_z)
                 );
             }
 
 
-            inline double length()
+            inline double length() const
             {
                 return std::sqrt(m_x*m_x + m_y*m_y);
             }
 
-            inline double length3D()
+            inline double length3D() const
             {
                 return std::sqrt(m_x*m_x + m_y*m_y + m_z*m_z);
             }
 
-            inline double distanceTo(const Point& other)
+            inline double distanceTo(const Point& other) const
             {
                 return (*this-other).length();
             }
 
-            inline Point norm()
+            inline Point norm() const
             {
                 double l = length();
                 return Point(m_x / l, m_y / l);
             }
 
-            inline Point norm3D()
+            inline Point norm3D() const
             {
-                double l = length3D();
-                return Point(m_x / l, m_y / l, m_z / l);
+                double lInv = 1.0 / length3D();
+                return Point(m_x * lInv, m_y * lInv, m_z * lInv);
             }
 
-            inline double dotProduct(const Point& point)
+            inline double dotProduct(const Point& point) const
             {
-                return m_x*point.x() + m_y*point.y();
+                return m_x*point.x() + m_y*point.y() + m_z*point.z();
             }
 
-            inline Point project(const Point& point)
+            inline Point project(const Point& point) const
             {
-                auto n = norm();
+                auto n = norm3D();
                 return n*n.dotProduct(point);
             }
 
 
             inline Point operator+(const Point& other) const
             {
-                return Point(m_x + other.x(), m_y+other.y(), m_z+other.z());
+                return Point(m_x+other.x(), m_y+other.y(), m_z+other.z());
             }
 
             inline void operator+=(const Point& other)
@@ -90,12 +91,12 @@ namespace BlueMarble
 
             inline Point operator-(const Point& other) const
             {
-                return Point(m_x - other.x(), m_y-other.y());
+                return Point(m_x-other.x(), m_y-other.y(), m_z-other.z());
             }
 
             inline Point operator*(const double& other) const
             {
-                return Point(m_x*other, m_y*other);
+                return Point(m_x*other, m_y*other, m_z*other);
             }
 
             inline std::string toString() const
