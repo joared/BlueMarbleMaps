@@ -69,7 +69,7 @@ namespace BlueMarble
 		 return m_colors[0];
      }
 
-     std::vector<Color> Pen::getColors() const
+     const std::vector<Color>& Pen::getColors() const
      {
          return m_colors;
      }

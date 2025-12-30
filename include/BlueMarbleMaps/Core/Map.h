@@ -2,7 +2,8 @@
 #define MAP
 
 #include "BlueMarbleMaps/Core/Core.h"
-#include "BlueMarbleMaps/Core/Camera.h"
+#include "BlueMarbleMaps/Core/Camera/Camera.h"
+#include "BlueMarbleMaps/Core/Camera/ICameraController.h"
 #include "BlueMarbleMaps/Core/MapConstraints.h"
 #include "BlueMarbleMaps/Core/Animation.h"
 #include "BlueMarbleMaps/Core/Drawable.h"
@@ -11,7 +12,6 @@
 #include "BlueMarbleMaps/Core/ResourceObject.h"
 #include "BlueMarbleMaps/CoordinateSystem/Crs.h"
 #include "BlueMarbleMaps/Event/Signal.h"
-#include "BlueMarbleMaps/Core/ICameraController.h"
 #include "BlueMarbleMaps/CoordinateSystem/SurfaceModel.h"
 
 #include <map>
@@ -88,8 +88,8 @@ namespace BlueMarble
             Point screenToMap(double x, double y) const;
             Point screenToMapAtHeight(const Point& screenPos, double heightMeters) const;
             Point mapToScreen(const Point& point) const;
-            Point screenToViewRay(double x, double y) const;
-            Point screenToMapRay(double x, double y) const;
+            Ray screenToViewRay(double x, double y) const;
+            Ray screenToMapRay(double x, double y) const;
             void screenToNDC(double x, double y, double& ndcX, double& ndcY) const;
             void ndcToScreen(double ndcx, double ndcy, double& x, double& y) const;
             std::vector<Point> screenToMap(const std::vector<Point>& points) const;

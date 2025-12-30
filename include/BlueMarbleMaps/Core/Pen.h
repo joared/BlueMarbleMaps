@@ -27,7 +27,7 @@ namespace BlueMarble
 
 		void addColor(Color color);
 		void setColors(std::vector<Color> colors);
-		std::vector<Color> getColors() const;
+		const std::vector<Color>& getColors() const;
 		void setColor(const Color& color);
 		const Color& getColor() const;
 

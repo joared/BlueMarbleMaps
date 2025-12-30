@@ -44,6 +44,7 @@ namespace BlueMarble
             
             EventHandler* m_eventFilter;
             bool          m_handleEventRecursionGuard;
+            // TODO: add children
     };
 
 } // namespace name

@@ -39,9 +39,17 @@ namespace BlueMarble
         inline double normalizeLongitude(double lng) { return normalizeValue(lng, LONGITUDE_MIN, LONGITUDE_MAX); }
         inline double normalizeLatitude(double lat) { return normalizeValue(lat, LATITUDE_MIN, LATITUDE_MAX); }
 
-        inline double minAngleDiff(double a1, double a2)
+        inline double minAngleDiff(double a1, double a2, double minAngle, double maxAngle)
         {
-            return normalizeValue(a1-a2, 0.0, BMM_PI*2.0);
+            const double range = maxAngle - minAngle;
+
+            double d = normalizeValue(a1, 0, range) - normalizeValue(a2, 0, range);
+
+            // Wrap to shortest signed difference
+            if (d >  range * 0.5) d -= range;
+            if (d < -range * 0.5) d += range;
+
+            return d;
         };
 
         // Calculates the unit area of a polygon using the

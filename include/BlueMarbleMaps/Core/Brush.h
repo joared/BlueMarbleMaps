@@ -30,7 +30,7 @@ namespace BlueMarble
 		// Joar stuff
 		static Brush transparent() { return Brush(); }
         const Color& getColor() const { return m_color; };
-        void setColor(const Color& color) { m_color = color; };
+        void setColor(const Color& color);
         bool getAntiAlias() const { return m_antiAlias; };
         void setAntiAlias(bool antiAlias) { m_antiAlias = antiAlias; };
 

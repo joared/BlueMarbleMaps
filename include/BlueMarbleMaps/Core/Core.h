@@ -329,10 +329,10 @@ namespace BlueMarble
 
             inline void floor() 
             {
-                m_xMin = (int)m_xMin;
-                m_yMin = (int)m_yMin;
-                m_xMax = (int)m_xMax;
-                m_yMax = (int)m_yMax;
+                m_xMin = std::floor(m_xMin);
+                m_yMin = std::floor(m_yMin);
+                m_xMax = std::floor(m_xMax);
+                m_yMax = std::floor(m_yMax);
             }
 
             inline double xMin() const { return m_xMin; }

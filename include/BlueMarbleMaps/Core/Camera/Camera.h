@@ -12,6 +12,12 @@
 namespace BlueMarble
 {
 
+struct Ray
+{
+    Point origin;
+    Point direction;
+};
+
 // Abstract base class for a camera projection.
 class CameraProjection
 {
@@ -34,7 +40,7 @@ public:
 
     Point viewToNdc(const Point& view) const;
     Point ndcToView(const Point& ndc) const;
-    Point ndcToViewRay(const Point& ndc) const;
+    Ray ndcToViewRay(const Point& ndc) const;
 
     double unitsPerPixelAtDistanceNumerical(double zDistCamera) const;
     
@@ -157,7 +163,7 @@ public:
     Point worldToNdc(const Point& world) const;
     Point worldToView(const Point& world) const;
     Point viewToWorld(const Point& view) const;
-    Point ndcToWorldRay(const Point& ndc) const;
+    Ray ndcToWorldRay(const Point& ndc) const;
     // Point ndcToWorld(const Point& ndc) const; // TODO: Needs surface to work
 
 private:

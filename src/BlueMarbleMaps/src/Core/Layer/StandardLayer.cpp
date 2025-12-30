@@ -261,7 +261,7 @@ FeatureEnumeratorPtr StandardLayer::getFeatures(const CrsPtr& crs, const Feature
         // If the crs and data set crs is different, we need to reproject them
         if (!crs->isFunctionallyEquivalent(d->crs()))
         {
-            BMM_DEBUG() << "Reprojecting features!\n";
+            // BMM_DEBUG() << "Reprojecting features!\n";
             while (dataSetFeatures->moveNext())
             {
                 auto f = dataSetFeatures->current();
@@ -315,7 +315,7 @@ FeatureCollectionPtr StandardLayer::getFeatures(const CrsPtr &crs, const IdColle
         // If the crs and data set crs is different, we need to reproject them
         if (!crs->isFunctionallyEquivalent(d->crs()))
         {
-            BMM_DEBUG() << "Reprojecting features!\n";
+            // BMM_DEBUG() << "Reprojecting features!\n";
             for (const auto& f : *dataSetFeatures)
             {
                 auto newFeatures = f->projectTo(crs);

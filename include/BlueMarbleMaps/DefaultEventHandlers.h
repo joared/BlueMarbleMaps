@@ -10,7 +10,7 @@
 #include "BlueMarbleMaps/Core/AnimationFunctions.h"
 #include "BlueMarbleMaps/Core/DataSets/MemoryDataSet.h"
 #include "Keys.h"
-#include "BlueMarbleMaps/Core/PlaneCameraController.h"
+#include "BlueMarbleMaps/Core/Camera/PlaneCameraController.h"
 
 namespace BlueMarble
 {
@@ -212,20 +212,17 @@ namespace BlueMarble
                 auto drawable = m_map->drawable();
                 m_map->setDrawableFromCamera(m_map->camera());
                 auto pen = BlueMarble::Pen();
-                pen.setColor(BlueMarble::Color{0, 0, 0});
+                pen.setColor(BlueMarble::Color{255, 255, 255, 0.5});
                 auto brush = Brush();
-                brush.setColor(BlueMarble::Color{255, 255, 255, 0.2});
+                
 
-                auto line = bounds.corners();
-                auto linePtr = std::make_shared<PolygonGeometry>(line);
-                drawable->drawPolygon(linePtr, pen, brush); 
-
-                double offsetRect = 0.0;
-                auto l2 = Rectangle(offsetRect,offsetRect,100,100).corners();
-                drawable->drawPolygon(std::make_shared<PolygonGeometry>(l2), pen, brush);
-
-                auto l3 = Rectangle(drawable->width()-100,drawable->height()-100,drawable->width()-1-offsetRect,drawable->height()-1-offsetRect).corners();
-                drawable->drawPolygon(std::make_shared<PolygonGeometry>(l3), pen, brush);
+                auto line = bounds.corners(true);
+                auto poly = std::make_shared<PolygonGeometry>(line);
+                auto linePtr = std::make_shared<LineGeometry>(line);
+                linePtr->isClosed(true);
+                brush.setColors(Color::colorRamp(Color::red(0.1), Color::green(0.5), line.size()));
+                drawable->drawPolygon(poly, pen, brush);
+                drawable->drawLine(linePtr, pen);
             }
 
             void OnCustomDraw(BlueMarble::Map& /*map*/)
@@ -300,6 +297,15 @@ namespace BlueMarble
 
             bool OnKeyDown(const BlueMarble::KeyDownEvent& event)
             {
+                if (event.keyCode == 86) // +
+                {
+                    m_cameraController.changeFovBy(5.0);
+                }
+                if (event.keyCode == 82) // -
+                {
+                    m_cameraController.changeFovBy(-5.0);
+                }
+
                 BlueMarble::Point direction;
                 switch (event.keyButton)
                 {
@@ -1070,7 +1076,7 @@ namespace BlueMarble
                 }
 
                 // TODO rendering enabled
-                if (keyStroke == Key::R && // r
+                if (keyStroke == 27 && // r
                     event.modificationKey && ModificationKeyCtrl)
                 {
                     bool enabled = !m_map->renderingEnabled();
@@ -1083,7 +1089,7 @@ namespace BlueMarble
                         BMM_DEBUG() << "Disabled rendering!\n";
                 }
                 
-                if (keyStroke == Key::D && // d
+                if (keyStroke == 40 && // d
                     event.modificationKey && ModificationKeyCtrl)
                 {
                     bool enabled = !m_map->showDebugInfo();
@@ -1134,7 +1140,8 @@ namespace BlueMarble
 
         bool OnClick(const ClickEvent& event) override final
         {
-            auto rayOrig = m_map->camera()->translation();
+            auto ray = m_map->screenToMapRay(event.pos.x, event.pos.y);
+            auto rayOrig = ray.origin;
             auto mapPos = m_map->screenToMap(event.pos.x, event.pos.y);
 
             m_hitTestLine->points().clear();

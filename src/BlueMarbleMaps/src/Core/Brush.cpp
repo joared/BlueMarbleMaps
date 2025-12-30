@@ -40,5 +40,9 @@ namespace BlueMarble
 		return m_properties;
 	}
 
-}
+	void Brush::setColor(const Color &color)
+	{
+		m_colors = { color };
+	}
 
+}

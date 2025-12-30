@@ -1,4 +1,4 @@
-#include "BlueMarbleMaps/Core/Camera.h"
+#include "BlueMarbleMaps/Core/Camera/Camera.h"
 
 
 using namespace BlueMarble;
@@ -25,10 +25,14 @@ Point CameraProjection::ndcToView(const Point& ndc) const
     return Point(view.x, view.y, view.z);
 }
 
-Point CameraProjection::ndcToViewRay(const Point& ndc) const
+Ray CameraProjection::ndcToViewRay(const Point& ndc) const
 {
     // Ignore the z value and choose the point on the near plane (-1.0)
-    return ndcToView({ndc.x(), ndc.y(), -1.0}).norm3D();
+    Ray ray;
+    ray.origin = ndcToView({ndc.x(), ndc.y(), -1.0});
+    ray.direction = (ndcToView({ndc.x(), ndc.y(), 1.0}) - ray.origin).norm3D();
+    
+    return ray;
 }
 
 Point Camera::worldToNdc(const Point& world) const
@@ -64,31 +68,35 @@ Point Camera::viewToWorld(const Point& view) const
     return Point(world.x, world.y, world.z);
 }
 
-Point Camera::ndcToWorldRay(const Point& ndc) const
+Ray Camera::ndcToWorldRay(const Point& ndc) const
 {
-    auto proj = projectionMatrix();
     auto cameraTransform = transform();
-    // Ignore the z value and choose the point on the near plane (-1.0)
-    glm::vec4 nearPointNdc(ndc.x(), ndc.y(), -1.0f, 1.0f);
-    glm::vec4 nearCameraAffine = glm::inverse(proj) * nearPointNdc;
-    glm::vec3 nearCamera = glm::xyz(nearCameraAffine / nearCameraAffine.w);
 
-    // Ray vector in camera space (we don't need to normalize yet)
-    glm::vec3 dirCamNotNormalized = nearCamera;
+    auto rayView = m_projection->ndcToViewRay(ndc);
+
+    glm::vec3 originCam = glm::vec3(rayView.origin.x(), rayView.origin.y(), rayView.origin.z());
+    glm::vec3 dirCam = glm::vec3(rayView.direction.x(), rayView.direction.y(), rayView.direction.z());
 
     // Rotate the direction (w = 0) to world space and normalize
-    glm::vec3 rayDirWorld = glm::normalize(glm::xyz(cameraTransform * glm::vec4(dirCamNotNormalized, 0.0)));
+    glm::vec3 rayOrigin = glm::xyz(cameraTransform * glm::vec4(originCam, 1.0));
+    glm::vec3 rayDirWorld = glm::normalize(glm::xyz(cameraTransform * glm::vec4(dirCam, 0.0)));
+    
+    Ray rayWorld;
+    rayWorld.origin = {rayOrigin.x, rayOrigin.y, rayOrigin.z};
+    rayWorld.direction = {rayDirWorld.x, rayDirWorld.y, rayDirWorld.z};
 
-    return Point(rayDirWorld.x, rayDirWorld.y, rayDirWorld.z);
+    return rayWorld;
 }
 
 double CameraProjection::unitsPerPixelAtDistanceNumerical(double zDistCamera) const
 {
-    auto p1 = ndcToViewRay({-1, 0, 0});
-    auto p2 = ndcToViewRay({1, 0, 0});
-    p1 = p1 * (zDistCamera / p1.z());
-    p2 = p2 * (zDistCamera / p2.z());
-    double widthCam = (p1-p2).length3D();
+    // TODO
+    // auto p1 = ndcToViewRay({-1, 0, 0});
+    // auto p2 = ndcToViewRay({1, 0, 0});
+    // p1 = p1 * (zDistCamera / p1.z());
+    // p2 = p2 * (zDistCamera / p2.z());
+    // double widthCam = (p1-p2).length3D();
 
-    return widthCam / width();
+    // return widthCam / width();
+    return 1.0;
 }

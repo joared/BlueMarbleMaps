@@ -53,7 +53,7 @@ namespace BlueMarble
         int m_height;
     private:
         static glm::mat4x4 transformToMatrix(const Transform& transform);
-	Vertice createPoint(Point& point, Color color);
+	    Vertice createPoint(const Point& point, Color color);
         Color getColorFromList(const std::vector<Color>& colors, int index);
         static void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam);
 

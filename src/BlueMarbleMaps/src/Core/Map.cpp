@@ -7,7 +7,6 @@
 #include "BlueMarbleMaps/Logging/Logging.h"
 
 #include "BlueMarbleMaps/Core/OpenGLDrawable.h"
-#include "BlueMarbleMaps/Core/PlaneCameraController.h" // TODO remove
 
 #include <cmath>
 #include <iostream>
@@ -107,7 +106,7 @@ bool Map::update(bool forceUpdate)
         }
         else
         {
-            BMM_DEBUG() << "To camera update needed\n";
+            // BMM_DEBUG() << "To camera update needed\n";
         }
     }
     // FIXME: should animations be before onUpdating?
@@ -117,17 +116,6 @@ bool Map::update(bool forceUpdate)
         // Animation finished
         stopAnimation();
     }
-
-    // TODO remove, testing bug
-    // auto contrl = dynamic_cast<PlaneCameraController*>(m_cameraController);
-    // if (contrl)
-    // {
-    //     // center(contrl->center());
-    //     // scale(contrl->zoom());
-    //     // rotation(contrl->rotation());
-    //     // tilt(contrl->tilt());
-    //     setCamera();
-    // }
 
     events.onUpdating.notify(*this);
 
@@ -223,7 +211,7 @@ FeatureQuery BlueMarble::Map::produceUpdateQuery()
     int w = m_drawable->width();
     int h = m_drawable->height();
     auto screenArea = Rectangle(0,0,w,h);
-    screenArea.scale(0.25); // TODO: this scaling is for debugging querying, remove
+    screenArea.scale(0.75); // TODO: this scaling is for debugging querying, remove
 
     auto updateArea = screenToMap(screenArea);
     featureQuery.area(updateArea);
@@ -504,13 +492,16 @@ void Map::zoomToMinArea(const Rectangle &bounds, bool animate)
 
 void Map::setCameraController(ICameraController* controller)
 {
-    if (!controller)
+    if (m_cameraController)
     {
-        throw std::runtime_error("GGG WPWPWPWP!!!");
+        m_cameraController->onDectivated();
     }
 
-    m_cameraController = controller;
-    m_camera = m_cameraController->onActivated(m_camera, m_crs->bounds());
+    if (controller)
+    {
+        m_cameraController = controller;
+        m_camera = m_cameraController->onActivated(m_camera, m_crs->bounds());
+    }
 }
 
 Point Map::pixelToScreen(const Point& pixel) const
@@ -543,8 +534,9 @@ Point Map::screenToMap(double x, double y) const
     double xNdc,yNdc;
     screenToNDC(x, y, xNdc, yNdc);
 
-    Point rayDirWorldPoint = m_camera->ndcToWorldRay(Point(xNdc, yNdc, -1.0));
-    Point rayOriginWorldPoint = m_camera->translation();
+    auto ray = m_camera->ndcToWorldRay(Point(xNdc, yNdc, -1.0));
+    Point rayOriginWorldPoint = ray.origin;
+    Point rayDirWorldPoint = ray.direction;
 
     Point surfacePoint = Point::undefined();
     Point surfaceNormal = Point::undefined();
@@ -565,8 +557,9 @@ Point Map::screenToMapAtHeight(const Point& screenPos, double heightMeters) cons
     double xNdc,yNdc;
     screenToNDC(screenPos.x(), screenPos.y(), xNdc, yNdc);
 
-    Point rayDirWorldPoint = m_camera->ndcToWorldRay(Point(xNdc, yNdc, -1.0));
-    Point rayOriginWorldPoint = m_camera->translation();
+    auto ray = m_camera->ndcToWorldRay(Point(xNdc, yNdc, -1.0));
+    Point rayOriginWorldPoint = ray.origin;
+    Point rayDirWorldPoint = ray.direction;
 
     Point surfacePoint = Point::undefined();
     Point surfaceNormal = Point::undefined();
@@ -591,7 +584,7 @@ Point Map::mapToScreen(const Point& point) const
     return Point(x, y);
 }
 
-Point Map::screenToViewRay(double pixelX, double pixelY) const
+Ray Map::screenToViewRay(double pixelX, double pixelY) const
 {
     double xNdc,yNdc;
     screenToNDC(pixelX, pixelY, xNdc, yNdc);
@@ -599,7 +592,7 @@ Point Map::screenToViewRay(double pixelX, double pixelY) const
     return m_camera->projection()->ndcToViewRay(Point(xNdc, yNdc));
 }
 
-Point Map::screenToMapRay(double x, double y) const
+Ray Map::screenToMapRay(double x, double y) const
 {
     double ndcX, ndcY;
     screenToNDC(x, y, ndcX, ndcY);
@@ -609,12 +602,14 @@ Point Map::screenToMapRay(double x, double y) const
 
 void Map::screenToNDC(double x, double y, double &ndcX, double &ndcY) const
 {
+    // TODO: "ndc" should be owned by the drawable
     ndcX = float(x * 2.0 / float(m_drawable->width()) - 1.0);
     ndcY = float(1.0 - y * 2.0 / float(m_drawable->height()));
 }
 
 void Map::ndcToScreen(double ndcx, double ndcy, double &x, double &y) const
 {
+    // TODO: "ndc" should be owned by the drawable
     x = (ndcx + 1.0f) * 0.5f * m_drawable->width();
     y = (1.0f- ndcy) * 0.5f * m_drawable->height();
 }
@@ -946,6 +941,7 @@ DrawablePtr Map::drawable()
 void Map::drawable(const DrawablePtr &drawable)
 {
     m_drawable = drawable;
+    resize(drawable->width(), drawable->height()); 
 }
 
 void Map::resize(int width, int height)
@@ -1016,7 +1012,7 @@ void Map::setCamera()
     // cam = glm::rotate(cam, float(m_rotation), glm::vec3(0.0f, 0.0f, 1.0f));
     // cam = glm::scale(cam, glm::vec3(float(1.0/m_scale), float(1.0/m_scale), 1.0f));
     
-    m_camera->setTransform(cam);
+    //m_camera->setTransform(cam);
 }
 
 void Map::updateUpdateAttributes(int64_t timeStampMs)
@@ -1043,9 +1039,6 @@ void Map::beforeRender()
 {
     // TODO: near and far plane might need to be adjusted
     // during cmaera manipulation. Maybe the camera controller should
-    float near = std::numeric_limits<float>::max();
-    float far = 0.0f;
-    auto visibleRegionWorld = m_crs->bounds().corners();
     // int w = m_drawable->width();
     // int h = m_drawable->height();
     // std::vector<Point> visibleRegionWorld;
@@ -1054,20 +1047,28 @@ void Map::beforeRender()
     // visibleRegionWorld.push_back(screenToMap(h-1,w-1));
     // visibleRegionWorld.push_back(screenToMap(h-1,0));
     // visibleRegionWorld.push_back(screenToMap(screenCenter()));
-    auto temp = m_camera->translation();
-    glm::vec3 cameraTranslation = glm::vec3(temp.x(), temp.y(), temp.z());
+    float near = std::numeric_limits<float>::max();
+    float far = 0.0f;
+    auto visibleRegionWorld = m_crs->bounds().corners();
+
     for (auto& point : visibleRegionWorld)
     {
-        glm::vec3 p(float(point.x()), float(point.y()), 0.0f);
-        float d = glm::dot(p-cameraTranslation, m_camera->forward());
-
+        float d = -m_camera->worldToView(point).z();
         if (d <= 0.0f)
             continue; // behind camera, ignore
 
         near = std::min(near, d);
         far = std::max(far, d);
     }
-    m_camera->setFrustum(near*0.001, far*2.0);
+    near *= 0.001; 
+    far*=2.0;
+
+    float precision = far/near;
+    constexpr float maxRatio = 10000.0;
+    
+    near = far/maxRatio;
+
+    m_camera->setFrustum(near, far);
 
     if (auto glDrawable = std::dynamic_pointer_cast<OpenGLDrawable>(m_drawable))
     {
@@ -1142,6 +1143,7 @@ void Map::drawDebugInfo(int elapsedMs)
     }
 
     info += "\nUpdate time: " + std::to_string(elapsedMs);
+    info += "\nFPS: " + std::to_string(1000.0/elapsedMs);
     info += "\nPresentationObjects: " + std::to_string(m_presentationObjects.size());
 
     info += "\n";
@@ -1249,7 +1251,7 @@ Rectangle BlueMarble::Map::lngLatToScreen(const Rectangle &rect)
 }
 
 // TODO: remove this
-void Map::setDrawableFromCamera(const CameraPtr &camera)
+void Map::setDrawableFromCamera(const CameraPtr& camera)
 {
     if (auto glDrawable = std::dynamic_pointer_cast<OpenGLDrawable>(m_drawable))
     {

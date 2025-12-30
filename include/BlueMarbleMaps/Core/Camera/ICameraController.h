@@ -1,7 +1,7 @@
 #ifndef BLUEMARBLE_ICAMERACONTROLLER
 #define BLUEMARBLE_ICAMERACONTROLLER
 
-#include "BlueMarbleMaps/Core/Camera.h"
+#include "BlueMarbleMaps/Core/Camera/Camera.h"
 #include <memory>
 
 namespace BlueMarble

@@ -442,19 +442,20 @@ void BlueMarble::OpenGLDrawable::drawLine(const LineGeometryPtr& geometry, const
         lineBatch->begin();
     }
     std::vector<Vertice> vertices;
+    vertices.reserve(geometry->isClosed() ? geometry->points().size()+1 : geometry->points().size());
 
-    std::vector<Point> bounds = geometry->points();
-    std::vector<Color> colors = pen.getColors();
+    const std::vector<Point>& bounds = geometry->points();
+    const std::vector<Color>& colors = pen.getColors();
 
     for (int i = 0; i < bounds.size(); i++)
     {
-        Color bmColor = getColorFromList(pen.getColors(), i);
+        Color bmColor = getColorFromList(colors, i);
 
         auto mat = m_projectionMatrix*m_viewMatrix;
-        auto v = createPoint(bounds[i], bmColor);
-        auto screen = mat*glm::vec4(v.position.x, v.position.y, 0, 1);
+        auto v = createPoint(bounds.at(i), bmColor);
+        // auto screen = mat*glm::vec4(v.position.x, v.position.y, 0, 1);
         //BMM_DEBUG() << std::to_string(screen[0]) << ", " << std::to_string(screen[1]) << ", " << std::to_string(screen[2])<< "\n";
-        vertices.push_back(createPoint(bounds[i], bmColor));
+        vertices.push_back(createPoint(bounds.at(i), bmColor));
     }
 
     if (geometry->isClosed())
@@ -660,7 +661,7 @@ glm::mat4x4 BlueMarble::OpenGLDrawable::transformToMatrix(const Transform& trans
     return mat;
 }
 
-Vertice BlueMarble::OpenGLDrawable::createPoint(Point& point, Color color)
+Vertice BlueMarble::OpenGLDrawable::createPoint(const Point& point, Color color)
 {
     glm::vec3 pos(point.x(), point.y(), point.z());
     glm::vec4 glColor((float)color.r() / 255, (float)color.g() / 255, (float)color.b() / 255, color.a());
