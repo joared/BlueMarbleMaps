@@ -68,6 +68,20 @@ namespace BlueMarble
         using Base = Collection<FeaturePtr>;
         using Base::Base; // inherit constructors
         
+        using Base::contains; // Keep base remove (hidden otherwise due to overload)
+        bool contains(const Id& id)
+        {
+            for (size_t i(0); i<size(); ++i)
+            {
+                if (get(i)->id() == id)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         using Base::remove; // Keep base remove (hidden otherwise due to overload)
         void remove(const Id& id)
         {

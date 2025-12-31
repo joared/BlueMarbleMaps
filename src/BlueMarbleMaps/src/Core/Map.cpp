@@ -821,16 +821,21 @@ const std::vector<PresentationObject>& Map::selectedPresentationObjects()
     return m_selectedPresentationObjects;
 }
 
-void Map::deSelect(FeaturePtr feature)
+void Map::deSelect(const Id& id)
 {
     for (auto it = m_selectedFeatures.begin(); it!= m_selectedFeatures.end(); it++)
     {
-        if(*it == feature->id())
+        if(*it == id)
         {
             m_selectedFeatures.erase(it);
             return;
         }
     }
+}
+
+void Map::deSelect(FeaturePtr feature)
+{
+    deSelect(feature->id());
 }
 
 void Map::deSelectAll()

@@ -33,7 +33,16 @@ namespace BlueMarble
             inline std::string toString() const { return "id: " + std::to_string(m_dataSetId) + ", " + std::to_string(m_featureId); }
         private:
             DataSetId m_dataSetId;
-            DataSetId m_featureId;
+            FeatureId m_featureId;
+    };
+
+    struct IdHash
+    {
+        std::size_t operator()(const BlueMarble::Id& id) const noexcept
+        {
+            return std::hash<uint64_t>{}(id.dataSetId()) ^
+                (std::hash<uint64_t>{}(id.featureId()) << 1);
+        }
     };
 }
 

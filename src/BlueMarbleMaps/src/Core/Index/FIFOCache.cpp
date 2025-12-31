@@ -9,7 +9,8 @@ FIFOCache::FIFOCache()
 
 void FIFOCache::insert(const Id& id, const FeaturePtr& feature)
 {
-    m_cache[id] = feature;
+    // m_cache[id] = feature;
+    m_cache.insert({id, feature});
 }
 
 void FIFOCache::remove(const Id& id)

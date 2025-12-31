@@ -214,7 +214,6 @@ namespace BlueMarble
                 auto pen = BlueMarble::Pen();
                 pen.setColor(BlueMarble::Color{255, 255, 255, 0.5});
                 auto brush = Brush();
-                
 
                 auto line = bounds.corners(true);
                 auto poly = std::make_shared<PolygonGeometry>(line);
@@ -239,7 +238,7 @@ namespace BlueMarble
                 if (!m_rectangle.isUndefined())
                 {
                     drawRect(m_rectangle);
-                    BMM_DEBUG() << "Draw rect: " << m_rectangle.toString() << "\n";
+                    // BMM_DEBUG() << "Draw rect: " << m_rectangle.toString() << "\n";
                 }
 
                 if (m_drawDataSetInfo)
@@ -636,6 +635,34 @@ namespace BlueMarble
                             m_rectangle = Rectangle::fromPoints(points);
                             m_map->update();
                         }
+                        else if (dragEvent.modificationKey & BlueMarble::ModificationKeyShift)
+                        {
+                            // zoom to rect
+                            std::cout << "Mod key: " << dragEvent.modificationKey << "\n";
+                            m_selectArea = true;
+                            auto points = std::vector<Point>(); 
+                            points.push_back(m_map->screenToMap(Point{dragEvent.pos.x, dragEvent.pos.y}));
+                            points.push_back(m_map->screenToMap(Point{dragEvent.startPos.x, dragEvent.startPos.y}));
+                            m_rectangle = Rectangle::fromPoints(points);
+                            
+                            FeatureCollection featuresIn;
+                            m_map->featuresInside(m_rectangle, featuresIn);
+                            for (auto id : m_map->selected())
+                            {
+                                if (!featuresIn.contains(id))
+                                {
+                                    m_map->deSelect(id);
+                                }
+                            }
+                            for (auto f : featuresIn)
+                            {
+                                m_map->select(f, SelectMode::Add);
+                                
+                            }
+                            
+
+                            m_map->update();
+                        }
                         else
                         {
                             // New
@@ -725,6 +752,13 @@ namespace BlueMarble
                     m_map->update();
                     m_rectangle = BlueMarble::Rectangle::undefined();
                     
+                    return true;
+                }
+                if (m_selectArea)
+                {
+                    m_selectArea = false;
+                    m_map->update();
+                    m_rectangle = BlueMarble::Rectangle::undefined();
                     return true;
                 }
 
@@ -852,6 +886,7 @@ namespace BlueMarble
             PlaneCameraController m_cameraController;
             BlueMarble::Rectangle m_rectangle;
             bool m_zoomToRect;
+            bool m_selectArea;
             std::vector<int> m_timeStamps;
             BlueMarble::InertiaOptions m_inertiaOption;
             std::vector<BlueMarble::ScreenPos> m_positions;

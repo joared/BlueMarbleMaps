@@ -130,6 +130,7 @@ namespace BlueMarble
             void select(const PresentationObject& presentationObject);
             const std::vector<PresentationObject>& selectedPresentationObjects();
             const std::vector<Id>& selected() { return m_selectedFeatures; }
+            void deSelect(const Id& id);
             void deSelect(FeaturePtr feature);
             void deSelectAll();
             bool isSelected(const Id& id);
