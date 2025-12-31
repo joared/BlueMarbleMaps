@@ -1,11 +1,11 @@
 #ifndef DEFAULTEVENTHANDLERS
 #define DEFAULTEVENTHANDLERS
 
-#include "Event/EventHandler.h"
-#include "Core/Map.h"
-#include "Core/Core.h"
-#include "Event/PointerEvent.h"
-#include "Event/KeyEvent.h"
+#include "BlueMarbleMaps/Event/EventHandler.h"
+#include "BlueMarbleMaps/Core/Map.h"
+#include "BlueMarbleMaps/Core/Core.h"
+#include "BlueMarbleMaps/Event/PointerEvent.h"
+#include "BlueMarbleMaps/Event/KeyEvent.h"
 #include "BlueMarbleMaps/Core/MapControl.h"
 #include "BlueMarbleMaps/Core/AnimationFunctions.h"
 #include "BlueMarbleMaps/Core/DataSets/MemoryDataSet.h"
@@ -603,17 +603,92 @@ namespace BlueMarble
                 return true;
             }
 
-            bool OnDragBegin(const BlueMarble::DragBeginEvent& dragBeginEvent) override final
+            bool OnDrag(const DragEvent& dragEvent) override final
             {
-                std::cout << dragBeginEvent.toString()<< " (" << dragBeginEvent.pos.x << ", " << dragBeginEvent.pos.y << ")\n";
-                addMousePos(dragBeginEvent.pos, dragBeginEvent.timeStampMs);
-                m_debugTime = dragBeginEvent.timeStampMs;
-                m_map->quickUpdateEnabled(true); // TODO: make an interaction handler that manages if this is enabled or not?
-                return true;
-            }
+                if (dragEvent.phase == InteractionEvent::Phase::Begin)
+                {
+                    std::cout << dragEvent.toString()<< " (" << dragEvent.pos.x << ", " << dragEvent.pos.y << ")\n";
+                    addMousePos(dragEvent.pos, dragEvent.timeStampMs);
+                    m_debugTime = dragEvent.timeStampMs;
+                    m_map->quickUpdateEnabled(true); // TODO: make an interaction handler that manages if this is enabled or not?
+                    return true;
+                }
+                if (dragEvent.phase == InteractionEvent::Phase::End)
+                {
+                    std::cout << dragEvent.toString()<< " (" << dragEvent.pos.x << ", " << dragEvent.pos.y << ")\n";
+                    m_map->quickUpdateEnabled(false);
+                    if (m_zoomToRect)
+                    {
+                        m_zoomToRect = false;
+                        auto rect = Rectangle(dragEvent.startPos.x, dragEvent.startPos.y, 
+                                            dragEvent.pos.x, dragEvent.pos.y);
+                        
+                        m_cameraController.zoomTo(m_map->screenToMap(rect));
+                        m_map->zoomToArea(m_map->screenToMap(rect), false);
+                        
+                        m_map->update();
+                        m_rectangle = BlueMarble::Rectangle::undefined();
+                        
+                        return true;
+                    }
+                    if (m_selectArea)
+                    {
+                        m_selectArea = false;
+                        m_map->update();
+                        m_rectangle = BlueMarble::Rectangle::undefined();
+                        return true;
+                    }
 
-            bool OnDrag(const BlueMarble::DragEvent& dragEvent) override final
-            {
+                    switch (dragEvent.mouseButton)
+                    {
+                    case BlueMarble::MouseButtonLeft:
+                        {
+                            prunePositions(dragEvent.timeStampMs);
+                            auto velocity = calculateVelocity();
+                            m_timeStamps.clear();
+                            m_positions.clear();
+
+                            // std::cout << "Velocity: " << std::to_string(velocity.x()) << ", " << std::to_string(velocity.y()) << "\n";
+
+                            double linearity = m_inertiaOption.linearity;
+                            double alpha = m_inertiaOption.alpha;
+                            double maxSpeed = m_inertiaOption.maxSpeed;
+                            velocity = velocity * linearity; // * 2.0 is Temp test
+                            std::cout << "Speed: " << velocity.length() << "\n";
+                            double speed = std::min(velocity.length(), maxSpeed);
+                            if (speed <= 0)
+                            {
+                                return true;
+                            }
+                                
+                            double animationDuration = speed / (alpha * linearity);
+                            auto offset = velocity * (-animationDuration / 2.0);
+                            // New
+                            auto offsetWorld = m_map->screenToMap(m_map->screenCenter() + offset) - m_map->screenToMap(m_map->screenCenter());
+                            auto to = m_map->center() + offsetWorld;
+                            // Previous
+                            //m_map->screenToMap(m_map->screenCenter() + offset);
+
+                            auto animation = BlueMarble::Animation::Create(*m_map,
+                                                                        m_map->center(), 
+                                                                        to, 
+                                                                        animationDuration, 
+                                                                        true, 
+                                                                        m_inertiaOption);
+
+                            m_map->startAnimation(animation);
+                        }
+                        break;
+                    
+                    default:
+                        break;
+                    }
+                    m_map->update();
+
+                    return true;
+                }
+
+                // DragEvent phase Update
                 // std::cout << dragEvent.toString()<< " (" << dragEvent.pos.x << ", " << dragEvent.pos.y << ") Elapsed: " << dragEvent.timeStampMs - m_debugTime << "\n";
                 m_debugTime = dragEvent.timeStampMs;
 
@@ -732,81 +807,6 @@ namespace BlueMarble
                 default:
                     break;
                 }
-
-                return true;
-            }
-
-            bool OnDragEnd(const BlueMarble::DragEndEvent& dragEndEvent) override final
-            {
-                std::cout << dragEndEvent.toString()<< " (" << dragEndEvent.pos.x << ", " << dragEndEvent.pos.y << ")\n";
-                m_map->quickUpdateEnabled(false);
-                if (m_zoomToRect)
-                {
-                    m_zoomToRect = false;
-                    auto rect = Rectangle(dragEndEvent.startPos.x, dragEndEvent.startPos.y, 
-                                          dragEndEvent.pos.x, dragEndEvent.pos.y);
-                    
-                    m_cameraController.zoomTo(m_map->screenToMap(rect));
-                    m_map->zoomToArea(m_map->screenToMap(rect), false);
-                    
-                    m_map->update();
-                    m_rectangle = BlueMarble::Rectangle::undefined();
-                    
-                    return true;
-                }
-                if (m_selectArea)
-                {
-                    m_selectArea = false;
-                    m_map->update();
-                    m_rectangle = BlueMarble::Rectangle::undefined();
-                    return true;
-                }
-
-                switch (dragEndEvent.mouseButton)
-                {
-                case BlueMarble::MouseButtonLeft:
-                    {
-                        prunePositions(dragEndEvent.timeStampMs);
-                        auto velocity = calculateVelocity();
-                        m_timeStamps.clear();
-                        m_positions.clear();
-
-                        // std::cout << "Velocity: " << std::to_string(velocity.x()) << ", " << std::to_string(velocity.y()) << "\n";
-
-                        double linearity = m_inertiaOption.linearity;
-                        double alpha = m_inertiaOption.alpha;
-                        double maxSpeed = m_inertiaOption.maxSpeed;
-                        velocity = velocity * linearity; // * 2.0 is Temp test
-                        std::cout << "Speed: " << velocity.length() << "\n";
-                        double speed = std::min(velocity.length(), maxSpeed);
-                        if (speed <= 0)
-                        {
-                            return true;
-                        }
-                            
-                        double animationDuration = speed / (alpha * linearity);
-                        auto offset = velocity * (-animationDuration / 2.0);
-                        // New
-                        auto offsetWorld = m_map->screenToMap(m_map->screenCenter() + offset) - m_map->screenToMap(m_map->screenCenter());
-                        auto to = m_map->center() + offsetWorld;
-                        // Previous
-                        //m_map->screenToMap(m_map->screenCenter() + offset);
-
-                        auto animation = BlueMarble::Animation::Create(*m_map,
-                                                                    m_map->center(), 
-                                                                    to, 
-                                                                    animationDuration, 
-                                                                    true, 
-                                                                    m_inertiaOption);
-
-                        m_map->startAnimation(animation);
-                    }
-                    break;
-                
-                default:
-                    break;
-                }
-                m_map->update();
 
                 return true;
             }

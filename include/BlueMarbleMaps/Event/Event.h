@@ -43,9 +43,10 @@ namespace BlueMarble
 		X(Click)						\
 		X(DoubleClick)					\
 		X(Hover)						\
-		X(DragBegin)					\
 		X(Drag)							\
-		X(DragEnd)						\
+		// X(DragBegin)					\
+
+		// X(DragEnd)						\
 
 	DECLARE_EVENTS(EVENT_LIST)
 

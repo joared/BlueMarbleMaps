@@ -140,7 +140,6 @@ public:
     Camera(std::unique_ptr<CameraProjection> proj, glm::mat4 transform)
         : m_projection(std::move(proj))
         , m_transform(std::move(transform))
-
     {}
 
     // Projection, these methods are needed for the view
@@ -164,7 +163,6 @@ public:
     Point worldToView(const Point& world) const;
     Point viewToWorld(const Point& view) const;
     Ray ndcToWorldRay(const Point& ndc) const;
-    // Point ndcToWorld(const Point& ndc) const; // TODO: Needs surface to work
 
 private:
     std::unique_ptr<CameraProjection>   m_projection;

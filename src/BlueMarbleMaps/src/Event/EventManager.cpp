@@ -191,7 +191,8 @@ void EventManager::handlePosChanged(MouseButton lastDown, const ScreenPos& currP
         if (lastDown != MouseButtonNone && detectDrag(m_downPos, currPos, m_configration.dragThresh))
         {
             // Drag begin, use only down pos
-            DragBeginEvent beginEvent;
+            DragEvent beginEvent;
+            beginEvent.phase = InteractionEvent::Phase::Begin;
             beginEvent.startPos = m_downPos;
             beginEvent.lastPos = m_downPos;
             beginEvent.pos = m_downPos;
@@ -226,6 +227,7 @@ void EventManager::handlePosChanged(MouseButton lastDown, const ScreenPos& currP
     {
         // Drag
         DragEvent event;
+        event.phase = InteractionEvent::Phase::Update;
         event.startPos = m_downPos;
         event.lastPos = m_lastPos;
         event.pos = currPos;
@@ -300,7 +302,8 @@ void EventManager::handleMouseButtonChanged(MouseButton currButton, const Screen
         else
         {
             // Drag end
-            DragEndEvent event;
+            DragEvent event;
+            event.phase = InteractionEvent::Phase::End;
             event.startPos = m_downPos;
             event.lastPos = m_lastPos;
             event.pos = currPos;

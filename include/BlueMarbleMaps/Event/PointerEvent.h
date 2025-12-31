@@ -76,7 +76,24 @@ namespace BlueMarble
 			DEFINE_EVENT(DoubleClick);
 	};
 
-	class DragEvent : public MouseEvent
+	class InteractionEvent
+	{
+		public:
+			enum class Phase 
+			{
+				Direct = 0,
+				Begin,
+				Update,
+				End,
+				Canceled
+			};
+		
+			Phase phase = Phase::Direct;
+		protected:
+			InteractionEvent() = default;
+	};
+
+	class DragEvent : public MouseEvent, public InteractionEvent
 	{
 		public:
 			DEFINE_EVENT(Drag)
@@ -84,17 +101,17 @@ namespace BlueMarble
 			ScreenPos lastPos;
 	};
 
-	class DragBeginEvent : public DragEvent
-	{
-		public:
-			DEFINE_EVENT(DragBegin)
-	};
+	// class DragBeginEvent : public DragEvent
+	// {
+	// 	public:
+	// 		DEFINE_EVENT(DragBegin)
+	// };
 
-	class DragEndEvent : public DragEvent
-	{
-		public:
-			DEFINE_EVENT(DragEnd)
-	};
+	// class DragEndEvent : public DragEvent
+	// {
+	// 	public:
+	// 		DEFINE_EVENT(DragEnd)
+	// };
 }
 
 #endif /* BLUEMARBLE_POINTTEREVENT */

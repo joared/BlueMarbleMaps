@@ -4,7 +4,7 @@
 #include "BlueMarbleMaps/Core/Map.h"
 #include "BlueMarbleMaps/Event/EventManager.h"
 #include "BlueMarbleMaps/Core/Core.h"
-#include "BlueMarbleMaps/Core/Tool.h"
+#include "BlueMarbleMaps/Core/Tools/Tool.h"
 
 namespace BlueMarble
 {

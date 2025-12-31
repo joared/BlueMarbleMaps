@@ -1,4 +1,4 @@
-#include "BlueMarbleMaps/Core/Tool.h"
+#include "BlueMarbleMaps/Core/Tools/Tool.h"
 #include "BlueMarbleMaps/Logging/Logging.h"
 
 using namespace BlueMarble;

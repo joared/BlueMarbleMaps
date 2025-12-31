@@ -7,7 +7,8 @@
 #include "BlueMarbleMaps/Core/Core.h"
 #include "BlueMarbleMaps/Core/Feature.h"
 #include "BlueMarbleMaps/Core/MapControl.h"
-#include "BlueMarbleMaps/DefaultEventHandlers.h"
+#include "BlueMarbleMaps/Core/Tools/DefaultEventHandlers.h"
+#include "BlueMarbleMaps/Core/Tools/OttoTool.h"
 #include "BlueMarbleMaps/Core/BlueMarbleLayout.h"
 #include "Application/WindowGL.h"
 
