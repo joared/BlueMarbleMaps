@@ -216,7 +216,7 @@ class PlaneCameraController : public ICameraController
             return newCamera;
         };
 
-        void onDectivated() override final
+        void onDeactivated() override final
         {
             m_camera = nullptr;
         };

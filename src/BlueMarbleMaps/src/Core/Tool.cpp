@@ -57,7 +57,7 @@ bool Tool::onEvent(const Event& event)
         }
     }
 
-    // if (!isActive()) // TODO: what is we are active?
+    // if (!isActive()) // TODO: what if we are active? Maybe add an explicit "ToolSet" similar to LayerSet that does this?
     // Event has not been handled yet. Dispatch the event to other handlers
     for (const auto& s : m_subTools)
     {

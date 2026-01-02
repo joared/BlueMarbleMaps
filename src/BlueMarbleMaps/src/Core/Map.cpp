@@ -494,7 +494,7 @@ void Map::setCameraController(ICameraController* controller)
 {
     if (m_cameraController)
     {
-        m_cameraController->onDectivated();
+        m_cameraController->onDeactivated();
     }
 
     if (controller)

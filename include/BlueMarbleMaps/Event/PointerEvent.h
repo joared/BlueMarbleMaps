@@ -81,14 +81,13 @@ namespace BlueMarble
 		public:
 			enum class Phase 
 			{
-				Direct = 0,
-				Begin,
-				Update,
-				End,
+				Started = 0,
+				Updated,
+				Completed,
 				Canceled
 			};
 		
-			Phase phase = Phase::Direct;
+			Phase phase = Phase::Started;
 		protected:
 			InteractionEvent() = default;
 	};

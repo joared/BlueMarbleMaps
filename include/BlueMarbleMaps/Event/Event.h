@@ -44,15 +44,12 @@ namespace BlueMarble
 		X(DoubleClick)					\
 		X(Hover)						\
 		X(Drag)							\
-		// X(DragBegin)					\
-
-		// X(DragEnd)						\
 
 	DECLARE_EVENTS(EVENT_LIST)
 
 	#define DEFINE_EVENT(eventType) virtual EventType getType() const override { return EventType::eventType; }\
 									virtual std::string toString() const override { return #eventType; }\
-									virtual bool dispatch(EventCallbacks* handler) const override { return handler->On##eventType(*this); }\
+									bool dispatch(EventCallbacks* handler) const override { return handler->On##eventType(*this); }\
 
 	class Event
 	{

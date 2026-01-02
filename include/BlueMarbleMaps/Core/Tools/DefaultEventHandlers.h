@@ -605,7 +605,7 @@ namespace BlueMarble
 
             bool OnDrag(const DragEvent& dragEvent) override final
             {
-                if (dragEvent.phase == InteractionEvent::Phase::Begin)
+                if (dragEvent.phase == InteractionEvent::Phase::Started)
                 {
                     std::cout << dragEvent.toString()<< " (" << dragEvent.pos.x << ", " << dragEvent.pos.y << ")\n";
                     addMousePos(dragEvent.pos, dragEvent.timeStampMs);
@@ -613,7 +613,7 @@ namespace BlueMarble
                     m_map->quickUpdateEnabled(true); // TODO: make an interaction handler that manages if this is enabled or not?
                     return true;
                 }
-                if (dragEvent.phase == InteractionEvent::Phase::End)
+                if (dragEvent.phase == InteractionEvent::Phase::Completed)
                 {
                     std::cout << dragEvent.toString()<< " (" << dragEvent.pos.x << ", " << dragEvent.pos.y << ")\n";
                     m_map->quickUpdateEnabled(false);

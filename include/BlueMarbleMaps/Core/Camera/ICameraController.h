@@ -20,7 +20,7 @@ class ICameraController
         virtual ~ICameraController() = default;
 
         virtual CameraPtr onActivated(const CameraPtr& currentCamera, const Rectangle& worldBounds) = 0;
-        virtual void onDectivated() = 0;
+        virtual void onDeactivated() = 0;
         virtual ControllerStatus updateCamera(const CameraPtr& camera, int64_t deltaMs)= 0;
 };
 

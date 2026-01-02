@@ -7,7 +7,7 @@ namespace BlueMarble
 {
     struct CameraInformation
     {
-        glm::vec3 m_pos = glm::vec3(0.0f,0.0f,1.0f);
+        glm::vec3 m_pos = glm::vec3(0.0f,0.0f,35.0f);
         glm::vec3 m_right = glm::vec3(1.0f, 0.0f, 0.0f);
         glm::vec3 m_up = glm::vec3(0.0f,1.0f,0.0f);
         glm::vec3 m_cameraFace = glm::vec3(0.0f,0.0f,-1.0f);
@@ -32,6 +32,8 @@ namespace BlueMarble
     {
         public:
             OttoCameraController()
+                : m_camera(nullptr)
+                , m_cameraInfo()
             {}
 
             CameraPtr onActivated(const CameraPtr& currentCamera, const Rectangle& worldBounds) override final
@@ -54,7 +56,7 @@ namespace BlueMarble
                 m_cameraInfo.m_pos += y * m_cameraInfo.m_up;
                 m_cameraInfo.m_pivot += y * m_cameraInfo.m_up;
 
-                m_cameraInfo.m_pos += z * -m_cameraInfo.m_cameraFace;
+                m_cameraInfo.m_pos += z * -m_cameraInfo.m_cameraFace ;
                 m_cameraInfo.m_pivot += z * -m_cameraInfo.m_cameraFace;
             }
             void zoomBy(float zoomFactor)
@@ -133,13 +135,25 @@ namespace BlueMarble
                 }
             }
 
-            const glm::mat4& calculateTransform()
+            glm::mat4 calculateTransform()
             {
                 // m_projMatrix = glm::perspective(glm::radians(m_cameraInfo.m_fov), m_cameraInfo.m_aspectRatio, m_cameraInfo.m_near, m_cameraInfo.m_far);
-                return glm::inverse(glm::lookAt(m_cameraInfo.m_pos, m_cameraInfo.m_cameraFace + m_cameraInfo.m_pivot, m_cameraInfo.m_up));
+                auto viewMat = glm::lookAt(m_cameraInfo.m_pos, m_cameraInfo.m_cameraFace + m_cameraInfo.m_pivot, m_cameraInfo.m_up);
+                return glm::inverse(viewMat);
+            }
+            
+            virtual ControllerStatus updateCamera(const CameraPtr& camera, int64_t deltaMs) override final
+            {
+                auto perspective = dynamic_cast<PerspectiveCameraProjection*>(camera->projection().get());
+                if (perspective)
+                {
+                    perspective->setFov(m_cameraInfo.m_fov);
+                }
+                camera->setTransform(calculateTransform());
+
+                return ControllerStatus::Updated;
             }
 
-            virtual ControllerStatus updateCamera(const CameraPtr& camera, int64_t deltaMs)= 0;
         private:
             CameraPtr m_camera;
 
