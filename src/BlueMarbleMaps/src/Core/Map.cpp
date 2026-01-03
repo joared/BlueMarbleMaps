@@ -54,7 +54,6 @@ Map::Map()
     setCamera(); // TODO remove
 
     m_presentationObjects.reserve(1000000); // Reserve a good amount for efficiency
-    resetUpdateFlags();
 
     m_lastUpdateTimeStamp = getTimeStampMs();
     updateUpdateAttributes(m_lastUpdateTimeStamp);
@@ -104,13 +103,6 @@ bool Map::update(bool forceUpdate)
             // BMM_DEBUG() << "To camera update needed\n";
         }
     }
-    // FIXME: should animations be before onUpdating?
-    stopAnimation(); // TODO: remove, use camera controller instead
-    if(m_animation && m_animation->update(timeStampMs - m_animationStartTimeStamp))
-    {
-        // Animation finished
-        stopAnimation();
-    }
 
     events.onUpdating.notify(*this);
 
@@ -154,8 +146,6 @@ bool Map::update(bool forceUpdate)
     events.onUpdated.notify(*this);
 
     m_updateRequired |= m_updateAttributes.get<bool>(UpdateAttributeKeys::UpdateRequired); // Someone in the operator chain needs more updates (e.g. Visualization evaluations)
-
-    resetUpdateFlags();
 
     m_isUpdating = false;
 
@@ -508,27 +498,6 @@ Point Map::screenCenter() const
     //return Point((m_drawable->width()-1)*0.5, (m_drawable->height()-1)*0.5); // Pixel center
 }
 
-void Map::startAnimation(AnimationPtr animation)
-{
-    std::cout << "Started animation\n";
-    if (m_animation)
-        stopAnimation();
-    m_animation = animation;
-    m_animationStartTimeStamp = getTimeStampMs();
-    quickUpdateEnabled(true); // For now, consider animations as quick updates
-}
-
-void Map::stopAnimation()
-{
-    if (m_animation)
-    {
-        std::cout << "Stoppped animation\n";
-    }
-
-    m_animation = nullptr;
-    quickUpdateEnabled(false);
-}
-
 void Map::addLayer(const LayerPtr& layer)
 {
     assert(layer != nullptr);
@@ -539,14 +508,6 @@ std::vector<LayerPtr>& Map::layers()
 {
     return m_layers;
 }
-
-// void Map::getFeatures(const Attributes& attributes, std::vector<FeaturePtr>& features)
-// {
-//     for (auto l : m_layers)
-//     {
-//         l->onGetFeaturesRequest(attributes, features);
-//     }
-// }
 
 std::vector<FeaturePtr> Map::featuresAt(int X, int Y, double pointerRadius)
 {
@@ -875,14 +836,7 @@ void Map::beforeRender()
 {
     // TODO: near and far plane might need to be adjusted
     // during cmaera manipulation. Maybe the camera controller should
-    // int w = m_drawable->width();
-    // int h = m_drawable->height();
-    // std::vector<Point> visibleRegionWorld;
-    // visibleRegionWorld.push_back(screenToMap(0,0));
-    // visibleRegionWorld.push_back(screenToMap(0,w-1));
-    // visibleRegionWorld.push_back(screenToMap(h-1,w-1));
-    // visibleRegionWorld.push_back(screenToMap(h-1,0));
-    // visibleRegionWorld.push_back(screenToMap(screenCenter()));
+
     float near = std::numeric_limits<float>::max();
     float far = 0.0f;
     auto visibleRegionWorld = m_crs->bounds().corners();
@@ -930,13 +884,6 @@ void Map::beforeRender()
 void Map::afterRender()
 {
     m_drawable->swapBuffers();
-}
-
-void Map::resetUpdateFlags()
-{
-    m_centerChanged = false;
-    m_scaleChanged = false;
-    m_rotationChanged = false;
 }
 
 void Map::drawDebugInfo(int elapsedMs)

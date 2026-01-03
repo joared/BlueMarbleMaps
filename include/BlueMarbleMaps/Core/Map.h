@@ -90,9 +90,6 @@ namespace BlueMarble
             const Point mapToLngLat(const Point& mapPoint, bool normalize=true) const;
             const Point lngLatToMap(const Point& lngLat) const;
 
-            void startAnimation(AnimationPtr animation);
-            void stopAnimation();
-
             // Properties
             bool updateEnabled() const { return m_updateEnabled; };
             void updateEnabled(bool enabled) { m_updateEnabled = enabled; };
@@ -164,8 +161,6 @@ namespace BlueMarble
             FeatureQuery produceUpdateQuery();
             void renderLayer(const LayerPtr& layer, const FeatureQuery& featureQuery);
             void afterRender();
-            
-            void resetUpdateFlags();
 
             void drawDebugInfo(int elapsedMs);
 

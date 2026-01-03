@@ -157,15 +157,9 @@ namespace BlueMarble
                 , m_rectangle(BlueMarble::Rectangle::undefined())
                 , m_orbitPoint(Point::undefined())
                 , m_zoomToRect(false)
-                , m_inertiaOption{0.002, 0.1}
-                , m_drawDataSetInfo(false)
                 , m_hitTestLine(std::make_shared<LineGeometry>())
                 , m_hoverFeature(nullptr)
             {
-                m_cutoff = 150;
-                int reserveAmount = (int)(m_cutoff / 16.0) + 1;
-                m_positions.reserve(reserveAmount);
-                m_timeStamps.reserve(reserveAmount);
             }
 
             bool isActive() override final
@@ -336,22 +330,6 @@ namespace BlueMarble
 
                     m_map->update();
                 }
-
-                Pen pen;
-                pen.setAntiAlias(true);
-                pen.setThickness(3.0);
-                pen.setColor(Color::red(0.9));
-
-                Brush brush;
-                brush.setAntiAlias(false);
-                brush.setColor(Color::white(0.25));
-                //brush.setColor(Color::blue());
-                
-                auto c = m_map->screenCenter();
-                //m_map->drawable()->drawCircle(c.x(), c.y()+40, 20*10, pen, brush);
-                pen.setAntiAlias(false);
-                //_map->drawable()->drawCircle(c.x()+40, c.y()+40, 20*10, pen, brush);
-                //m_map->drawable()->drawArc(c.x(), c.y(), 10, 20, 0.5, pen, brush);
             }
 
             void OnUpdated(BlueMarble::Map& /*map*/)
@@ -359,38 +337,31 @@ namespace BlueMarble
                 
             }
 
-            void onFeatureCreated(const FeaturePtr& /*feature*/) override final {}
-            void onFeatureUpdated(const FeaturePtr& feature) override final
-            {
-                // Perform zoom/pan in OnUpdated instead
-            }
-            void onFeatureDeleted(const Id& id) override final
-            {
-
-            }
+            void onFeatureCreated(const FeaturePtr& /*feature*/) override final
+            {}
+            void onFeatureUpdated(const FeaturePtr& /*feature*/) override final
+            {}
+            void onFeatureDeleted(const Id& /*id*/) override final
+            {}
 
             bool OnKeyDown(const KeyDownEvent& event) override final
             {
-                // 86 == +
-                // 82 == -
-                if (event.keyCode == 86)
+                if (event.keyCode == 86) // +
                 {
                     m_cameraController.changeFovBy(-5.0);
+                    m_map->update();
                 }
-                else if (event.keyCode == 82)
+                else if (event.keyCode == 82)  // -
                 {
                     m_cameraController.changeFovBy(5.0);
+                    m_map->update();
                 }
                 return true;
             }
 
             bool OnMouseDown(const BlueMarble::MouseDownEvent& event) override final
             {
-                m_map->stopAnimation();
-                m_map->update();
-                // m_lastX = event.pos.x;
-                // m_lastY = event.pos.y;
-                return true;
+                return false;
             }
 
             bool OnMouseMove(const BlueMarble::MouseMoveEvent& event) override final
@@ -488,8 +459,6 @@ namespace BlueMarble
                 if (dragEvent.phase == InteractionEvent::Phase::Started)
                 {
                     std::cout << dragEvent.toString()<< " (" << dragEvent.pos.x << ", " << dragEvent.pos.y << ")\n";
-                    addMousePos(dragEvent.pos, dragEvent.timeStampMs);
-                    m_debugTime = dragEvent.timeStampMs;
                     m_map->quickUpdateEnabled(true); // TODO: make an interaction handler that manages if this is enabled or not?
                     m_startTsOrbit = m_mapControl->getGinotonicTimeStampMs();
                     
@@ -521,60 +490,10 @@ namespace BlueMarble
                         m_rectangle = BlueMarble::Rectangle::undefined();
                         return true;
                     }
-
-                    switch (dragEvent.mouseButton)
-                    {
-                    case BlueMarble::MouseButtonLeft:
-                        {
-                            prunePositions(dragEvent.timeStampMs);
-                            auto velocity = calculateVelocity();
-                            m_timeStamps.clear();
-                            m_positions.clear();
-
-                            // std::cout << "Velocity: " << std::to_string(velocity.x()) << ", " << std::to_string(velocity.y()) << "\n";
-
-                            double linearity = m_inertiaOption.linearity;
-                            double alpha = m_inertiaOption.alpha;
-                            double maxSpeed = m_inertiaOption.maxSpeed;
-                            velocity = velocity * linearity; // * 2.0 is Temp test
-                            std::cout << "Speed: " << velocity.length() << "\n";
-                            double speed = std::min(velocity.length(), maxSpeed);
-                            if (speed <= 0)
-                            {
-                                return true;
-                            }
-                                
-                            // double animationDuration = speed / (alpha * linearity);
-                            // auto offset = velocity * (-animationDuration / 2.0);
-                            // // New
-                            // auto offsetWorld = m_map->screenToMap(m_map->screenCenter() + offset) - m_map->screenToMap(m_map->screenCenter());
-                            // auto to = m_map->center() + offsetWorld;
-
-                            // auto animation = BlueMarble::Animation::Create(*m_map,
-                            //                                             m_map->center(), 
-                            //                                             to, 
-                            //                                             animationDuration, 
-                            //                                             true, 
-                            //                                             m_inertiaOption);
-
-                            // m_map->startAnimation(animation);
-                        }
-                        break;
-                    
-                    default:
-                        break;
-                    }
                     m_map->update();
 
                     return true;
                 }
-
-                // DragEvent phase Update
-                // std::cout << dragEvent.toString()<< " (" << dragEvent.pos.x << ", " << dragEvent.pos.y << ") Elapsed: " << dragEvent.timeStampMs - m_debugTime << "\n";
-                m_debugTime = dragEvent.timeStampMs;
-
-                addMousePos(dragEvent.pos, dragEvent.timeStampMs);
-                prunePositions(dragEvent.timeStampMs);
 
                 switch (dragEvent.mouseButton)
                 {
@@ -717,55 +636,11 @@ namespace BlueMarble
             bool OnMouseWheel(const BlueMarble::MouseWheelEvent& wheelEvent) override final
             {
                 const double wheelDelta = 5;
-
                 double scale = 1.0 + abs(wheelEvent.delta)/wheelDelta;
                 double zoomFactor = wheelEvent.delta > 0 ? scale : 1.0/scale;
-                bool animate = true; //abs(wheelEvent.delta) > 1; // only animate if wheel delta is large enough
-                if (!animate)
-                {
-                    m_map->stopAnimation(); // Need to stop animation for this to have an affect when not animating
-                }
-                // m_map->zoomOn(m_map->screenToMap(BlueMarble::Point(wheelEvent.pos.x, wheelEvent.pos.y)), zoomFactor, animate);
                 m_cameraController.zoomOn(m_map->screenToMap(m_map->pixelToScreen(Point(wheelEvent.pos.x, wheelEvent.pos.y))), zoomFactor);
                 m_map->update();
                 return true;
-            }
-
-            void addMousePos(const BlueMarble::ScreenPos& pos, int timeStamp)
-            {
-                m_positions.push_back(pos);
-                m_timeStamps.push_back(timeStamp);
-            }
-
-            void prunePositions(int timeStamp)
-            {
-                while (m_timeStamps.size() > 0 && timeStamp - m_timeStamps[0] > m_cutoff)
-                {
-                    m_timeStamps.erase(m_timeStamps.begin());
-                    m_positions.erase(m_positions.begin());
-                }
-            }
-
-            BlueMarble::Point calculateVelocity()
-            {   
-                if (m_timeStamps.size() < 2)
-                {
-                    std::cout << "Not enough recorded positions (" << m_timeStamps.size() << ")\n";
-                    return BlueMarble::Point(0, 0);
-                }
-                    
-                int size = (int)m_timeStamps.size();
-                int diffIdx = size-1;
-                int deltaTime = m_timeStamps[diffIdx] - m_timeStamps[0];
-                if (deltaTime == 0)
-                {
-                    BMM_DEBUG() << "WARNING: delta time evaluated to 0!\n";
-                    return Point{0.0};
-                }
-                BlueMarble::Point deltaPos = BlueMarble::Point(m_positions[diffIdx].x, m_positions[diffIdx].y) 
-                                            - BlueMarble::Point(m_positions[0].x, m_positions[0].y);
-
-                return deltaPos * (1.0/deltaTime);
             }
 
             bool onEvent(const BlueMarble::Event& event) override final
@@ -793,13 +668,6 @@ namespace BlueMarble
             bool m_zoomToRect;
             bool m_selectArea;
             std::vector<int> m_timeStamps;
-            BlueMarble::InertiaOptions m_inertiaOption;
-            std::vector<BlueMarble::ScreenPos> m_positions;
-            int m_cutoff;
-            int m_debugTime;
-            bool m_drawDataSetInfo;
-            int m_lastX;
-            int m_lastY;
             LineGeometryPtr m_hitTestLine;
             FeaturePtr m_hoverFeature;
     };
