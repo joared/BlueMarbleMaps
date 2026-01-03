@@ -309,21 +309,6 @@ namespace BlueMarble
                     m_map->update();
                 }
 
-                if (m_drawDataSetInfo)
-                {
-                    std::cout << "Draw data set info\n";
-                    auto dataSets = DataSet::getDataSets();
-                    int offset = 0;
-                    for (auto it : dataSets)
-                    {
-                        auto dataSet = it.second;
-                        std::string str = !dataSet->name().empty() ? dataSet->name() : "DataSet";
-                        str = dataSet->isInitialized() ? str : str + " (initializing)"; 
-                        m_map->drawable()->drawText(0, offset, str, Color::red(), 20, Color::white());
-                        offset += 15;
-                    }
-                }
-
                 Pen pen;
                 pen.setAntiAlias(true);
                 pen.setThickness(3.0);
@@ -356,183 +341,6 @@ namespace BlueMarble
 
             }
 
-            bool OnResize(const BlueMarble::ResizeEvent& event) override
-            {
-                std::cout << "Fucking resize!: " << event.width << ", " << event.height << "\n";
-                return false;
-            }
-
-            bool OnKeyDown(const BlueMarble::KeyDownEvent& event)
-            {
-                if (event.keyCode == 86) // +
-                {
-                    m_cameraController.changeFovBy(5.0);
-                }
-                if (event.keyCode == 82) // -
-                {
-                    m_cameraController.changeFovBy(-5.0);
-                }
-
-                BlueMarble::Point direction;
-                switch (event.keyButton)
-                {
-                
-                case BlueMarble::KeyButton::ArrowDown:
-                    direction = BlueMarble::Point(0, 1);
-                    break;
-
-                case BlueMarble::KeyButton::ArrowUp:
-                    direction = BlueMarble::Point(0, -1);
-                    break;
-                
-                case BlueMarble::KeyButton::ArrowLeft:
-                    direction = BlueMarble::Point(-1, 0);
-                    break;
-                
-                case BlueMarble::KeyButton::ArrowRight:
-                    direction = BlueMarble::Point(1, 0);
-                    break;
-                case BlueMarble::KeyButton::Space:
-                {                    
-                    if (m_map->selected().size() > 0)
-                    {
-                        // Get a list of all boundary points for all features 
-                        auto pointList = std::vector<Point>();
-                        for (auto id : m_map->selected()) 
-                        { 
-                            auto dataSet = DataSet::getDataSetById(id.dataSetId());
-                            auto f = dataSet->getFeature(id);
-                            if (f && !f->bounds().isUndefined())
-                            {
-                                for (auto p: f->bounds().corners())
-                                {
-                                    pointList.push_back(p);
-                                }
-                            }
-                            else if (auto pointGeometry = f->geometryAsPoint())
-                            {
-                                pointList.push_back(pointGeometry->point());
-                            }
-                        }
-
-                        Rectangle bounds = Rectangle::undefined();
-                        if (pointList.size() == 1)
-                        {
-                            auto area = m_map->mapToLngLat(m_map->area());
-                            area.reCenter(pointList[0]);
-                            bounds = m_map->lngLatToMap(area);
-                        }
-                        else if (pointList.size() > 1)
-                        {
-                            bounds = m_map->lngLatToMap(Rectangle::fromPoints(pointList));
-                            // Add some margin
-                            bounds.extend(50.0/m_map->scale(), 50.0/m_map->scale());
-                        }
-                    }
-                    return true;
-                }
-
-                case KeyButton::Enter:
-                {   
-                    //m_map->update();
-                    std::cout << "Enter, modkey: " << event.modificationKey << "\n";
-                    if (event.modificationKey & ModificationKeyCtrl)
-                    {
-                        m_drawDataSetInfo = true;
-                        m_map->update();
-                    }
-                    return true;
-                }
-
-                case KeyButton::Add:
-                {
-                    if (event.modificationKey & ModificationKeyCtrl)
-                    {
-                        m_inertiaOption.linearity += 0.01;
-                    }
-                    else
-                    {
-                        if (m_inertiaOption.alpha < 0.001)
-                            m_inertiaOption.alpha += 0.0001;
-                        else
-                            m_inertiaOption.alpha += 0.001;
-                    }
-                    m_inertiaOption.alpha = std::max(m_inertiaOption.alpha, 0.0001);
-                    m_inertiaOption.linearity = std::max(m_inertiaOption.linearity, 0.01);
-                    std::cout << "Linearity: " << m_inertiaOption.linearity << "\n";
-                    std::cout << "Alpha: " << m_inertiaOption.alpha << "\n";
-                    return true;
-                }
-                case KeyButton::Subtract:
-                {
-                    if (event.modificationKey & ModificationKeyCtrl)
-                    {
-                        m_inertiaOption.linearity -= 0.01;
-                    }
-                    else
-                    {
-                        if (m_inertiaOption.alpha < 0.001)
-                            m_inertiaOption.alpha -= 0.0001;
-                        else
-                            m_inertiaOption.alpha -= 0.001;
-                    }
-
-                    m_inertiaOption.alpha = std::max(m_inertiaOption.alpha, 0.0001);
-                    m_inertiaOption.linearity = std::max(m_inertiaOption.linearity, 0.01);
-                    std::cout << "Linearity: " << m_inertiaOption.linearity << "\n";
-                    std::cout << "Alpha: " << m_inertiaOption.alpha << "\n";
-                    return true;
-                }
-                default:
-                    if (BlueMarble::isNumberKey(event.keyButton))
-                    //if (event.key.isNumberKey())
-                    {
-                        int i = numberKeyToInt(event.keyButton);
-                        std::cout << "Layers: " << m_map->layers().size() << "\n";
-                        std::cout << "Number: " << i << "\n";
-                        if (i <= (int)m_map->layers().size())
-                        {
-                            bool enabled = m_map->layers()[i-1]->enabled();
-                            enabled = !enabled;
-                            m_map->layers()[i-1]->enabled(enabled);
-                            std::cout << "Enabled layer " << i << " (" << enabled << "\n";
-                            m_map->update();
-                            return true;
-                        }
-                    }
-                    return false;
-                }
-
-                if (event.modificationKey & ModificationKeyCtrl)
-                {
-                    m_map->rotation(m_map->rotation() + direction.x()*10.0);
-                    m_map->update();
-                }
-                else
-                {
-                    m_map->panBy(direction * 50.0, true);
-                    m_map->update();
-                }
-                
-
-                return true;
-            }
-
-            bool OnKeyUp(const BlueMarble::KeyUpEvent& event)
-            {
-                switch (event.keyButton)
-                {
-                    case KeyButton::Enter:
-                    {
-                        m_drawDataSetInfo = false;
-                        m_map->update();
-                    }
-                    default:
-                        break;
-                }
-                return true;
-            }
-
             bool OnMouseDown(const BlueMarble::MouseDownEvent& event) override final
             {
                 m_map->stopAnimation();
@@ -563,15 +371,6 @@ namespace BlueMarble
                     m_map->hover(hoverFeature);
                     m_map->update();
                 }
-
-                // if (event.mouseButton == MouseButtonLeft)
-                // {
-                //     m_map->panBy({(double)(m_lastX - event.pos.x), 
-                //               (double)(m_lastY - event.pos.y)});
-                //     m_map->update();
-                //     m_lastX = event.pos.x;
-                //     m_lastY = event.pos.y;
-                // }
 
                 return true;
             }
@@ -624,48 +423,19 @@ namespace BlueMarble
 
             bool OnDoubleClick(const BlueMarble::DoubleClickEvent& event) override final
             {                    
-                double zoomFactor = 2.5;
                 auto mapPoint = m_map->screenToMap(event.pos.x, event.pos.y);
 
-                auto hitFeatures = m_map->featuresAt(event.pos.x, event.pos.y, 10.0);
-                
-                if (hitFeatures.size() > 0)
+                if (event.mouseButton == MouseButton::MouseButtonRight)
                 {
-                    auto f = hitFeatures[0];
-                    m_map->select(hitFeatures[0], SelectMode::Add);
-                    if (!f->bounds().isUndefined())
-                    {
-                        auto rect = m_map->lngLatToMap(f->bounds());
-                        m_map->zoomToArea(rect, true);
-                        m_map->update();
-                        return true;
-                    }
-                    mapPoint = m_map->lngLatToMap(hitFeatures[0]->center());
-                    zoomFactor *= 2;
-                }
-
-                if (!m_rectangle.isUndefined() && m_rectangle.isInside(mapPoint))
-                {
-                    // animate to rectangle
-                    // auto to = m_rectangle.center();
-                    
-                    // auto animation = BlueMarble::Animation::Create(m_map, m_map->center(), to, m_map->scale(), m_map->scale()*zoomFactor, 500, false);
-                    // m_map->startAnimation(animation);
-                    m_map->zoomToArea(m_rectangle, true);
+                    // m_map->center({0,0}); // Recenter, there is a bug in this shiet
+                    m_cameraController.center({0,0});
                 }
                 else
                 {
-                    if (event.mouseButton == MouseButton::MouseButtonRight)
-                    {
-                        // m_map->center({0,0}); // Recenter, there is a bug in this shiet
-                        m_cameraController.center({0,0});
-                    }
-                    else
-                    {
-                        //m_map->zoomOn(mapPoint, zoomFactor, true);
-                        m_cameraController.zoomOn(mapPoint, zoomFactor);
-                    }
+                    //m_map->zoomOn(mapPoint, zoomFactor, true);
+                    m_cameraController.zoomOn(mapPoint, 2.0);
                 }
+
                 m_map->update();
 
                 return true;

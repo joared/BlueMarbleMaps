@@ -27,7 +27,7 @@ constexpr double yTopLeft = 89.98888888888889;
 // constexpr double yTopLeft = 89.98333333333333;
 
 Map::Map()
-    : m_center(lngLatToMap(Point(30, 36)))
+    : m_center()
     , m_scale(1.0)
     , m_rotation(0.0)
     , m_tilt(0.0)
@@ -51,7 +51,7 @@ Map::Map()
     , m_isUpdating(false)
     , m_renderingEnabled(true)
 {
-    
+    m_center = lngLatToMap(Point(30, 36));
     m_drawable = std::make_shared<SoftwareBitmapDrawable>(500, 500, 4);
     setCamera(); // TODO remove
 
@@ -1169,90 +1169,24 @@ void Map::drawDebugInfo(int elapsedMs)
     BMM_DEBUG() << info << "\n\n";
 }
 
-const Point Map::screenToLngLat(const Point& screenPoint)
+// const Point Map::screenToLngLat(const Point& screenPoint)
+// {
+//     return mapToLngLat(screenToMap(screenPoint));
+// }
+
+const Point Map::mapToLngLat(const Point& mapPoint, bool normalize) const
 {
-    return mapToLngLat(screenToMap(screenPoint));
-}
-
-const Point Map::mapToLngLat(const Point& mapPoint, bool normalize)
-{
-    // This is temporary, remove.
-    // Using georeferencing parameters from NE1_LR_LC_SR_W.tfw
-
-    // Reference: https://help.allplan.com/Allplan/2016-1/1033/Allplan/51691.htm
-    // Line 1: length of a pixel in the x direction (horizontal)
-    // Line 2: angle of rotation (is usually 0 or ignored)
-    // Line 3: angle of rotation (is usually 0 or ignored)
-    // Line 4: negative length of a pixel in the y direction (vertical)
-    // Line 5: x coordinate at the center of the pixel in the top left corner of the image
-    // Line 6: y coordinate at the center of the pixel in the top left corner of the image
-
-
-    // The origin is defined at the center of the top left pixel.
-    // Map coordinates (image coordinates) are currently center in the top left corner
-    // of the top left pixel, so we subtract half a pixel to account for this.
-    // auto imagePoint = Point(mapPoint.x()-0.5, mapPoint.y()-0.5);
-
-    // double lng = xTopLeft + xPixLen * imagePoint.x();
-    // double lat = yTopLeft + yPixLen * imagePoint.y();
-
-    // if (normalize)
-    // {
-    //     lng = Utils::normalizeLongitude(lng);
-    //     lat = Utils::normalizeLatitude(lat); // FIXME: y will change sign
-    // }
-
-    // return Point(lng, lat);
-    return mapPoint;
+    static CrsPtr wgs84 = Crs::wgs84LngLat();
+    // FIXME: I dont know if normalize is needed, it might be
+    
+    return crs()->projectTo(wgs84, mapPoint);
 }
 
 const Point BlueMarble::Map::lngLatToMap(const Point& lngLat) const
 {
-    // double x = (lngLat.x() - xTopLeft) / xPixLen + 0.5;
-    // double y = (lngLat.y() - yTopLeft) / yPixLen + 0.5;
-
-    // return Point(x, y);
-    return lngLat;
-}
-
-const Point BlueMarble::Map::lngLatToScreen(const Point& lngLat)
-{
-    return mapToScreen(lngLatToMap(lngLat));
-}
-
-std::vector<Point> BlueMarble::Map::lngLatToScreen(const std::vector<Point> &points)
-{
-    std::vector<Point> newPoints;
-    for (auto& p : points)
-    {
-        newPoints.push_back(lngLatToScreen(p));
-    }
-
-    return newPoints;
-}
-
-Rectangle BlueMarble::Map::lngLatToMap(const Rectangle &rect)
-{
-    auto topLeft = lngLatToMap(Point(rect.xMin(), rect.yMin()));
-    auto bottomRight = lngLatToMap(Point(rect.xMax(), rect.yMax()));
-
-    return Rectangle(topLeft.x(), topLeft.y(), bottomRight.x(), bottomRight.y());
-}
-
-Rectangle BlueMarble::Map::mapToLngLat(const Rectangle &rect)
-{
-    auto topLeft = mapToLngLat(Point(rect.xMin(), rect.yMin()), false);     // FIXME: not sure if not normalizing is always correct
-    auto bottomRight = mapToLngLat(Point(rect.xMax(), rect.yMax()), false); // FIXME: not sure if not normalizing is always correct
-
-    return Rectangle(topLeft.x(), topLeft.y(), bottomRight.x(), bottomRight.y());
-}
-
-Rectangle BlueMarble::Map::lngLatToScreen(const Rectangle &rect)
-{
-    auto topLeft = lngLatToScreen(Point(rect.xMin(), rect.yMin()));
-    auto bottomRight = lngLatToScreen(Point(rect.xMax(), rect.yMax()));
-
-    return Rectangle(topLeft.x(), topLeft.y(), bottomRight.x(), bottomRight.y());
+    static CrsPtr wgs84 = Crs::wgs84LngLat();
+    
+    return wgs84->projectTo(m_crs, lngLat);
 }
 
 // TODO: remove this

@@ -25,6 +25,14 @@ void ImageDataSet::init()
 {
     assert(!m_filePath.empty());
 
+    // Reference: https://help.allplan.com/Allplan/2016-1/1033/Allplan/51691.htm
+    // Line 1: length of a pixel in the x direction (horizontal)
+    // Line 2: angle of rotation (is usually 0 or ignored)
+    // Line 3: angle of rotation (is usually 0 or ignored)
+    // Line 4: negative length of a pixel in the y direction (vertical)
+    // Line 5: x coordinate at the center of the pixel in the top left corner of the image
+    // Line 6: y coordinate at the center of the pixel in the top left corner of the image
+    
     // FIXME: Hardcoded
     constexpr double xPixLen = 0.02222222222222*2;   // times 2 since we made the image smaller
     constexpr double yPixLen = -0.02222222222222*2;  // times 2 since we made the image smaller

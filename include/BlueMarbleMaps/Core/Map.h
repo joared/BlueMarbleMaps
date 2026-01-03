@@ -64,7 +64,7 @@ namespace BlueMarble
             double height() const;
             Rectangle area() const;
             MapConstraints& mapConstraints() { return m_constraints; };
-            const CrsPtr& crs() { return m_crs; }
+            const CrsPtr& crs() const { return m_crs; }
             void crs(const CrsPtr& crs);
             SurfaceModelPtr surfaceModel() { return m_surfaceModel; };
             void setSurfaceModel(const SurfaceModelPtr& model) { m_surfaceModel=model; };
@@ -97,14 +97,9 @@ namespace BlueMarble
             std::vector<Point> lngLatToMap(const std::vector<Point>& points) const;
             Rectangle screenToMap(const Rectangle& rect) const;
             Rectangle mapToScreen(const Rectangle& rect) const;
-            const Point screenToLngLat(const Point& screenPoint);           // Temporary test, should be removed
-            const Point mapToLngLat(const Point& mapPoint, bool normalize=true); // Temporary test, should be removed
-            const Point lngLatToMap(const Point& lngLat) const;                   // Temporary test, should be removed
-            const Point lngLatToScreen(const Point& lngLat);                // Temporary test, should be removed
-            std::vector<Point> lngLatToScreen(const std::vector<Point>& points);   // Temporary test, should be removed
-            Rectangle lngLatToMap(const Rectangle& rect);                   // Temporary test, should be removed
-            Rectangle mapToLngLat(const Rectangle& rect);                   // Temporary test, should be removed
-            Rectangle lngLatToScreen(const Rectangle& rect);                   // Temporary test, should be removed
+
+            const Point mapToLngLat(const Point& mapPoint, bool normalize=true) const;
+            const Point lngLatToMap(const Point& lngLat) const;
 
             void startAnimation(AnimationPtr animation);
             void stopAnimation();
