@@ -211,7 +211,7 @@ FeatureQuery BlueMarble::Map::produceUpdateQuery()
     int w = m_drawable->width();
     int h = m_drawable->height();
     auto screenArea = Rectangle(0,0,w,h);
-    screenArea.scale(0.75); // TODO: this scaling is for debugging querying, remove
+    screenArea.scale(0.5); // TODO: this scaling is for debugging querying, remove
 
     auto updateArea = screenToMap(screenArea);
     featureQuery.area(updateArea);
@@ -285,19 +285,6 @@ void Map::rotation(double rotation)
     setCamera();
 }
 
-double Map::tilt() const
-{
-    return m_tilt;
-}
-
-void Map::tilt(double tilt)
-{
-    m_updateRequired = true;
-    m_tilt = tilt;
-
-    setCamera();
-}
-
 double Map::width() const
 {
     return m_drawable->width() / m_scale;
@@ -338,6 +325,8 @@ void Map::crs(const CrsPtr& newCrs)
 
     center(lngLatCrs->projectTo(newCrs, centerLngLat));
     scale(oldScale);
+
+    m_surfaceModel = std::make_shared<PlaneSurfaceModel>(Point{0,0,0}, Point{0,0,1}, m_crs->bounds());
 
     if (m_cameraController)
     {
@@ -860,21 +849,6 @@ void Map::setCamera()
         0.0f,
         float(dHeight/(2.0*scaleFactor*std::tan(glm::radians(fov) * 0.5)))
     ));
-    
-
-    // Orthographic
-    // m_camera = Camera::orthoGraphicCamera(m_drawable->width(), m_drawable->height(), -100000000.0f, 10000000.0f, 1.0f);
-
-    // glm::mat4 cam = glm::mat4(1.0f);
-    // cam = glm::translate(cam, glm::vec3(
-    //     m_center.x(),
-    //     m_center.y(),
-    //     1.0
-    // ));
-    // cam = glm::rotate(cam, float(m_rotation), glm::vec3(0.0f, 0.0f, 1.0f));
-    // cam = glm::scale(cam, glm::vec3(float(1.0/m_scale), float(1.0/m_scale), 1.0f));
-    
-    //m_camera->setTransform(cam);
 }
 
 void Map::updateUpdateAttributes(int64_t timeStampMs)

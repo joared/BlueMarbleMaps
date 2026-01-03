@@ -46,7 +46,7 @@ bool Crs::isFunctionallyEquivalent(const CrsPtr& otherCrs)
 Rectangle Crs::bounds()
 {
     auto lngLatBounds = Rectangle(-179.99, -89.99, 179.99, 89.99);
-    //auto lngLatBounds = Rectangle(-180.0, -85.05112878, 180.0, 85.05112878);
+    //auto lngLatBounds = Rectangle(-180.0, -85.05112878, 180.0, 85.05112878); // Web mercator
     auto defaultCrs = Crs::wgs84LngLat();
     auto self = shared_from_this();
     return defaultCrs->projectTo(self, lngLatBounds);

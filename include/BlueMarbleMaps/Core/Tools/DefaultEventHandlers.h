@@ -242,17 +242,17 @@ namespace BlueMarble
                     // BMM_DEBUG() << "Draw rect: " << m_rectangle.toString() << "\n";
                 }
 
-                auto generateArcLine = [](double r, double theta1, double theta2)
+                auto generateArcLine = [](double r, double startAngle, double endAngle)
                 {
                     auto line = std::make_shared<LineGeometry>();
 
                     int pointsPerRev = 30;
-                    double diff = Utils::normalizeValue(theta2-theta1, 0.0, BMM_PI*2.0);
+                    double diff = Utils::normalizeValue(endAngle-startAngle, 0.0, BMM_PI*2.0);
                     int nPoints = diff / (BMM_PI*2.0) * pointsPerRev;
 
                     for (int i(0); i<nPoints; ++i)
                     {
-                        double a = theta1 + i*diff/(double)nPoints;
+                        double a = startAngle + i*diff/(double)nPoints;
                         double x = r*std::cos(a);
                         double y = r*std::sin(a);
                         auto p = Point(x,y);
@@ -267,13 +267,15 @@ namespace BlueMarble
                     static auto radiusEval = AnimationFunctions::AnimationBuilder().easeOut(2.5).build();
                     constexpr int animationTime = 1000;
                     
+                    const auto& orbitPoint = m_orbitPoint;
+
                     int64_t elapsed = getTimeStampMs()-m_startTsOrbit;
                     double progress = elapsed/double(animationTime);
                     progress = progress < 1.0 ? progress : 1.0;
 
                     double radiusProgress = radiusEval(progress);
                     double radius = 20.0*radiusProgress;
-                    auto orbitView = m_map->camera()->worldToView(m_orbitPoint);
+                    auto orbitView = m_map->camera()->worldToView(orbitPoint);
                     double unitsPerPixel = m_map->camera()->unitsPerPixelAtDistance(std::abs(orbitView.z()));
                     radius = radius * unitsPerPixel;
 
@@ -282,22 +284,28 @@ namespace BlueMarble
                     d->beginBatches();
                     m_map->setDrawableFromCamera(m_map->camera());
                     Pen ppp;
-                    ppp.setColor(Color::white(0.3));
+                    ppp.setColor(Color::white(0.5));
                     Brush bbb = Brush::transparent();
-                    bbb.setColor(Color::blue(0.3));
+                    bbb.setColor(Color::blue(0.5));
 
-                    double x = m_orbitPoint.x();
-                    double y = m_orbitPoint.y();
+                    double x = orbitPoint.x();
+                    double y = orbitPoint.y();
                     
-                    auto l1 = generateArcLine(radius, 0.01, 2.0*BMM_PI);      l1->move({x,y,0.0});
-                    auto l2 = generateArcLine(radius*0.9, 0.01, 2.0*BMM_PI); l2->move({x,y,0.0});
-                    auto l3 = generateArcLine(radius*0.4, 0.01, 2.0*BMM_PI);  l3->move({x,y,0.0});
-                    auto l4 = generateArcLine(radius*0.3, 0.01, 2.0*BMM_PI);  l4->move({x,y,unitsPerPixel});
+                    double off = BMM_PI * 0.5;
+                    double gap = 0.1;
+                    double stretch = 0.1;
+                    auto l1 = generateArcLine(radius, gap+off, 2.0*BMM_PI+off-gap);                    l1->move({x,y,0.0});
+                    auto lBlue = generateArcLine(radius*0.95, stretch+off+gap, 2.0*BMM_PI+stretch-gap+off);  lBlue->move({x,y,0.0});
+                    auto l2 = generateArcLine(radius*0.9, stretch*2+off+gap, 2.0*BMM_PI+stretch*2-gap+off);        l2->move({x,y,0.0});
+                    auto l3 = generateArcLine(radius*0.4, 0.01, 2.0*BMM_PI);                        l3->move({x,y,0.0});
+                    auto l4 = generateArcLine(radius*0.3, 0.01, 2.0*BMM_PI);                        l4->move({x,y,unitsPerPixel});
                     
+                    d->drawLine(lBlue, ppp);
                     d->drawLine(l1, ppp);
                     d->drawLine(l2, ppp);
                     d->drawLine(l3, ppp);
-                    ppp.setColor(Color::blue(0.3));
+                    ppp.setColor(Color::blue(0.5));
+                    
                     d->drawLine(l4, ppp);
                     l4->move({0,0,unitsPerPixel});
                     auto pol = std::make_shared<PolygonGeometry>(l4->points());
@@ -339,6 +347,21 @@ namespace BlueMarble
             void onFeatureDeleted(const Id& id) override final
             {
 
+            }
+
+            bool OnKeyDown(const KeyDownEvent& event) override final
+            {
+                // 86 == +
+                // 82 == -
+                if (event.keyCode == 86)
+                {
+                    m_cameraController.changeFovBy(-5.0);
+                }
+                else if (event.keyCode == 82)
+                {
+                    m_cameraController.changeFovBy(5.0);
+                }
+                return true;
             }
 
             bool OnMouseDown(const BlueMarble::MouseDownEvent& event) override final
@@ -659,6 +682,7 @@ namespace BlueMarble
                         double deltaRot = (dragEvent.lastPos.x - dragEvent.pos.x) * rotateFactor;
                         double deltaTilt = (dragEvent.lastPos.y - dragEvent.pos.y) * tiltFactor;
                         
+                        // m_cameraController.stop();
                         m_cameraController.rotateBy(deltaRot);
                         m_cameraController.tiltBy(deltaTilt);
 
@@ -833,7 +857,7 @@ namespace BlueMarble
                 {
                     Brush b;
                     b.setAntiAlias(true);
-                    b.setColor(p.getColor());
+                    b.setColor(Color::gray(0.5));
                     
                     // double timeStamp = map.updateAttributes().get<int>(UpdateAttributeKeys::UpdateTimeMs);
 
@@ -847,18 +871,18 @@ namespace BlueMarble
                     drawable->drawCircle(lastPos.x, lastPos.y, radius, Pen::transparent(), b);
 
                     // Testing map at height
-                    auto mapPointAtHeight = map.screenToMapAtHeight(Point(lastPos.x, lastPos.y), 10000.0);
+                    // auto mapPointAtHeight = map.screenToMapAtHeight(Point(lastPos.x, lastPos.y), 10000.0);
                     
-                    auto screenP = map.mapToScreen(Point(mapPointAtHeight.x(), mapPointAtHeight.y()));
-                    Pen pennis;
-                    pennis.setColor(Color::green());
-                    drawable->drawCircle(lastPos.x, lastPos.y, 5, pennis, Brush::transparent());
-                    pennis.setColor(Color::red());
-                    drawable->drawCircle(screenP.x(), screenP.y(), 5, pennis, Brush::transparent());
-                    auto lll = std::make_shared<LineGeometry>();
-                    lll->points().push_back(Point(lastPos.x, lastPos.y));
-                    lll->points().push_back(screenP);
-                    drawable->drawLine(lll, pennis);
+                    // auto screenP = map.mapToScreen(Point(mapPointAtHeight.x(), mapPointAtHeight.y()));
+                    // Pen pennis;
+                    // pennis.setColor(Color::green());
+                    // drawable->drawCircle(lastPos.x, lastPos.y, 5, pennis, Brush::transparent());
+                    // pennis.setColor(Color::red());
+                    // drawable->drawCircle(screenP.x(), screenP.y(), 5, pennis, Brush::transparent());
+                    // auto lll = std::make_shared<LineGeometry>();
+                    // lll->points().push_back(Point(lastPos.x, lastPos.y));
+                    // lll->points().push_back(screenP);
+                    // drawable->drawLine(lll, pennis);
 
                     // We still have stuff left
                     map.update(); // TODO: This may trigger more updates than needed. Use timer instead

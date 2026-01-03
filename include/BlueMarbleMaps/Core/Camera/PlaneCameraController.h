@@ -48,8 +48,8 @@ class PlaneCameraController : public ICameraController
         PlaneCameraController()
             : m_center(0,0)
             , m_targetCenter(m_center)
-            , m_centerLimits(Rectangle::infinite())
-            , m_zoom(0.5)
+            , m_centerLimits(Rectangle::undefined())
+            , m_zoom(1.0)
             , m_targetZoom(m_zoom)
             , m_rotation(0.0)
             , m_targetRotation(m_rotation)
@@ -118,7 +118,7 @@ class PlaneCameraController : public ICameraController
         {
             m_targetTilt += deltaTilt;
             m_targetTilt = Utils::clampValue(m_targetTilt, m_minTilt, m_maxTilt);
-            m_targetTilt = Utils::clampValue(m_targetTilt, m_fovDeg/2.0-90.0 + 0.0001, 90.0-m_fovDeg/2.0 - 0.0001); // Such that the camera does not look "beyond" the plane
+            m_targetTilt = Utils::clampValue(m_targetTilt, m_targetFovDeg/2.0-90.0 + 0.0001, 90.0-m_targetFovDeg/2.0 - 0.0001); // Such that the camera does not look "beyond" the plane
             if (m_flags == InteractionFlags::ControllerIdle) m_justStarted = true;
             m_flags = m_flags | ControllerTilting;
         }
@@ -181,8 +181,6 @@ class PlaneCameraController : public ICameraController
         {
             constexpr bool usePerspective = true;
             CameraPtr newCamera;
-            
-            m_centerLimits = surfaceModel->bounds();
 
             if (usePerspective)
             {
@@ -209,7 +207,7 @@ class PlaneCameraController : public ICameraController
 
             newCamera->setTransform(currentCamera->transform());
 
-            stateFromCamera(newCamera, m_centerLimits);
+            stateFromCamera(newCamera, surfaceModel->bounds());
 
             m_camera = newCamera;
 
@@ -368,21 +366,6 @@ class PlaneCameraController : public ICameraController
             return m_flags == InteractionFlags::ControllerIdle ? ControllerStatus::Idle : ControllerStatus::NeedsUpdate;
         };
 
-    private:
-        void stateFromCamera(const CameraPtr& camera, const Rectangle& worldBounds)
-        {
-            m_center = {0,0};
-            m_zoom = camera->projection()->width() / worldBounds.width(); // camera->unitsPerPixelAtDistance(1.0);
-            m_rotation = 0.0;
-            m_tilt = 0.0;
-
-            m_targetCenter = m_center;
-            m_targetZoom = m_zoom;
-            m_targetRotation = m_rotation;
-            m_targetTilt = m_tilt;
-            panBy({0.0,0.0}); // Just to trigger update
-        }
-
         void stop()
         {
             m_targetCenter = m_center;
@@ -391,6 +374,30 @@ class PlaneCameraController : public ICameraController
             m_targetTilt = m_tilt;
 
             m_flags = InteractionFlags::ControllerIdle;
+        }
+
+    private:
+        void stateFromCamera(const CameraPtr& camera, const Rectangle& worldBounds)
+        {
+            if (m_centerLimits.isUndefined())
+            {
+                m_center = Point(worldBounds.center());
+                m_zoom = camera->projection()->width() / worldBounds.width();
+            }
+            else
+            {
+                m_center = Point(m_center.x() / m_centerLimits.width() * worldBounds.width(), 
+                                 m_center.y() / m_centerLimits.height() * worldBounds.height());
+                m_zoom *= m_centerLimits.width() / worldBounds.width(); // camera->unitsPerPixelAtDistance(1.0);
+            }
+
+            m_targetCenter = m_center;
+            m_targetZoom = m_zoom;
+            m_targetRotation = m_rotation;
+            m_targetTilt = m_tilt;
+            m_centerLimits = worldBounds;
+
+            panBy({0.0,0.0}); // Just to trigger update
         }
 
         void logFlags()

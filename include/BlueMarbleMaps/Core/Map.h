@@ -57,8 +57,6 @@ namespace BlueMarble
             void invertedScale(double invScale);
             double rotation() const;
             void rotation(double rotation);
-            double tilt() const;
-            void tilt(double tilt);
             double width() const;
             void width(double newWidth);
             double height() const;
