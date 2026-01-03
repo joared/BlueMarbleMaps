@@ -36,7 +36,7 @@ namespace BlueMarble
                 , m_cameraInfo()
             {}
 
-            CameraPtr onActivated(const CameraPtr& currentCamera, const Rectangle& worldBounds) override final
+            CameraPtr onActivated(const CameraPtr& currentCamera, const SurfaceModelPtr& surfaceModel) override final
             {
                 m_camera = currentCamera;
 

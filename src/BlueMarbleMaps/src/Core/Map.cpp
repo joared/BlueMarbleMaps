@@ -33,7 +33,7 @@ Map::Map()
     , m_tilt(0.0)
     , m_constraints(5000.0, 0.0001, Rectangle(0, 0, 100000, 100000))
     , m_crs(Crs::wgs84LngLat())
-    , m_surfaceModel(std::make_shared<PlaneSurfaceModel>(Point{0,0,0}, Point{0,0,1}))
+    , m_surfaceModel(std::make_shared<PlaneSurfaceModel>(Point{0,0,0}, Point{0,0,1}, m_crs->bounds()))
     , m_updateRequired(true)
     , m_updateEnabled(true)
     , m_animation(nullptr)
@@ -341,153 +341,10 @@ void Map::crs(const CrsPtr& newCrs)
 
     if (m_cameraController)
     {
-        m_cameraController->onActivated(m_camera, m_crs->bounds());
+        m_cameraController->onActivated(m_camera, m_surfaceModel);
     }
 
     flushCache(); // We need to flush layer caches since the crs has changed
-}
-
-void Map::panBy(const Point &deltaScreen, bool animate)
-{
-    //center(m_center + Point(deltaScreen.x(), deltaScreen.y())*(1/m_scale));
-    // TODO: add this back when fixed, or?
-    auto centerScreen = screenCenter();
-    auto newScreenCenter = centerScreen + deltaScreen;
-    auto fromWord = screenToMap(centerScreen);
-    auto toWorld = screenToMap(newScreenCenter.x(), newScreenCenter.y());
-    auto to = m_center + toWorld-fromWord;
-    if (animate)
-    {
-        auto animation = Animation::Create(*this, center(), to, 500, false);
-        startAnimation(animation);
-    }
-    else
-    {
-        center(to);
-    }
-}
-
-void Map::panTo(const Point& mapPoint, bool animate)
-{
-    if (animate)
-    {
-        auto animation = Animation::Create(*this, center(), mapPoint, scale(), scale(), 1000, false);
-        startAnimation(animation);
-    }
-    else
-    {
-        center(mapPoint);
-    }
-}
-
-void Map::zoomTo(const Point& newCenter, double newScale, bool animate)
-{
-    if (animate)
-    {
-        auto animation = Animation::Create(*this, center(), newCenter, scale(), newScale, 1000, false);
-        startAnimation(animation);
-    }
-    else
-    {
-        center(newCenter);
-        scale(newScale);
-    }
-}
-
-void Map::zoomOn(const Point& mapPoint, double zoomFactor, bool animate)
-{
-    // std::cout << "zoomOn\n";
-    if (animate && m_animation)
-    {
-        zoomFactor = m_animation->toScale()/scale() * zoomFactor;
-    }
-
-    double newScale = m_constraints.constrainValue(scale()*zoomFactor,
-                                                   m_constraints.minScale(),
-                                                   m_constraints.maxScale());
-    zoomFactor = newScale / scale();
-
-    auto delta = Point((mapPoint.x() - center().x()),
-                       (mapPoint.y() - center().y()));
-
-    auto newCenter = mapPoint - delta*(1.0/zoomFactor);
-
-    zoomTo(newCenter, newScale, animate);
-    // if (animate)
-    // {
-    //     auto animation = Animation::Create(*this, center(), newCenter, scale(), newScale, 300, false);
-    //     startAnimation(animation);
-    // }
-    // else
-    // {
-    //     center(newCenter);
-    //     scale(newScale);
-    // }
-}
-
-void Map::zoomToArea(const Rectangle& bounds, bool animate)
-{
-    std::cout << "zoomToArea\n";
-
-    center(bounds.center());
-    // double div = m_crs->globalMeterScale() / m_drawable->pixelSize(); // THIS FIXES IT!!!
-    double H = m_camera->projection()->height();
-    double h = bounds.height();
-    m_scale = H/h; //m_camera->projection()->height()/bounds.height();
-    //scale(m_camera->projection()->height()/bounds.height() / div);
-    rotation(0.0);
-    tilt(0.0);
-    
-    BMM_DEBUG() << "DOS\n";
-    BMM_DEBUG() << "H: " << H << "\n";
-    BMM_DEBUG() << "h: " << h << "\n";
-    BMM_DEBUG() << "S: " << m_scale << "\n";
-
-    // auto toCenter = bounds.center();
-
-    // double toScale = scale() * width() / bounds.width();
-    // if (width() / height() > bounds.width() / bounds.height())
-    //     toScale = scale() * height() / bounds.height();
-
-    // toScale = m_constraints.constrainValue(toScale,
-    //                                        m_constraints.minScale(),
-    //                                        m_constraints.maxScale());
-
-    
-    // if (animate)
-    // {
-    //     auto animation = Animation::Create(*this, center(), toCenter, scale(), toScale, 1000, false);
-    //     startAnimation(animation);
-    // }
-    // else
-    // {
-    //     center(toCenter);
-    //     scale(toScale);
-    // }
-}
-
-void Map::zoomToMinArea(const Rectangle &bounds, bool animate)
-{
-    auto to = bounds.center();
-
-    double toScale = scale() * width() / bounds.width();
-    if (width() / height() < bounds.width() / bounds.height())
-        toScale = scale() * height() / bounds.height();
-
-    toScale = m_constraints.constrainValue(toScale,
-                                           m_constraints.minScale(),
-                                           m_constraints.maxScale());
-
-    if (animate)
-    {
-        auto animation = Animation::Create(*this, center(), to, scale(), toScale, 1000, false);
-        startAnimation(animation);
-    }
-    else
-    {
-        center(to);
-        scale(toScale);
-    }
 }
 
 void Map::setCameraController(ICameraController* controller)
@@ -500,7 +357,7 @@ void Map::setCameraController(ICameraController* controller)
     if (controller)
     {
         m_cameraController = controller;
-        m_camera = m_cameraController->onActivated(m_camera, m_crs->bounds());
+        m_camera = m_cameraController->onActivated(m_camera, m_surfaceModel);
     }
 }
 

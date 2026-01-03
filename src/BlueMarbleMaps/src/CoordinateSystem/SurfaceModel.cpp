@@ -2,9 +2,10 @@
 
 using namespace BlueMarble;
 
-PlaneSurfaceModel::PlaneSurfaceModel(const Point &origin, const Point &normal)
+PlaneSurfaceModel::PlaneSurfaceModel(const Point& origin, const Point& normal, const Rectangle& bounds)
     : m_origin(origin)
     , m_normal(normal.norm3D())
+    , m_bounds(bounds)
 {
 }
 

@@ -2,6 +2,7 @@
 #define BLUEMARBLE_ICAMERACONTROLLER
 
 #include "BlueMarbleMaps/Core/Camera/Camera.h"
+#include "BlueMarbleMaps/CoordinateSystem/SurfaceModel.h"
 #include <memory>
 
 namespace BlueMarble
@@ -19,7 +20,7 @@ class ICameraController
 
         virtual ~ICameraController() = default;
 
-        virtual CameraPtr onActivated(const CameraPtr& currentCamera, const Rectangle& worldBounds) = 0;
+        virtual CameraPtr onActivated(const CameraPtr& currentCamera, const SurfaceModelPtr& surfaceModel) = 0;
         virtual void onDeactivated() = 0;
         virtual ControllerStatus updateCamera(const CameraPtr& camera, int64_t deltaMs)= 0;
 };

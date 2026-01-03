@@ -69,14 +69,6 @@ namespace BlueMarble
             SurfaceModelPtr surfaceModel() { return m_surfaceModel; };
             void setSurfaceModel(const SurfaceModelPtr& model) { m_surfaceModel=model; };
             
-            // TODO: move to cameracontroller class
-            // Camera controlling
-            void panBy(const Point& deltaScreen, bool animate=false);
-            void panTo(const Point& mapPoint, bool animate=false);
-            void zoomTo(const Point& mapPoint, double newScale, bool animate=false);
-            void zoomOn(const Point& mapPoint, double zoomFactor, bool animate=false);
-            void zoomToArea(const Rectangle& bounds, bool animate=false);
-            void zoomToMinArea(const Rectangle& bounds, bool animate=false);
             void setCameraController(ICameraController* controller);
 
             Point pixelToScreen(const Point& pixel) const;

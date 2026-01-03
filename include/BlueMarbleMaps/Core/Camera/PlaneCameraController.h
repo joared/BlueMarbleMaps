@@ -177,12 +177,12 @@ class PlaneCameraController : public ICameraController
             tiltBy(0.0);
         }
 
-        CameraPtr onActivated(const CameraPtr& currentCamera, const Rectangle& worldBounds) override final
+        CameraPtr onActivated(const CameraPtr& currentCamera, const SurfaceModelPtr& surfaceModel) override final
         {
             constexpr bool usePerspective = true;
             CameraPtr newCamera;
             
-            m_centerLimits = worldBounds;
+            m_centerLimits = surfaceModel->bounds();
 
             if (usePerspective)
             {
@@ -209,7 +209,7 @@ class PlaneCameraController : public ICameraController
 
             newCamera->setTransform(currentCamera->transform());
 
-            stateFromCamera(newCamera, worldBounds);
+            stateFromCamera(newCamera, m_centerLimits);
 
             m_camera = newCamera;
 

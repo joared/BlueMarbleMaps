@@ -465,7 +465,7 @@ namespace BlueMarble
                                               dragEvent.pos.x, dragEvent.pos.y);
                         
                         m_cameraController.zoomTo(m_map->screenToMap(rect));
-                        m_map->zoomToArea(m_map->screenToMap(rect), false);
+                        // m_map->zoomToArea(m_map->screenToMap(rect), false);
                         
                         m_map->update();
                         m_rectangle = BlueMarble::Rectangle::undefined();
