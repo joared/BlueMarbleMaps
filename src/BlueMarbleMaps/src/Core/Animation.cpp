@@ -94,31 +94,31 @@ Animation::Animation(Map &map,
 
 bool Animation::update(double elapsed)
 {
-    if (elapsed >= m_duration)
-    {
-        m_map.center(m_to);
-        m_map.scale(m_toScale);
+    // if (elapsed >= m_duration)
+    // {
+    //     m_map.center(m_to);
+    //     m_map.scale(m_toScale);
 
-        events.onAnimationFinished.notify(this);
-        return true;
-    }
+    //     events.onAnimationFinished.notify(this);
+    //     return true;
+    // }
 
-    if (elapsed == 0)
-    {
-        events.onAnimationStarted.notify(this);
-    }
+    // if (elapsed == 0)
+    // {
+    //     events.onAnimationStarted.notify(this);
+    // }
 
-    // TODO: special handling for inertial animation
-    double ratio = elapsed / m_duration;
-    double easeOutPower = m_isInertial ? 1.0/m_options.linearity : 4.0;
-    double progress = easeOut(ratio, easeOutPower);
+    // // TODO: special handling for inertial animation
+    // double ratio = elapsed / m_duration;
+    // double easeOutPower = m_isInertial ? 1.0/m_options.linearity : 4.0;
+    // double progress = easeOut(ratio, easeOutPower);
 
-    m_map.center(m_from + (m_to-m_from)*progress);
+    // m_map.center(m_from + (m_to-m_from)*progress);
 
-    double invFrom = 1.0 / m_fromScale;
-    double invTo = 1.0 / m_toScale;
-    double invNew = invFrom + (invTo-invFrom)*progress;
-    m_map.scale(1.0 / invNew);
+    // double invFrom = 1.0 / m_fromScale;
+    // double invTo = 1.0 / m_toScale;
+    // double invNew = invFrom + (invTo-invFrom)*progress;
+    // m_map.scale(1.0 / invNew);
 
     return false;
 }

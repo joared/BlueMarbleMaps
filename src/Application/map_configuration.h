@@ -199,66 +199,7 @@ void addDataSetInitializationObserver(const MapPtr& map)
 
 void configureGui(const MapPtr& map)
 {
-    auto northArrowDataSet = std::make_shared<MemoryDataSet>();northArrowDataSet->initialize();
-    auto northArrowLayer = std::make_shared<StandardLayer>(true); northArrowLayer->addDataSet(northArrowDataSet);
-    northArrowLayer->visualizers().push_back(std::make_shared<PolygonVisualizer>());
-    northArrowLayer->selectable(true);
 
-    auto polyGeometry = std::make_shared<PolygonGeometry>(Rectangle(0,0,40,40).corners());
-
-    auto feature = northArrowDataSet->createFeature(polyGeometry);
-    northArrowDataSet->addFeature(feature);
-    map->addLayer(northArrowLayer);
-    
-    map->events.onUpdating.subscribe([=](Map& view)
-    {
-        int w = view.drawable()->width();
-        int h = view.drawable()->height();
-        auto mapPoints = view.screenToMap(Rectangle(w/2.0,h/2.0,w/2.0+40,h/2.0+40).corners());
-        auto dataSetPoints = view.crs()->projectTo(northArrowDataSet->crs(), mapPoints.begin(), mapPoints.end());
-        auto temp = std::vector<Point>(dataSetPoints->begin(), dataSetPoints->end());
-        polyGeometry->rings()[0] = temp;
-        // BMM_DEBUG() << polyGeometry->rings()[0][0].toString() << "\n";
-    }).permanent();
-    static bool exist = true;
-    map->events.onUpdated += ([=](Map& view)
-    {
-        if (std::abs(view.rotation()) < 1e-7 && exist)
-        {
-            northArrowDataSet->removeFeature(feature->id());
-            exist = false;
-        }
-        else if (view.rotation() != 0.0 && !exist)
-        {
-            northArrowDataSet->addFeature(feature);
-            exist = true;
-        }
-    });
-
-    map->events.onHoverChanged += ([=](Map& view, const Id& id)
-    {
-        if (id == feature->id())
-        {
-            BMM_DEBUG() << "Hovered north arrow!!!\n";
-        }
-    });
-
-    map->events.onSelectionChanged += ([=](Map& view, const IdCollectionPtr& ids)
-    {
-        if (ids->contains(feature->id()))
-        {
-            BMM_DEBUG() << "Hovered north arrow clicked!!!\n";
-            // TODO: rotation animation
-            view.rotation(0.0);
-            view.deSelect(feature);
-            view.update();
-        }
-    });
-
-    map->events.onCustomDraw += ([](Map& view)
-    {
-        
-    });
 }
 
 void configureMap(const MapPtr& map, bool includeBackground=false, bool includeRoads=false, bool includeAirPlanes=false)

@@ -4,7 +4,6 @@
 #include "BlueMarbleMaps/Core/Core.h"
 #include "BlueMarbleMaps/Core/Camera/Camera.h"
 #include "BlueMarbleMaps/Core/Camera/ICameraController.h"
-#include "BlueMarbleMaps/Core/MapConstraints.h"
 #include "BlueMarbleMaps/Core/Animation.h"
 #include "BlueMarbleMaps/Core/Drawable.h"
 #include "BlueMarbleMaps/Core/Layer/Layer.h"
@@ -49,19 +48,19 @@ namespace BlueMarble
             // Camera properties
             CameraPtr camera() { return m_camera; }
             void setDrawableFromCamera(const CameraPtr& camera);
-            const Point& center() const;
-            void center(const Point& center);
-            void scale(double scale);
-            double scale() const;
+            // const Point& center() const;
+            // void center(const Point& center);
+            // void scale(double scale);
             double invertedScale() const;
-            void invertedScale(double invScale);
-            double rotation() const;
-            void rotation(double rotation);
-            double width() const;
-            void width(double newWidth);
-            double height() const;
-            Rectangle area() const;
-            MapConstraints& mapConstraints() { return m_constraints; };
+            double scale() const;
+            
+            // void invertedScale(double invScale);
+            // double rotation() const;
+            // void rotation(double rotation);
+            // double width() const;
+            // void width(double newWidth);
+            // double height() const;
+            // Rectangle area() const;
             const CrsPtr& crs() const { return m_crs; }
             void crs(const CrsPtr& crs);
             SurfaceModelPtr surfaceModel() { return m_surfaceModel; };
@@ -134,14 +133,6 @@ namespace BlueMarble
 
             void flushCache();
 
-            // Update flags
-            bool centerChanged() { return m_centerChanged; }
-            bool scaleChanged() { return m_scaleChanged; }
-            bool rotationrChanged() { return m_rotationChanged; }
-
-            void startInitialAnimation();
-            void doCommand(const std::function<void()>& action);
-            bool undoCommand();
             bool& showDebugInfo() { return m_showDebugInfo; }
             void onAttachedToMapControl(MapControlPtr mapControl) { m_mapControl = mapControl; };
             void onDetachedFromMapControl() { m_mapControl = nullptr; };
@@ -188,8 +179,6 @@ namespace BlueMarble
 
             CrsPtr          m_crs;
             SurfaceModelPtr m_surfaceModel;
-
-            MapConstraints m_constraints;
 
             bool m_updateRequired;
             bool m_updateEnabled;

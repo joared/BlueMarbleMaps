@@ -293,22 +293,42 @@ namespace BlueMarble
                     
                     double off = BMM_PI * 0.5;
                     double gap = 0.1;
-                    double stretch = 0.1;
-                    auto l1 = generateArcLine(radius, gap+off, 2.0*BMM_PI+off-gap);                    l1->move({x,y,0.0});
-                    auto lBlue = generateArcLine(radius*0.95, stretch+off+gap, 2.0*BMM_PI+stretch-gap+off);  lBlue->move({x,y,0.0});
-                    auto l2 = generateArcLine(radius*0.9, stretch*2+off+gap, 2.0*BMM_PI+stretch*2-gap+off);        l2->move({x,y,0.0});
-                    auto l3 = generateArcLine(radius*0.4, 0.01, 2.0*BMM_PI);                        l3->move({x,y,0.0});
-                    auto l4 = generateArcLine(radius*0.3, 0.01, 2.0*BMM_PI);                        l4->move({x,y,unitsPerPixel});
+                    double stretch = 0.2;
+                    auto louter1 = generateArcLine(radius, gap+off, BMM_PI+off-gap);                    
+                    auto louter2 = generateArcLine(radius*0.95, stretch+off+gap, BMM_PI+stretch-gap+off);  
+                    auto louter3 = generateArcLine(radius*0.9, stretch*2+off+gap, BMM_PI+stretch*2-gap+off);
+                    auto outer11 = std::make_shared<LineGeometry>();
+                    auto outer22 = std::make_shared<LineGeometry>();
+                    auto outer33 = std::make_shared<LineGeometry>();
+                    outer11->points() = Utils::rotatePoints(louter1->points(), BMM_PI, {0,0}); 
+                    outer22->points() = Utils::rotatePoints(louter2->points(), BMM_PI, {0,0});
+                    outer33->points() = Utils::rotatePoints(louter3->points(), BMM_PI, {0,0});
+
+                    auto inner1 = generateArcLine(radius*0.4, 0.01, 2.0*BMM_PI);
+                    auto inner2 = generateArcLine(radius*0.3, 0.01, 2.0*BMM_PI);
                     
-                    d->drawLine(lBlue, ppp);
-                    d->drawLine(l1, ppp);
-                    d->drawLine(l2, ppp);
-                    d->drawLine(l3, ppp);
+                    louter1->move({x,y,0.0});
+                    louter2->move({x,y,0.0});
+                    louter3->move({x,y,0.0});
+                    outer11->move({x,y,0.0});
+                    outer22->move({x,y,0.0});
+                    outer33->move({x,y,0.0});
+                    inner1->move({x,y,0.0});
+                    inner2->move({x,y,unitsPerPixel});
+
+                    d->drawLine(louter1, ppp);
+                    d->drawLine(louter2, ppp);
+                    d->drawLine(louter3, ppp);
+                    d->drawLine(outer11, ppp);
+                    d->drawLine(outer22, ppp);
+                    d->drawLine(outer33, ppp);
+
+                    d->drawLine(inner1, ppp);
                     ppp.setColor(Color::blue(0.5));
                     
-                    d->drawLine(l4, ppp);
-                    l4->move({0,0,unitsPerPixel});
-                    auto pol = std::make_shared<PolygonGeometry>(l4->points());
+                    d->drawLine(inner2, ppp);
+                    inner2->move({0,0,unitsPerPixel});
+                    auto pol = std::make_shared<PolygonGeometry>(inner2->points());
                     d->drawPolygon(pol, ppp, bbb);
                     
                     d->endBatches();
@@ -436,7 +456,6 @@ namespace BlueMarble
                 else // SelectMode::Add
                 {
                     m_map->deSelect(selFeat);
-                    std::cout << "Clicked " << m_map->center().toString() << "\n";
                 }
                 
                 m_map->update();
@@ -525,22 +544,20 @@ namespace BlueMarble
                                 return true;
                             }
                                 
-                            double animationDuration = speed / (alpha * linearity);
-                            auto offset = velocity * (-animationDuration / 2.0);
-                            // New
-                            auto offsetWorld = m_map->screenToMap(m_map->screenCenter() + offset) - m_map->screenToMap(m_map->screenCenter());
-                            auto to = m_map->center() + offsetWorld;
-                            // Previous
-                            //m_map->screenToMap(m_map->screenCenter() + offset);
+                            // double animationDuration = speed / (alpha * linearity);
+                            // auto offset = velocity * (-animationDuration / 2.0);
+                            // // New
+                            // auto offsetWorld = m_map->screenToMap(m_map->screenCenter() + offset) - m_map->screenToMap(m_map->screenCenter());
+                            // auto to = m_map->center() + offsetWorld;
 
-                            auto animation = BlueMarble::Animation::Create(*m_map,
-                                                                        m_map->center(), 
-                                                                        to, 
-                                                                        animationDuration, 
-                                                                        true, 
-                                                                        m_inertiaOption);
+                            // auto animation = BlueMarble::Animation::Create(*m_map,
+                            //                                             m_map->center(), 
+                            //                                             to, 
+                            //                                             animationDuration, 
+                            //                                             true, 
+                            //                                             m_inertiaOption);
 
-                            m_map->startAnimation(animation);
+                            // m_map->startAnimation(animation);
                         }
                         break;
                     

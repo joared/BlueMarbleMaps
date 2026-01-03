@@ -247,8 +247,8 @@ int main()
     std::cout << "opengl version: " << version << "\n";
 
     auto view = std::make_shared<Map>();
-    view->center(Point(0, 0));
-    view->scale(1.0);
+    // view->center(Point(0, 0));
+    // view->scale(1.0);
     view->showDebugInfo() = false;
 
     // auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/readme/CompleteGeodata.png");
@@ -307,9 +307,9 @@ int main()
     //view->crs(Crs::wgs84MercatorWeb());
     auto startRect = view->crs()->bounds();
     BMM_DEBUG() << "Start bounds: " << startRect.toString() << "\n";
-    view->center(startRect.center());
+    // view->center(startRect.center());
     //view->center(Point(7727736.044037, 10090758.622196));
-    view->width(startRect.width());
+    // view->width(startRect.width());
     //view->mapConstraints().bounds() = startRect;
 
     view->drawable()->backgroundColor(Color::gray(0.0));

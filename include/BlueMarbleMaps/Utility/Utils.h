@@ -365,7 +365,8 @@ namespace BlueMarble
             auto vec = p-fixPoint;
 
             auto rotated = Point(std::cos(angle)*vec.x() - std::sin(angle)*vec.y(),  
-                                 std::sin(angle)*vec.x() + std::cos(angle)*vec.y());
+                                 std::sin(angle)*vec.x() + std::cos(angle)*vec.y(),
+                                 p.z());
 
             return fixPoint + rotated;
         }

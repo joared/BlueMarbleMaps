@@ -1,5 +1,4 @@
 #include "BlueMarbleMaps/Core/Map.h"
-#include "BlueMarbleMaps/Core/MapConstraints.h"
 #include "BlueMarbleMaps/Utility/Utils.h"
 #include "BlueMarbleMaps/Core/DataSets/DataSet.h"
 #include "BlueMarbleMaps/Core/MapControl.h"
@@ -31,7 +30,6 @@ Map::Map()
     , m_scale(1.0)
     , m_rotation(0.0)
     , m_tilt(0.0)
-    , m_constraints(5000.0, 0.0001, Rectangle(0, 0, 100000, 100000))
     , m_crs(Crs::wgs84LngLat())
     , m_surfaceModel(std::make_shared<PlaneSurfaceModel>(Point{0,0,0}, Point{0,0,1}, m_crs->bounds()))
     , m_updateRequired(true)
@@ -57,12 +55,9 @@ Map::Map()
 
     m_presentationObjects.reserve(1000000); // Reserve a good amount for efficiency
     resetUpdateFlags();
-    m_constraints.bounds().scale(3.0);
 
     m_lastUpdateTimeStamp = getTimeStampMs();
     updateUpdateAttributes(m_lastUpdateTimeStamp);
-
-    setCamera(); // TODO remove
 }
 
 bool Map::update(bool forceUpdate)
@@ -120,7 +115,7 @@ bool Map::update(bool forceUpdate)
     events.onUpdating.notify(*this);
 
     // Constrain map pose
-    m_constraints.constrainMap(*this);
+    // m_constraints.constrainMap(*this);
 
     // Rendering
     beforeRender();
@@ -204,7 +199,7 @@ void Map::renderLayers()
     m_drawable->endBatches();
 }
 
-FeatureQuery BlueMarble::Map::produceUpdateQuery()
+FeatureQuery Map::produceUpdateQuery()
 {
     FeatureQuery featureQuery;
 
@@ -230,101 +225,106 @@ FeatureQuery BlueMarble::Map::produceUpdateQuery()
     return featureQuery;
 }
 
-void Map::center(const Point &center)
-{
-    m_updateRequired = true;
-    m_centerChanged = true;
-    m_center = center;
+// void Map::center(const Point &center)
+// {
+//     m_updateRequired = true;
+//     m_centerChanged = true;
+//     m_center = center;
     
-    setCamera();
-}
+//     // setCamera();
+// }
 
-void Map::scale(double scale)
-{
-    m_updateRequired = true;
-    m_scaleChanged = true;
-    m_scale = scale*m_crs->globalMeterScale() / m_drawable->pixelSize();
+// void Map::scale(double scale)
+// {
+//     m_updateRequired = true;
+//     m_scaleChanged = true;
+//     m_scale = scale*m_crs->globalMeterScale() / m_drawable->pixelSize();
 
-    setCamera();
-}
+//     // setCamera();
+// }
 
-double Map::scale() const
+double Map::invertedScale() const
 {
     auto centerMap = screenToMap(screenCenter());
     auto centerCam = m_camera->worldToView(centerMap);
     double zCam = centerCam.z();
     // double unitsPerPixel = m_camera->projection()->unitsPerPixelAtDistanceNumerical(std::abs(zCam));
     double unitsPerPixel = m_camera->unitsPerPixelAtDistance(std::abs(zCam));
-    double aprroximateScale = 1.0 / unitsPerPixel * m_drawable->pixelSize() / m_crs->globalMeterScale();
+    double aprroximateScale = unitsPerPixel * m_crs->globalMeterScale() / m_drawable->pixelSize();
 
     return aprroximateScale;
     // return m_scale * m_drawable->pixelSize() / m_crs->globalMeterScale();
 }
 
-double Map::invertedScale() const
+double Map::scale() const
 {
-    return 1.0 / scale();
+    return 1.0 / invertedScale();
 }
 
-void Map::invertedScale(double invScale)
-{
-    scale(1.0 / invScale);
-}
+// double Map::invertedScale() const
+// {
+//     return 1.0 / scale();
+// }
 
-double Map::rotation() const
-{
-    return m_rotation;
-}
+// void Map::invertedScale(double invScale)
+// {
+//     scale(1.0 / invScale);
+// }
 
-void Map::rotation(double rotation)
-{
-    m_updateRequired = true;
-    m_rotationChanged = true;
-    m_rotation = rotation;
+// double Map::rotation() const
+// {
+//     return m_rotation;
+// }
 
-    setCamera();
-}
+// void Map::rotation(double rotation)
+// {
+//     m_updateRequired = true;
+//     m_rotationChanged = true;
+//     m_rotation = rotation;
 
-double Map::width() const
-{
-    return m_drawable->width() / m_scale;
-}
+//     // setCamera();
+// }
 
-void Map::width(double newWidth)
-{
-    m_scale = m_scale * width() / newWidth;
+// double Map::width() const
+// {
+//     return m_drawable->width() / m_scale;
+// }
 
-    setCamera();
-}
+// void Map::width(double newWidth)
+// {
+//     m_scale = m_scale * width() / newWidth;
 
-double Map::height() const
-{
-    return m_drawable->height() / m_scale;
-}
+//     // setCamera();
+// }
 
-Rectangle Map::area() const
-{
-    return Rectangle
-    (
-        center().x() - (width()/*-1*/)*0.5,     // TODO: minus one when pixel coordinates? If so, geCrop needs to be adjusted in render()
-        center().y() - (height()/*-1*/)*0.5,    // TODO: minus one when pixel coordinates? If so, geCrop needs to be adjusted in render()
-        center().x() + (width()/*-1*/)*0.5,     // TODO: minus one when pixel coordinates? If so, geCrop needs to be adjusted in render()
-        center().y() + (height()/*-1*/)*0.5     // TODO: minus one when pixel coordinates? If so, geCrop needs to be adjusted in render()
-    );
-}
+// double Map::height() const
+// {
+//     return m_drawable->height() / m_scale;
+// }
+
+// Rectangle Map::area() const
+// {
+//     return Rectangle
+//     (
+//         center().x() - (width()/*-1*/)*0.5,     // TODO: minus one when pixel coordinates? If so, geCrop needs to be adjusted in render()
+//         center().y() - (height()/*-1*/)*0.5,    // TODO: minus one when pixel coordinates? If so, geCrop needs to be adjusted in render()
+//         center().x() + (width()/*-1*/)*0.5,     // TODO: minus one when pixel coordinates? If so, geCrop needs to be adjusted in render()
+//         center().y() + (height()/*-1*/)*0.5     // TODO: minus one when pixel coordinates? If so, geCrop needs to be adjusted in render()
+//     );
+// }
 
 void Map::crs(const CrsPtr& newCrs)
 {
     auto lngLatCrs = Crs::wgs84LngLat();
 
     auto oldCrs = crs();
-    auto centerLngLat = crs()->projectTo(lngLatCrs, center());
-    double oldScale = scale();
+    // auto centerLngLat = crs()->projectTo(lngLatCrs, center());
+    // double oldScale = scale();
 
     m_crs = newCrs;
 
-    center(lngLatCrs->projectTo(newCrs, centerLngLat));
-    scale(oldScale);
+    // center(lngLatCrs->projectTo(newCrs, centerLngLat));
+    // scale(oldScale);
 
     m_surfaceModel = std::make_shared<PlaneSurfaceModel>(Point{0,0,0}, Point{0,0,1}, m_crs->bounds());
 
@@ -939,18 +939,6 @@ void Map::resetUpdateFlags()
     m_rotationChanged = false;
 }
 
-void Map::startInitialAnimation()
-{
-    auto animation = Animation::Create(*this,
-                                       center(),
-                                       center(),
-                                       scale()*10.0,
-                                       scale(),
-                                       1000,
-                                       false);
-    startAnimation(animation);
-}
-
 void Map::drawDebugInfo(int elapsedMs)
 {
     ScreenPos mousePos;
@@ -958,12 +946,12 @@ void Map::drawDebugInfo(int elapsedMs)
         m_mapControl->getMousePos(mousePos);
     auto mouseMapPos = screenToMap(mousePos.x, mousePos.y);
     auto mouseLngLat = mapToLngLat(mouseMapPos);
-    auto centerLngLat = mapToLngLat(center());
+    // auto centerLngLat = mapToLngLat(center());
     auto screenPos = mapToScreen(mouseMapPos).round();
     auto screenError = Point(mousePos.x-(int)screenPos.x(), mousePos.y-(int)screenPos.y());
     std::string info = "------ Debug -------\n";
     info += "Center: " + std::to_string(m_center.x()) + ", " + std::to_string(m_center.y());
-    info += "\nCenter LngLat: " + std::to_string(centerLngLat.x()) + ", " + std::to_string(centerLngLat.y());
+    // info += "\nCenter LngLat: " + std::to_string(centerLngLat.x()) + ", " + std::to_string(centerLngLat.y());
     info += "\nScale: " + std::to_string(scale());
     info += "\nScale inv: " + std::to_string(invertedScale());
     info += "\nScale (crs)): " + std::to_string(m_scale);
@@ -1032,9 +1020,4 @@ void Map::setDrawableFromCamera(const CameraPtr& camera)
     {
         throw std::runtime_error("NOOOOT GUUUD!");
     }
-}
-
-const Point &Map::center() const
-{
-    return m_center;
 }
