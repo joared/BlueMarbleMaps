@@ -106,7 +106,14 @@ namespace BlueMarble
 
                 glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(rotation), m_cameraInfo.m_up);
                 m_cameraInfo.m_cameraFace = glm::normalize(glm::mat3(rotationMatrix) * m_cameraInfo.m_cameraFace);
-                m_cameraInfo.m_right = glm::normalize(glm::cross(glm::vec3(0.0f,1.0f,0.0f), -m_cameraInfo.m_cameraFace));
+                m_cameraInfo.m_right = glm::normalize(glm::cross(m_cameraInfo.m_cameraFace, m_cameraInfo.m_up));
+            }
+
+            Point translation() { return Point(m_cameraInfo.m_pos.x, m_cameraInfo.m_pos.y, m_cameraInfo.m_pos.z); }
+
+            void setPivot(const Point& pivot)
+            {
+                m_cameraInfo.m_pivot = glm::vec3(pivot.x(), pivot.y(), pivot.z());
             }
 
             void orbitBy(float xRot, float yRot)

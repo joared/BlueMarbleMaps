@@ -70,6 +70,13 @@ namespace BlueMarble
                 return m_x*point.x() + m_y*point.y() + m_z*point.z();
             }
 
+            inline Point crossProduct(const Point& p) const
+            {
+                return Point(m_y*p.m_z - m_z*p.m_y, 
+                             m_z*p.m_x - m_x*p.m_z, 
+                             m_x*p.m_y - m_y*p.m_x);
+            }
+
             inline Point project(const Point& point) const
             {
                 auto n = norm3D();

@@ -291,12 +291,12 @@ int main()
 
     mapControl->setView(view);
 
-    auto tool = std::make_shared<OttoTool>();
-    // auto tool = std::make_shared<PanEventHandler>();
-    // tool->addSubTool(std::make_shared<EditFeatureTool>());
-    // tool->addSubTool(std::make_shared<PointerTracerTool>());    
-    // tool->addSubTool(std::make_shared<KeyActionTool>());
-    // tool->addSubTool(std::make_shared<DebugEventHandler>());
+    //auto tool = std::make_shared<OttoTool>();
+    auto tool = std::make_shared<PanEventHandler>();
+    tool->addSubTool(std::make_shared<EditFeatureTool>());
+    tool->addSubTool(std::make_shared<PointerTracerTool>());    
+    tool->addSubTool(std::make_shared<KeyActionTool>());
+    tool->addSubTool(std::make_shared<DebugEventHandler>());
 
     // EventObserver eventObserver1("Observer1");
     // EventObserver eventObserver2("Observer2");

@@ -19,8 +19,8 @@ Point CameraProjection::ndcToView(const Point& ndc) const
     auto proj = projectionMatrix();
 
     glm::vec4 ndcGlm(ndc.x(), ndc.y(), ndc.z(), 1.0f);
-    glm::vec4 affine = glm::inverse(proj) * ndcGlm;
-    glm::vec3 view = glm::xyz(affine / affine.w);
+    glm::vec4 homo = glm::inverse(proj) * ndcGlm;
+    glm::vec3 view = glm::xyz(homo / homo.w);
 
     return Point(view.x, view.y, view.z);
 }
@@ -28,9 +28,11 @@ Point CameraProjection::ndcToView(const Point& ndc) const
 Ray CameraProjection::ndcToViewRay(const Point& ndc) const
 {
     // Ignore the z value and choose the point on the near plane (-1.0)
+    Point near = ndcToView({ndc.x(), ndc.y(), -1.0});
+    Point far = ndcToView({ndc.x(), ndc.y(), 1.0});
     Ray ray;
-    ray.origin = ndcToView({ndc.x(), ndc.y(), -1.0});
-    ray.direction = (ndcToView({ndc.x(), ndc.y(), 1.0}) - ray.origin).norm3D();
+    ray.origin = near;
+    ray.direction = (far - near).norm3D();
     
     return ray;
 }

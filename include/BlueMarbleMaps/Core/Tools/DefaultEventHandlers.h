@@ -155,6 +155,7 @@ namespace BlueMarble
                 , m_map(nullptr)
                 , m_mapControl(nullptr)
                 , m_rectangle(BlueMarble::Rectangle::undefined())
+                , m_orbitPoint(Point::undefined())
                 , m_zoomToRect(false)
                 , m_inertiaOption{0.002, 0.1}
                 , m_drawDataSetInfo(false)
@@ -239,6 +240,73 @@ namespace BlueMarble
                 {
                     drawRect(m_rectangle);
                     // BMM_DEBUG() << "Draw rect: " << m_rectangle.toString() << "\n";
+                }
+
+                auto generateArcLine = [](double r, double theta1, double theta2)
+                {
+                    auto line = std::make_shared<LineGeometry>();
+
+                    int pointsPerRev = 30;
+                    double diff = Utils::normalizeValue(theta2-theta1, 0.0, BMM_PI*2.0);
+                    int nPoints = diff / (BMM_PI*2.0) * pointsPerRev;
+
+                    for (int i(0); i<nPoints; ++i)
+                    {
+                        double a = theta1 + i*diff/(double)nPoints;
+                        double x = r*std::cos(a);
+                        double y = r*std::sin(a);
+                        auto p = Point(x,y);
+                        line->points().push_back(p);
+                    }
+
+                    return line;
+                };
+
+                if (!m_orbitPoint.isUndefined())
+                {
+                    static auto radiusEval = AnimationFunctions::AnimationBuilder().easeOut(2.5).build();
+                    constexpr int animationTime = 1000;
+                    
+                    int64_t elapsed = getTimeStampMs()-m_startTsOrbit;
+                    double progress = elapsed/double(animationTime);
+                    progress = progress < 1.0 ? progress : 1.0;
+
+                    double radiusProgress = radiusEval(progress);
+                    double radius = 20.0*radiusProgress;
+                    auto orbitView = m_map->camera()->worldToView(m_orbitPoint);
+                    double unitsPerPixel = m_map->camera()->unitsPerPixelAtDistance(std::abs(orbitView.z()));
+                    radius = radius * unitsPerPixel;
+
+                    auto d = m_map->drawable();
+                    d->endBatches();
+                    d->beginBatches();
+                    m_map->setDrawableFromCamera(m_map->camera());
+                    Pen ppp;
+                    ppp.setColor(Color::white(0.3));
+                    Brush bbb = Brush::transparent();
+                    bbb.setColor(Color::blue(0.3));
+
+                    double x = m_orbitPoint.x();
+                    double y = m_orbitPoint.y();
+                    
+                    auto l1 = generateArcLine(radius, 0.01, 2.0*BMM_PI);      l1->move({x,y,0.0});
+                    auto l2 = generateArcLine(radius*0.9, 0.01, 2.0*BMM_PI); l2->move({x,y,0.0});
+                    auto l3 = generateArcLine(radius*0.4, 0.01, 2.0*BMM_PI);  l3->move({x,y,0.0});
+                    auto l4 = generateArcLine(radius*0.3, 0.01, 2.0*BMM_PI);  l4->move({x,y,unitsPerPixel});
+                    
+                    d->drawLine(l1, ppp);
+                    d->drawLine(l2, ppp);
+                    d->drawLine(l3, ppp);
+                    ppp.setColor(Color::blue(0.3));
+                    d->drawLine(l4, ppp);
+                    l4->move({0,0,unitsPerPixel});
+                    auto pol = std::make_shared<PolygonGeometry>(l4->points());
+                    d->drawPolygon(pol, ppp, bbb);
+                    
+                    d->endBatches();
+                    d->beginBatches();
+
+                    m_map->update();
                 }
 
                 if (m_drawDataSetInfo)
@@ -611,17 +679,20 @@ namespace BlueMarble
                     addMousePos(dragEvent.pos, dragEvent.timeStampMs);
                     m_debugTime = dragEvent.timeStampMs;
                     m_map->quickUpdateEnabled(true); // TODO: make an interaction handler that manages if this is enabled or not?
+                    m_startTsOrbit = m_mapControl->getGinotonicTimeStampMs();
+                    
                     return true;
                 }
                 if (dragEvent.phase == InteractionEvent::Phase::Completed)
                 {
                     std::cout << dragEvent.toString()<< " (" << dragEvent.pos.x << ", " << dragEvent.pos.y << ")\n";
                     m_map->quickUpdateEnabled(false);
+                    m_orbitPoint = Point::undefined();
                     if (m_zoomToRect)
                     {
                         m_zoomToRect = false;
                         auto rect = Rectangle(dragEvent.startPos.x, dragEvent.startPos.y, 
-                                            dragEvent.pos.x, dragEvent.pos.y);
+                                              dragEvent.pos.x, dragEvent.pos.y);
                         
                         m_cameraController.zoomTo(m_map->screenToMap(rect));
                         m_map->zoomToArea(m_map->screenToMap(rect), false);
@@ -794,10 +865,31 @@ namespace BlueMarble
                     }
                 case BlueMarble::MouseButtonMiddle:
                     {
-                        constexpr double tiltFactor = 0.5; // Should be dependent on focal length
+                        // auto rayCurr = m_map->screenToViewRay(dragEvent.pos.x, dragEvent.pos.y);
+                        // auto rayLast = m_map->screenToViewRay(dragEvent.lastPos.x, dragEvent.lastPos.y);
+                        
+                        // // TODO: For orthographic wee need to offset instead
+                        // // Point delta = rayCurr.origin - rayLast.origin;
 
+                        // auto xzCurr = Point(rayCurr.direction.x(), 0.0, rayCurr.direction.z()).norm3D();
+                        // auto xzLast = Point(rayLast.direction.x(), 0.0, rayLast.direction.z()).norm3D();
+                        // auto yzCurr = Point(0.0, rayCurr.direction.y(), rayCurr.direction.z()).norm3D();
+                        // auto yzLast = Point(0.0, rayLast.direction.y(), rayLast.direction.z()).norm3D();
+                        
+                        // double yaw = std::atan2(xzCurr.crossProduct(xzLast).y(), xzCurr.dotProduct(xzLast));
+                        // double pitch = std::atan2(yzCurr.crossProduct(yzLast).x(), yzCurr.dotProduct(yzLast));
+                        
+                        // m_cameraController.rotateBy(-RAD_TO_DEG*yaw*2);
+                        // m_cameraController.tiltBy(-RAD_TO_DEG*pitch*2);
+                        
+                        m_orbitPoint = m_map->screenToMap(m_map->screenCenter());
+                        constexpr double rotateFactor = 0.3;
+                        constexpr double tiltFactor = 0.3;
+
+                        double deltaRot = (dragEvent.lastPos.x - dragEvent.pos.x) * rotateFactor;
                         double deltaTilt = (dragEvent.lastPos.y - dragEvent.pos.y) * tiltFactor;
-                        // m_map->tilt(m_map->tilt() + deltaTilt);
+                        
+                        m_cameraController.rotateBy(deltaRot);
                         m_cameraController.tiltBy(deltaTilt);
 
                         m_map->update();
@@ -885,6 +977,8 @@ namespace BlueMarble
             MapControlPtr m_mapControl;
             PlaneCameraController m_cameraController;
             BlueMarble::Rectangle m_rectangle;
+            Point m_orbitPoint;
+            int64_t m_startTsOrbit;
             bool m_zoomToRect;
             bool m_selectArea;
             std::vector<int> m_timeStamps;

@@ -476,12 +476,12 @@ void BlueMarble::OpenGLDrawable::drawPolygon(const PolygonGeometryPtr& geometry,
     std::vector<Vertice> vertices;
     std::vector<GLuint> indices;
 
-    std::vector<Point> bounds = geometry->outerRing();
-    std::vector<Color> colors = brush.getColors();
+    const std::vector<Point>& bounds = geometry->outerRing();
+    const std::vector<Color>& colors = brush.getColors();
 
     for (int i = 0; i < bounds.size(); i++)
     {
-        glm::vec3 pos(bounds[i].x(), bounds[i].y(), 0);
+        glm::vec3 pos(bounds[i].x(), bounds[i].y(), bounds[i].z());
 
         Color bmColor = getColorFromList(brush.getColors(), i);
         glm::vec4 glColor((float)bmColor.r() / 255, (float)bmColor.g() / 255, (float)bmColor.b() / 255, bmColor.a());

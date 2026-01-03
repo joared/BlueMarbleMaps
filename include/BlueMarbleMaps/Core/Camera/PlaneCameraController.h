@@ -234,7 +234,7 @@ class PlaneCameraController : public ICameraController
             constexpr bool animate = true;
 
             // m_elapsedMs += deltaMs;
-            double alpha = deltaMs / 300.0;
+            double alpha = deltaMs / 150.0;
             alpha = std::min(alpha, 1.0);
             
             // Center
