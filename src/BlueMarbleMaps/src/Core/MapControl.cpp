@@ -154,5 +154,5 @@ void MapControl::handleResize(int width, int height)
     
     
     updateView();
-    // updateViewInternal();
+    updateViewInternal();
 }

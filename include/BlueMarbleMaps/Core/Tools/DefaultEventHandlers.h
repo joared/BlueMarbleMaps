@@ -258,9 +258,11 @@ namespace BlueMarble
 
                 if (!m_orbitPoint.isUndefined())
                 {
-                    static auto radiusProgressEval = AnimationFunctions::AnimationBuilder().easeOut(2.5).build();
-                    static auto rotationProgressEval = AnimationFunctions::AnimationBuilder().sigmoid(12.0).build();
+                    // static auto radiusProgressEval = AnimationFunctions::AnimationBuilder().easeOut(5.5).build();
+                    static auto radiusProgressEval = AnimationFunctions::AnimationBuilder().bounce().build();
+                    static auto rotationProgressEval = AnimationFunctions::AnimationBuilder().sigmoid(15.0).build();
                     constexpr int animationTime = 1000;
+                    constexpr double symbolScale = 1.3;
                     
                     const auto& orbitPoint = m_orbitPoint;
 
@@ -269,10 +271,11 @@ namespace BlueMarble
                     progress = progress < 1.0 ? progress : 1.0;
 
                     double radiusProgress = radiusProgressEval(progress);
-                    double radius = 20.0*radiusProgress;
+                    double radius = 20.0*radiusProgress*symbolScale;
                     auto orbitView = m_map->camera()->worldToView(orbitPoint);
                     double unitsPerPixel = m_map->camera()->unitsPerPixelAtDistance(std::abs(orbitView.z()));
                     radius = radius * unitsPerPixel;
+                    double zDisplacement = 5*unitsPerPixel*radiusProgress*symbolScale;
 
                     double rotationProgress = rotationProgressEval(progress);
                     double rotation = BMM_PI * (1.0-rotationProgress);
@@ -302,7 +305,7 @@ namespace BlueMarble
                     outer22->points() = Utils::rotatePoints(louter2->points(), BMM_PI, {0,0});
                     outer33->points() = Utils::rotatePoints(louter3->points(), BMM_PI, {0,0});
 
-                    auto inner1 = generateArcLine(radius*0.4, 0.01, 2.0*BMM_PI);
+                    auto inner1 = generateArcLine(radius*0.3, 0.01, 2.0*BMM_PI);
                     auto inner2 = generateArcLine(radius*0.3, 0.01, 2.0*BMM_PI);
                     
                     louter1->move({x,y,0.0});
@@ -312,7 +315,7 @@ namespace BlueMarble
                     outer22->move({x,y,0.0});
                     outer33->move({x,y,0.0});
                     inner1->move({x,y,0.0});
-                    inner2->move({x,y,unitsPerPixel});
+                    inner2->move({x,y,zDisplacement});
 
                     d->drawLine(louter1, ppp);
                     d->drawLine(louter2, ppp);
@@ -321,12 +324,14 @@ namespace BlueMarble
                     d->drawLine(outer22, ppp);
                     d->drawLine(outer33, ppp);
 
+
+                    //ppp.setColor(Color::blue(0.5));
                     d->drawLine(inner1, ppp);
-                    ppp.setColor(Color::blue(0.5));
-                    
                     d->drawLine(inner2, ppp);
-                    inner2->move({0,0,unitsPerPixel});
+                    // inner2->move({0,0,zDisplacement});
                     auto pol = std::make_shared<PolygonGeometry>(inner2->points());
+                    d->endBatches();
+                    d->beginBatches();
                     d->drawPolygon(pol, ppp, bbb);
                     
                     d->endBatches();

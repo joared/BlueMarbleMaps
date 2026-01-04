@@ -146,12 +146,10 @@ class PlaneCameraController : public ICameraController
             // Zoom
             if (W / H < w / h)
             {
-                // m_targetZoom = W / w;
                 zoomBy(W / w / m_targetZoom);
             }
             else
             {
-                // m_targetZoom = H / h;
                 zoomBy(H / h / m_targetZoom);
             }
 
@@ -213,6 +211,11 @@ class PlaneCameraController : public ICameraController
         {
             m_camera = nullptr;
         };
+
+        bool needsUpdate() const override final
+        {
+            return m_flags != InteractionFlags::ControllerIdle;
+        }
 
         ControllerStatus updateCamera(const CameraPtr& camera, int64_t deltaMs) override final
         {
@@ -377,13 +380,20 @@ class PlaneCameraController : public ICameraController
             if (m_centerLimits.isUndefined())
             {
                 m_center = Point(worldBounds.center());
-                m_zoom = camera->projection()->width() / worldBounds.width();
+                // TODO: which to use?
+                // m_zoom = camera->projection()->width() / worldBounds.width();
+                m_zoom = camera->projection()->height() / worldBounds.height();
             }
             else
             {
                 m_center = Point(m_center.x() / m_centerLimits.width() * worldBounds.width(), 
                                  m_center.y() / m_centerLimits.height() * worldBounds.height());
-                m_zoom *= m_centerLimits.width() / worldBounds.width(); // camera->unitsPerPixelAtDistance(1.0);
+                // TODO: which to use?
+                // m_zoom *= m_centerLimits.width() / worldBounds.width();
+                m_zoom *= m_centerLimits.height() / worldBounds.height();
+                // double scale = camera->projection()->width() / m_camera->projection()->width();
+                // scale = std::min(scale, double(camera->projection()->height() / m_camera->projection()->height()));
+                // m_zoom *= scale;
             }
 
             m_targetCenter = m_center;

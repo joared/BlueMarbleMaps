@@ -22,7 +22,13 @@ class ICameraController
 
         virtual CameraPtr onActivated(const CameraPtr& currentCamera, const SurfaceModelPtr& surfaceModel) = 0;
         virtual void onDeactivated() = 0;
-        virtual ControllerStatus updateCamera(const CameraPtr& camera, int64_t deltaMs)= 0;
+        // Called each update. Used to determine if updateCamera should be called.
+        // The controller could determine this itself, however, this was added because the map needs to be able to force an update
+        // when projection parameters have changed (such as at resizing).
+        virtual bool needsUpdate() const = 0;
+        // The controller must always update the camera when this method is called since the projection
+        // is partially controller by the Map. The map will call this when needed
+        virtual ControllerStatus updateCamera(const CameraPtr& camera, int64_t deltaMs) = 0;
 };
 
 inline ICameraController::ControllerStatus operator|(ICameraController::ControllerStatus a, ICameraController::ControllerStatus b)

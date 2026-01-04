@@ -149,6 +149,11 @@ namespace BlueMarble
                 return glm::inverse(viewMat);
             }
             
+            bool needsUpdate() const override final
+            {
+                return true;
+            }
+
             virtual ControllerStatus updateCamera(const CameraPtr& camera, int64_t deltaMs) override final
             {
                 auto perspective = dynamic_cast<PerspectiveCameraProjection*>(camera->projection().get());

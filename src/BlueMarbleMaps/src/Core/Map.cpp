@@ -760,6 +760,10 @@ void Map::resize(int width, int height)
 {
     m_drawable->resize(width, height);
     m_camera->setViewPort(width, height);
+    if (m_cameraController)
+    {
+        m_cameraController->onActivated(m_camera, m_surfaceModel);
+    }
 }
 
 void Map::flushCache()

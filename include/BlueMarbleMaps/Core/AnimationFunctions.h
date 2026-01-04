@@ -99,6 +99,25 @@ namespace BlueMarble
             return (s - a) / (b - a);
         }
 
+        inline double easeOutBounce(double t) 
+        {
+            constexpr double n1 = 7.5625;
+            constexpr double d1 = 2.75;
+
+            if (t < 1.0 / d1) {
+                return n1 * t * t;
+            } else if (t < 2.0 / d1) {
+                t -= 1.5 / d1;
+                return n1 * t * t + 0.75;
+            } else if (t < 2.5 / d1) {
+                t -= 2.25 / d1;
+                return n1 * t * t + 0.9375;
+            } else {
+                t -= 2.625 / d1;
+                return n1 * t * t + 0.984375;
+            }
+        }
+
         Point cubicBezier(double t, const Point& p0, const Point& p1, const Point& p2, const Point& p3) 
         {
             double u = 1.0 - t;
@@ -161,6 +180,12 @@ namespace BlueMarble
             AnimationBuilder& sigmoid(double strength=6.0)
             {
                 extend([strength](double p){ return AnimationFunctions::sigmoidEase(p, strength); });
+                return *this;
+            };
+
+            AnimationBuilder& bounce()
+            {
+                extend([](double p){ return AnimationFunctions::easeOutBounce(p); });
                 return *this;
             };
 

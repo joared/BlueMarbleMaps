@@ -143,7 +143,6 @@ void StandardLayer::prepare(const CrsPtr &crs, const FeatureQuery &featureQuery)
     {
         {
             std::lock_guard lock(m_mutex);
-            // New
             auto ids = getFeatureIds(crs, featureQuery);
             auto cacheMissingIds = std::make_shared<IdCollection>();
             for (auto const& id : *ids)
@@ -157,15 +156,6 @@ void StandardLayer::prepare(const CrsPtr &crs, const FeatureQuery &featureQuery)
                     cacheMissingIds->add(id);
                 }
             }
-            // Old
-            // auto cachedFeatures = m_cache->getAllFeatures();
-            // for (const auto& f : *cachedFeatures)
-            // {
-            //     if (f->bounds().overlap(featureQuery.area()))
-            //     {
-            //         m_queriedFeatures->add(f);
-            //     }
-            // }
             m_doRead = true;
             m_query = featureQuery;
             m_query.ids(cacheMissingIds);
@@ -530,7 +520,7 @@ void StandardLayer::backgroundReadingThread()
         if (m_stop) break;
 
         m_doRead = false;
-        auto crs = m_crs;
+        auto crs = m_crs; // FIXME: this crs is not thread safe
         auto query = m_query;
 
         // reset just so I can debug

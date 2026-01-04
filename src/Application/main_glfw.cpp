@@ -47,6 +47,13 @@ public:
         return false;
     }
 
+    // TODO: map calls this and can be called on any thread
+    void onUpdateRequest()
+    {
+        updateView();
+        glfwPostEmptyEvent();
+    }
+
     void keyEvent(WindowGL* window, int key, int scanCode, int action, int modifier) override
     {
         Key keyStroke(scanCode);
@@ -258,7 +265,7 @@ int main()
     elevationDataSet->initialize(DataSetInitializationType::RightHereRightNow);
     auto elevationLayer = std::make_shared<StandardLayer>(false);
     elevationLayer->addDataSet(elevationDataSet);
-    elevationLayer->asyncRead(true);
+    elevationLayer->asyncRead(false);
     auto rasterVis = std::make_shared<RasterVisualizer>();
     rasterVis->alpha(DirectDoubleAttributeVariable(0.7));
     elevationLayer->visualizers().push_back(rasterVis);

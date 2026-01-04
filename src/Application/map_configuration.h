@@ -204,7 +204,7 @@ void configureGui(const MapPtr& map)
 
 void configureMap(const MapPtr& map, bool includeBackground=false, bool includeRoads=false, bool includeAirPlanes=false)
 {
-    const bool asyncBackgroundReading = true;
+    const bool asyncBackgroundReading = false;
     const bool backgroundLayersSelectable = true;
     const DataSetInitializationType dataSetInitialization = DataSetInitializationType::BackgroundThread;
     const std::string commonIndexPath = "../../../bluemarble_index"; // Relative to the build/bin/<debug/release>/ folder
@@ -270,7 +270,7 @@ void configureMap(const MapPtr& map, bool includeBackground=false, bool includeR
         backgroundLayer2->visualizers().push_back(rasterVis);
         backgroundDataSet2->initialize();
         backgroundLayer2->addDataSet(backgroundDataSet2);
-        backgroundLayer2->asyncRead(true);
+        backgroundLayer2->asyncRead(asyncBackgroundReading);
         map->addLayer(backgroundLayer2);
     }
     
