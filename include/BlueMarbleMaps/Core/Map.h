@@ -154,7 +154,6 @@ namespace BlueMarble
             void renderingEnabled(bool enabled);
 
         private:
-            void setCamera();
             void updateUpdateAttributes(int64_t timeStampMs);
             void beforeRender();
             void renderLayers();

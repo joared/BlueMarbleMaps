@@ -51,7 +51,7 @@ Map::Map()
 {
     m_center = lngLatToMap(Point(30, 36));
     m_drawable = std::make_shared<SoftwareBitmapDrawable>(500, 500, 4);
-    setCamera(); // TODO remove
+    m_camera = Camera::perspectiveCamera(m_drawable->width(), m_drawable->height(), 0.1, 1.0, 45.0);
 
     m_presentationObjects.reserve(1000000); // Reserve a good amount for efficiency
 
@@ -320,7 +320,7 @@ void Map::crs(const CrsPtr& newCrs)
 
     if (m_cameraController)
     {
-        m_cameraController->onActivated(m_camera, m_surfaceModel);
+        m_cameraController->onActivated(m_camera, m_crs, m_surfaceModel);
     }
 
     flushCache(); // We need to flush layer caches since the crs has changed
@@ -336,7 +336,7 @@ void Map::setCameraController(ICameraController* controller)
     if (controller)
     {
         m_cameraController = controller;
-        m_camera = m_cameraController->onActivated(m_camera, m_surfaceModel);
+        m_camera = m_cameraController->onActivated(m_camera, m_crs, m_surfaceModel);
     }
 }
 
@@ -762,7 +762,7 @@ void Map::resize(int width, int height)
     m_camera->setViewPort(width, height);
     if (m_cameraController)
     {
-        m_cameraController->onActivated(m_camera, m_surfaceModel);
+        m_cameraController->onActivated(m_camera, m_crs, m_surfaceModel);
     }
 }
 
@@ -781,39 +781,6 @@ void Map::renderingEnabled(bool enabled)
     {
         l->renderingEnabled(enabled);
     }
-}
-
-void Map::setCamera()
-{
-    // Orthographic 2.5D
-    auto c = m_center;
-    double rot = m_rotation;
-    double scaleFactor = m_scale;
-    double fov = 45.0;
-    double dHeight = m_drawable->height();
-    double tilt = m_tilt;
-
-    
-    
-    // Adjusted in update()
-    float near = 0.1f;
-    float far = 1000000.0f;
-
-    if (!m_camera)
-        m_camera = Camera::perspectiveCamera(m_drawable->width(), m_drawable->height(), near, far, float(fov));
-    glm::mat4 cam = glm::mat4(1.0f);
-    cam = glm::translate(cam, glm::vec3(
-        c.x(),
-        c.y(),
-        0.0f
-    ));
-    cam = glm::rotate(cam, (float)glm::radians(rot), glm::vec3(0.0f, 0.0f, 1.0f));
-    cam = glm::rotate(cam, float(glm::radians(m_tilt)), glm::vec3(1.0f, 0.0f, 0.0f));
-    cam = glm::translate(cam, glm::vec3(
-        0.0f,
-        0.0f,
-        float(dHeight/(2.0*scaleFactor*std::tan(glm::radians(fov) * 0.5)))
-    ));
 }
 
 void Map::updateUpdateAttributes(int64_t timeStampMs)

@@ -2,6 +2,7 @@
 #define BLUEMARBLE_ICAMERACONTROLLER
 
 #include "BlueMarbleMaps/Core/Camera/Camera.h"
+#include "BlueMarbleMaps/CoordinateSystem/Crs.h"
 #include "BlueMarbleMaps/CoordinateSystem/SurfaceModel.h"
 #include <memory>
 
@@ -20,14 +21,10 @@ class ICameraController
 
         virtual ~ICameraController() = default;
 
-        virtual CameraPtr onActivated(const CameraPtr& currentCamera, const SurfaceModelPtr& surfaceModel) = 0;
+        // Called when the camera controller is activated OR if any of the given parameters
+        // has changed
+        virtual CameraPtr onActivated(const CameraPtr& currentCamera, const CrsPtr& crs, const SurfaceModelPtr& surfaceModel) = 0;
         virtual void onDeactivated() = 0;
-        // Called each update. Used to determine if updateCamera should be called.
-        // The controller could determine this itself, however, this was added because the map needs to be able to force an update
-        // when projection parameters have changed (such as at resizing).
-        virtual bool needsUpdate() const = 0;
-        // The controller must always update the camera when this method is called since the projection
-        // is partially controller by the Map. The map will call this when needed
         virtual ControllerStatus updateCamera(const CameraPtr& camera, int64_t deltaMs) = 0;
 };
 

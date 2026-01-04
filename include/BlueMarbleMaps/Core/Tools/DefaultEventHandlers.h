@@ -260,7 +260,8 @@ namespace BlueMarble
                 {
                     // static auto radiusProgressEval = AnimationFunctions::AnimationBuilder().easeOut(5.5).build();
                     static auto radiusProgressEval = AnimationFunctions::AnimationBuilder().bounce().build();
-                    static auto rotationProgressEval = AnimationFunctions::AnimationBuilder().sigmoid(15.0).build();
+                    static auto rotationProgressEval = AnimationFunctions::AnimationBuilder().sigmoid(12.0).build();
+                    // static auto rotationProgressEval = AnimationFunctions::AnimationBuilder().bounce().build();
                     constexpr int animationTime = 1000;
                     constexpr double symbolScale = 1.3;
                     
@@ -270,15 +271,21 @@ namespace BlueMarble
                     double progress = elapsed/double(animationTime);
                     progress = progress < 1.0 ? progress : 1.0;
 
+                    // Radius
                     double radiusProgress = radiusProgressEval(progress);
                     double radius = 20.0*radiusProgress*symbolScale;
                     auto orbitView = m_map->camera()->worldToView(orbitPoint);
                     double unitsPerPixel = m_map->camera()->unitsPerPixelAtDistance(std::abs(orbitView.z()));
                     radius = radius * unitsPerPixel;
-                    double zDisplacement = 5*unitsPerPixel*radiusProgress*symbolScale;
+                    
 
+                    // Rotation
                     double rotationProgress = rotationProgressEval(progress);
                     double rotation = BMM_PI * (1.0-rotationProgress);
+
+                    // Z-displacement
+                    double zProgress = radiusProgressEval(progress);
+                    double zDisplacement = 3.0*unitsPerPixel*symbolScale*(zProgress + 5.0*(1-zProgress));
 
                     auto d = m_map->drawable();
                     d->endBatches();

@@ -48,7 +48,7 @@ class PlaneCameraController : public ICameraController
         PlaneCameraController()
             : m_center(0,0)
             , m_targetCenter(m_center)
-            , m_centerLimits(Rectangle::undefined())
+            , m_currentWorldBounds(Rectangle::undefined())
             , m_zoom(1.0)
             , m_targetZoom(m_zoom)
             , m_rotation(0.0)
@@ -66,10 +66,10 @@ class PlaneCameraController : public ICameraController
 
         void center(const Point& center) 
         { 
-            if (!m_centerLimits.isInside(center))
+            if (!m_currentWorldBounds.isInside(center))
             {
-                double newX = Utils::clampValue(center.x(), m_centerLimits.xMin(), m_centerLimits.xMax());
-                double newY = Utils::clampValue(center.y(), m_centerLimits.yMin(), m_centerLimits.yMax());
+                double newX = Utils::clampValue(center.x(), m_currentWorldBounds.xMin(), m_currentWorldBounds.xMax());
+                double newY = Utils::clampValue(center.y(), m_currentWorldBounds.yMin(), m_currentWorldBounds.yMax());
                 m_center = Point(newX, newY);
                 m_targetCenter = center;
                 return;
@@ -91,10 +91,10 @@ class PlaneCameraController : public ICameraController
         void panBy(const Point& delta) 
         { 
             m_targetCenter += delta;
-            if (!m_centerLimits.isInside(m_targetCenter))
+            if (!m_currentWorldBounds.isInside(m_targetCenter))
             {
-                double newX = Utils::clampValue(m_targetCenter.x(), m_centerLimits.xMin(), m_centerLimits.xMax());
-                double newY = Utils::clampValue(m_targetCenter.y(), m_centerLimits.yMin(), m_centerLimits.yMax());
+                double newX = Utils::clampValue(m_targetCenter.x(), m_currentWorldBounds.xMin(), m_currentWorldBounds.xMax());
+                double newY = Utils::clampValue(m_targetCenter.y(), m_currentWorldBounds.yMin(), m_currentWorldBounds.yMax());
                 m_targetCenter = Point(newX, newY);
             }
             if (m_flags == InteractionFlags::ControllerIdle) m_justStarted = true;
@@ -170,7 +170,7 @@ class PlaneCameraController : public ICameraController
             tiltBy(0.0);
         }
 
-        CameraPtr onActivated(const CameraPtr& currentCamera, const SurfaceModelPtr& surfaceModel) override final
+        CameraPtr onActivated(const CameraPtr& currentCamera, const CrsPtr& crs, const SurfaceModelPtr& surfaceModel) override final
         {
             constexpr bool usePerspective = true;
             CameraPtr newCamera;
@@ -200,7 +200,7 @@ class PlaneCameraController : public ICameraController
 
             newCamera->setTransform(currentCamera->transform());
 
-            stateFromCamera(newCamera, surfaceModel->bounds());
+            stateFromCamera(newCamera, crs, surfaceModel->bounds());
 
             m_camera = newCamera;
 
@@ -211,11 +211,6 @@ class PlaneCameraController : public ICameraController
         {
             m_camera = nullptr;
         };
-
-        bool needsUpdate() const override final
-        {
-            return m_flags != InteractionFlags::ControllerIdle;
-        }
 
         ControllerStatus updateCamera(const CameraPtr& camera, int64_t deltaMs) override final
         {
@@ -375,32 +370,28 @@ class PlaneCameraController : public ICameraController
         }
 
     private:
-        void stateFromCamera(const CameraPtr& camera, const Rectangle& worldBounds)
+        void stateFromCamera(const CameraPtr& camera, const CrsPtr& crs, const Rectangle& worldBounds)
         {
-            if (m_centerLimits.isUndefined())
+            if (m_currentWorldBounds.isUndefined())
             {
                 m_center = Point(worldBounds.center());
                 // TODO: which to use?
-                // m_zoom = camera->projection()->width() / worldBounds.width();
-                m_zoom = camera->projection()->height() / worldBounds.height();
+                double zW = camera->projection()->width() / worldBounds.width();
+                double zH = camera->projection()->height() / worldBounds.height();
+                m_zoom = std::min(zW, zH);
             }
             else
             {
-                m_center = Point(m_center.x() / m_centerLimits.width() * worldBounds.width(), 
-                                 m_center.y() / m_centerLimits.height() * worldBounds.height());
-                // TODO: which to use?
-                // m_zoom *= m_centerLimits.width() / worldBounds.width();
-                m_zoom *= m_centerLimits.height() / worldBounds.height();
-                // double scale = camera->projection()->width() / m_camera->projection()->width();
-                // scale = std::min(scale, double(camera->projection()->height() / m_camera->projection()->height()));
-                // m_zoom *= scale;
+                m_center = m_crs->projectTo(crs, m_center);
+                m_zoom *= crs->globalMeterScale() / m_crs->globalMeterScale();
             }
 
+            m_crs = crs;
             m_targetCenter = m_center;
             m_targetZoom = m_zoom;
             m_targetRotation = m_rotation;
             m_targetTilt = m_tilt;
-            m_centerLimits = worldBounds;
+            m_currentWorldBounds = worldBounds;
 
             panBy({0.0,0.0}); // Just to trigger update
         }
@@ -417,10 +408,11 @@ class PlaneCameraController : public ICameraController
         }
 
         CameraPtr m_camera;
+        CrsPtr    m_crs;
         
         Point   m_center;
         Point   m_targetCenter;
-        Rectangle m_centerLimits;
+        Rectangle m_currentWorldBounds;
         
         double  m_zoom;
         double  m_targetZoom;

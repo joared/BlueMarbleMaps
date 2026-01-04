@@ -36,7 +36,7 @@ namespace BlueMarble
                 , m_cameraInfo()
             {}
 
-            CameraPtr onActivated(const CameraPtr& currentCamera, const SurfaceModelPtr& surfaceModel) override final
+            CameraPtr onActivated(const CameraPtr& currentCamera, const CrsPtr& crs, const SurfaceModelPtr& surfaceModel) override final
             {
                 m_camera = currentCamera;
 
@@ -147,11 +147,6 @@ namespace BlueMarble
                 // m_projMatrix = glm::perspective(glm::radians(m_cameraInfo.m_fov), m_cameraInfo.m_aspectRatio, m_cameraInfo.m_near, m_cameraInfo.m_far);
                 auto viewMat = glm::lookAt(m_cameraInfo.m_pos, m_cameraInfo.m_cameraFace + m_cameraInfo.m_pivot, m_cameraInfo.m_up);
                 return glm::inverse(viewMat);
-            }
-            
-            bool needsUpdate() const override final
-            {
-                return true;
             }
 
             virtual ControllerStatus updateCamera(const CameraPtr& camera, int64_t deltaMs) override final
