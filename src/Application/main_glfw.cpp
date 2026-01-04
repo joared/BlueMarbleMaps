@@ -7,6 +7,7 @@
 #include "BlueMarbleMaps/Core/Core.h"
 #include "BlueMarbleMaps/Core/Feature.h"
 #include "BlueMarbleMaps/Core/MapControl.h"
+#include "BlueMarbleMaps/Core/Tools/ToolSet.h"
 #include "BlueMarbleMaps/Core/Tools/DefaultEventHandlers.h"
 #include "BlueMarbleMaps/Core/Tools/OttoTool.h"
 #include "BlueMarbleMaps/Core/BlueMarbleLayout.h"
@@ -292,17 +293,18 @@ int main()
     mapControl->setView(view);
 
     //auto tool = std::make_shared<OttoTool>();
-    auto tool = std::make_shared<PanEventHandler>();
-    tool->addSubTool(std::make_shared<EditFeatureTool>());
-    tool->addSubTool(std::make_shared<PointerTracerTool>());    
-    tool->addSubTool(std::make_shared<KeyActionTool>());
-    tool->addSubTool(std::make_shared<DebugEventHandler>());
+    auto toolSet = std::make_shared<ToolSet>();
+    toolSet->addSubTool(std::make_shared<PanEventHandler>());
+    toolSet->addSubTool(std::make_shared<EditFeatureTool>());
+    toolSet->addSubTool(std::make_shared<PointerTracerTool>());    
+    toolSet->addSubTool(std::make_shared<KeyActionTool>());
+    toolSet->addSubTool(std::make_shared<DebugEventHandler>());
 
     // EventObserver eventObserver1("Observer1");
     // EventObserver eventObserver2("Observer2");
     // tool.installEventFilter(&eventObserver1);
     // eventObserver1.installEventFilter(&eventObserver2);
-    mapControl->setTool(tool);
+    mapControl->setTool(toolSet);
 
     //view->crs(Crs::wgs84MercatorWeb());
     auto startRect = view->crs()->bounds();
@@ -312,7 +314,7 @@ int main()
     // view->width(startRect.width());
     //view->mapConstraints().bounds() = startRect;
 
-    view->drawable()->backgroundColor(Color::gray(0.0));
+    view->drawable()->backgroundColor(Color(120,170,255,0));
     
     view->update(true);
 

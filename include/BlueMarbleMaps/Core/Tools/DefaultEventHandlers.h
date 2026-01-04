@@ -164,7 +164,7 @@ namespace BlueMarble
 
             bool isActive() override final
             {
-                return true;
+                return false; // Don't halt any other tools
             }
 
             void onConnected(const MapControlPtr& control, const MapPtr& map) override final 
@@ -258,7 +258,8 @@ namespace BlueMarble
 
                 if (!m_orbitPoint.isUndefined())
                 {
-                    static auto radiusEval = AnimationFunctions::AnimationBuilder().easeOut(2.5).build();
+                    static auto radiusProgressEval = AnimationFunctions::AnimationBuilder().easeOut(2.5).build();
+                    static auto rotationProgressEval = AnimationFunctions::AnimationBuilder().sigmoid(12.0).build();
                     constexpr int animationTime = 1000;
                     
                     const auto& orbitPoint = m_orbitPoint;
@@ -267,11 +268,14 @@ namespace BlueMarble
                     double progress = elapsed/double(animationTime);
                     progress = progress < 1.0 ? progress : 1.0;
 
-                    double radiusProgress = radiusEval(progress);
+                    double radiusProgress = radiusProgressEval(progress);
                     double radius = 20.0*radiusProgress;
                     auto orbitView = m_map->camera()->worldToView(orbitPoint);
                     double unitsPerPixel = m_map->camera()->unitsPerPixelAtDistance(std::abs(orbitView.z()));
                     radius = radius * unitsPerPixel;
+
+                    double rotationProgress = rotationProgressEval(progress);
+                    double rotation = BMM_PI * (1.0-rotationProgress);
 
                     auto d = m_map->drawable();
                     d->endBatches();
@@ -285,9 +289,9 @@ namespace BlueMarble
                     double x = orbitPoint.x();
                     double y = orbitPoint.y();
                     
-                    double off = BMM_PI * 0.5;
-                    double gap = 0.1;
-                    double stretch = 0.2;
+                    double off = BMM_PI * 0.5 + rotation;
+                    double gap = 0.1;     // 0.1
+                    double stretch = 0.12; // 0.2
                     auto louter1 = generateArcLine(radius, gap+off, BMM_PI+off-gap);                    
                     auto louter2 = generateArcLine(radius*0.95, stretch+off+gap, BMM_PI+stretch-gap+off);  
                     auto louter3 = generateArcLine(radius*0.9, stretch*2+off+gap, BMM_PI+stretch*2-gap+off);

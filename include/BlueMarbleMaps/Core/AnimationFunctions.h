@@ -8,7 +8,7 @@ namespace BlueMarble
     namespace AnimationFunctions
     {
         
-        constexpr double inverseProgressAt(double progress, double at)
+        inline double inverseProgressAt(double progress, double at)
         {
             assert(progress >= 0.0);
             assert(progress <= 1.0);
@@ -21,7 +21,7 @@ namespace BlueMarble
             return progress;
         }
 
-        constexpr double inverseProgress(double progress)
+        inline double inverseProgress(double progress)
         {
             assert(progress >= 0.0);
             assert(progress <= 1.0);
@@ -29,7 +29,7 @@ namespace BlueMarble
             return 1.0 - progress;
         }
 
-        constexpr double offsetProgress(double progress, double offset)
+        inline double offsetProgress(double progress, double offset)
         {
             assert(progress >= 0.0);
             assert(progress <= 1.0);
@@ -40,7 +40,7 @@ namespace BlueMarble
             return p;
         }
 
-        constexpr double subDivideProgress(double progress, int nCycles)
+        inline double subDivideProgress(double progress, int nCycles)
         {
             assert(progress >= 0.0);
             assert(progress <= 1.0);
@@ -51,7 +51,7 @@ namespace BlueMarble
             return p;
         }
 
-        constexpr bool isAlternateProgressInReverse(double progress)
+        inline bool isAlternateProgressInReverse(double progress)
         {
             assert(progress >= 0.0);
             assert(progress <= 1.0);
@@ -59,7 +59,7 @@ namespace BlueMarble
             return progress*2.0 > 1.0;
         }
 
-        constexpr double alternateProgress(double progress)
+        inline double alternateProgress(double progress)
         {
             assert(progress >= 0.0);
             assert(progress <= 1.0);
@@ -71,14 +71,32 @@ namespace BlueMarble
             return p;
         }
 
-        double easeInCubic(double t) 
+        inline double easeInCubic(double t) 
         {
             return t * t * t;
         }
 
-        double easeOut(double t, double easeOutPower)
+        inline double easeOut(double t, double easeOutPower)
         {
             return 1 - std::pow(1 - t, easeOutPower);
+        }
+
+        inline double sigmoid(double x)
+        {
+            return (1.0 / (1.0 + std::exp(-x)));
+        }
+
+        inline double sigmoidEase(double t, double k) 
+        {
+            // Clamp t to [0,1]
+            if (t < 0.0) t = 0.0;
+            if (t > 1.0) t = 1.0;
+
+            double a = sigmoid(-0.5 * k);
+            double b = sigmoid( 0.5 * k);
+            double s = sigmoid(k * (t - 0.5));
+
+            return (s - a) / (b - a);
         }
 
         Point cubicBezier(double t, const Point& p0, const Point& p1, const Point& p2, const Point& p3) 
@@ -138,6 +156,11 @@ namespace BlueMarble
             AnimationBuilder& easeOut(double easeOutPower)
             {
                 extend([easeOutPower](double p){ return AnimationFunctions::easeOut(p, easeOutPower); });
+                return *this;
+            };
+            AnimationBuilder& sigmoid(double strength=6.0)
+            {
+                extend([strength](double p){ return AnimationFunctions::sigmoidEase(p, strength); });
                 return *this;
             };
 
