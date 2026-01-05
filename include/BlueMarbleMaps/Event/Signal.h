@@ -268,6 +268,13 @@ class SignalImpl : public ISignal
             throw std::exception();
         }
 
+        void unsubscribeAll()
+        {
+            std::lock_guard<LockPolicy> guard(m_lockPolicy);
+            // FIXME: if using ISignalHandler, this will not remove the signal from it
+            m_listeners.clear();
+        }
+
         // Notify subscribers
         void notify(Args... args)
         {
@@ -318,8 +325,7 @@ class SignalImpl : public ISignal
             {
                 if (it->first == id)
                 {
-                    BMM_DEBUG() << "Double subscription! (id: " << id << ")\n";
-                    throw std::exception();
+                    throw std::runtime_error("Double subscription! (id: " + std::to_string(id) + ")\n");
                 }
             }
 

@@ -13,7 +13,6 @@ namespace BlueMarble
 
             virtual ~SurfaceModel() = default;
 
-            virtual Rectangle bounds() const = 0;
             virtual bool rayIntersection(const Point& rayOrigin,
                                          const Point& rayDirection,
                                          double normalOffset,
@@ -25,9 +24,8 @@ namespace BlueMarble
     class PlaneSurfaceModel : public SurfaceModel
     {
         public:
-            PlaneSurfaceModel(const Point& origin, const Point& normal, const Rectangle& bounds);
+            PlaneSurfaceModel(const Point& origin, const Point& normal);
 
-            Rectangle bounds() const { return m_bounds; };
             bool rayIntersection(const Point& rayOrigin, 
                                  const Point& rayDirection,
                                  double normalOffset,
@@ -37,7 +35,6 @@ namespace BlueMarble
         private:
             Point     m_origin;
             Point     m_normal;
-            Rectangle m_bounds;
     };
     using PlaneSurfaceModelPtr = std::shared_ptr<PlaneSurfaceModel>;
 }

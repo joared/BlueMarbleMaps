@@ -18,8 +18,11 @@ namespace BlueMarble
         assert(eventFilter != this);
         if (eventFilter != nullptr)
         {
-            // Not allowed to have two EventHandlers to have eachother as EventFilter
-            assert(eventFilter->m_eventFilter != this);
+            // Not allowed to have recursive EventHandlers as EventFilter
+            for (auto* f = eventFilter; f; f = f->m_eventFilter)
+            {
+                assert(f != this);
+            }
         }
         m_eventFilter = eventFilter;
 

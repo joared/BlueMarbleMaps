@@ -28,7 +28,7 @@ namespace BlueMarble
         protected:
             bool isActive() override final
             {
-                return m_editFeature != nullptr;
+                return m_editFeature != nullptr || !m_selectionRectangle.isUndefined();
             }
 
             void onConnected(const MapControlPtr& control, const MapPtr& map) override final 
@@ -48,7 +48,7 @@ namespace BlueMarble
                 return m_autoSelect;
             }
 
-            bool OnMouseDown(const MouseDownEvent& event) override final
+            bool onMouseDown(const MouseDownEvent& event) override final
             {
                 auto& presentationObjects = m_map->hitTest(event.pos.x, event.pos.y, 10);
                 for (auto& p : presentationObjects)
@@ -67,12 +67,64 @@ namespace BlueMarble
                 return false;
             }
 
-            bool OnDrag(const DragEvent& event) override final
+            bool onClick(const ClickEvent& event) override final
             {
+                auto pObjs = m_map->hitTest(event.pos.x, event.pos.y, 10.0);
+                Id selId(0,0);
+                FeaturePtr selFeat(nullptr);
+                if (pObjs.size() > 0)
+                {
+                    selId = pObjs[0].sourceFeature()->id();
+                    selFeat = pObjs[0].sourceFeature();
+                }
+                else
+                {
+                    m_map->deSelectAll();
+                    m_map->update();
+
+                    return true;
+                }
+
+                auto mode = (event.modificationKey == ModificationKeyCtrl) 
+                            ? SelectMode::Add : SelectMode::Replace;
+                if (!m_map->isSelected(selFeat))
+                {   
+                    m_map->select(selFeat, mode);
+                }
+                else if (mode == SelectMode::Replace)
+                {
+                    if (m_map->selected().size() == 1)
+                    {
+                        m_map->deSelect(selFeat);
+                    }
+                    else if (m_map->selected().size() > 1)
+                    {
+                        m_map->select(selFeat, SelectMode::Replace);
+                    }
+                }
+                else // SelectMode::Add
+                {
+                    m_map->deSelect(selFeat);
+                }
+                
+                m_map->update();
+
+                return true;
+            }
+
+            bool onDrag(const DragEvent& event) override final
+            {
+                if (!m_selectionRectangle.isUndefined() || event.modificationKey & BlueMarble::ModificationKeyShift)
+                {
+                    selectArea(event);
+                    return true;
+                }
+
                 if (!m_editFeature)
                 {
                     return false;
                 }
+
                 BMM_DEBUG() << "I am editing!\n";
 
                 // If auto select is enabled, select the feature
@@ -106,7 +158,7 @@ namespace BlueMarble
                 return true;
             }
 
-            bool OnMouseUp(const MouseUpEvent& event) override final
+            bool onMouseUp(const MouseUpEvent& event) override final
             {
                 BMM_DEBUG() << "Mouse up! Deactivate\n";
                 m_editFeature = nullptr;
@@ -135,9 +187,65 @@ namespace BlueMarble
                     throw std::exception();
                 }
             }
+            void selectArea(const DragEvent& event)
+            {
+                if (event.phase == InteractionEvent::Phase::Started)
+                {
+                    m_map->events.onCustomDraw.subscribe(this, &EditFeatureTool::onCustomDraw);
+                }
+                else if (event.phase == InteractionEvent::Phase::Completed)
+                {
+                    m_map->events.onCustomDraw.unsubscribe(this);
+                    m_selectionRectangle = Rectangle::undefined();
+                    m_map->update();
+                    return;
+                }
+                auto points = std::vector<Point>();
+                points.push_back(Point{event.pos.x, event.pos.y});
+                points.push_back(Point{event.startPos.x, event.startPos.y});
+                m_selectionRectangle = Rectangle::fromPoints(points);
+
+                auto selectionBounds = m_map->screenToMap(m_selectionRectangle);
+                FeatureCollection featuresIn;
+                m_map->featuresInside(selectionBounds, featuresIn);
+                for (auto id : m_map->selected())
+                {
+                    if (!featuresIn.contains(id))
+                    {
+                        m_map->deSelect(id);
+                    }
+                }
+                for (auto f : featuresIn)
+                {
+                    m_map->select(f, SelectMode::Add);
+                }
+
+                m_map->update();
+            }
+
+            void onCustomDraw(Map& map)
+            {
+                if (!m_selectionRectangle.isUndefined())
+                {
+                    auto line = m_selectionRectangle.corners(true);
+                    auto poly = std::make_shared<PolygonGeometry>(line);
+                    auto linePtr = std::make_shared<LineGeometry>(line);
+                    linePtr->isClosed(true);
+
+                    auto pen = Pen();
+                    pen.setColor(Color{255, 255, 255, 0.5});
+                    auto brush = Brush();
+                    brush.setColors(Color::colorRamp(Color::red(0.1), Color::green(0.5), line.size()));
+
+                    auto drawable = map.drawable();
+                    drawable->drawPolygon(poly, pen, brush);
+                    drawable->drawLine(linePtr, pen);
+                }
+            }
 
             MapControlPtr m_control;
             MapPtr m_map;
+            Rectangle m_selectionRectangle;
             bool m_active;
             FeaturePtr m_editFeature;
             int m_nodeIndex;
@@ -145,19 +253,18 @@ namespace BlueMarble
             bool m_autoSelect;
     };
 
-    class PanEventHandler 
+    class CameraControllerTwoHalfD
         : public Tool
         , public IFeatureEventListener
     {
         public:
-            PanEventHandler() 
+            CameraControllerTwoHalfD()
                 : Tool()
                 , m_map(nullptr)
                 , m_mapControl(nullptr)
                 , m_rectangle(BlueMarble::Rectangle::undefined())
                 , m_orbitPoint(Point::undefined())
                 , m_zoomToRect(false)
-                , m_hitTestLine(std::make_shared<LineGeometry>())
                 , m_hoverFeature(nullptr)
             {
             }
@@ -171,35 +278,15 @@ namespace BlueMarble
             {
                 m_mapControl = control;
                 m_map = map;
-                m_map->events.onUpdating.subscribe(this, &PanEventHandler::OnUpdating);
-                m_map->events.onCustomDraw.subscribe(this, &PanEventHandler::OnCustomDraw);
-                m_map->events.onUpdated.subscribe(this, &PanEventHandler::OnUpdated);
-                m_map->events.onIdle.subscribe(this, &PanEventHandler::OnIdle);
+                m_map->events.onCustomDraw.subscribe(this, &CameraControllerTwoHalfD::OnCustomDraw);
                 m_map->setCameraController(&m_cameraController);
             }
 
             void onDisconnected() override final 
             {
-                m_map->events.onUpdating.unsubscribe(this);
                 m_map->events.onCustomDraw.unsubscribe(this);
-                m_map->events.onUpdated.unsubscribe(this);
-                m_map->events.onIdle.unsubscribe(this);
                 m_map = nullptr;
                 m_mapControl = nullptr;
-            }
-
-            void OnIdle(BlueMarble::Map& /*map*/)
-            {
-                //BMM_DEBUG() << "OnIdle!\n";
-            }
-
-            void OnAreaChanged(BlueMarble::Map& /*map*/)
-            {
-
-            }
-
-            void OnUpdating(BlueMarble::Map& map)
-            {
             }
 
             void drawRect(const BlueMarble::Rectangle& bounds)
@@ -221,19 +308,9 @@ namespace BlueMarble
 
             void OnCustomDraw(BlueMarble::Map& /*map*/)
             {
-                ScreenPos pos;
-                m_mapControl->getMousePos(pos);
-                int offset = 10;
-                auto pixelColor = m_map->drawable()->readPixel(pos.x, pos.y-offset);
-                m_map->drawable()->setPixel(pos.x, pos.y-offset, Color::red());
-                std::string posString = std::to_string(pos.x) + ", " + std::to_string(pos.y);
-                m_map->drawable()->drawText(0, m_map->drawable()->height()-45, posString, Color::red());
-                m_map->drawable()->drawText(0, m_map->drawable()->height()-30, pixelColor.toString(), Color::red());
-
                 if (!m_rectangle.isUndefined())
                 {
                     drawRect(m_rectangle);
-                    // BMM_DEBUG() << "Draw rect: " << m_rectangle.toString() << "\n";
                 }
 
                 auto generateArcLine = [](double r, double startAngle, double endAngle)
@@ -277,7 +354,6 @@ namespace BlueMarble
                     auto orbitView = m_map->camera()->worldToView(orbitPoint);
                     double unitsPerPixel = m_map->camera()->unitsPerPixelAtDistance(std::abs(orbitView.z()));
                     radius = radius * unitsPerPixel;
-                    
 
                     // Rotation
                     double rotationProgress = rotationProgressEval(progress);
@@ -330,27 +406,19 @@ namespace BlueMarble
                     d->drawLine(outer11, ppp);
                     d->drawLine(outer22, ppp);
                     d->drawLine(outer33, ppp);
-
-
-                    //ppp.setColor(Color::blue(0.5));
                     d->drawLine(inner1, ppp);
                     d->drawLine(inner2, ppp);
-                    // inner2->move({0,0,zDisplacement});
-                    auto pol = std::make_shared<PolygonGeometry>(inner2->points());
+
                     d->endBatches();
                     d->beginBatches();
+                    auto pol = std::make_shared<PolygonGeometry>(inner2->points());
                     d->drawPolygon(pol, ppp, bbb);
-                    
                     d->endBatches();
                     d->beginBatches();
 
+                    // Keep updating when drawing this
                     m_map->update();
                 }
-            }
-
-            void OnUpdated(BlueMarble::Map& /*map*/)
-            {
-                
             }
 
             void onFeatureCreated(const FeaturePtr& /*feature*/) override final
@@ -360,7 +428,7 @@ namespace BlueMarble
             void onFeatureDeleted(const Id& /*id*/) override final
             {}
 
-            bool OnKeyDown(const KeyDownEvent& event) override final
+            bool onKeyDown(const KeyDownEvent& event) override final
             {
                 if (event.keyCode == 86) // +
                 {
@@ -375,12 +443,12 @@ namespace BlueMarble
                 return true;
             }
 
-            bool OnMouseDown(const BlueMarble::MouseDownEvent& event) override final
+            bool onMouseDown(const BlueMarble::MouseDownEvent& event) override final
             {
                 return false;
             }
 
-            bool OnMouseMove(const BlueMarble::MouseMoveEvent& event) override final
+            bool onMouseMove(const BlueMarble::MouseMoveEvent& event) override final
             {
                 auto pObjs = m_map->hitTest(event.pos.x, event.pos.y, 10.0);
                 BlueMarble::FeaturePtr hoverFeature(nullptr);
@@ -388,7 +456,6 @@ namespace BlueMarble
                 {
                     auto p = m_map->screenToMap(Point(event.pos.x, event.pos.y));
                     
-                    m_hitTestLine->points().push_back(p);
                     hoverFeature = pObjs[0].sourceFeature();
                     
                     m_map->update();
@@ -405,52 +472,7 @@ namespace BlueMarble
                 return true;
             }
 
-            bool OnClick(const BlueMarble::ClickEvent& event) override final
-            {
-                auto pObjs = m_map->hitTest(event.pos.x, event.pos.y, 10.0);
-                Id selId(0,0);
-                FeaturePtr selFeat(nullptr);
-                if (pObjs.size() > 0)
-                {
-                    selId = pObjs[0].sourceFeature()->id();
-                    selFeat = pObjs[0].sourceFeature();
-                }
-                else
-                {
-                    m_map->deSelectAll();
-                    m_map->update();
-
-                    return true;
-                }
-
-                auto mode = (event.modificationKey == ModificationKeyCtrl) 
-                            ? SelectMode::Add : SelectMode::Replace;
-                if (!m_map->isSelected(selFeat))
-                {   
-                    m_map->select(selFeat, mode);
-                }
-                else if (mode == SelectMode::Replace)
-                {
-                    if (m_map->selected().size() == 1)
-                    {
-                        m_map->deSelect(selFeat);
-                    }
-                    else if (m_map->selected().size() > 1)
-                    {
-                        m_map->select(selFeat, SelectMode::Replace);
-                    }
-                }
-                else // SelectMode::Add
-                {
-                    m_map->deSelect(selFeat);
-                }
-                
-                m_map->update();
-
-                return true;
-            }
-
-            bool OnDoubleClick(const BlueMarble::DoubleClickEvent& event) override final
+            bool onDoubleClick(const BlueMarble::DoubleClickEvent& event) override final
             {                    
                 auto mapPoint = m_map->screenToMap(event.pos.x, event.pos.y);
 
@@ -470,7 +492,7 @@ namespace BlueMarble
                 return true;
             }
 
-            bool OnDrag(const DragEvent& dragEvent) override final
+            bool onDrag(const DragEvent& dragEvent) override final
             {
                 if (dragEvent.phase == InteractionEvent::Phase::Started)
                 {
@@ -499,13 +521,7 @@ namespace BlueMarble
                         
                         return true;
                     }
-                    if (m_selectArea)
-                    {
-                        m_selectArea = false;
-                        m_map->update();
-                        m_rectangle = BlueMarble::Rectangle::undefined();
-                        return true;
-                    }
+                    
                     m_map->update();
 
                     return true;
@@ -514,134 +530,102 @@ namespace BlueMarble
                 switch (dragEvent.mouseButton)
                 {
                 case BlueMarble::MouseButtonLeft:
+                {
+                    if (dragEvent.modificationKey & BlueMarble::ModificationKeyCtrl)
                     {
-                        if (dragEvent.modificationKey & BlueMarble::ModificationKeyCtrl)
-                        {
-                            // zoom to rect
-                            std::cout << "Mod key: " << dragEvent.modificationKey << "\n";
-                            m_zoomToRect = true;
-                            auto points = std::vector<Point>(); 
-                            points.push_back(m_map->screenToMap(Point{dragEvent.pos.x, dragEvent.pos.y}));
-                            points.push_back(m_map->screenToMap(Point{dragEvent.startPos.x, dragEvent.startPos.y}));
-                            m_rectangle = Rectangle::fromPoints(points);
-                            m_map->update();
-                        }
-                        else if (dragEvent.modificationKey & BlueMarble::ModificationKeyShift)
-                        {
-                            // zoom to rect
-                            std::cout << "Mod key: " << dragEvent.modificationKey << "\n";
-                            m_selectArea = true;
-                            auto points = std::vector<Point>(); 
-                            points.push_back(m_map->screenToMap(Point{dragEvent.pos.x, dragEvent.pos.y}));
-                            points.push_back(m_map->screenToMap(Point{dragEvent.startPos.x, dragEvent.startPos.y}));
-                            m_rectangle = Rectangle::fromPoints(points);
-                            
-                            FeatureCollection featuresIn;
-                            m_map->featuresInside(m_rectangle, featuresIn);
-                            for (auto id : m_map->selected())
-                            {
-                                if (!featuresIn.contains(id))
-                                {
-                                    m_map->deSelect(id);
-                                }
-                            }
-                            for (auto f : featuresIn)
-                            {
-                                m_map->select(f, SelectMode::Add);
-                                
-                            }
-                            
-
-                            m_map->update();
-                        }
-                        else
-                        {
-                            // New
-                            auto screen1 = Point(dragEvent.pos.x, dragEvent.pos.y);
-                            auto screen2 = Point(dragEvent.lastPos.x, dragEvent.lastPos.y);
-                            auto offsetWorld = m_map->screenToMap(screen2) - m_map->screenToMap(screen1);
-                            auto to = m_cameraController.center() + offsetWorld;
-                            //m_cameraController.center(to);
-                            m_cameraController.panBy(offsetWorld);
-                            //m_map->center(to);
-                            // Old
-                            // m_map->panBy({(double)(dragEvent.lastPos.x - dragEvent.pos.x), 
-                            //             (double)(dragEvent.lastPos.y - dragEvent.pos.y)});
-                            m_map->update();
-                        }
-                        
-                        break;
-                    }
-                case BlueMarble::MouseButtonRight:
-                    {
-                        if (dragEvent.modificationKey & ModificationKeyCtrl)
-                        {
-                            // Rotate
-                            auto center = m_map->screenCenter();
-                            auto prev = Point(dragEvent.lastPos.x, dragEvent.lastPos.y);
-                            auto curr = Point(dragEvent.pos.x, dragEvent.pos.y);
-                            
-                            auto prevOffset = prev-center;
-                            auto currOffset = curr-center;
-
-                            double startAngle = std::atan2(prevOffset.y(), prevOffset.x());
-                            double currAngle = std::atan2(currOffset.y(), currOffset.x());
-
-                            double deltaAngle = currAngle-startAngle;
-
-                            // m_map->rotation(m_map->rotation() + deltaAngle*RAD_TO_DEG);
-                            m_cameraController.rotateBy(deltaAngle*RAD_TO_DEG);
-                            m_map->update();
-                        }
-                        else
-                        {
-                            // Zoom
-                            const double ZOOM_SCALE = 0.01;
-                            auto mapPoint = m_map->screenToMap(m_map->pixelToScreen(Point{dragEvent.startPos.x, dragEvent.startPos.y}));
-                            double deltaY = dragEvent.pos.y - dragEvent.lastPos.y;
-                            double scale = 1 + abs(deltaY)*ZOOM_SCALE;
-                            double zoomFactor = deltaY > 0 ? scale : 1.0/scale;
-                            // m_map->zoomOn(mapPoint, zoomFactor);
-                            m_cameraController.zoomOn(mapPoint, zoomFactor);
-                            m_map->update();
-                        }
-                        
-                        break;
-                    }
-                case BlueMarble::MouseButtonMiddle:
-                    {
-                        // auto rayCurr = m_map->screenToViewRay(dragEvent.pos.x, dragEvent.pos.y);
-                        // auto rayLast = m_map->screenToViewRay(dragEvent.lastPos.x, dragEvent.lastPos.y);
-                        
-                        // // TODO: For orthographic wee need to offset instead
-                        // // Point delta = rayCurr.origin - rayLast.origin;
-
-                        // auto xzCurr = Point(rayCurr.direction.x(), 0.0, rayCurr.direction.z()).norm3D();
-                        // auto xzLast = Point(rayLast.direction.x(), 0.0, rayLast.direction.z()).norm3D();
-                        // auto yzCurr = Point(0.0, rayCurr.direction.y(), rayCurr.direction.z()).norm3D();
-                        // auto yzLast = Point(0.0, rayLast.direction.y(), rayLast.direction.z()).norm3D();
-                        
-                        // double yaw = std::atan2(xzCurr.crossProduct(xzLast).y(), xzCurr.dotProduct(xzLast));
-                        // double pitch = std::atan2(yzCurr.crossProduct(yzLast).x(), yzCurr.dotProduct(yzLast));
-                        
-                        // m_cameraController.rotateBy(-RAD_TO_DEG*yaw*2);
-                        // m_cameraController.tiltBy(-RAD_TO_DEG*pitch*2);
-                        
-                        m_orbitPoint = m_map->screenToMap(m_map->screenCenter());
-                        constexpr double rotateFactor = 0.3;
-                        constexpr double tiltFactor = 0.3;
-
-                        double deltaRot = (dragEvent.lastPos.x - dragEvent.pos.x) * rotateFactor;
-                        double deltaTilt = (dragEvent.lastPos.y - dragEvent.pos.y) * tiltFactor;
-                        
-                        // m_cameraController.stop();
-                        m_cameraController.rotateBy(deltaRot);
-                        m_cameraController.tiltBy(deltaTilt);
-
+                        // zoom to rect
+                        std::cout << "Mod key: " << dragEvent.modificationKey << "\n";
+                        m_zoomToRect = true;
+                        auto points = std::vector<Point>(); 
+                        points.push_back(m_map->screenToMap(Point{dragEvent.pos.x, dragEvent.pos.y}));
+                        points.push_back(m_map->screenToMap(Point{dragEvent.startPos.x, dragEvent.startPos.y}));
+                        m_rectangle = Rectangle::fromPoints(points);
                         m_map->update();
-
-                        break;
                     }
+                    else
+                    {
+                        // New
+                        auto screen1 = Point(dragEvent.pos.x, dragEvent.pos.y);
+                        auto screen2 = Point(dragEvent.lastPos.x, dragEvent.lastPos.y);
+                        auto offsetWorld = m_map->screenToMap(screen2) - m_map->screenToMap(screen1);
+                        auto to = m_cameraController.center() + offsetWorld;
+                        //m_cameraController.center(to);
+                        m_cameraController.panBy(offsetWorld);
+                        m_map->update();
+                    }
+                    
+                    break;
+                }
+                case BlueMarble::MouseButtonRight:
+                {
+                    if (dragEvent.modificationKey & ModificationKeyCtrl)
+                    {
+                        // Rotate
+                        auto center = m_map->screenCenter();
+                        auto prev = Point(dragEvent.lastPos.x, dragEvent.lastPos.y);
+                        auto curr = Point(dragEvent.pos.x, dragEvent.pos.y);
+                        
+                        auto prevOffset = prev-center;
+                        auto currOffset = curr-center;
+
+                        double startAngle = std::atan2(prevOffset.y(), prevOffset.x());
+                        double currAngle = std::atan2(currOffset.y(), currOffset.x());
+
+                        double deltaAngle = currAngle-startAngle;
+
+                        // m_map->rotation(m_map->rotation() + deltaAngle*RAD_TO_DEG);
+                        m_cameraController.rotateBy(deltaAngle*RAD_TO_DEG);
+                        m_map->update();
+                    }
+                    else
+                    {
+                        // Zoom
+                        const double ZOOM_SCALE = 0.01;
+                        auto mapPoint = m_map->screenToMap(m_map->pixelToScreen(Point{dragEvent.startPos.x, dragEvent.startPos.y}));
+                        double deltaY = dragEvent.pos.y - dragEvent.lastPos.y;
+                        double scale = 1 + abs(deltaY)*ZOOM_SCALE;
+                        double zoomFactor = deltaY > 0 ? scale : 1.0/scale;
+                        // m_map->zoomOn(mapPoint, zoomFactor);
+                        m_cameraController.zoomOn(mapPoint, zoomFactor);
+                        m_map->update();
+                    }
+                    
+                    break;
+                }
+                case BlueMarble::MouseButtonMiddle:
+                {
+                    // auto rayCurr = m_map->screenToViewRay(dragEvent.pos.x, dragEvent.pos.y);
+                    // auto rayLast = m_map->screenToViewRay(dragEvent.lastPos.x, dragEvent.lastPos.y);
+                    
+                    // // TODO: For orthographic wee need to offset instead
+                    // // Point delta = rayCurr.origin - rayLast.origin;
+
+                    // auto xzCurr = Point(rayCurr.direction.x(), 0.0, rayCurr.direction.z()).norm3D();
+                    // auto xzLast = Point(rayLast.direction.x(), 0.0, rayLast.direction.z()).norm3D();
+                    // auto yzCurr = Point(0.0, rayCurr.direction.y(), rayCurr.direction.z()).norm3D();
+                    // auto yzLast = Point(0.0, rayLast.direction.y(), rayLast.direction.z()).norm3D();
+                    
+                    // double yaw = std::atan2(xzCurr.crossProduct(xzLast).y(), xzCurr.dotProduct(xzLast));
+                    // double pitch = std::atan2(yzCurr.crossProduct(yzLast).x(), yzCurr.dotProduct(yzLast));
+                    
+                    // m_cameraController.rotateBy(-RAD_TO_DEG*yaw*2);
+                    // m_cameraController.tiltBy(-RAD_TO_DEG*pitch*2);
+                    
+                    m_orbitPoint = m_map->screenToMap(m_map->screenCenter());
+                    constexpr double rotateFactor = 0.3;
+                    constexpr double tiltFactor = 0.3;
+
+                    double deltaRot = (dragEvent.lastPos.x - dragEvent.pos.x) * rotateFactor;
+                    double deltaTilt = (dragEvent.lastPos.y - dragEvent.pos.y) * tiltFactor;
+                    
+                    // m_cameraController.stop();
+                    m_cameraController.rotateBy(deltaRot);
+                    m_cameraController.tiltBy(deltaTilt);
+
+                    m_map->update();
+
+                    break;
+                }
                 default:
                     break;
                 }
@@ -649,7 +633,7 @@ namespace BlueMarble
                 return true;
             }
 
-            bool OnMouseWheel(const BlueMarble::MouseWheelEvent& wheelEvent) override final
+            bool onMouseWheel(const BlueMarble::MouseWheelEvent& wheelEvent) override final
             {
                 const double wheelDelta = 5;
                 double scale = 1.0 + abs(wheelEvent.delta)/wheelDelta;
@@ -683,8 +667,6 @@ namespace BlueMarble
             int64_t m_startTsOrbit;
             bool m_zoomToRect;
             bool m_selectArea;
-            std::vector<int> m_timeStamps;
-            LineGeometryPtr m_hitTestLine;
             FeaturePtr m_hoverFeature;
     };
 
@@ -790,7 +772,7 @@ namespace BlueMarble
                 }
             }
 
-            bool OnMouseMove(const MouseMoveEvent& event) override final
+            bool onMouseMove(const MouseMoveEvent& event) override final
             {
                 // while ((int)m_trace.size() >= m_traceSize)
                 // {
@@ -858,7 +840,7 @@ namespace BlueMarble
                 m_map = nullptr;
             }
 
-            bool OnKeyDown(const KeyDownEvent& event) override final
+            bool onKeyDown(const KeyDownEvent& event) override final
             {
                 Key keyStroke(event.keyCode);
             
@@ -962,7 +944,7 @@ namespace BlueMarble
             return m_isActive;
         }
 
-        bool OnClick(const ClickEvent& event) override final
+        bool onClick(const ClickEvent& event) override final
         {
             auto ray = m_map->screenToMapRay(event.pos.x, event.pos.y);
             auto rayOrig = ray.origin;

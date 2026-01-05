@@ -137,15 +137,18 @@ namespace BlueMarble
             struct MapEvents
             {
                 // Update events
-                Signal<Map&> onAreaChanged;
+                Signal<Map&> onAreaChanged; // This event needs refinement, dont use
                 Signal<Map&> onUpdating;
                 Signal<Map&> onCustomDraw;
                 Signal<Map&> onUpdated;
-                Signal<Map&> onIdle;
+                Signal<Map&> onIdle;        // This event needs refinement, dont use
 
                 // State events
-                Signal<Map&, const Id&> onHoverChanged;
-                Signal<Map&, const IdCollectionPtr&> onSelectionChanged;
+                Signal<Map&, int, int> onSizeChanged;                               // width, height
+                Signal<Map&, const CrsPtr&, const CrsPtr&> onCrsChanged;            // oldSurface, newSurface
+                Signal<Map&, const CrsPtr&, const CrsPtr&> onSurfaceModelChanged;   // oldCrs, newCrs
+                Signal<Map&, const Id&> onHoverChanged;                             // hoveredId
+                Signal<Map&, const IdCollectionPtr&> onSelectionChanged;            // selectedIds
 
             } events;
 

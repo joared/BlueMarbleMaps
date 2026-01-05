@@ -31,7 +31,7 @@ Map::Map()
     , m_rotation(0.0)
     , m_tilt(0.0)
     , m_crs(Crs::wgs84LngLat())
-    , m_surfaceModel(std::make_shared<PlaneSurfaceModel>(Point{0,0,0}, Point{0,0,1}, m_crs->bounds()))
+    , m_surfaceModel(std::make_shared<PlaneSurfaceModel>(Point{0,0,0}, Point{0,0,1}))
     , m_updateRequired(true)
     , m_updateEnabled(true)
     , m_animation(nullptr)
@@ -114,20 +114,18 @@ bool Map::update(bool forceUpdate)
     renderLayers(); // Let layers do their work
 
     // FIXME camera stuff:
-    if (auto glDrawable = std::dynamic_pointer_cast<OpenGLDrawable>(m_drawable))
-    {
-        auto proj = ScreenCameraProjection(m_drawable->width(), m_drawable->height());
-        glDrawable->setProjectionMatrix(proj.projectionMatrix());
-    }
+    auto glDrawable = std::dynamic_pointer_cast<OpenGLDrawable>(m_drawable);
+    if (!glDrawable) throw std::runtime_error("OUHAWOO");
+
+    auto proj = ScreenCameraProjection(m_drawable->width(), m_drawable->height());
 
     // Each onCustomDraw notification should have the transform set to "screen".
     // Since handlers are allowed to modify the transform, we need to make sure to reset it
     // each time a handler is called.
-    auto preNotifyAction = [this]()
+    auto preNotifyAction = [this, &glDrawable, &proj]()
     {
-        // TODO: set both projection and transform/view matrix in prenotify action
-        //m_drawable->setTransform(Transform::screenTransform(m_drawable->width(), m_drawable->height()));
-        m_drawable->setTransform(Transform());
+        glDrawable->setProjectionMatrix(proj.projectionMatrix());
+        glDrawable->setViewMatrix(glm::mat4(1.0));
         m_drawable->beginBatches();
     };
     auto postNotifyAction = [this]()
@@ -215,24 +213,6 @@ FeatureQuery Map::produceUpdateQuery()
     return featureQuery;
 }
 
-// void Map::center(const Point &center)
-// {
-//     m_updateRequired = true;
-//     m_centerChanged = true;
-//     m_center = center;
-    
-//     // setCamera();
-// }
-
-// void Map::scale(double scale)
-// {
-//     m_updateRequired = true;
-//     m_scaleChanged = true;
-//     m_scale = scale*m_crs->globalMeterScale() / m_drawable->pixelSize();
-
-//     // setCamera();
-// }
-
 double Map::invertedScale() const
 {
     auto centerMap = screenToMap(screenCenter());
@@ -243,65 +223,12 @@ double Map::invertedScale() const
     double aprroximateScale = unitsPerPixel * m_crs->globalMeterScale() / m_drawable->pixelSize();
 
     return aprroximateScale;
-    // return m_scale * m_drawable->pixelSize() / m_crs->globalMeterScale();
 }
 
 double Map::scale() const
 {
     return 1.0 / invertedScale();
 }
-
-// double Map::invertedScale() const
-// {
-//     return 1.0 / scale();
-// }
-
-// void Map::invertedScale(double invScale)
-// {
-//     scale(1.0 / invScale);
-// }
-
-// double Map::rotation() const
-// {
-//     return m_rotation;
-// }
-
-// void Map::rotation(double rotation)
-// {
-//     m_updateRequired = true;
-//     m_rotationChanged = true;
-//     m_rotation = rotation;
-
-//     // setCamera();
-// }
-
-// double Map::width() const
-// {
-//     return m_drawable->width() / m_scale;
-// }
-
-// void Map::width(double newWidth)
-// {
-//     m_scale = m_scale * width() / newWidth;
-
-//     // setCamera();
-// }
-
-// double Map::height() const
-// {
-//     return m_drawable->height() / m_scale;
-// }
-
-// Rectangle Map::area() const
-// {
-//     return Rectangle
-//     (
-//         center().x() - (width()/*-1*/)*0.5,     // TODO: minus one when pixel coordinates? If so, geCrop needs to be adjusted in render()
-//         center().y() - (height()/*-1*/)*0.5,    // TODO: minus one when pixel coordinates? If so, geCrop needs to be adjusted in render()
-//         center().x() + (width()/*-1*/)*0.5,     // TODO: minus one when pixel coordinates? If so, geCrop needs to be adjusted in render()
-//         center().y() + (height()/*-1*/)*0.5     // TODO: minus one when pixel coordinates? If so, geCrop needs to be adjusted in render()
-//     );
-// }
 
 void Map::crs(const CrsPtr& newCrs)
 {
@@ -316,7 +243,7 @@ void Map::crs(const CrsPtr& newCrs)
     // center(lngLatCrs->projectTo(newCrs, centerLngLat));
     // scale(oldScale);
 
-    m_surfaceModel = std::make_shared<PlaneSurfaceModel>(Point{0,0,0}, Point{0,0,1}, m_crs->bounds());
+    // m_surfaceModel = std::make_shared<PlaneSurfaceModel>(Point{0,0,0}, Point{0,0,1});
 
     if (m_cameraController)
     {
@@ -324,6 +251,8 @@ void Map::crs(const CrsPtr& newCrs)
     }
 
     flushCache(); // We need to flush layer caches since the crs has changed
+
+    events.onCrsChanged.notify(*this, oldCrs, newCrs);
 }
 
 void Map::setCameraController(ICameraController* controller)

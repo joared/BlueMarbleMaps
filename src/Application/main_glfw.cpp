@@ -301,11 +301,12 @@ int main()
 
     //auto tool = std::make_shared<OttoTool>();
     auto toolSet = std::make_shared<ToolSet>();
-    toolSet->addSubTool(std::make_shared<PanEventHandler>());
+    
     toolSet->addSubTool(std::make_shared<EditFeatureTool>());
     toolSet->addSubTool(std::make_shared<PointerTracerTool>());    
     toolSet->addSubTool(std::make_shared<KeyActionTool>());
     toolSet->addSubTool(std::make_shared<DebugEventHandler>());
+    toolSet->addSubTool(std::make_shared<CameraControllerTwoHalfD>());
 
     // EventObserver eventObserver1("Observer1");
     // EventObserver eventObserver2("Observer2");

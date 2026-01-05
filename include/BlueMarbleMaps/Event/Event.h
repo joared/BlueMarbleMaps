@@ -8,26 +8,27 @@
 
 namespace BlueMarble 
 {
-	#define EVENT_CALLBACK(eventType) virtual bool On##eventType(const eventType##Event& /*event*/) { return false; }
+	#define EVENT_CALLBACK_NAME(eventType) on##eventType
+	#define EVENT_CALLBACK_DEF(eventType) virtual bool EVENT_CALLBACK_NAME(eventType)(const eventType##Event& /*event*/) { return false; }
 	#define ENUM_ELEMENT(element) element,
 	#define FORWARD_DECLARE_EVENT(event) class event##Event;
 
-	#define DECLARE_EVENTS(...) 		\
-	enum class EventType				\
-	{									\
-		__VA_ARGS__(ENUM_ELEMENT)		\
-		Invalid							\
-	};									\
-										\
-	__VA_ARGS__(FORWARD_DECLARE_EVENT)	\
-	FORWARD_DECLARE_EVENT(Invalid)		\
-										\
-	class EventCallbacks				\
-	{									\
-		public:							\
-			__VA_ARGS__(EVENT_CALLBACK)	\
-			EVENT_CALLBACK(Invalid)		\
-	};									\
+	#define DECLARE_EVENTS(...) 			\
+	enum class EventType					\
+	{										\
+		__VA_ARGS__(ENUM_ELEMENT)			\
+		Invalid								\
+	};										\
+											\
+	__VA_ARGS__(FORWARD_DECLARE_EVENT)		\
+	FORWARD_DECLARE_EVENT(Invalid)			\
+											\
+	class EventCallbacks					\
+	{										\
+		public:								\
+			__VA_ARGS__(EVENT_CALLBACK_DEF)	\
+			EVENT_CALLBACK_DEF(Invalid)		\
+	};										\
 
 	#define EVENT_LIST(X)				\
 		X(Timer)						\
@@ -47,9 +48,9 @@ namespace BlueMarble
 
 	DECLARE_EVENTS(EVENT_LIST)
 
-	#define DEFINE_EVENT(eventType) virtual EventType getType() const override { return EventType::eventType; }\
-									virtual std::string toString() const override { return #eventType; }\
-									bool dispatch(EventCallbacks* handler) const override { return handler->On##eventType(*this); }\
+	#define DEFINE_EVENT(eventType) virtual EventType getType() const override { return EventType::eventType; }										\
+									virtual std::string toString() const override { return #eventType; }											\
+									bool dispatch(EventCallbacks* handler) const override { return handler->EVENT_CALLBACK_NAME(eventType)(*this); }\
 
 	class Event
 	{

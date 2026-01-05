@@ -24,7 +24,7 @@ namespace BlueMarble
             }
 
 
-            bool OnDrag(const DragEvent& event)
+            bool onDrag(const DragEvent& event)
             {
                 if (event.mouseButton == MouseButtonLeft)
                 {
@@ -81,7 +81,7 @@ namespace BlueMarble
                 }
             }
 
-            bool OnMouseWheel(const MouseWheelEvent& event) override final
+            bool onMouseWheel(const MouseWheelEvent& event) override final
             {
                 constexpr double wheelDelta = 5;
                 double scale = 1.0 + abs(event.delta)/wheelDelta;

@@ -200,7 +200,7 @@ class PlaneCameraController : public ICameraController
 
             newCamera->setTransform(currentCamera->transform());
 
-            stateFromCamera(newCamera, crs, surfaceModel->bounds());
+            stateFromCamera(newCamera, crs);
 
             m_camera = newCamera;
 
@@ -370,10 +370,11 @@ class PlaneCameraController : public ICameraController
         }
 
     private:
-        void stateFromCamera(const CameraPtr& camera, const CrsPtr& crs, const Rectangle& worldBounds)
+        void stateFromCamera(const CameraPtr& camera, const CrsPtr& crs)
         {
             if (m_currentWorldBounds.isUndefined())
             {
+                auto worldBounds = crs->bounds();
                 m_center = Point(worldBounds.center());
                 // TODO: which to use?
                 double zW = camera->projection()->width() / worldBounds.width();
@@ -391,7 +392,7 @@ class PlaneCameraController : public ICameraController
             m_targetZoom = m_zoom;
             m_targetRotation = m_rotation;
             m_targetTilt = m_tilt;
-            m_currentWorldBounds = worldBounds;
+            m_currentWorldBounds = crs->bounds();
 
             panBy({0.0,0.0}); // Just to trigger update
         }
