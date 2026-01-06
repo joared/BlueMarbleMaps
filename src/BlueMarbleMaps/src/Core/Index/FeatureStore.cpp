@@ -77,12 +77,13 @@ FeatureCollectionPtr FeatureStore::getFeatures(const FeatureIdCollectionPtr& fea
         // Add the noncached features to the result
         features->addRange(*nonCachedFeatures);
 
-        BMM_DEBUG() << "FeatureStore::getFeatures()\n";
-        BMM_DEBUG() << "Queried " << nonCachedFeatures->size() << " new features from database\n";
-        BMM_DEBUG() << "Database size: " << m_dataBase->size() << "\n";
-        //BMM_DEBUG() << "Index size: " << m_index->size() << "\n";
-        //BMM_DEBUG() << "Cache size: " << m_cache->size() << "\n";
-        BMM_DEBUG() << "-------------------------\n";
+        // Some debugging
+        // BMM_DEBUG() << "FeatureStore::getFeatures()\n";
+        // BMM_DEBUG() << "Queried " << nonCachedFeatures->size() << " new features from database\n";
+        // BMM_DEBUG() << "Database size: " << m_dataBase->size() << "\n";
+        // if (m_cache)
+        //     BMM_DEBUG() << "Cache size: " << m_cache->size() << "\n";
+        // BMM_DEBUG() << "-------------------------\n";
     }
 
     return features;

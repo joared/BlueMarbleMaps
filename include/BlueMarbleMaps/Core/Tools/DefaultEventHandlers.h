@@ -160,7 +160,6 @@ namespace BlueMarble
 
             bool onMouseUp(const MouseUpEvent& event) override final
             {
-                BMM_DEBUG() << "Mouse up! Deactivate\n";
                 m_editFeature = nullptr;
                 return false;
             }
@@ -369,7 +368,7 @@ namespace BlueMarble
                     Pen ppp;
                     ppp.setColor(Color::white(0.5));
                     Brush bbb = Brush::transparent();
-                    bbb.setColor(Color::blue(0.5));
+                    bbb.setColor(Color(70, 50, 255, 0.5));
 
                     double x = orbitPoint.x();
                     double y = orbitPoint.y();
@@ -406,12 +405,25 @@ namespace BlueMarble
                     d->drawLine(outer22, ppp);
                     d->drawLine(outer33, ppp);
                     d->drawLine(inner1, ppp);
-                    d->drawLine(inner2, ppp);
+                    
 
                     d->endBatches();
                     d->beginBatches();
-                    auto pol = std::make_shared<PolygonGeometry>(inner2->points());
-                    d->drawPolygon(pol, ppp, bbb);
+                    // auto pol = std::make_shared<PolygonGeometry>(inner2->points());
+                    // d->drawPolygon(pol, ppp, bbb);
+                    
+                    auto translation = m_map->camera()->translation();
+                    m_map->camera()->setTranslation(translation + Point(0,0,-zDisplacement));
+                    m_map->setDrawableFromCamera(m_map->camera());
+                    d->drawCircle(x,y,radius*0.3 - 1.0*unitsPerPixel,ppp, bbb);
+                    m_map->camera()->setTranslation(translation);
+                    
+                    d->endBatches();
+                    d->beginBatches();
+                    
+                    m_map->setDrawableFromCamera(m_map->camera());
+                    d->drawLine(inner2, ppp);
+                    
                     d->endBatches();
                     d->beginBatches();
 
@@ -463,7 +475,6 @@ namespace BlueMarble
 
                 if (!m_map->isHovered(hoverFeature))
                 {
-                    // std::cout << "Not hovered\n";
                     m_map->hover(hoverFeature);
                     m_map->update();
                 }
@@ -495,7 +506,6 @@ namespace BlueMarble
             {
                 if (dragEvent.phase == InteractionEvent::Phase::Started)
                 {
-                    std::cout << dragEvent.toString()<< " (" << dragEvent.pos.x << ", " << dragEvent.pos.y << ")\n";
                     m_map->quickUpdateEnabled(true); // TODO: make an interaction handler that manages if this is enabled or not?
                     m_startTsOrbit = m_mapControl->getGinotonicTimeStampMs();
                     
@@ -503,7 +513,6 @@ namespace BlueMarble
                 }
                 if (dragEvent.phase == InteractionEvent::Phase::Completed)
                 {
-                    std::cout << dragEvent.toString()<< " (" << dragEvent.pos.x << ", " << dragEvent.pos.y << ")\n";
                     m_map->quickUpdateEnabled(false);
                     m_orbitPoint = Point::undefined();
                     if (m_zoomToRect)
@@ -533,7 +542,6 @@ namespace BlueMarble
                     if (dragEvent.modificationKey & BlueMarble::ModificationKeyCtrl)
                     {
                         // zoom to rect
-                        std::cout << "Mod key: " << dragEvent.modificationKey << "\n";
                         m_zoomToRect = true;
                         auto points = std::vector<Point>(); 
                         points.push_back(m_map->screenToMap(Point{dragEvent.pos.x, dragEvent.pos.y}));
@@ -551,10 +559,6 @@ namespace BlueMarble
                         //m_cameraController.center(to);
                         m_cameraController.panBy(offsetWorld);
                         m_map->update();
-
-                        std::cout << dragEvent.toString()<< " (" << dragEvent.pos.x << ", " << dragEvent.pos.y << ")\n";
-                        auto mepp = m_map->screenToMap(screen1);
-                        BMM_DEBUG() << "MEPP: " << mepp.toString() << "\n";
                     }
                     
                     break;
@@ -646,20 +650,6 @@ namespace BlueMarble
                 return true;
             }
 
-            bool onEvent(const BlueMarble::Event& event) override final
-            {
-                // Debug output event info
-                // const BlueMarble::PointerEvent& pointerEvent = static_cast<const BlueMarble::PointerEvent&>(event);
-                // std::string button = BlueMarble::mouseButtonToString(pointerEvent.mouseButton);
-                // std::cout << button << event.toString()<< " (" << pointerEvent.pos.x << ", " << pointerEvent.pos.y << ")\n";
-
-                if (event.getType() == EventType::Resize)
-                {
-                    std::cout << "Resize!\n";
-                }
-
-                return Tool::onEvent(event);
-            }
         private:
             
             BlueMarble::MapPtr m_map;
@@ -682,7 +672,7 @@ namespace BlueMarble
                 , m_trace()
                 , m_currPos{-1, -1}
                 , m_traceSize(100)
-                , m_cutoff(150)
+                , m_cutoff(170)
             {
             }
             
@@ -715,15 +705,9 @@ namespace BlueMarble
 
             void OnCustomDraw(Map& map)
             {
-                //if (m_trace.size() < 2)
-                //    return;
-
                 auto drawable = map.drawable();
-
+                auto c1 = drawable->readPixel(m_currPos.x-15.0, m_currPos.y-15.0);
                 auto line = std::make_shared<LineGeometry>();
-
-                auto c1 = drawable->readPixel(m_currPos.x, m_currPos.y);
-
                 for (const auto& tp : m_trace)
                 {
                     const auto& screen = tp.first;
@@ -732,43 +716,27 @@ namespace BlueMarble
 
                 Pen p;
                 p.setAntiAlias(true);
-                p.setColors(Color::colorRamp(Color::black(0.0), Color::gray(0.5), line->points().size()));
+                c1 = Color(c1.r(), c1.g(), c1.b(), 1.0);
+                auto c2 = Color(255-c1.r(), 255-c1.g(), 255-c1.b(), 1.0);
+                p.setColors(Color::colorRamp(c1, c2, line->points().size()));
                 p.setThickness(3.0);
 
                 // Draw the trace as a line
                 drawable->drawLine(line, p);
 
-                //if (m_currPos.x != -1)
                 if (!m_trace.empty())
                 {
                     Brush b;
                     b.setAntiAlias(true);
-                    b.setColor(Color::gray(0.5));
-                    
-                    // double timeStamp = map.updateAttributes().get<int>(UpdateAttributeKeys::UpdateTimeMs);
+                    b.setColor(c1);
 
                     const auto& lastPos = m_trace[m_trace.size()-1].first; // Last added pos
-                    
-                    //double radius = AnimationFunctions::easeOut((double)line->points().size() / (double)m_traceSize, 4.0);
                     double radius = AnimationFunctions::easeInCubic((double)line->points().size() / (double)m_traceSize);
-                    radius = 10.0*std::min(1.0, radius);
-                    //double radius = 10.0*std::min(1.0, line->length() / 200.0);
+                    radius = 10.0*std::min(2.0, radius);
 
-                    drawable->drawCircle(lastPos.x, lastPos.y, radius, Pen::transparent(), b);
-
-                    // Testing map at height
-                    // auto mapPointAtHeight = map.screenToMapAtHeight(Point(lastPos.x, lastPos.y), 10000.0);
-                    
-                    // auto screenP = map.mapToScreen(Point(mapPointAtHeight.x(), mapPointAtHeight.y()));
-                    // Pen pennis;
-                    // pennis.setColor(Color::green());
-                    // drawable->drawCircle(lastPos.x, lastPos.y, 5, pennis, Brush::transparent());
-                    // pennis.setColor(Color::red());
-                    // drawable->drawCircle(screenP.x(), screenP.y(), 5, pennis, Brush::transparent());
-                    // auto lll = std::make_shared<LineGeometry>();
-                    // lll->points().push_back(Point(lastPos.x, lastPos.y));
-                    // lll->points().push_back(screenP);
-                    // drawable->drawLine(lll, pennis);
+                    Pen blackPen;
+                    blackPen.setColor(Color::black());
+                    drawable->drawCircle(lastPos.x, lastPos.y, radius, blackPen, b);
 
                     // We still have stuff left
                     map.update(); // TODO: This may trigger more updates than needed. Use timer instead
@@ -777,10 +745,6 @@ namespace BlueMarble
 
             bool onMouseMove(const MouseMoveEvent& event) override final
             {
-                // while ((int)m_trace.size() >= m_traceSize)
-                // {
-                //     m_trace.erase(m_trace.begin());
-                // }
                 prunePositions(event.timeStampMs);
 
                 m_trace.push_back({event.pos, event.timeStampMs});
@@ -877,9 +841,7 @@ namespace BlueMarble
                         m_map->crs(Crs::wgs84MercatorWeb());
                         BMM_DEBUG() << "... to Web  Mercator!\n";
                     }
-                    // m_map->flushCache();
-                    // m_map->center(Crs::wgs84LngLat()->projectTo(m_map->crs(), centerLngLat));
-                    // m_map->scale(scale);
+
                     m_map->update();
                     return true;
                 }

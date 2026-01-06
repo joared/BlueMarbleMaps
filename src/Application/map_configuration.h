@@ -202,10 +202,11 @@ void configureGui(const MapPtr& map)
 
 }
 
-void configureMap(const MapPtr& map, bool includeBackground=false, bool includeRoads=false, bool includeAirPlanes=false)
+void configureMap(const MapPtr& map, bool includeRoads=false, bool asyncBackgroundReading = true)
 {
-    const bool asyncBackgroundReading = false;
     const bool backgroundLayersSelectable = true;
+    const bool includeBackground = false;
+    const bool includeAirPlanes = false;
     const DataSetInitializationType dataSetInitialization = DataSetInitializationType::BackgroundThread;
     const std::string commonIndexPath = "../../../bluemarble_index"; // Relative to the build/bin/<debug/release>/ folder
 
@@ -313,7 +314,7 @@ void configureMap(const MapPtr& map, bool includeBackground=false, bool includeR
         // sverigeRoadsDataSet->initialize(dataSetInitialization); // Takes very long to initialize (1.4 GB large)
         // roadsGeoJsonLayer->addDataSet(sverigeRoadsDataSet);
         
-        roadsGeoJsonLayer->minScale(1.0/250000000.0);
+        roadsGeoJsonLayer->minScale(1.0/2500000.0);
         //roadsGeoJsonLayer->enabledDuringQuickUpdates(false);
     }
     

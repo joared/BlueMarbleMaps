@@ -728,7 +728,7 @@ void Map::beforeRender()
     far*=2.0;
 
     float precision = far/near;
-    constexpr float maxRatio = 100.0;
+    constexpr float maxRatio = 10000.0;
     
     near = far/maxRatio;
 

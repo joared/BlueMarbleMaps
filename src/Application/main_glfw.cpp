@@ -271,7 +271,10 @@ int main()
     elevationLayer->visualizers().push_back(rasterVis);
     view->addLayer(elevationLayer);
 
-    configureMap(view, false, true, false);
+    // Configure some additional background layers (continents, countries are included)
+    constexpr bool includeRoads = true;
+    constexpr bool asyncBackgroundReading = true;
+    configureMap(view, includeRoads, asyncBackgroundReading);
 
     // Test Polygon/Line/Symbol visualizers
     auto vectorDataSet = std::make_shared<MemoryDataSet>();
