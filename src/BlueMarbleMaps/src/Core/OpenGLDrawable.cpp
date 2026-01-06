@@ -96,6 +96,7 @@ BlueMarble::OpenGLDrawable::OpenGLDrawable(int width, int height, int colorDepth
     , m_height(height)
     , m_viewMatrix(glm::mat4x4(1))
     , m_projectionMatrix(glm::mat4x4(1))
+    , m_renderOrigin(0.0f)
     , m_color(Color::white())
 {
     //glDisable(GL_CULL_FACE);
@@ -156,17 +157,23 @@ void BlueMarble::OpenGLDrawable::resize(int width, int height)
     // glLoadMatrixf(glm::value_ptr(m_projectionMatrix));
 }
 
-void BlueMarble::OpenGLDrawable::setProjectionMatrix(const glm::mat4& proj)
+void BlueMarble::OpenGLDrawable::setProjectionMatrix(const glm::dmat4& proj)
 {
     m_projectionMatrix = proj;
 }
 
-void BlueMarble::OpenGLDrawable::setViewMatrix(const glm::mat4& viewMatrix)
+void BlueMarble::OpenGLDrawable::setViewMatrix(const glm::dmat4& viewMatrix)
 {
     m_viewMatrix = viewMatrix;
+    m_renderOrigin = Point(0,0,0);
 }
 
-void BlueMarble::OpenGLDrawable::setTransform(const Transform& transform)
+void BlueMarble::OpenGLDrawable::setRenderOrigin(const Point &origin)
+{
+    m_renderOrigin = origin;
+}
+
+void BlueMarble::OpenGLDrawable::setTransform(const Transform &transform)
 {
     m_transform = transform;
 
@@ -247,11 +254,14 @@ void BlueMarble::OpenGLDrawable::beginBatches()
 
 void BlueMarble::OpenGLDrawable::endBatches()
 {
-    auto mat = m_projectionMatrix * m_viewMatrix;
+    auto mat = glm::mat4(m_projectionMatrix * m_viewMatrix);
+    // auto renderOrigin = glm::vec3(float(m_renderOrigin.x()), float(m_renderOrigin.y()), float(m_renderOrigin.z()));
     if (polyBatch)
     {
+        auto renderOrigin = glm::vec3(0.0f);
         m_basicShader->useProgram();
         m_basicShader->setMat4("viewMatrix", mat);
+        m_basicShader->setVec3("renderOrigin", renderOrigin);
         polyBatch->end();
         polyBatch->flush();
     }
@@ -259,6 +269,7 @@ void BlueMarble::OpenGLDrawable::endBatches()
     {
         m_lineShader->useProgram();
         m_lineShader->setMat4("viewMatrix", mat);
+        // m_lineShader->setVec3("renderOrigin", renderOrigin);
         lineBatch->end();
         lineBatch->flush();
     }
@@ -278,7 +289,7 @@ void BlueMarble::OpenGLDrawable::drawArc(double cx, double cy, double rx, double
     }
     std::vector<Vertice> vertices;
     std::vector<GLuint> indices;
-    std::vector<Color> colors = brush.getColors();
+    std::vector<Color>  colors = brush.getColors();
     if (colors.empty())
     {
         colors.push_back(Color::black());
@@ -297,8 +308,9 @@ void BlueMarble::OpenGLDrawable::drawArc(double cx, double cy, double rx, double
     for (int i = 0; i < 32; i++)
     {
         Color color = getColorFromList(colors, i);
-        glm::vec4 glmColor = glm::vec4(color.r(), color.g(), color.b(), color.a());
-        vertices.push_back(Vertice({ glm::vec3(x * rx + cx, y * ry + cy, 0), glmColor, glm::vec2(0, 0) }));
+        auto v = createPoint(Point(x * rx + cx, y * ry + cy, 0), color);
+        v.texCoord = glm::vec2(0, 0);
+        vertices.push_back(v);
 
         t = x;
         x = c * x - s * y;
@@ -450,11 +462,6 @@ void BlueMarble::OpenGLDrawable::drawLine(const LineGeometryPtr& geometry, const
     for (int i = 0; i < bounds.size(); i++)
     {
         Color bmColor = getColorFromList(colors, i);
-
-        auto mat = m_projectionMatrix*m_viewMatrix;
-        auto v = createPoint(bounds.at(i), bmColor);
-        // auto screen = mat*glm::vec4(v.position.x, v.position.y, 0, 1);
-        //BMM_DEBUG() << std::to_string(screen[0]) << ", " << std::to_string(screen[1]) << ", " << std::to_string(screen[2])<< "\n";
         vertices.push_back(createPoint(bounds.at(i), bmColor));
     }
 
@@ -481,12 +488,8 @@ void BlueMarble::OpenGLDrawable::drawPolygon(const PolygonGeometryPtr& geometry,
 
     for (int i = 0; i < bounds.size(); i++)
     {
-        glm::vec3 pos(bounds[i].x(), bounds[i].y(), bounds[i].z());
-
-        Color bmColor = getColorFromList(brush.getColors(), i);
-        glm::vec4 glColor((float)bmColor.r() / 255, (float)bmColor.g() / 255, (float)bmColor.b() / 255, bmColor.a());
-
-        vertices.push_back(Vertice{ pos, glColor });
+        Color bmColor = getColorFromList(colors, i);
+        vertices.push_back(createPoint(bounds[i], bmColor));
     }
     if (vertices.empty()) return;
     std::vector<Vertice> triangles;
@@ -581,11 +584,13 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, con
     RectPtr rect = std::static_pointer_cast<Rect>(m_primitives[raster->getID()]);
     if (rect == nullptr) return;
 
-    auto mat = m_projectionMatrix*m_viewMatrix;
+    auto mat = glm::mat4(m_projectionMatrix*m_viewMatrix);
+    auto renderOrigin = glm::vec3(float(m_renderOrigin.x()), float(m_renderOrigin.y()), float(m_renderOrigin.z()));
     if (rect->getShader() != nullptr)
     {
         rect->getShader()->useProgram();
         rect->getShader()->setMat4("viewMatrix", mat);
+        rect->getShader()->setVec3("renderOrigin", renderOrigin);
     }
     rect->drawIndex(6);
 }
@@ -663,7 +668,8 @@ glm::mat4x4 BlueMarble::OpenGLDrawable::transformToMatrix(const Transform& trans
 
 Vertice BlueMarble::OpenGLDrawable::createPoint(const Point& point, Color color)
 {
-    glm::vec3 pos(point.x(), point.y(), point.z());
+    auto p = point - m_renderOrigin;
+    glm::vec3 pos(p.x(), p.y(), p.z());
     glm::vec4 glColor((float)color.r() / 255, (float)color.g() / 255, (float)color.b() / 255, color.a());
     return Vertice{ pos, glColor };
 }

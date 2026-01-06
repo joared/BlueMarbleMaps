@@ -335,10 +335,9 @@ namespace BlueMarble
 
                 if (!m_orbitPoint.isUndefined())
                 {
-                    // static auto radiusProgressEval = AnimationFunctions::AnimationBuilder().easeOut(5.5).build();
                     static auto radiusProgressEval = AnimationFunctions::AnimationBuilder().bounce().build();
                     static auto rotationProgressEval = AnimationFunctions::AnimationBuilder().sigmoid(12.0).build();
-                    // static auto rotationProgressEval = AnimationFunctions::AnimationBuilder().bounce().build();
+                    
                     constexpr int animationTime = 1000;
                     constexpr double symbolScale = 1.3;
                     
@@ -552,6 +551,10 @@ namespace BlueMarble
                         //m_cameraController.center(to);
                         m_cameraController.panBy(offsetWorld);
                         m_map->update();
+
+                        std::cout << dragEvent.toString()<< " (" << dragEvent.pos.x << ", " << dragEvent.pos.y << ")\n";
+                        auto mepp = m_map->screenToMap(screen1);
+                        BMM_DEBUG() << "MEPP: " << mepp.toString() << "\n";
                     }
                     
                     break;
@@ -613,7 +616,7 @@ namespace BlueMarble
                     
                     m_orbitPoint = m_map->screenToMap(m_map->screenCenter());
                     constexpr double rotateFactor = 0.3;
-                    constexpr double tiltFactor = 0.3;
+                    constexpr double tiltFactor = 0.3; // TODO: should factor with fov
 
                     double deltaRot = (dragEvent.lastPos.x - dragEvent.pos.x) * rotateFactor;
                     double deltaTilt = (dragEvent.lastPos.y - dragEvent.pos.y) * tiltFactor;

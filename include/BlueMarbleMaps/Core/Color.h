@@ -31,7 +31,7 @@ namespace BlueMarble
 
                 for (int i = 0; i < steps; i++) 
                 {
-                    float t = static_cast<float>(i) / (steps - 1); // goes from 0 to 1
+                    double t = static_cast<double>(i) / (steps - 1); // goes from 0 to 1
                     
                     ramp.push_back(Color(
                         (int)(start.r() + diffR*t),

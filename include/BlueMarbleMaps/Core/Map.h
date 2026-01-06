@@ -44,16 +44,16 @@ namespace BlueMarble
 
             bool update(bool forceUpdate=false);
  
-            // TODO: move to camera/camera controller
             // Camera properties
             CameraPtr camera() { return m_camera; }
             void setDrawableFromCamera(const CameraPtr& camera);
-            // const Point& center() const;
-            // void center(const Point& center);
-            // void scale(double scale);
+            
             double invertedScale() const;
             double scale() const;
-            
+            // These could be useful to add back later
+            // void center(const Point& center);
+            // void scale(double scale);
+            // const Point& center() const;
             // void invertedScale(double invScale);
             // double rotation() const;
             // void rotation(double rotation);
@@ -61,6 +61,7 @@ namespace BlueMarble
             // void width(double newWidth);
             // double height() const;
             // Rectangle area() const;
+
             const CrsPtr& crs() const { return m_crs; }
             void crs(const CrsPtr& crs);
             SurfaceModelPtr surfaceModel() { return m_surfaceModel; };
@@ -168,11 +169,6 @@ namespace BlueMarble
 
             MapControlPtr m_mapControl;
             DrawablePtr m_drawable;
-            
-            Point m_center;
-            double m_scale;
-            double m_rotation;
-            double m_tilt;
 
             CrsPtr          m_crs;
             SurfaceModelPtr m_surfaceModel;
@@ -181,16 +177,10 @@ namespace BlueMarble
             bool m_updateEnabled;
             bool m_quickUpdateEnabled;
 
-            // Update flags
-            bool m_centerChanged;
-            bool m_scaleChanged;
-            bool m_rotationChanged;
             CameraPtr           m_camera;
             ICameraController*  m_cameraController;
             ino64_t             m_lastUpdateTimeStamp;
 
-            AnimationPtr    m_animation;
-            int m_animationStartTimeStamp;
             Attributes m_updateAttributes;
 
             std::vector<LayerPtr> m_layers;

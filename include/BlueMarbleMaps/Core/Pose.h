@@ -6,7 +6,7 @@
 class Orientation
 {
 public:
-    static fromEuler(float roll, float pitch, float yaw) { return glm::}
+    static fromEuler(double roll, double pitch, double yaw) { return glm::}
 
     Orientation() : m_quat(0,0,0,1) {}
 

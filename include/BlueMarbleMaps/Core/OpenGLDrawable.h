@@ -24,8 +24,9 @@ namespace BlueMarble
 
         
         // New stuff
-        void setProjectionMatrix(const glm::mat4& proj);
-        void setViewMatrix(const glm::mat4& viewMatrix);
+        void setProjectionMatrix(const glm::dmat4& proj);
+        void setViewMatrix(const glm::dmat4& viewMatrix);
+        void setRenderOrigin(const Point& origin);
 
         // Methods
         const Transform& getTransform();
@@ -61,8 +62,9 @@ namespace BlueMarble
         ShaderPtr m_basicShader;
         ShaderPtr m_lineShader;
         Transform m_transform;
-        glm::mat4x4 m_viewMatrix;
-        glm::mat4x4 m_projectionMatrix;
+        glm::dmat4 m_viewMatrix;
+        glm::dmat4 m_projectionMatrix;
+        Point       m_renderOrigin;
         Color m_color;
         BatchPtr lineBatch;
         BatchPtr polyBatch;

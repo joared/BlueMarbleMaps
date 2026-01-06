@@ -3,6 +3,7 @@ layout (location = 0) in vec3 pos;
 layout (location = 1) in vec4 color;
 
 uniform mat4 viewMatrix;
+uniform vec3 renderOrigin;
 
 out DATA
 {
@@ -13,7 +14,7 @@ out DATA
 
 void main()
 {
-    vec4 mPos = viewMatrix * vec4(pos, 1.0f);
+    vec4 mPos = viewMatrix * vec4(pos-renderOrigin, 1.0f);
     gl_Position = mPos;
     vert_out.position = mPos;
     vert_out.color = color;

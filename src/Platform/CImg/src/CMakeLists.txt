@@ -7,6 +7,7 @@ add_library(CImgImplementation STATIC "") #Explicit empty list to prevent warnin
 target_include_directories(CImgImplementation PRIVATE ${CMAKE_SOURCE_DIR}/include)
 # Link to Cimg. Using public so Bluemarble only needs link to CImgImplementation
 target_link_libraries(CImgImplementation PUBLIC CImgLib)
+target_link_libraries(CImgImplementation PRIVATE glm::glm)
 
 if(BLUEMARBLE_USE_CIMG_RASTER_IMPL)
     message(STATUS "Including CImg Raster implementation")

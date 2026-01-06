@@ -281,6 +281,8 @@ int main()
     auto linepoints = std::vector<Point>({{15,57}, {15,58}, {16,58}});
     auto testfeature = vectorDataSet->createFeature(std::make_shared<PolygonGeometry>(polypoints));
     auto testfeatureLine = vectorDataSet->createFeature(std::make_shared<LineGeometry>(linepoints));
+    testfeature->move({-15,-57});
+    testfeatureLine->move({-15,-57});
     vectorDataSet->addFeature(testfeature);
     vectorDataSet->addFeature(testfeatureLine);
     using ReadOnlyFeaturePtr = std::shared_ptr<const Feature>;

@@ -7,9 +7,9 @@ Point CameraProjection::viewToNdc(const Point &view) const
 {
     auto proj = projectionMatrix();
 
-    glm::vec4 p = glm::vec4((float)view.x(), (float)view.y(), (float)view.z(), 1.0f);
-    glm::vec4 clipSpace = proj * p;
-    glm::vec3 ndc = glm::xyz(clipSpace) / clipSpace.w;
+    glm::dvec4 p = glm::dvec4((double)view.x(), (double)view.y(), (double)view.z(), 1.0);
+    glm::dvec4 clipSpace = proj * p;
+    glm::dvec3 ndc = glm::xyz(clipSpace) / clipSpace.w;
 
     return Point(ndc.x, ndc.y, ndc.z);
 }
@@ -18,9 +18,9 @@ Point CameraProjection::ndcToView(const Point& ndc) const
 {
     auto proj = projectionMatrix();
 
-    glm::vec4 ndcGlm(ndc.x(), ndc.y(), ndc.z(), 1.0f);
-    glm::vec4 homo = glm::inverse(proj) * ndcGlm;
-    glm::vec3 view = glm::xyz(homo / homo.w);
+    glm::dvec4 ndcGlm(ndc.x(), ndc.y(), ndc.z(), 1.0);
+    glm::dvec4 homo = glm::inverse(proj) * ndcGlm;
+    glm::dvec3 view = glm::xyz(homo / homo.w);
 
     return Point(view.x, view.y, view.z);
 }
@@ -37,13 +37,26 @@ Ray CameraProjection::ndcToViewRay(const Point& ndc) const
     return ray;
 }
 
-Point Camera::worldToNdc(const Point& world) const
+glm::dmat4 Camera::transform() const
+{
+    glm::dmat4 transMatrix = glm::translate(glm::dmat4(1.0), m_translation);
+    glm::dmat4 cam = transMatrix * rotationMatrix(); // Or other order as needed
+
+    return cam;
+}
+
+glm::dmat4 Camera::rotationMatrix() const
+{
+    return glm::mat4_cast(m_orientation);
+}
+
+Point Camera::worldToNdc(const Point &world) const
 {
     auto viewProj = viewProjMatrix();
 
-    glm::vec4 p = glm::vec4((float)world.x(), (float)world.y(), (float)world.z(), 1.0f);
-    glm::vec4 clipSpace = viewProj * p;
-    glm::vec3 ndc = glm::xyz(clipSpace) / clipSpace.w;
+    glm::dvec4 p = glm::dvec4((double)world.x(), (double)world.y(), (double)world.z(), 1.0);
+    glm::dvec4 clipSpace = viewProj * p;
+    glm::dvec3 ndc = glm::xyz(clipSpace) / clipSpace.w;
 
     return Point(ndc.x, ndc.y, ndc.z);
 }
@@ -52,9 +65,9 @@ Point Camera::worldToView(const Point& world) const
 {
     auto viewMat = viewMatrix();
 
-    glm::vec4 p = glm::vec4((float)world.x(), (float)world.y(), (float)world.z(), 1.0f);
+    glm::dvec4 p = glm::dvec4((double)world.x(), (double)world.y(), (double)world.z(), 1.0);
     p = viewMat * p;
-    glm::vec3 view = glm::xyz(p / p.w); // Not really needed but whatever
+    glm::dvec3 view = glm::xyz(p / p.w); // Not really needed but whatever
 
     return Point(view.x, view.y, view.z);
 }
@@ -63,9 +76,9 @@ Point Camera::viewToWorld(const Point& view) const
 {
     auto cameraTransform = transform();
 
-    glm::vec4 p = glm::vec4((float)view.x(), (float)view.y(), (float)view.z(), 1.0f);
+    glm::dvec4 p = glm::dvec4((double)view.x(), (double)view.y(), (double)view.z(), 1.0);
     p = cameraTransform * p;
-    glm::vec3 world = glm::xyz(p / p.w); // Not really needed but whatever
+    glm::dvec3 world = glm::xyz(p / p.w); // Not really needed but whatever
 
     return Point(world.x, world.y, world.z);
 }
@@ -76,12 +89,12 @@ Ray Camera::ndcToWorldRay(const Point& ndc) const
 
     auto rayView = m_projection->ndcToViewRay(ndc);
 
-    glm::vec3 originCam = glm::vec3(rayView.origin.x(), rayView.origin.y(), rayView.origin.z());
-    glm::vec3 dirCam = glm::vec3(rayView.direction.x(), rayView.direction.y(), rayView.direction.z());
+    glm::dvec3 originCam = glm::dvec3(rayView.origin.x(), rayView.origin.y(), rayView.origin.z());
+    glm::dvec3 dirCam = glm::dvec3(rayView.direction.x(), rayView.direction.y(), rayView.direction.z());
 
     // Rotate the direction (w = 0) to world space and normalize
-    glm::vec3 rayOrigin = glm::xyz(cameraTransform * glm::vec4(originCam, 1.0));
-    glm::vec3 rayDirWorld = glm::normalize(glm::xyz(cameraTransform * glm::vec4(dirCam, 0.0)));
+    glm::dvec3 rayOrigin = glm::xyz(cameraTransform * glm::dvec4(originCam, 1.0));
+    glm::dvec3 rayDirWorld = glm::normalize(glm::xyz(cameraTransform * glm::dvec4(dirCam, 0.0)));
     
     Ray rayWorld;
     rayWorld.origin = {rayOrigin.x, rayOrigin.y, rayOrigin.z};

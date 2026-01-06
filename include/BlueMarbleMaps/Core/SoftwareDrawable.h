@@ -19,8 +19,9 @@ namespace BlueMarble
             virtual void backgroundColor(const Color& color);
             
             // Methods
-            const Transform& getTransform();
-            void setTransform(const Transform& transform) override final;
+            void setProjectionMatrix(const glm::dmat4& proj) override final {};
+            void setViewMatrix(const glm::dmat4& viewMatrix) override final {};
+            void setRenderOrigin(const Point& origin) override final {};
             void beginBatches() override final;
             void endBatches() override final;
             void resize(int width, int height)  override final;

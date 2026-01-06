@@ -5,8 +5,6 @@
 #include "BlueMarbleMaps/Core/SoftwareDrawable.h"
 #include "BlueMarbleMaps/Logging/Logging.h"
 
-#include "BlueMarbleMaps/Core/OpenGLDrawable.h"
-
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -15,31 +13,12 @@
 
 using namespace BlueMarble;
 
-constexpr double xPixLen = 0.02222222222222;
-constexpr double yPixLen = -0.02222222222222;
-constexpr double xTopLeft = -179.98888888888889;
-constexpr double yTopLeft = 89.98888888888889;
-
-// constexpr double xPixLen = 0.03333333333333;
-// constexpr double yPixLen = -0.03333333333333;
-// constexpr double xTopLeft = -179.98333333333333;
-// constexpr double yTopLeft = 89.98333333333333;
-
 Map::Map()
-    : m_center()
-    , m_scale(1.0)
-    , m_rotation(0.0)
-    , m_tilt(0.0)
-    , m_crs(Crs::wgs84LngLat())
+    : m_crs(Crs::wgs84LngLat())
     , m_surfaceModel(std::make_shared<PlaneSurfaceModel>(Point{0,0,0}, Point{0,0,1}))
     , m_updateRequired(true)
     , m_updateEnabled(true)
-    , m_animation(nullptr)
-    , m_animationStartTimeStamp(0)
     , m_updateAttributes()
-    , m_centerChanged(false)
-    , m_scaleChanged(false)
-    , m_rotationChanged(false)
     , m_cameraController(nullptr)
     , m_lastUpdateTimeStamp(-1)
     , m_presentationObjects()
@@ -49,9 +28,9 @@ Map::Map()
     , m_isUpdating(false)
     , m_renderingEnabled(true)
 {
-    m_center = lngLatToMap(Point(30, 36));
     m_drawable = std::make_shared<SoftwareBitmapDrawable>(500, 500, 4);
     m_camera = Camera::perspectiveCamera(m_drawable->width(), m_drawable->height(), 0.1, 1.0, 45.0);
+    // TODO: set reasonable start position of the camera
 
     m_presentationObjects.reserve(1000000); // Reserve a good amount for efficiency
 
@@ -77,7 +56,7 @@ bool Map::update(bool forceUpdate)
     int64_t deltaMs = timeStampMs - m_lastUpdateTimeStamp;
     m_lastUpdateTimeStamp = timeStampMs;
 
-    if (!m_updateEnabled || (!forceUpdate && !m_animation && !m_updateRequired))
+    if (!m_updateEnabled || (!forceUpdate && !m_updateRequired))
     {
         std::cout << "Map::update() No update required!\n";
         return false;
@@ -113,19 +92,15 @@ bool Map::update(bool forceUpdate)
     beforeRender();
     renderLayers(); // Let layers do their work
 
-    // FIXME camera stuff:
-    auto glDrawable = std::dynamic_pointer_cast<OpenGLDrawable>(m_drawable);
-    if (!glDrawable) throw std::runtime_error("OUHAWOO");
-
     auto proj = ScreenCameraProjection(m_drawable->width(), m_drawable->height());
 
     // Each onCustomDraw notification should have the transform set to "screen".
     // Since handlers are allowed to modify the transform, we need to make sure to reset it
     // each time a handler is called.
-    auto preNotifyAction = [this, &glDrawable, &proj]()
+    auto preNotifyAction = [this, &proj]()
     {
-        glDrawable->setProjectionMatrix(proj.projectionMatrix());
-        glDrawable->setViewMatrix(glm::mat4(1.0));
+        m_drawable->setProjectionMatrix(proj.projectionMatrix());
+        m_drawable->setViewMatrix(glm::mat4(1.0));
         m_drawable->beginBatches();
     };
     auto postNotifyAction = [this]()
@@ -147,12 +122,11 @@ bool Map::update(bool forceUpdate)
 
     m_isUpdating = false;
 
-    bool updateRequired = m_updateRequired || m_animation != nullptr;
+    bool updateRequired = m_updateRequired;
     if (!updateRequired)
     {
         events.onIdle.notify(*this);
     }
-
 
     return updateRequired;
 }
@@ -368,15 +342,15 @@ Ray Map::screenToMapRay(double x, double y) const
 void Map::screenToNDC(double x, double y, double &ndcX, double &ndcY) const
 {
     // TODO: "ndc" should be owned by the drawable
-    ndcX = float(x * 2.0 / float(m_drawable->width()) - 1.0);
-    ndcY = float(1.0 - y * 2.0 / float(m_drawable->height()));
+    ndcX = double(x * 2.0 / double(m_drawable->width()) - 1.0);
+    ndcY = double(1.0 - y * 2.0 / double(m_drawable->height()));
 }
 
 void Map::ndcToScreen(double ndcx, double ndcy, double &x, double &y) const
 {
     // TODO: "ndc" should be owned by the drawable
-    x = (ndcx + 1.0f) * 0.5f * m_drawable->width();
-    y = (1.0f- ndcy) * 0.5f * m_drawable->height();
+    x = (ndcx + 1.0) * 0.5 * m_drawable->width();
+    y = (1.0- ndcy) * 0.5 * m_drawable->height();
 }
 
 std::vector<Point> Map::screenToMap(const std::vector<Point> &points) const
@@ -754,31 +728,18 @@ void Map::beforeRender()
     far*=2.0;
 
     float precision = far/near;
-    constexpr float maxRatio = 10000.0;
+    constexpr float maxRatio = 100.0;
     
     near = far/maxRatio;
 
+    // BMM_DEBUG() << "NEAR: " << near << "\n";
+    // BMM_DEBUG() << "FAR: " << far << "\n";
+    // BMM_DEBUG() << "PRECISION: " << far/near << "\n";
+
     m_camera->setFrustum(near, far);
 
-    if (auto glDrawable = std::dynamic_pointer_cast<OpenGLDrawable>(m_drawable))
-    {
-        m_drawable->clearBuffer();
-
-        glDrawable->setProjectionMatrix(m_camera->projectionMatrix());
-        glDrawable->setViewMatrix(m_camera->viewMatrix());
-    }
-    else
-    {
-        m_drawable->clearBuffer();
-        auto sc = screenCenter();
-        sc = Point(sc.x(), sc.y());
-
-        auto center = Point(
-            m_center.x(),// - (float)width()  / (2.0f * (float)m_scale),
-            m_center.y()// - (float)height() / (2.0f * (float)m_scale)
-        );
-        m_drawable->setTransform(Transform(center, m_scale, m_scale, m_rotation));
-    }
+    m_drawable->clearBuffer();
+    setDrawableFromCamera(m_camera);
 }
 
 void Map::afterRender()
@@ -794,14 +755,15 @@ void Map::drawDebugInfo(int elapsedMs)
     auto mouseMapPos = screenToMap(mousePos.x, mousePos.y);
     auto mouseLngLat = mapToLngLat(mouseMapPos);
     // auto centerLngLat = mapToLngLat(center());
+    auto center = m_camera->translation();
     auto screenPos = mapToScreen(mouseMapPos).round();
     auto screenError = Point(mousePos.x-(int)screenPos.x(), mousePos.y-(int)screenPos.y());
     std::string info = "------ Debug -------\n";
-    info += "Center: " + std::to_string(m_center.x()) + ", " + std::to_string(m_center.y());
+    info += "Center: " + std::to_string(center.x()) + ", " + std::to_string(center.y());
     // info += "\nCenter LngLat: " + std::to_string(centerLngLat.x()) + ", " + std::to_string(centerLngLat.y());
     info += "\nScale: " + std::to_string(scale());
     info += "\nScale inv: " + std::to_string(invertedScale());
-    info += "\nScale (crs)): " + std::to_string(m_scale);
+    info += "\nScale (crs)): " + std::to_string(scale());
 
     if (std::abs(screenError.x()) > 0 || std::abs(screenError.y()) > 0)
     {
@@ -858,13 +820,8 @@ const Point BlueMarble::Map::lngLatToMap(const Point& lngLat) const
 // TODO: remove this
 void Map::setDrawableFromCamera(const CameraPtr& camera)
 {
-    if (auto glDrawable = std::dynamic_pointer_cast<OpenGLDrawable>(m_drawable))
-    {
-        glDrawable->setProjectionMatrix(camera->projectionMatrix());
-        glDrawable->setViewMatrix(camera->viewMatrix());
-    }
-    else
-    {
-        throw std::runtime_error("NOOOOT GUUUD!");
-    }
+    m_drawable->setProjectionMatrix(camera->projectionMatrix());
+    m_drawable->setViewMatrix(glm::transpose(camera->rotationMatrix()));
+    auto o = camera->translation();
+    m_drawable->setRenderOrigin(o);
 }

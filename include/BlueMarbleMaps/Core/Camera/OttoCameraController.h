@@ -156,7 +156,7 @@ namespace BlueMarble
                 {
                     perspective->setFov(m_cameraInfo.m_fov);
                 }
-                camera->setTransform(calculateTransform());
+                // camera->setTransform(calculateTransform());
 
                 return ControllerStatus::Updated;
             }

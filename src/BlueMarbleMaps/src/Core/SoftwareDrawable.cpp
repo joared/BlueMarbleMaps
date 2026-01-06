@@ -26,15 +26,15 @@ namespace BlueMarble
     // Drawable::Drawable()
     // {}
 
-    const Transform &SoftwareDrawable::getTransform()
-    {
-        return m_impl->getTransform();
-    }
+    // const Transform &SoftwareDrawable::getTransform()
+    // {
+    //     return m_impl->getTransform();
+    // }
 
-    void SoftwareDrawable::setTransform(const Transform &transform)
-    {
-        m_impl->setTransform(transform);
-    }
+    // void SoftwareDrawable::setTransform(const Transform &transform)
+    // {
+    //     m_impl->setTransform(transform);
+    // }
 
     void SoftwareDrawable::beginBatches()
     {
