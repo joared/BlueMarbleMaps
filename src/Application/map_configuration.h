@@ -313,7 +313,7 @@ void configureMap(const MapPtr& map, bool includeBackground=false, bool includeR
         // sverigeRoadsDataSet->initialize(dataSetInitialization); // Takes very long to initialize (1.4 GB large)
         // roadsGeoJsonLayer->addDataSet(sverigeRoadsDataSet);
         
-        roadsGeoJsonLayer->minScale(1.0/2500000.0);
+        roadsGeoJsonLayer->minScale(1.0/250000000.0);
         //roadsGeoJsonLayer->enabledDuringQuickUpdates(false);
     }
     

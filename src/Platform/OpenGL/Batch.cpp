@@ -37,14 +37,17 @@ void Batch::begin()
 	m_ibo.bind();
 	m_indexBuffer = (GLuint*)glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY);
 }
-
+//Issue, on extremely large polygons how should we handle magix_number.
+//the "flush end begin should also be moved to a continuous check every time we draw something"
 void Batch::submit(std::vector<Vertice> &vertices)
 {
 	if (vertices.size() == 0) return;
 	if (m_indexCount + vertices.size()+1 >= (600000) - 1)
 	{
 		std::cout << "flushing in submit" << "\n";
+		end();
 		flush();
+		begin();
 	}
 	if (m_indexCount != 0)
 	{
@@ -71,7 +74,9 @@ void Batch::submit(std::vector<Vertice>& vertices, std::vector<GLuint> &indices)
 	if (m_indexCount + indices.size() + 1 >= (600000) - 1) 
 	{
 		std::cout << "flushing in submit" << "\n";
-		flush(); 
+		flush();
+		end();
+		begin();
 	}
 	if (m_indexCount != 0)
 	{
