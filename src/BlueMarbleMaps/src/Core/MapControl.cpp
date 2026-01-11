@@ -152,7 +152,6 @@ void MapControl::handleResize(int width, int height)
     // double prevMapWidth = m_mapView->width();
     m_mapView->resize(width, height);
     
-    
     updateView();
-    updateViewInternal();
+    // updateViewInternal();
 }

@@ -138,7 +138,7 @@ namespace BlueMarble
             struct MapEvents
             {
                 // Update events
-                Signal<Map&> onAreaChanged; // This event needs refinement, dont use
+                Signal<Map&> onCameraChanged; // This event needs refinement, dont use
                 Signal<Map&> onUpdating;
                 Signal<Map&> onCustomDraw;
                 Signal<Map&> onUpdated;

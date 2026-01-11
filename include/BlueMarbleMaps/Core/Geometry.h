@@ -1,5 +1,5 @@
-#ifndef BLUEMARBLE_GEOMETRY
-#define BLUEMARBLE_GEOMETRY
+#ifndef GEOMETRY
+#define GEOMETRY
 
 #include "BlueMarbleMaps/Core/Core.h"
 #include "BlueMarbleMaps/Core/Raster.h"
@@ -20,6 +20,7 @@ namespace BlueMarble
         Line,
         Polygon,
         MultiPolygon,
+        MultiLine,
         Raster
     };
 
@@ -221,7 +222,33 @@ namespace BlueMarble
             std::vector<PolygonGeometry> m_polygons;
     };
     typedef std::shared_ptr<MultiPolygonGeometry> MultiPolygonGeometryPtr;
+    
+    class MultiLineGeometry : public Geometry
+    {
+        public:
+            MultiLineGeometry();
+            MultiLineGeometry(const std::vector<LineGeometry>& lines);
 
+            EngineObjectPtr clone() override final { return std::make_shared<MultiLineGeometry>(*this); }
+            GeometryType type() override final { return GeometryType::MultiLine; }
+            Rectangle calculateBounds() override final { return Rectangle(); }
+            Point center() override final { return Point(); }
+            void move(const Point& delta) override final {};
+            void moveTo(const Point& point) override final {};
+            bool isInside(const Rectangle& bounds) const override final 
+            {  
+                // TODO
+            }
+            bool isStrictlyInside(const Rectangle& bounds) const override final 
+            { 
+                //TODO
+            }
+            void forEachPoint(const std::function<void(Point&)>& func) override final { throw std::runtime_error("MultiLineGeometry::forEachPoint() Not implemented"); }
+            std::vector<LineGeometry>& lines() { return m_lines; }
+        private:
+            std::vector<LineGeometry> m_lines;
+    };
+    typedef std::shared_ptr<MultiLineGeometry> MultiLineGeometryPtr;
 
     class RasterGeometry;
     typedef std::shared_ptr<RasterGeometry> RasterGeometryPtr;
@@ -265,4 +292,4 @@ namespace BlueMarble
 
 }
 
-#endif /* BLUEMARBLE_GEOMETRY */
+#endif /* GEOMETRY */

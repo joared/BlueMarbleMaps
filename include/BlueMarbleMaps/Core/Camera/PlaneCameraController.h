@@ -288,22 +288,6 @@ class PlaneCameraController : public ICameraController
                 z = zWorld / std::cos(glm::radians(m_tilt));
             }
             
-
-            // FIXME: this is a problem since we presume the world surface is z=0
-            // glm::dmat4 cam = glm::dmat4(1.0);
-            // cam = glm::translate(cam, glm::dvec3(
-            //     c.x(),
-            //     c.y(),
-            //     0.0
-            // ));
-            // cam = glm::rotate(cam, (double)glm::radians(rot), glm::dvec3(0.0, 0.0, 1.0));
-            // cam = glm::rotate(cam, double(glm::radians(tilt)), glm::dvec3(1.0, 0.0, 0.0));
-            // cam = glm::translate(cam, glm::dvec3(
-            //     0.0,
-            //     0.0,
-            //     z
-            // ));
-
             glm::dvec3 center = glm::dvec3(c.x(), c.y(), 0.0); // the pivot/world point camera looks at
             double rotRad  = glm::radians(rot);  // yaw
             double tiltRad = glm::radians(tilt); // pitch
@@ -315,15 +299,13 @@ class PlaneCameraController : public ICameraController
             glm::dquat orientation = qYaw * qPitch;
 
             // Compute forward vector in world space
-            glm::dvec3 forward = orientation * glm::dvec3(0.0, 0.0, -1.0); // -Z is forward in OpenGL
+            glm::dvec3 forward = orientation * glm::dvec3(0.0, 0.0, -1.0);
 
             // Camera position = pivot minus forward * distance
             glm::dvec3 translation = center - forward * distance;
 
             camera->setOrientation(orientation);
             camera->setTranslation(Point(translation.x, translation.y, translation.z));
-            // glm::dmat4 cam = transMatrix * rotMatrix; // Or other order as needed
-            // camera->setTransform(cam);
 
             auto status = ControllerStatus::Updated;
 

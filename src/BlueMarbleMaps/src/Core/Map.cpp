@@ -24,7 +24,7 @@ Map::Map()
     , m_presentationObjects()
     , m_selectedFeatures()
     , m_hoveredFeatures()
-    , m_showDebugInfo(true)
+    , m_showDebugInfo(false)
     , m_isUpdating(false)
     , m_renderingEnabled(true)
 {
@@ -71,7 +71,7 @@ bool Map::update(bool forceUpdate)
         ICameraController::ControllerStatus status = m_cameraController->updateCamera(m_camera, deltaMs);
         if (hasFlag(status, ICameraController::ControllerStatus::Updated))
         {
-            events.onAreaChanged.notify(*this);
+            events.onCameraChanged.notify(*this);
         }
         if (hasFlag(status, ICameraController::ControllerStatus::NeedsUpdate))
         {
@@ -84,9 +84,6 @@ bool Map::update(bool forceUpdate)
     }
 
     events.onUpdating.notify(*this);
-
-    // Constrain map pose
-    // m_constraints.constrainMap(*this);
 
     // Rendering
     beforeRender();
@@ -709,7 +706,7 @@ void Map::updateUpdateAttributes(int64_t timeStampMs)
 void Map::beforeRender()
 {
     // TODO: near and far plane might need to be adjusted
-    // during cmaera manipulation. Maybe the camera controller should
+    // during camera manipulation. Maybe the camera controller should
 
     float near = std::numeric_limits<float>::max();
     float far = 0.0f;

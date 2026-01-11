@@ -15,10 +15,11 @@ namespace BlueMarble
             static FeaturePtr deserializeFeature(const JsonValue& jsonValue);
             static GeometryPtr deserializeGeometry(const JsonValue& jsonValue);
             static Attributes deserializeProperties(const JsonValue& jsonValue);
-            static GeometryPtr deserializePointGeometry(const JsonValue& coorcinates);
-            static GeometryPtr deserializeLineGeometry(const JsonValue& coorcinates);
-            static GeometryPtr deserializePolygon(const JsonValue& coorcinates);
-            static GeometryPtr deserializeMultiPolygon(const JsonValue& coorcinates);
+            static GeometryPtr deserializePointGeometry(const JsonValue& coordinates);
+            static GeometryPtr deserializeMultiLineGeometry(const JsonValue& coordinates);
+            static GeometryPtr deserializeLineGeometry(const JsonValue& coordinates);
+            static GeometryPtr deserializePolygon(const JsonValue& coordinates);
+            static GeometryPtr deserializeMultiPolygon(const JsonValue& coordinates);
             static std::vector<Point> extractPoints(const JsonValue& pointList);
             static Point extractPoint(const JsonValue& point);
             static double extractCoordinate(const JsonValue& coordinate);

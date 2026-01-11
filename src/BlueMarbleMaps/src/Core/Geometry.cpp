@@ -105,6 +105,7 @@ Rectangle BlueMarble::PolygonGeometry::calculateBounds()
     //return m_cachedBounds.get(); // FIXME: this is quicker, but we need to ensure that we update it when the geometry changes
     return Rectangle::fromPoints(outerRing()); //{  };
 }
+
 void PolygonGeometry::move(const Point &delta)
 {
     for (auto& ring : m_rings)
@@ -235,4 +236,16 @@ PointGeometryPtr polygonToPoint(PolygonGeometryPtr polygon)
 void BlueMarble::convertGeometry(GeometryPtr from, GeometryType toType)
 {
 
+}
+
+MultiLineGeometry::MultiLineGeometry()
+: Geometry()
+{
+
+}
+MultiLineGeometry::MultiLineGeometry(const std::vector<LineGeometry>& lines)
+: Geometry()
+, m_lines(lines)
+{
+    
 }

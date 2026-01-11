@@ -49,6 +49,7 @@ namespace BlueMarble
             LineGeometryPtr geometryAsLine() const;
             PolygonGeometryPtr geometryAsPolygon() const;
             MultiPolygonGeometryPtr geometryAsMultiPolygon() const;
+            MultiLineGeometryPtr geometryAsMultiLine() const;
             RasterGeometryPtr geometryAsRaster() const;
             Attributes& attributes();
             std::string prettyString() const;

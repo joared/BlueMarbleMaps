@@ -16,12 +16,6 @@
 #include "map_configuration.h"
 #include <Keys.h>
 
-#ifdef WIN32
-#define PATH_TO_FANNY_FILE "../../../bluemarble_index/backgroundmap.png"
-#else 
-#define PATH_TO_FANNY_FILE "../../../bluemarble_index/backgroundmap.png"
-#endif
-
 
 using namespace BlueMarble;
 
@@ -255,81 +249,21 @@ int main()
     std::cout << "opengl version: " << version << "\n";
 
     auto view = std::make_shared<Map>();
-    // view->center(Point(0, 0));
-    // view->scale(1.0);
-    view->showDebugInfo() = false;
-
-    // auto elevationDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/git-repos/BlueMarbleMaps/readme/CompleteGeodata.png");
-    auto elevationDataSet = std::make_shared<ImageDataSet>(PATH_TO_FANNY_FILE);
-    
-    elevationDataSet->initialize(DataSetInitializationType::RightHereRightNow);
-    auto elevationLayer = std::make_shared<StandardLayer>(false);
-    elevationLayer->addDataSet(elevationDataSet);
-    elevationLayer->asyncRead(true); // NOTE: If this is false, changing coordinate system is expensive!
-    auto rasterVis = std::make_shared<RasterVisualizer>();
-    rasterVis->alpha(DirectDoubleAttributeVariable(0.7));
-    elevationLayer->visualizers().push_back(rasterVis);
-    view->addLayer(elevationLayer);
-
-    // Configure some additional background layers (continents, countries are included)
-    constexpr bool includeRoads = true;
-    constexpr bool asyncBackgroundReading = true;
-    configureMap(view, includeRoads, asyncBackgroundReading);
-
-    // Test Polygon/Line/Symbol visualizers
-    auto vectorDataSet = std::make_shared<MemoryDataSet>();
-    vectorDataSet->initialize(DataSetInitializationType::RightHereRightNow);
-
-    auto polypoints = std::vector<Point>({{14,56}, {14,57}, {15,57}});
-    auto linepoints = std::vector<Point>({{15,57}, {15,58}, {16,58}});
-    auto testfeature = vectorDataSet->createFeature(std::make_shared<PolygonGeometry>(polypoints));
-    auto testfeatureLine = vectorDataSet->createFeature(std::make_shared<LineGeometry>(linepoints));
-    testfeature->move({-15,-57});
-    testfeatureLine->move({-15,-57});
-    vectorDataSet->addFeature(testfeature);
-    vectorDataSet->addFeature(testfeatureLine);
-    using ReadOnlyFeaturePtr = std::shared_ptr<const Feature>;
-    ReadOnlyFeaturePtr readOnlyFeature = testfeature;
-    auto geom = readOnlyFeature->geometry();
-    geom->moveTo({14,58});
-
-    auto vectorLayer = std::make_shared<StandardLayer>(true);
-    vectorLayer->addDataSet(vectorDataSet);
-    vectorLayer->selectable(true);
-
-    auto polyVis = std::make_shared<PolygonVisualizer>();
-    vectorLayer->visualizers().push_back(polyVis);
-    view->addLayer(vectorLayer);
-
-
+    // Configure some background layers
+    configureMap(view);
     mapControl->setView(view);
+    view->drawable()->backgroundColor(Color(120,170,255,0));
 
     //auto tool = std::make_shared<OttoTool>();
     auto toolSet = std::make_shared<ToolSet>();
-    
     toolSet->addSubTool(std::make_shared<EditFeatureTool>());
     toolSet->addSubTool(std::make_shared<PointerTracerTool>());    
     toolSet->addSubTool(std::make_shared<KeyActionTool>());
     toolSet->addSubTool(std::make_shared<DebugEventHandler>());
     toolSet->addSubTool(std::make_shared<CameraControllerTwoHalfD>());
-
-    // EventObserver eventObserver1("Observer1");
-    // EventObserver eventObserver2("Observer2");
-    // tool.installEventFilter(&eventObserver1);
-    // eventObserver1.installEventFilter(&eventObserver2);
     mapControl->setTool(toolSet);
 
-    //view->crs(Crs::wgs84MercatorWeb());
-    auto startRect = view->crs()->bounds();
-    BMM_DEBUG() << "Start bounds: " << startRect.toString() << "\n";
-    // view->center(startRect.center());
-    //view->center(Point(7727736.044037, 10090758.622196));
-    // view->width(startRect.width());
-    //view->mapConstraints().bounds() = startRect;
-
-    view->drawable()->backgroundColor(Color(120,170,255,0));
-    
-    view->update(true);
+    mapControl->updateView();
 
     while (!mapControl->windowShouldClose())
     {

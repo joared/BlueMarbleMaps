@@ -46,6 +46,21 @@ FeatureCollectionPtr GeoJsonSerializer::deserializeFeatureCollection(const JsonV
                     features->add(polFeature);
                 }
             }
+            else if(auto multiLine = feature->geometryAsMultiLine())
+            {
+                //auto commonId = feature->id();
+                for (auto line : multiLine->lines())
+                {
+                    auto lineFeature = std::make_shared<Feature>(Id(0,0), Crs::wgs84LngLat(), std::make_shared<LineGeometry>(line));
+                     // FIXME: temporary fix to make selection of one polygon select all polygons within a multipolygon
+                     // Update: removed commonId since it can mess up caching
+                    //polFeature->id(commonId); // Use same id
+                    
+                    auto attrIbutesCopy = feature->attributes();
+                    lineFeature->attributes() = attrIbutesCopy;
+                    features->add(lineFeature);
+                }
+            }
             else
             {
                 features->add(feature);
@@ -75,6 +90,7 @@ FeaturePtr GeoJsonSerializer::deserializeFeature(const JsonValue& jsonValue)
     }
     else
     {
+        BMM_DEBUG() << "Geometry is null!\n";
         throw std::runtime_error("Geometry is null!\n");
     }
 
@@ -96,6 +112,10 @@ GeometryPtr GeoJsonSerializer::deserializeGeometry(const JsonValue& jsonValue)
     else if (type == "LineString")
     {
         return deserializeLineGeometry(coordinates);
+    }
+    else if (type == "MultiLineString")
+    {
+        return deserializeMultiLineGeometry(coordinates);
     }
     else if (type == "Polygon")
     {
@@ -246,6 +266,19 @@ GeometryPtr GeoJsonSerializer::deserializeMultiPolygon(const JsonValue& coorcina
     return multiPolygon;
 }
 
+GeometryPtr GeoJsonSerializer::deserializeMultiLineGeometry(const JsonValue& coordinates)
+{
+    const auto& lineList = coordinates.get<JsonValue::Array>();
+
+    auto multiLines = std::make_shared<MultiLineGeometry>();
+    for (const auto& p : lineList)
+    {
+        auto lineGeom = std::static_pointer_cast<LineGeometry>(deserializeLineGeometry(p));
+        multiLines->lines().emplace_back(*lineGeom);
+    }
+
+    return multiLines;
+}
 
 std::vector<Point> GeoJsonSerializer::extractPoints(const JsonValue& pointListValue)
 {

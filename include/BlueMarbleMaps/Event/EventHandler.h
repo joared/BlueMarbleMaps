@@ -19,6 +19,8 @@ namespace BlueMarble
             bool dispatchEvent(Event& event, int timeStampMs);
             bool dispatchEventTo(const Event& event, EventHandler* eventHandler);
         private:
+            // TODO: make ONE explicit evet handler, or just use dispatchEventTo?
+            // TODO: should eventhandlers all have a reference/pointer to the manager such that they can set timers etc?
             std::vector<EventHandler*> m_eventHandlers;
     };
 

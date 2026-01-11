@@ -157,6 +157,13 @@ MultiPolygonGeometryPtr BlueMarble::Feature::geometryAsMultiPolygon() const
     
     return nullptr;
 }
+MultiLineGeometryPtr BlueMarble::Feature::geometryAsMultiLine() const
+{
+    if (m_geometry->type() == GeometryType::MultiLine)
+        return std::static_pointer_cast<MultiLineGeometry>(m_geometry);
+    
+    return nullptr;
+}
 
 RasterGeometryPtr Feature::geometryAsRaster() const
 {

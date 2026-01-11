@@ -197,143 +197,147 @@ void addDataSetInitializationObserver(const MapPtr& map)
     });
 }
 
-void configureGui(const MapPtr& map)
-{
 
-}
-
-void configureMap(const MapPtr& map, bool includeRoads=false, bool asyncBackgroundReading = true)
+void configureMap(const MapPtr& map)
 {
-    const bool backgroundLayersSelectable = true;
-    const bool includeBackground = false;
-    const bool includeAirPlanes = false;
-    const DataSetInitializationType dataSetInitialization = DataSetInitializationType::BackgroundThread;
     const std::string commonIndexPath = "../../../bluemarble_index"; // Relative to the build/bin/<debug/release>/ folder
+    const DataSetInitializationType dataSetInitialization = DataSetInitializationType::BackgroundThread;
+    const bool backgroundLayersSelectable = true;
+    const bool asyncBackgroundReading = true;
 
+    const bool includeBackgroundRaster = true;
+    const bool includeContinents = true;
+    const bool includeCountries = true;
+    const bool includeRoadsEurope = true;
+    const bool includeSwedenRoads = true;
+    const bool includeMemoryDataSet = true;
+
+    const double minScaleCountries = 1.0/60000000.0;
 
     addDataSetInitializationObserver(map);
 
-    ////////////////////////////////////////////////////////
-    static auto backgroundDataSet = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/BlueMarbleMaps/geodata/NE1_LR_LC_SR_W/NE1_LR_LC_SR_W.tif");
-    static auto backgroundDataSet2 = std::make_shared<BlueMarble::ImageDataSet>("/home/joar/BlueMarbleMaps/geodata/BlueMarble.jpeg");
-
-    static auto svenskaStader = std::make_shared<BlueMarble::CsvFileDataSet>("/home/joar/BlueMarbleMaps/geodata/svenska_stader/svenska-stader.csv");
-    static auto northAmerica = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/world_geojson/northamerica_high_fixed.geo.json");
-    static auto southAmerica = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/world_geojson/southamerica_high.geo.json");
-    static auto world = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/world_geojson/world_high.geo.json");
-    static auto continents = std::make_shared<BlueMarble::GeoJsonFileDataSet>("../../../geodata/continents/continents.json");
-    continents->name("Continents");
-    static auto sverigeRoadsDataSet = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/svenska_vagar/hotosm_swe_roads_lines_geojson.geojson"); sverigeRoadsDataSet->name("Roads sverige");
-    static auto roadsDataSet = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/roads_geojson/europe-road.geojson"); roadsDataSet->name("Roads");
-    static auto svenskaLandskapDataSet = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/svenska_landskap/svenska-landskap-klippt.geo.json");
-    static auto markerDataSet = std::make_shared<BlueMarble::MemoryDataSet>(); markerDataSet->name("MarkerDataSet");
-    static auto airPlaneDataSet = std::make_shared<BlueMarble::MemoryDataSet>(); airPlaneDataSet->name("AirPlanesDataSet");
-
-    continents->indexPath(commonIndexPath);
-    continents->initialize(dataSetInitialization);
-    // svenskaStader->initialize();
-    // svenskaLandskapDataSet->initialize();
-    // markerDataSet->initialize();
-    
-    airPlaneDataSet->initialize(DataSetInitializationType::RightHereRightNow); 
-    // Populate airplanes and start animations
-    if (includeAirPlanes)
+    if (includeBackgroundRaster)
     {
-        for (int i=0; i < 10000; i++)
-        {
-            auto from = Point(std::rand() % 360 - 180, std::rand() % 180 - 90);
-            auto to = Point(std::rand() % 360 - 180, std::rand() % 180 - 90);
-            auto airPlaneFeature = airPlaneDataSet->createFeature(std::make_shared<PointGeometry>(from));
-            airPlaneFeature->attributes().set("Name", "Aircraft #" + std::to_string(i+1));
-            airPlaneDataSet->addFeature(airPlaneFeature); airPlaneDataSet->startFeatureAnimation(airPlaneFeature, from, to);
-        }
-    }
-
-    auto backgroundLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer());
-    
-    auto geoJsonLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer()); geoJsonLayer->asyncRead(asyncBackgroundReading);
-    auto continentsLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer()); continentsLayer->asyncRead(asyncBackgroundReading);
-    auto roadsGeoJsonLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer());
-    auto shapeFileLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer());
-    auto airPlaneLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer(false)); 
-    if(includeAirPlanes) setupAirPlaneLayerVisualization(airPlaneLayer);
-    auto csvLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer());
-    auto sverigeLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer());
-    auto debugLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer());
-    if (includeBackground)
-    {
-        //backgroundDataSet->initialize();
-        //backgroundLayer->addDataSet(backgroundDataSet);
-
-        auto backgroundLayer2 = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer(false));
+        #ifdef WIN32
+#define PATH_TO_FANNY_FILE "../../../bluemarble_index/backgroundmap.png"
+#else 
+#define PATH_TO_FANNY_FILE "../../../bluemarble_index/backgroundmap.png"
+#endif
+        auto backgroundImageDataSet = std::make_shared<ImageDataSet>(PATH_TO_FANNY_FILE);
+        backgroundImageDataSet->initialize(DataSetInitializationType::RightHereRightNow);
+        
+        auto backgroundLayer = std::make_shared<StandardLayer>(false);
+        backgroundLayer->addDataSet(backgroundImageDataSet);
+        backgroundLayer->asyncRead(true); // NOTE: If this is false, changing coordinate system is expensive!
         auto rasterVis = std::make_shared<RasterVisualizer>();
-        rasterVis->alpha(DirectDoubleAttributeVariable(0.3));
-        backgroundLayer2->visualizers().push_back(rasterVis);
-        backgroundDataSet2->initialize();
-        backgroundLayer2->addDataSet(backgroundDataSet2);
-        backgroundLayer2->asyncRead(asyncBackgroundReading);
-        map->addLayer(backgroundLayer2);
+        rasterVis->alpha(DirectDoubleAttributeVariable(0.7));
+        backgroundLayer->visualizers().push_back(rasterVis);
+        
+        map->addLayer(backgroundLayer);
     }
-    
-    double minScaleCountries = 1.0/60000000.0;
-    geoJsonLayer->minScale(minScaleCountries);
-    geoJsonLayer->selectable(backgroundLayersSelectable);
 
-    bool includeCountryPolygons = true; // TODO add parameter
-    if (includeCountryPolygons) 
+    if (includeCountries) 
     {
+        // Datasets
+        auto northAmerica = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/world_geojson/northamerica_high_fixed.geo.json");
+        auto southAmerica = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/world_geojson/southamerica_high.geo.json");
+        auto world = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/world_geojson/world_high.geo.json");
         northAmerica->indexPath(commonIndexPath);
         southAmerica->indexPath(commonIndexPath);
         world->indexPath(commonIndexPath);
         northAmerica->initialize(dataSetInitialization);
         southAmerica->initialize(dataSetInitialization);
         world->initialize(dataSetInitialization);
-        geoJsonLayer->addDataSet(northAmerica); 
-        geoJsonLayer->addDataSet(southAmerica); 
-        geoJsonLayer->addDataSet(world);
+     
+        // Layer
+        auto countryLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer()); 
+        countryLayer->asyncRead(asyncBackgroundReading);
+        countryLayer->minScale(minScaleCountries);
+        countryLayer->selectable(backgroundLayersSelectable);
+        countryLayer->addDataSet(northAmerica); 
+        countryLayer->addDataSet(southAmerica); 
+        countryLayer->addDataSet(world);
+
+        map->addLayer(countryLayer);
     }
 
-    continentsLayer->maxScale(minScaleCountries);
-    continentsLayer->addDataSet(continents);
-    continentsLayer->selectable(backgroundLayersSelectable);
-    if (includeRoads)
+    if (includeContinents)
     {
+        // Dataset
+        auto continents = std::make_shared<BlueMarble::GeoJsonFileDataSet>("../../../geodata/continents/continents.json");
+        continents->indexPath(commonIndexPath);
+        continents->initialize(dataSetInitialization);
+        
+        // Layer
+        auto continentsLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer()); 
+        continentsLayer->asyncRead(asyncBackgroundReading);
+        continentsLayer->maxScale(minScaleCountries);
+        continentsLayer->addDataSet(continents);
+        continentsLayer->selectable(backgroundLayersSelectable);
+
+        map->addLayer(continentsLayer);
+    }
+    
+    if (includeRoadsEurope)
+    {
+        // Dataset
+        auto roadsDataSet = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/roads_geojson/europe-road.geojson"); 
+        roadsDataSet->name("Roads Europe");
         roadsDataSet->indexPath(commonIndexPath);
         roadsDataSet->initialize(dataSetInitialization);
 
-        // FeatureQuery featureQuery;
-        // featureQuery.area(Rectangle(-180, -90, 180, 90));
-        // auto features = roadsDataSet->getFeatures(featureQuery);
-        // int n = features->size();
-        // BMM_DEBUG() << "NUMBER OF ROAD FEATURES: " << n << "\n";
-
+        // Layer
+        auto roadsGeoJsonLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer());
         roadsGeoJsonLayer->addDataSet(roadsDataSet);
         roadsGeoJsonLayer->asyncRead(asyncBackgroundReading);
         roadsGeoJsonLayer->selectable(backgroundLayersSelectable);
-        // sverigeRoadsDataSet->indexPath(commonIndexPath);
-        // sverigeRoadsDataSet->initialize(dataSetInitialization); // Takes very long to initialize (1.4 GB large)
-        // roadsGeoJsonLayer->addDataSet(sverigeRoadsDataSet);
-        
         roadsGeoJsonLayer->minScale(1.0/2500000.0);
         //roadsGeoJsonLayer->enabledDuringQuickUpdates(false);
+
+        map->addLayer(roadsGeoJsonLayer);
     }
-    
-    csvLayer->addDataSet(svenskaStader);
-    sverigeLayer->addDataSet(svenskaLandskapDataSet);
-    airPlaneLayer->addDataSet(airPlaneDataSet);
-    
-    
-    map->addLayer(backgroundLayer);
-    
-    map->addLayer(geoJsonLayer);
-    map->addLayer(continentsLayer);
-    //map->addLayer(sverigeLayer);
-    map->addLayer(roadsGeoJsonLayer);
-    //map->addLayer(csvLayer);
-    map->addLayer(airPlaneLayer);
-    //map->addLayer(debugLayer);
-    ////////////////////////////////////////////////////////OLD
-    configureGui(map);
+    if (includeSwedenRoads)
+    {
+        // Dataset
+        auto sverigeRoadsDataSet = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/svenska_vagar/hotosm_swe_roads_lines_geojson.geojson"); 
+        sverigeRoadsDataSet->name("Roads Sweden");
+        sverigeRoadsDataSet->indexPath(commonIndexPath);
+        sverigeRoadsDataSet->initialize(dataSetInitialization); // Takes very long to initialize (1.4 GB large)
+
+        // Layer
+        auto swedenroadsGeoJsonLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer());
+        swedenroadsGeoJsonLayer->minScale(1.0/100000.0);
+        swedenroadsGeoJsonLayer->addDataSet(sverigeRoadsDataSet);
+        swedenroadsGeoJsonLayer->asyncRead(asyncBackgroundReading);
+
+        map->addLayer(swedenroadsGeoJsonLayer);
+    }
+
+    if (includeMemoryDataSet)
+    {
+        // Test Polygon/Line/Symbol visualizers
+        auto vectorDataSet = std::make_shared<MemoryDataSet>();
+        vectorDataSet->initialize(DataSetInitializationType::RightHereRightNow);
+
+        auto polypoints = std::vector<Point>({{14,56}, {14,57}, {15,57}});
+        auto linepoints = std::vector<Point>({{15,57}, {15,58}, {16,58}});
+        auto testfeature = vectorDataSet->createFeature(std::make_shared<PolygonGeometry>(polypoints));
+        auto testfeatureLine = vectorDataSet->createFeature(std::make_shared<LineGeometry>(linepoints));
+        testfeature->move({-15,-57});
+        testfeatureLine->move({-15,-57});
+        vectorDataSet->addFeature(testfeature);
+        vectorDataSet->addFeature(testfeatureLine);
+
+        auto vectorLayer = std::make_shared<StandardLayer>(true);
+        vectorLayer->addDataSet(vectorDataSet);
+        vectorLayer->selectable(true);
+
+        auto polyVis = std::make_shared<PolygonVisualizer>();
+        vectorLayer->visualizers().push_back(polyVis);
+
+        map->addLayer(vectorLayer);
+    }
+
 }
 
 #endif /* MAP_CONFIGURATION */

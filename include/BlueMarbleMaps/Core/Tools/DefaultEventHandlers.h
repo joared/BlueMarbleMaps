@@ -732,7 +732,7 @@ namespace BlueMarble
 
                     const auto& lastPos = m_trace[m_trace.size()-1].first; // Last added pos
                     double radius = AnimationFunctions::easeInCubic((double)line->points().size() / (double)m_traceSize);
-                    radius = 10.0*std::min(2.0, radius);
+                    radius = std::max(2.0, 10.0*radius);
 
                     Pen blackPen;
                     blackPen.setColor(Color::black());
