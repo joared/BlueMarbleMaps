@@ -22,8 +22,9 @@ std::string JsonValue::toString(bool format) const
     return toString("", baseIndentation);
 }
 
-// TODO
-std::string escapeString(const std::string& s) {
+// TODO: does thi even work?
+std::string escapeString(const std::string& s) 
+{
     std::string result;
     for (char c : s) {
         switch (c) {
@@ -35,12 +36,15 @@ std::string escapeString(const std::string& s) {
             case '\r': result += "\\r";  break;
             case '\t': result += "\\t";  break;
             default:
-                if (static_cast<unsigned char>(c) < 0x20) {
+                if (static_cast<unsigned char>(c) < 0x20) 
+                {
                     // escape control characters as \u00XX
                     char buf[7];
                     sprintf(buf, "\\u%04x", c);
                     result += buf;
-                } else {
+                } 
+                else 
+                {
                     result += c;
                 }
         }
@@ -50,8 +54,6 @@ std::string escapeString(const std::string& s) {
 
 std::string JsonValue::toString(const std::string& currentIndentation, const std::string &baseIndentation) const
 {
-    // TODO: handle weird escape characters
-
     bool doFormat = !baseIndentation.empty();
     std::string space = doFormat ? " " : "";
     std::string newLine = doFormat ? "\n" : "";

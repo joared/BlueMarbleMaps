@@ -9,6 +9,15 @@ namespace BlueMarble
     class Id
     {
         public:
+            struct IdHash
+            {
+                std::size_t operator()(const BlueMarble::Id& id) const noexcept
+                {
+                    return std::hash<uint64_t>{}(id.dataSetId()) ^
+                        (std::hash<uint64_t>{}(id.featureId()) << 1);
+                }
+            };
+
             inline Id(DataSetId dId, FeatureId fId)
                 : m_dataSetId(dId)
                 , m_featureId(fId)
@@ -34,15 +43,6 @@ namespace BlueMarble
         private:
             DataSetId m_dataSetId;
             FeatureId m_featureId;
-    };
-
-    struct IdHash
-    {
-        std::size_t operator()(const BlueMarble::Id& id) const noexcept
-        {
-            return std::hash<uint64_t>{}(id.dataSetId()) ^
-                (std::hash<uint64_t>{}(id.featureId()) << 1);
-        }
     };
 }
 

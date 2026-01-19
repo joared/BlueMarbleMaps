@@ -13,7 +13,8 @@ namespace BlueMarble
     {
     public:
         QuadTreeIndex(const Rectangle& rootBounds, double minSize);
-        
+        ~QuadTreeIndex();
+
         virtual void build(const FeatureCollectionPtr& entries) override final;
 
         virtual void insert(const FeatureId& entry, const Rectangle& bounds) override final;
@@ -29,7 +30,7 @@ namespace BlueMarble
         void saveJson(const std::string& path) const;
         bool loadJson(const std::string& path);
 
-        QuadTreeNode* m_root;
+        std::unique_ptr<QuadTreeNode> m_root;
         double m_minSize;
     };
 }

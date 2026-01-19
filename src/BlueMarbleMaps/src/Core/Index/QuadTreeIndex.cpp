@@ -14,18 +14,28 @@ class BlueMarble::QuadTreeNode
         QuadTreeNode(const Rectangle& bounds)
             : m_bounds(bounds)
             , m_entries()
+            , m_children()
         {
+            m_children.reserve(4);
         }
+        QuadTreeNode(QuadTreeNode&&) = default;
+        QuadTreeNode& operator=(QuadTreeNode&&) = default;
+        QuadTreeNode(const QuadTreeNode&) = delete;
+        QuadTreeNode& operator=(const QuadTreeNode&) = delete;
 
-        const std::vector<QuadTreeNode*>& children() const { return m_children; }
+        const std::vector<QuadTreeNode>& children() const { return m_children; }
+        std::vector<QuadTreeNode>& children() { return m_children; }
         const std::vector<Entry>& entries() const { return m_entries; }
-        void addChild(QuadTreeNode* child) 
+        
+        QuadTreeNode& emplaceChild(QuadTreeNode&& child) 
         { 
             // assert(this != child);
-            m_children.push_back(child); 
+            m_children.emplace_back(std::move(child)); 
+            return m_children.back();
         }
 
         const Rectangle& bounds() const { return m_bounds; }
+        void setBounds(const Rectangle& bounds) { m_bounds = bounds; }
 
         void add(const FeatureId& id, const Rectangle& bounds)
         {
@@ -48,9 +58,9 @@ class BlueMarble::QuadTreeNode
             if (m_children.empty())
                 extend(minSize);
             
-            for (auto child : m_children)
+            for (auto& child : m_children)
             {
-                if (child->insert(id, bounds, minSize))
+                if (child.insert(id, bounds, minSize))
                 {
                     return true;
                 }
@@ -76,14 +86,10 @@ class BlueMarble::QuadTreeNode
             // std::cout  << "Center: " << center.x() << ", " << center.y() << "\n";
             // std::cout  << "Rect: " << m_bounds.xMin() << ", " << m_bounds.yMin() << ", " << m_bounds.xMax() << ", " << m_bounds.yMax() << "\n";
             
-            auto southWest = new QuadTreeNode(Rectangle(m_bounds.xMin(), m_bounds.yMin(), center.x(), center.y()));
-            auto southEast = new QuadTreeNode(Rectangle(center.x(), m_bounds.yMin(), m_bounds.xMax(), center.y()));
-            auto northWest = new QuadTreeNode(Rectangle(m_bounds.xMin(), center.y(), center.x(), m_bounds.yMax()));
-            auto northEast = new QuadTreeNode(Rectangle(center.x(), center.y(), m_bounds.xMax(), m_bounds.yMax()));
-            addChild(southWest);
-            addChild(southEast);
-            addChild(northWest);
-            addChild(northEast);
+            emplaceChild(QuadTreeNode(Rectangle(m_bounds.xMin(), m_bounds.yMin(), center.x(), center.y()))); // south west
+            emplaceChild(QuadTreeNode(Rectangle(center.x(), m_bounds.yMin(), m_bounds.xMax(), center.y()))); // south east
+            emplaceChild(QuadTreeNode(Rectangle(m_bounds.xMin(), center.y(), center.x(), m_bounds.yMax()))); // north west
+            emplaceChild(QuadTreeNode(Rectangle(center.x(), center.y(), m_bounds.xMax(), m_bounds.yMax()))); // north east
 
             // std::cout  << "Added: " << center.x() << ", " << center.y() << "\n";
         }
@@ -94,8 +100,8 @@ class BlueMarble::QuadTreeNode
             for (const auto& e : m_entries)
                 featureIds->add(e.first);
             
-            for (auto child : m_children)
-                child->queryAll(featureIds);
+            for (const auto& child : m_children)
+                child.queryAll(featureIds);
         }
 
         void query(const Rectangle& bounds, const FeatureIdCollectionPtr& featureIds) const
@@ -121,26 +127,30 @@ class BlueMarble::QuadTreeNode
                 }
             }
                 
-            for (auto child : m_children)
+            for (const auto& child : m_children)
             {
-                child->query(bounds, featureIds);
+                child.query(bounds, featureIds);
             }
         }
 
     private:
         Rectangle                  m_bounds;
         std::vector<Entry>         m_entries;
-        std::vector<QuadTreeNode*> m_children;
-        QuadTree*                  m_owner;
+        std::vector<QuadTreeNode>  m_children;
+        // QuadTree*                  m_owner;
 };
 
 QuadTreeIndex::QuadTreeIndex(const Rectangle& rootBounds, double minSize)
-    : m_root(new QuadTreeNode(rootBounds))
+    : m_root(nullptr)
     , m_minSize(minSize)
 {
 }
 
-void QuadTreeIndex::build(const FeatureCollectionPtr& entries)
+BlueMarble::QuadTreeIndex::~QuadTreeIndex()
+{
+}
+
+void QuadTreeIndex::build(const FeatureCollectionPtr &entries)
 {
     for (const auto& f : *entries)
     {
@@ -216,15 +226,15 @@ JsonValue serializeNode(const QuadTreeNode* node)
     
     data["children"] = JsonValue::Array();
     auto& children = data["children"].get<JsonValue::Array>();
-    for (auto child : node->children())
+    for (const auto& child : node->children())
     {
-        children.emplace_back(std::move(serializeNode(child)));
+        children.emplace_back(std::move(serializeNode(&child)));
     }
 
     return data;
 }
 
-QuadTreeNode* deserializeNode(const JsonValue& json)
+QuadTreeNode& deserializeNode(const JsonValue& json, QuadTreeNode& nodeOut)
 {
     const JsonValue::Object& data = json.asObject();
 
@@ -235,7 +245,7 @@ QuadTreeNode* deserializeNode(const JsonValue& json)
     double yMax = data.at("bounds").asObject().at("yMax").asDouble();
     auto bounds = Rectangle(xMin, yMin, xMax, yMax);
 
-    auto node = new QuadTreeNode(bounds);
+    nodeOut.setBounds(bounds);
 
     const auto& entries = data.at("entries").asArray();
     for (const auto& e : entries)
@@ -246,21 +256,22 @@ QuadTreeNode* deserializeNode(const JsonValue& json)
         double xMax = e.asObject().at("bounds").asObject().at("xMax").asDouble();
         double yMax = e.asObject().at("bounds").asObject().at("yMax").asDouble();
 
-        node->add(id, Rectangle(xMin, yMin, xMax, yMax));
+        nodeOut.add(id, Rectangle(xMin, yMin, xMax, yMax));
     }
 
     const auto& children = data.at("children").asArray();
-    for (const auto& c : children)
+    for (auto& c : children)
     {
-        node->addChild(deserializeNode(c));
+        auto& child = nodeOut.emplaceChild(QuadTreeNode(Rectangle(0,0,0,0)));
+        deserializeNode(c, child);
     }
 
-    return node;
+    return nodeOut;
 }
 
 void QuadTreeIndex::saveJson(const std::string &path) const
 {
-    auto json = std::move(serializeNode(m_root));
+    auto json = std::move(serializeNode(m_root.get()));
     File::writeString(path, json.toString());
 }
 
@@ -273,7 +284,8 @@ bool QuadTreeIndex::loadJson(const std::string &path)
     }
 
     JsonValue json = JsonValue::fromString(File::readAsString(path));
-    m_root = deserializeNode(json);
+    m_root = std::make_unique<QuadTreeNode>(Rectangle(0,0,0,0)); // dummy rect
+    deserializeNode(json, *m_root.get());
 
     return true;
 }

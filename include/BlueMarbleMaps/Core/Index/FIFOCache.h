@@ -17,7 +17,7 @@ namespace BlueMarble
         virtual size_t size() const override final;
         virtual void clear() override final;
     private:
-        std::unordered_map<Id, FeaturePtr, IdHash> m_cache;
+        std::unordered_map<Id, FeaturePtr, Id::IdHash> m_cache;
     };
 
     typedef std::shared_ptr<FIFOCache> FIFOCachePtr;
