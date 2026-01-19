@@ -12,6 +12,7 @@ AbstractFileDataSet::AbstractFileDataSet(const std::string& filePath, const std:
     : DataSet() 
     , m_filePath(filePath)
     , m_indexPath(indexPath)
+    , m_verifyIndex(false)
     , m_featureStore()
     , m_progress(0)
 {
@@ -48,7 +49,7 @@ void AbstractFileDataSet::init()
     {
         BMM_DEBUG() << "Reading features for build...\n";
         auto startRead = getTimeStampMs();
-        FeatureCollectionPtr readFeatures = read(m_filePath); // TODO: change to readFeatures returning FeatureCollectionPtr
+        FeatureCollectionPtr readFeatures = read(m_filePath);
         auto elapsedRead = getTimeStampMs() - startRead;
         BMM_DEBUG() << "Reading took " << elapsedRead << " ms\n";
 
@@ -58,10 +59,18 @@ void AbstractFileDataSet::init()
         }
 
         BMM_DEBUG() << "Building feature store...\n";
-        m_featureStore->buildIndex(readFeatures, indexPath);
+        m_featureStore->build(readFeatures, indexPath);
 
         m_featureStore->load(indexPath);
-
+    }
+    else
+    {
+        BMM_DEBUG() << "Feature store loaded successfuly!\n";
+    }
+    
+    if (m_verifyIndex)
+    {
+        BMM_DEBUG() << "Verifying index...\n";
         if (m_featureStore->verifyIndex())
         {
             BMM_DEBUG() << "Verify feature store OK\n";
@@ -71,11 +80,7 @@ void AbstractFileDataSet::init()
             BMM_DEBUG() << "Verify feature store Failed\n";
         }
     }
-    else
-    {
-        BMM_DEBUG() << "Feature store loaded successfuly!\n";
-    }
-    
+
     std::cout << "AbstractFileDataSet::init() Data loaded!\n";
 }
 
@@ -99,7 +104,7 @@ const std::string& AbstractFileDataSet::indexPath()
 }
 
 
-IdCollectionPtr AbstractFileDataSet::queryFeatureIds(const FeatureQuery& featureQuery)
+IdCollectionPtr AbstractFileDataSet::onGetFeatureIds(const FeatureQuery& featureQuery)
 {
     auto featureIds = m_featureStore->queryIds(featureQuery.area());
     auto ids = std::make_shared<IdCollection>();
@@ -112,7 +117,7 @@ IdCollectionPtr AbstractFileDataSet::queryFeatureIds(const FeatureQuery& feature
     return ids;
 }
 
-FeatureEnumeratorPtr AbstractFileDataSet::queryFeatures(const FeatureQuery &featureQuery)
+FeatureEnumeratorPtr AbstractFileDataSet::onGetFeatures(const FeatureQuery &featureQuery)
 {
     auto enumerator = std::make_shared<FeatureEnumerator>();
 
@@ -140,7 +145,7 @@ FeatureEnumeratorPtr AbstractFileDataSet::queryFeatures(const FeatureQuery &feat
     return enumerator;
 }
 
-FeatureCollectionPtr AbstractFileDataSet::queryFeatures(const IdCollectionPtr& ids)
+FeatureCollectionPtr AbstractFileDataSet::onGetFeatures(const IdCollectionPtr& ids)
 {
     auto featureIds = std::make_shared<FeatureIdCollection>();
     featureIds->reserve(ids->size());
@@ -153,7 +158,7 @@ FeatureCollectionPtr AbstractFileDataSet::queryFeatures(const IdCollectionPtr& i
     return m_featureStore->getFeatures(featureIds);
 }
 
-FeaturePtr AbstractFileDataSet::queryFeature(const Id &id)
+FeaturePtr AbstractFileDataSet::onGetFeature(const Id &id)
 {
     assert(dataSetId() == id.dataSetId());
 

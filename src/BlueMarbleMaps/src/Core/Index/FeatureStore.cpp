@@ -110,19 +110,37 @@ FeatureCollectionPtr FeatureStore::query(const Rectangle& area, const FeatureIdC
 bool FeatureStore::load(const std::string& indexPath)
 {
     // We never rebuild database on load, it has to be done eplicitly since it takes time
-    if (!m_dataBase->load(indexPath + ".database"))
+    BMM_DEBUG() << "------- FeatureStore::load() -------\n";
+    BMM_DEBUG() << "------- Database loading -------\n";
+    auto peristableDb = dynamic_cast<IPersistable*>(m_dataBase.get());
+    if (peristableDb && !peristableDb->load(getDatabasePersistanceContext(peristableDb, indexPath)))
+    {
         return false;
+    }
 
-    bool indexOk = m_index->load(indexPath + ".index");
+    auto persistableIndex = dynamic_cast<IPersistable*>(m_index.get());
+    bool indexLoaded = false;
+    if (persistableIndex)
+    {
+        BMM_DEBUG() << "------- Index loading -------\n";
+        indexLoaded = persistableIndex->load(getIndexPersistanceContext(persistableIndex, indexPath));
+    }
     
     // We allow to rebuild the index on load
-    if (!indexOk)
+    if (!indexLoaded)
     {
-        BMM_DEBUG() << "Building spatial index...\n";
+        BMM_DEBUG() << "------- Index building -------\n";
+        BMM_DEBUG() << "------- Query all features from database -------\n";
         auto features = m_dataBase->getAllFeatures();
-        m_index->build(features, indexPath + ".index");
-        BMM_DEBUG() << "... spatial index done!\n";
+        BMM_DEBUG() << "------- Building index -------\n";
+        m_index->build(features);
+        if (persistableIndex)
+        {
+            BMM_DEBUG() << "------- Saving index -------\n";
+            persistableIndex->save(getIndexPersistanceContext(persistableIndex, indexPath));
+        }
     }
+    BMM_DEBUG() << "------- FeatureStore::load() complete -------\n";
 
     return true;
 }
@@ -141,14 +159,60 @@ bool FeatureStore::verifyIndex() const
         return false;
     }
 
-    for (const auto f : *features)
+    // Verify id match
+    std::unordered_map<FeatureId, int> idCount1;
+    std::unordered_map<FeatureId, int> idCount2;
+    for (const auto& f : *features)
     {
-        if (!featureIds->contains(f->id().featureId()))
+        auto fid = f->id().featureId();
+        auto it = idCount1.find(fid);
+        if (it == idCount1.end())
         {
-            // A feature id is missing
-            BMM_DEBUG() << "FeatureStore::verifyIndex() id missing in index: " << f->id().toString() << "\n";
+            idCount1[fid] = 1;
+        }
+        else
+        {
+            idCount1[fid] += 1;
+        }
+    }
+
+    for (const auto fid : *featureIds)
+    {
+        auto it = idCount2.find(fid);
+        if (it == idCount2.end())
+        {
+            idCount2[fid] = 1;
+        }
+        else
+        {
+            idCount2[fid] += 1;
+        }
+    }
+
+    for (const auto& pair: idCount1)
+    {
+        FeatureId fid = pair.first;
+        int count1 = pair.second;
+        
+        auto it = idCount2.find(fid);
+        if (it == idCount2.end())
+        {
+            BMM_DEBUG() << "Feature id missing in index: " << fid << "\n";
             return false;
         }
+        int count2 = it->second;
+        if (count1 != count2)
+        {
+            BMM_DEBUG() << "Feature id count missmatch: " << count1 << " != " << count2 << "\n";
+            return false;
+        }
+        idCount2.erase(fid);
+    }
+
+    if (!idCount2.empty())
+    {
+        BMM_DEBUG() << "Index has " << idCount2.size() << " more ids than database\n";
+        return false;
     }
 
     return true;
@@ -160,7 +224,23 @@ void FeatureStore::flushCache()
         m_cache->clear();
 }
 
-void FeatureStore::buildIndex(const FeatureCollectionPtr& features, const std::string &indexPath)
+IPersistable::PersistanceContext BlueMarble::FeatureStore::getIndexPersistanceContext(IPersistable* p, const std::string& indexPath)
+{
+    return IPersistable::PersistanceContext
+    {
+        indexPath + "._" + p->persistanceId() + "_index"
+    };
+}
+
+IPersistable::PersistanceContext BlueMarble::FeatureStore::getDatabasePersistanceContext(IPersistable* p, const std::string& indexPath)
+{
+    return IPersistable::PersistanceContext
+    {
+        indexPath + "._" + p->persistanceId() + "_database"
+    };
+}
+
+void FeatureStore::build(const FeatureCollectionPtr& features, const std::string& indexPath)
 {
     for (const auto& feature : *features)
     {
@@ -168,8 +248,13 @@ void FeatureStore::buildIndex(const FeatureCollectionPtr& features, const std::s
         assert(feature->id().dataSetId() == m_dataSetId);
     }
 
-    m_dataBase->build(features, indexPath + ".database");
-    m_index->build(features, indexPath + ".index");
+    m_dataBase->build(features);
+    m_index->build(features);
+
+    auto peristableDb = dynamic_cast<IPersistable*>(m_dataBase.get());
+    auto peristableIndex = dynamic_cast<IPersistable*>(m_index.get());
+    if (peristableDb) peristableDb->save(getDatabasePersistanceContext(peristableDb, indexPath));
+    if (peristableIndex) peristableIndex->save(getIndexPersistanceContext(peristableIndex, indexPath));
 }
 
 

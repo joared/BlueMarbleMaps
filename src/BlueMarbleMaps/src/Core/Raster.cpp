@@ -109,7 +109,7 @@ Raster Raster::getCrop(int x0, int y0, int x1, int y1)
     return m_impl->getCrop(x0, y0, x1, y1);
 }
 
-const unsigned char* Raster::data() const
+void* Raster::data() const
 {
     return m_impl->data();
 }

@@ -70,7 +70,7 @@ namespace BlueMarble
             };
             // TODO: generatePresentationObjects could probably be inside renderFeature
             virtual void generatePresentationObjects(const FeaturePtr& feature, const FeaturePtr& sourceFeature, Attributes& updateAttributes, std::vector<PresentationObject>& presentationObjects);
-            virtual void renderFeature(Drawable& drawable, const FeaturePtr& feature, Attributes& updateAttributes) = 0;
+            virtual void renderFeature(Drawable& drawable, const FeaturePtr& feature, Attributes& updateAttributes, const Rectangle& updateArea) = 0;
             virtual VisualizerType visualizerType() = 0;
         protected:
             virtual bool isValidGeometry(GeometryType type) = 0;
@@ -104,7 +104,7 @@ namespace BlueMarble
 
             //void preRender(Drawable& drawable, std::vector<FeaturePtr>& attachedFeatures, std::vector<FeaturePtr>& sourceFeatures, Attributes& updateAttributes, std::vector<PresentationObject>& presObjs) override final;
             void generatePresentationObjects(const FeaturePtr& feature, const FeaturePtr& sourceFeature, Attributes& updateAttributes, std::vector<PresentationObject>& presentationObjects) override final;
-            void renderFeature(Drawable& drawable, const FeaturePtr& feature, Attributes& updateAttributes) override final;
+            void renderFeature(Drawable& drawable, const FeaturePtr& feature, Attributes& updateAttributes, const Rectangle& updateArea) override final;
             bool hitTest(const FeaturePtr& feature, const DrawablePtr& drawable, const Rectangle& area, std::vector<PresentationObject>& outPresentation) override final;
         protected:
             bool isValidGeometry(GeometryType type) override final;
@@ -287,7 +287,7 @@ namespace BlueMarble
             LineVisualizer();
             virtual VisualizerType visualizerType() override final { return VisualizerType::LineVisualizer; };
             virtual void generatePresentationObjects(const FeaturePtr& feature, const FeaturePtr& sourceFeature, Attributes& updateAttributes, std::vector<PresentationObject>& presentationObjects) override final;
-            void renderFeature(Drawable& drawable, const FeaturePtr& feature, Attributes& updateAttributes) override final;
+            void renderFeature(Drawable& drawable, const FeaturePtr& feature, Attributes& updateAttributes, const Rectangle& updateArea) override final;
             bool hitTest(const FeaturePtr& feature, const DrawablePtr& drawable, const Rectangle& area, std::vector<PresentationObject>& outPresentation) override final;
             void width(DoubleEvaluation widthEval);
         protected:
@@ -305,7 +305,7 @@ namespace BlueMarble
         public:
             PolygonVisualizer();
             virtual VisualizerType visualizerType() override final { return VisualizerType::PolygonVisualizer; };
-            void renderFeature(Drawable& drawable, const FeaturePtr& feature, Attributes& updateAttributes) override final;
+            void renderFeature(Drawable& drawable, const FeaturePtr& feature, Attributes& updateAttributes, const Rectangle& updateArea) override final;
         protected:
             bool isValidGeometry(GeometryType type) override final;
         private:
@@ -322,7 +322,7 @@ namespace BlueMarble
         public:
             RasterVisualizer();
             virtual VisualizerType visualizerType() override final { return VisualizerType::RasterVisualizer; };
-            void renderFeature(Drawable& drawable, const FeaturePtr& feature, Attributes& updateAttributes) override final;
+            void renderFeature(Drawable& drawable, const FeaturePtr& feature, Attributes& updateAttributes, const Rectangle& updateArea) override final;
             void alpha(const DoubleEvaluation& alphaEval);
         protected:
             bool isValidGeometry(GeometryType type) override final;

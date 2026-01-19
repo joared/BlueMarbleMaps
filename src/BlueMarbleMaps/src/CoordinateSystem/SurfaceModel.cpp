@@ -20,8 +20,10 @@ bool PlaneSurfaceModel::rayIntersection(const Point& rayOrigin, const Point& ray
     double t = m_normal.dotProduct(m_origin + m_normal*normalOffset - rayOrigin) * (1.0 / denom);
 
     // Intersection behind the ray origin
-    if (t < 0.0)
-        return false;
+    // FIXME: I removed this because camera ray origins may be behind intersection
+    // when "near" is too large
+    // if (t < 0.0)
+    //     return false;
 
     surfacePoint = rayOrigin + rayDirection * t;
     surfaceNormal = m_normal;

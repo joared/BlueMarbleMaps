@@ -219,10 +219,10 @@ void configureMap(const MapPtr& map)
     if (includeBackgroundRaster)
     {
         #ifdef WIN32
-#define PATH_TO_FANNY_FILE "../../../bluemarble_index/backgroundmap.png"
-#else 
-#define PATH_TO_FANNY_FILE "../../../bluemarble_index/backgroundmap.png"
-#endif
+        #define PATH_TO_FANNY_FILE "../../../bluemarble_index/backgroundmap.png"
+        #else 
+        #define PATH_TO_FANNY_FILE "../../../geodata/HYP_HR_SR_OB_DR/HYP_HR_SR_OB_DR.tif"
+        #endif
         auto backgroundImageDataSet = std::make_shared<ImageDataSet>(PATH_TO_FANNY_FILE);
         backgroundImageDataSet->initialize(DataSetInitializationType::RightHereRightNow);
         
@@ -239,9 +239,9 @@ void configureMap(const MapPtr& map)
     if (includeCountries) 
     {
         // Datasets
-        auto northAmerica = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/world_geojson/northamerica_high_fixed.geo.json");
-        auto southAmerica = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/world_geojson/southamerica_high.geo.json");
-        auto world = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/world_geojson/world_high.geo.json");
+        auto northAmerica = std::make_shared<BlueMarble::GeoJsonFileDataSet>("../../../geodata/world_geojson/northamerica_high_fixed.geo.json");
+        auto southAmerica = std::make_shared<BlueMarble::GeoJsonFileDataSet>("../../../geodata/world_geojson/southamerica_high.geo.json");
+        auto world = std::make_shared<BlueMarble::GeoJsonFileDataSet>("../../../geodata/world_geojson/world_high.geo.json");
         northAmerica->indexPath(commonIndexPath);
         southAmerica->indexPath(commonIndexPath);
         world->indexPath(commonIndexPath);
@@ -281,7 +281,7 @@ void configureMap(const MapPtr& map)
     if (includeRoadsEurope)
     {
         // Dataset
-        auto roadsDataSet = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/roads_geojson/europe-road.geojson"); 
+        auto roadsDataSet = std::make_shared<BlueMarble::GeoJsonFileDataSet>("../../../geodata/roads_geojson/europe-road.geojson"); 
         roadsDataSet->name("Roads Europe");
         roadsDataSet->indexPath(commonIndexPath);
         roadsDataSet->initialize(dataSetInitialization);
@@ -299,7 +299,7 @@ void configureMap(const MapPtr& map)
     if (includeSwedenRoads)
     {
         // Dataset
-        auto sverigeRoadsDataSet = std::make_shared<BlueMarble::GeoJsonFileDataSet>("/home/joar/BlueMarbleMaps/geodata/svenska_vagar/hotosm_swe_roads_lines_geojson.geojson"); 
+        auto sverigeRoadsDataSet = std::make_shared<BlueMarble::GeoJsonFileDataSet>("../../../geodata/svenska_vagar/hotosm_swe_roads_lines_geojson.geojson"); 
         sverigeRoadsDataSet->name("Roads Sweden");
         sverigeRoadsDataSet->indexPath(commonIndexPath);
         sverigeRoadsDataSet->initialize(dataSetInitialization); // Takes very long to initialize (1.4 GB large)
@@ -319,12 +319,15 @@ void configureMap(const MapPtr& map)
         auto vectorDataSet = std::make_shared<MemoryDataSet>();
         vectorDataSet->initialize(DataSetInitializationType::RightHereRightNow);
 
+        auto grusgrus = std::vector<Point>({{18.048981189498615, 59.34314379243086}, {18.048965934358133, 59.34327357866866}, {18.049345426522272, 59.34328190127159}, {18.049360728625665, 59.34315706201355}});
         auto polypoints = std::vector<Point>({{14,56}, {14,57}, {15,57}});
         auto linepoints = std::vector<Point>({{15,57}, {15,58}, {16,58}});
+        auto grusgrusfeature = vectorDataSet->createFeature(std::make_shared<PolygonGeometry>(grusgrus));
         auto testfeature = vectorDataSet->createFeature(std::make_shared<PolygonGeometry>(polypoints));
         auto testfeatureLine = vectorDataSet->createFeature(std::make_shared<LineGeometry>(linepoints));
         testfeature->move({-15,-57});
         testfeatureLine->move({-15,-57});
+        vectorDataSet->addFeature(grusgrusfeature);
         vectorDataSet->addFeature(testfeature);
         vectorDataSet->addFeature(testfeatureLine);
 
@@ -333,6 +336,7 @@ void configureMap(const MapPtr& map)
         vectorLayer->selectable(true);
 
         auto polyVis = std::make_shared<PolygonVisualizer>();
+        polyVis->color(DirectColorAttributeVariable(Color(255,194,209)));
         vectorLayer->visualizers().push_back(polyVis);
 
         map->addLayer(vectorLayer);

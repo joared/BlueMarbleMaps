@@ -50,6 +50,7 @@ public:
 
 	void setVao(VAO& vao) override;
 	void setVbo(VBO& vbo) override;
+	VBO& getVbo();
 	void setIbo(IBO& ibo) override;
 	void setShader(ShaderPtr shader) override;
 	ShaderPtr getShader() override;

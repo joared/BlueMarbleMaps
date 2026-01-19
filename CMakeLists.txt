@@ -50,6 +50,9 @@ endif()
 
 set(LINK_TO_GL ON)
 
+message("Finding GDAL")
+find_package(GDAL REQUIRED)
+
 # Add a library to easy link test cases
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/examples)

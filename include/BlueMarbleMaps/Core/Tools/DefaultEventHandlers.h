@@ -337,8 +337,8 @@ namespace BlueMarble
                     static auto radiusProgressEval = AnimationFunctions::AnimationBuilder().bounce().build();
                     static auto rotationProgressEval = AnimationFunctions::AnimationBuilder().sigmoid(12.0).build();
                     
-                    constexpr int animationTime = 1000;
-                    constexpr double symbolScale = 1.3;
+                    constexpr int animationTime = 1000; // Adjust this for animation duration (ms)
+                    constexpr double symbolScale = 1.5; //1.3; // Adjust this for scaling the whole symbol
                     
                     const auto& orbitPoint = m_orbitPoint;
 
@@ -367,13 +367,15 @@ namespace BlueMarble
                     m_map->setDrawableFromCamera(m_map->camera());
                     Pen ppp;
                     ppp.setColor(Color::white(0.5));
-                    Brush bbb = Brush::transparent();
+                    Brush bbb;;
                     bbb.setColor(Color(70, 50, 255, 0.5));
+                    Brush bbb2;
+                    bbb2.setColor(Color(70, 50, 70, 0.25));
 
                     double x = orbitPoint.x();
                     double y = orbitPoint.y();
                     
-                    double off = BMM_PI * 0.5 + rotation;
+                    double off = rotation; // + BMM_PI * 0.5;
                     double gap = 0.1;     // 0.1
                     double stretch = 0.12; // 0.2
                     auto louter1 = generateArcLine(radius, gap+off, BMM_PI+off-gap);                    
@@ -405,7 +407,7 @@ namespace BlueMarble
                     d->drawLine(outer22, ppp);
                     d->drawLine(outer33, ppp);
                     d->drawLine(inner1, ppp);
-                    
+                    d->drawCircle(x,y,radius*0.3 - 1.0*unitsPerPixel,ppp, bbb2);
 
                     d->endBatches();
                     d->beginBatches();
@@ -413,8 +415,10 @@ namespace BlueMarble
                     // d->drawPolygon(pol, ppp, bbb);
                     
                     auto translation = m_map->camera()->translation();
+                    
                     m_map->camera()->setTranslation(translation + Point(0,0,-zDisplacement));
                     m_map->setDrawableFromCamera(m_map->camera());
+                    
                     d->drawCircle(x,y,radius*0.3 - 1.0*unitsPerPixel,ppp, bbb);
                     m_map->camera()->setTranslation(translation);
                     
@@ -588,7 +592,9 @@ namespace BlueMarble
                     {
                         // Zoom
                         const double ZOOM_SCALE = 0.01;
+                        
                         auto mapPoint = m_map->screenToMap(m_map->pixelToScreen(Point{dragEvent.startPos.x, dragEvent.startPos.y}));
+                        m_orbitPoint = mapPoint;
                         double deltaY = dragEvent.pos.y - dragEvent.lastPos.y;
                         double scale = 1 + abs(deltaY)*ZOOM_SCALE;
                         double zoomFactor = deltaY > 0 ? scale : 1.0/scale;

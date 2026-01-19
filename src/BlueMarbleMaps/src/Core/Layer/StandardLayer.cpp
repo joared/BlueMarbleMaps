@@ -131,7 +131,7 @@ void StandardLayer::hitTest(const MapPtr& map, const Rectangle& bounds, std::vec
     }
 }
 
-void StandardLayer::prepare(const CrsPtr &crs, const FeatureQuery &featureQuery)
+void StandardLayer::prepare(const CrsPtr &crs, const FeatureQuery& featureQuery)
 {
     m_queriedFeatures = std::make_shared<FeatureEnumerator>();
     if (!isActiveForQuery(featureQuery))
@@ -158,6 +158,7 @@ void StandardLayer::prepare(const CrsPtr &crs, const FeatureQuery &featureQuery)
             }
             m_doRead = true;
             m_query = featureQuery;
+            m_queryArea = featureQuery.area();
             m_query.ids(cacheMissingIds);
             m_crs = crs;
         }
@@ -165,6 +166,7 @@ void StandardLayer::prepare(const CrsPtr &crs, const FeatureQuery &featureQuery)
     }
     else
     {
+        m_queryArea = featureQuery.area();
         m_queriedFeatures = getFeatures(crs, featureQuery, true);
     }
 }
@@ -172,6 +174,7 @@ void StandardLayer::prepare(const CrsPtr &crs, const FeatureQuery &featureQuery)
 void StandardLayer::update(const MapPtr& map)
 {
     const auto& features = m_queriedFeatures;
+    const auto& updateArea = m_queryArea;
     auto& updateAttributes = map->updateAttributes();
     
     std::vector<FeaturePtr> hoveredFeatures;
@@ -190,7 +193,7 @@ void StandardLayer::update(const MapPtr& map)
             if (renderingEnabled())
             {
                 //m_drawable->visualizerBegin();
-                vis->renderFeature(*map->drawable(), f, updateAttributes); // Calls drawable->drawLine, drawable->drawPolygon etc
+                vis->renderFeature(*map->drawable(), f, updateAttributes, updateArea); // Calls drawable->drawLine, drawable->drawPolygon etc
                 //m_drawable->visualizerEnd();
             }
 
@@ -216,7 +219,7 @@ void StandardLayer::update(const MapPtr& map)
         for (const auto& f : hoveredFeatures)
         {
             if (renderingEnabled())
-                vis->renderFeature(*map->drawable(), f, updateAttributes);
+                vis->renderFeature(*map->drawable(), f, updateAttributes, updateArea);
         }
         map->drawable()->endBatches();
     }
@@ -226,7 +229,7 @@ void StandardLayer::update(const MapPtr& map)
         for (const auto& f : selectedFeatures)
         {
             if (renderingEnabled())
-                vis->renderFeature(*map->drawable(), f, updateAttributes);
+                vis->renderFeature(*map->drawable(), f, updateAttributes, updateArea);
         }
         map->drawable()->endBatches();
     }
@@ -411,7 +414,7 @@ void StandardLayer::createDefaultVisualizers()
 
     // Line visualizer
     auto lineVis = std::make_shared<LineVisualizer>();
-    lineVis->color(ColorEvaluation([](FeaturePtr, Attributes&) { return Color(50,50,50,0.2); }));
+    lineVis->color(ColorEvaluation([](FeaturePtr, Attributes&) { return Color(50,50,50,0.7); }));
     //lineVis->color(colorEvalSelect);
     lineVis->width([](FeaturePtr, Attributes&) -> double { return 3.0; });
 
@@ -440,7 +443,7 @@ void StandardLayer::createDefaultVisualizers()
     );
 
     m_visualizers.push_back(rasterVis);
-    //m_visualizers.push_back(polVis);
+    // m_visualizers.push_back(polVis);
     //m_visualizers.push_back(pointVis);
     m_visualizers.push_back(lineVis);
     //m_visualizers.push_back(nodeVis);

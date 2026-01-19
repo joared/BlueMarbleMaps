@@ -157,7 +157,7 @@ void SoftwareDrawable::Impl::drawRect(const Point& topLeft, const Point& bottomR
                             (float)color.a());
 }
 
-void SoftwareDrawable::Impl::drawRaster(const RasterGeometryPtr& geometry, const Brush& brush)
+void SoftwareDrawable::Impl::drawRaster(const RasterGeometryPtr& geometry, const Brush& brush, const Rectangle& clip)
 {
     auto center = m_transform.translation();
     double scaleX = m_transform.scaleX();
@@ -201,8 +201,8 @@ void SoftwareDrawable::Impl::drawRaster(const RasterGeometryPtr& geometry, const
     auto rasterImg = cimg_library::CImg<unsigned char>(raster.data(), raster.width(), raster.height(), 1, raster.channels(), true);
 #else
     // stb_image Raster implementation, need to convert
-    auto rasterImg = cimg_library::CImg<unsigned char>(subRaster.data(), subRaster.width(), subRaster.height(), 1, subRaster.channels());
-    OPENGL_TO_CIMG(rasterImg.data(), subRaster.data(), subRaster.width(), subRaster.height(), subRaster.channels());
+    auto rasterImg = cimg_library::CImg<unsigned char>((unsigned char*)subRaster.data(), subRaster.width(), subRaster.height(), 1, subRaster.channels());
+    OPENGL_TO_CIMG(rasterImg.data(), (unsigned char*)subRaster.data(), subRaster.width(), subRaster.height(), subRaster.channels());
 #endif
 
     double alpha = brush.getColor().a();

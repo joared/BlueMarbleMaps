@@ -12,8 +12,7 @@ namespace BlueMarble
     public:
         virtual ~ISpatialIndex() = default;
 
-        virtual void build(const FeatureCollectionPtr& entries, const std::string& path) = 0;
-        virtual bool load(const std::string& path) = 0;
+        virtual void build(const FeatureCollectionPtr& entries) = 0;
 
         virtual void insert(const FeatureId& id, const Rectangle& bounds) = 0;
         virtual void clear() = 0;

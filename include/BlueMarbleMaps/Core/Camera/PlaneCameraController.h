@@ -51,6 +51,7 @@ class PlaneCameraController : public ICameraController
             , m_currentWorldBounds(Rectangle::undefined())
             , m_zoom(1.0)
             , m_targetZoom(m_zoom)
+            , m_maxZoom(1.0)
             , m_rotation(0.0)
             , m_targetRotation(m_rotation)
             , m_tilt(0.0)
@@ -102,7 +103,8 @@ class PlaneCameraController : public ICameraController
         }
         void zoomBy(double zoomFactor) 
         { 
-            m_targetZoom *= zoomFactor; 
+            m_targetZoom *= zoomFactor;
+            m_targetZoom = Utils::clampValue(m_targetZoom, 0.0, m_maxZoom);
             if (m_flags == InteractionFlags::ControllerIdle) m_justStarted = true;
             m_flags = m_flags | ControllerZooming;
         }
@@ -200,7 +202,6 @@ class PlaneCameraController : public ICameraController
 
             newCamera->setTranslation(currentCamera->translation());
             newCamera->setOrientation(currentCamera->orientation());
-            // newCamera->setTransform(currentCamera->transform());
 
             stateFromCamera(newCamera, crs);
 
@@ -310,11 +311,11 @@ class PlaneCameraController : public ICameraController
             auto status = ControllerStatus::Updated;
 
             if (m_flags & InteractionFlags::ControllerPanning &&
-                (m_center - m_targetCenter).length() < 1e-6)
+                (m_center - m_targetCenter).length() < 1e-10)
             {
                 m_center = m_targetCenter;
                 m_flags = m_flags & ~InteractionFlags::ControllerPanning;
-                BMM_DEBUG() << "Stopped Panning\n";
+                // BMM_DEBUG() << "Stopped Panning\n";
                 // logFlags();
             }
             
@@ -323,7 +324,7 @@ class PlaneCameraController : public ICameraController
             {
                 m_zoom = m_targetZoom;
                 m_flags = m_flags & ~InteractionFlags::ControllerZooming;
-                BMM_DEBUG() << "Stopped Zooming\n";
+                // BMM_DEBUG() << "Stopped Zooming\n";
                 // logFlags();
             }
 
@@ -332,7 +333,7 @@ class PlaneCameraController : public ICameraController
             {
                 m_rotation = m_targetRotation;
                 m_flags = m_flags & ~InteractionFlags::ControllerRotating;
-                BMM_DEBUG() << "Stopped Rotating\n";
+                // BMM_DEBUG() << "Stopped Rotating\n";
                 // logFlags();
             }
 
@@ -341,7 +342,7 @@ class PlaneCameraController : public ICameraController
             {
                 m_tilt = m_targetTilt;
                 m_flags = m_flags & ~InteractionFlags::ControllerTilting;
-                BMM_DEBUG() << "Stopped Tilting\n";
+                // BMM_DEBUG() << "Stopped Tilting\n";
                 // logFlags();
             }
 
@@ -350,13 +351,13 @@ class PlaneCameraController : public ICameraController
             {
                 m_fovDeg = m_targetFovDeg;
                 m_flags = m_flags & ~InteractionFlags::ControllerChangingFov;
-                BMM_DEBUG() << "Stopped Changing fov\n";
+                // BMM_DEBUG() << "Stopped Changing fov\n";
                 // logFlags();
             }
 
             if (m_flags == InteractionFlags::ControllerIdle)
             {
-                BMM_DEBUG() << "IDLE!\n";
+                // BMM_DEBUG() << "IDLE!\n";
             }
 
             return m_flags == InteractionFlags::ControllerIdle ? ControllerStatus::Idle : ControllerStatus::NeedsUpdate;
@@ -387,7 +388,7 @@ class PlaneCameraController : public ICameraController
             else
             {
                 m_center = m_crs->projectTo(crs, m_center);
-                m_zoom *= crs->globalMeterScale() / m_crs->globalMeterScale();
+                m_zoom *= crs->globalMetersPerUnit() / m_crs->globalMetersPerUnit();
             }
 
             m_crs = crs;
@@ -396,6 +397,7 @@ class PlaneCameraController : public ICameraController
             m_targetRotation = m_rotation;
             m_targetTilt = m_tilt;
             m_currentWorldBounds = crs->bounds();
+            m_maxZoom = crs->globalMetersPerUnit() * 100.0; // Result in 1/100 meters per pixel
 
             panBy({0.0,0.0}); // Just to trigger update
         }
@@ -420,6 +422,7 @@ class PlaneCameraController : public ICameraController
         
         double  m_zoom;
         double  m_targetZoom;
+        double  m_maxZoom;
         
         double  m_rotation;
         double  m_targetRotation;

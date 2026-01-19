@@ -5,6 +5,7 @@
 #include "BlueMarbleMaps/Core/Index/ISpatialIndex.h"
 #include "BlueMarbleMaps/Core/Index/IFeatureDataBase.h"
 #include "BlueMarbleMaps/Core/Index/IFeatureCache.h"
+#include "BlueMarbleMaps/Core/Index/IPersistable.h"
 
 #include <memory>
 
@@ -18,7 +19,6 @@ namespace BlueMarble
                      std::unique_ptr<ISpatialIndex> index,
                      IFeatureCachePtr cache = nullptr); // The cache is optional
 
-        void buildIndex(const FeatureCollectionPtr& features, const std::string& indexPath);
         void addFeature(const FeaturePtr& feature);
 
         FeaturePtr getFeature(const FeatureId& id);
@@ -26,12 +26,14 @@ namespace BlueMarble
         FeatureIdCollectionPtr queryIds(const Rectangle& area);
         FeatureCollectionPtr query(const Rectangle& area, const FeatureIdCollectionPtr& featureIds=nullptr);
 
+        void build(const FeatureCollectionPtr& features, const std::string& indexPath);
         bool load(const std::string& indexPath);
-
         bool verifyIndex() const;
 
         void flushCache();
     private:
+        static IPersistable::PersistanceContext getIndexPersistanceContext(IPersistable* p, const std::string& indexPath);
+        static IPersistable::PersistanceContext getDatabasePersistanceContext(IPersistable* p, const std::string& indexPath);
         Id toValidId(const FeatureId& featureId);
         static FeatureIdCollectionPtr idIntersection(const FeatureIdCollectionPtr& requested, const FeatureIdCollectionPtr& candidates);
 

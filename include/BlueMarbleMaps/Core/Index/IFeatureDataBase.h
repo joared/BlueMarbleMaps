@@ -18,9 +18,7 @@ namespace BlueMarble
             virtual void removeFeature(const FeatureId& id) = 0;
             virtual size_t size() const = 0;
 
-            virtual void save(const std::string& path) const = 0;
-            virtual bool load(const std::string& path) = 0;
-            virtual bool build(const FeatureCollectionPtr& features, const std::string& path) = 0;
+            virtual bool build(const FeatureCollectionPtr& features) = 0;
     };
 }
 

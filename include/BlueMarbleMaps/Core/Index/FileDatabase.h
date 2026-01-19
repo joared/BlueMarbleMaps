@@ -2,12 +2,13 @@
 #define BLUEMARBLE_FILEDATABASE
 
 #include "IFeatureDataBase.h"
+#include "IPersistable.h"
 #include "BlueMarbleMaps/System/File.h"
 
 namespace BlueMarble
 {
     
-    class FileDatabase : public IFeatureDataBase
+    class FileDatabase : public IFeatureDataBase, public IPersistable
     {
     public:
         struct FeatureRecord
@@ -22,12 +23,16 @@ namespace BlueMarble
         virtual FeatureCollectionPtr getAllFeatures() override final;
         virtual void removeFeature(const FeatureId& id) override final;
         virtual size_t size() const override final;
-
-        virtual void save(const std::string& path) const override final;
-        virtual bool load(const std::string& path) override final;
-        virtual bool build(const FeatureCollectionPtr& features, const std::string& path) override final;
+        virtual bool build(const FeatureCollectionPtr& features) override final;
+        
+        virtual std::string persistanceId() const { return "file"; }
+        virtual void save(const PersistanceContext& path) const override final;
+        virtual bool load(const PersistanceContext& path) override final;
+        
     private:
         void verifyLoaded() const;
+
+        mutable FeatureCollectionPtr m_stage;
 
         std::string m_filePath;
         std::unique_ptr<File>        m_file;

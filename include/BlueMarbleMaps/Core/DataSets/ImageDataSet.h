@@ -17,9 +17,9 @@ namespace BlueMarble
         private:
             void init() override final;
             void generateOverViews();
-            virtual IdCollectionPtr queryFeatureIds(const FeatureQuery& featureQuery) override final;
-            virtual FeatureEnumeratorPtr queryFeatures(const FeatureQuery& featureQuery) override final;
-            virtual FeaturePtr queryFeature(const Id& id) override final;
+            virtual IdCollectionPtr onGetFeatureIds(const FeatureQuery& featureQuery) override final;
+            virtual FeatureEnumeratorPtr onGetFeatures(const FeatureQuery& featureQuery) override final;
+            virtual FeaturePtr onGetFeature(const Id& id) override final;
             
 
             std::string                        m_filePath;

@@ -18,6 +18,8 @@ namespace BlueMarble
             static CrsPtr wgs84LngLat();
             static CrsPtr wgs84MercatorWeb();
 
+            static CrsPtr fromWkt(const std::string& wkt);
+
             bool isFunctionallyEquivalent(const CrsPtr& otherCrs);
             int64_t id() const { return m_id; };
             Rectangle bounds();
@@ -35,8 +37,8 @@ namespace BlueMarble
 
                 return points;
             }
-            double globalMeterScale() const;
-            double localMeterScaleAt(const Point& p) const;
+            double globalMetersPerUnit() const;
+            double localMetersPerUnitAt(const Point& p) const;
             const GeodeticDatumPtr& datum() { return m_datum; };
             const ProjectionPtr& projection() { return m_projection; }
         private:

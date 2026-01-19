@@ -97,9 +97,9 @@ Raster Raster::Impl::getCrop(int x0, int y0, int x1, int y1)
     return raster;
 }
 
-const unsigned char* Raster::Impl::data() const
+void* Raster::Impl::data() const
 {
-    return m_img.data();
+    return (void*)m_img.data();
 }
 
 Raster::Impl& Raster::Impl::operator=(const Impl& impl)

@@ -5,6 +5,7 @@ set(SRC_DIR ".")
 
 file(GLOB_RECURSE BBM_SOURCES ${CMAKE_SOURCE_DIR}/include/BlueMarbleMaps/*.h)
 
+
 add_subdirectory(Core)
 add_subdirectory(CoordinateSystem)
 add_subdirectory(Logging)
@@ -32,12 +33,17 @@ target_include_directories(BlueMarbleMapsLib
 )
 
 # Add external stuff (ugly way)
-include_directories(BlueMarbleMapsLib
+target_include_directories(BlueMarbleMapsLib
   PUBLIC ${CMAKE_SOURCE_DIR}/external
 )
 
 message("Linking BlueMarbleMapsLib to glm")
 target_link_libraries(BlueMarbleMapsLib PUBLIC glm::glm)
+
+message("Linking BlueMarbleMapsLib to GDAL")
+#target_link_libraries(BlueMarbleMapsLib PUBLIC GDAL::GDAL)
+target_include_directories(BlueMarbleMapsLib PUBLIC ${GDAL_INCLUDE_DIRS})
+target_link_libraries(BlueMarbleMapsLib PUBLIC ${GDAL_LIBRARIES})
 
 if(LINK_TO_CIMG)
     message("Linking BlueMarbleMapsLib to CImgImplementation")

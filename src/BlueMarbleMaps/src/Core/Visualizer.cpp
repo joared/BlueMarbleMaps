@@ -95,7 +95,7 @@ void PointVisualizer::generatePresentationObjects(const FeaturePtr& feature, con
     }
 }
 
-void PointVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feature, Attributes& updateAttributes)
+void PointVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feature, Attributes& updateAttributes, const Rectangle& updateArea)
 {
     auto cond = condition();
     if (!isValidGeometry(feature->geometryType()) || !cond(feature, updateAttributes))
@@ -300,7 +300,7 @@ Pen LineVisualizer::createPen(const FeaturePtr &feature, Attributes &attributes)
     return pen;
 }
 
-void LineVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feature, Attributes& updateAttributes)
+void LineVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feature, Attributes& updateAttributes, const Rectangle& updateArea)
 {
     auto cond = condition();
     if (!isValidGeometry(feature->geometryType()) || !cond(feature, updateAttributes))
@@ -327,7 +327,7 @@ void LineVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feature
     }
 
     double offsetZ = m_offsetZEval(feature, updateAttributes);
-    offsetZ /= feature->crs()->globalMeterScale(); // Meters
+    offsetZ /= feature->crs()->globalMetersPerUnit(); // Meters
 
     for (auto& line : lines)
     {
@@ -367,7 +367,7 @@ bool PolygonVisualizer::isValidGeometry(GeometryType type)
     return type == GeometryType::Polygon;
 }
 
-void PolygonVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feature, Attributes& updateAttributes)
+void PolygonVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feature, Attributes& updateAttributes, const Rectangle& updateArea)
 {
     auto cond = condition();
     if (!isValidGeometry(feature->geometryType()) || !cond(feature, updateAttributes))
@@ -439,19 +439,16 @@ bool RasterVisualizer::isValidGeometry(GeometryType type)
     return type == GeometryType::Raster;
 }
 
-void RasterVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feature, Attributes& updateAttributes)
+void RasterVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& feature, Attributes& updateAttributes, const Rectangle& updateArea)
 {
     auto cond = condition();
     if (!isValidGeometry(feature->geometryType()) || !cond(feature, updateAttributes))
         return;
 
     auto geometry = feature->geometryAsRaster();
-    // auto& newImage = geometry->raster();
-    // auto offset = geometry->bounds().minCorner();
-    // drawable.drawRaster(offset.x(), offset.y(), newImage, 1.0);
     double alpha = m_alphaEval(feature, updateAttributes);
     auto c = Color::white(alpha);
-    drawable.drawRaster(geometry, Brush(std::vector<Color>{c, c, c, c}));
+    drawable.drawRaster(geometry, Brush(std::vector<Color>{c, c, c, c}), updateArea);
 }
 
 void RasterVisualizer::alpha(const DoubleEvaluation& alphaEval)

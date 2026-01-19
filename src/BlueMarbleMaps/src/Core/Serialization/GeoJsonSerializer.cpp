@@ -90,7 +90,6 @@ FeaturePtr GeoJsonSerializer::deserializeFeature(const JsonValue& jsonValue)
     }
     else
     {
-        BMM_DEBUG() << "Geometry is null!\n";
         throw std::runtime_error("Geometry is null!\n");
     }
 

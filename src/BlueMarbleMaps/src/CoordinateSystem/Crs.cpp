@@ -1,5 +1,5 @@
 #include "BlueMarbleMaps/CoordinateSystem/Crs.h"
-
+#include <ogr_spatialref.h>
 
 using namespace BlueMarble;
 
@@ -27,10 +27,55 @@ CrsPtr Crs::wgs84MercatorWeb()
     return crs;
 }
 
-Crs::Crs(const GeodeticDatumPtr& datum, const ProjectionPtr& projection)
-    : m_datum(datum)
-    , m_projection(projection)
-    , m_id(-1) // Invalid id
+CrsPtr Crs::fromWkt(const std::string &wkt)
+{
+    OGRSpatialReference srs;
+    const char* wktCStr = wkt.c_str();
+    char* wktMutable = const_cast<char*>(wktCStr);
+    if (srs.importFromWkt(&wktMutable) != OGRERR_NONE)
+    {
+        throw std::runtime_error("Invalid CRS WKT");
+    }
+
+    if (srs.IsGeocentric())
+    {
+        // TODO
+        BMM_DEBUG() << "Geocentric\n";
+        const char* auth = srs.GetAuthorityName("GEOGCCS");
+        const char* code = srs.GetAuthorityCode("GEOGCCS");
+        BMM_DEBUG() << "auth " << auth << "\n";
+        BMM_DEBUG() << "code " << code << "\n";
+    }
+
+    if (srs.IsGeographic())
+    {
+        OGRSpatialReference wgs84;
+        wgs84.SetWellKnownGeogCS("WGS84");
+
+        if (srs.IsSame(&wgs84))
+        {
+            return Crs::wgs84LngLat();
+        }
+    }
+    
+    if (srs.IsProjected())
+    {
+        // --- Web Mercator ---
+        OGRSpatialReference webMerc;
+        webMerc.importFromEPSG(3857);
+
+        if (srs.IsSame(&webMerc))
+        {
+            return Crs::wgs84MercatorWeb();
+        }
+    }
+
+    // Unsupported CRS
+    throw std::runtime_error("Unsupported CRS in dataset");
+}
+
+Crs::Crs(const GeodeticDatumPtr &datum, const ProjectionPtr &projection)
+    : m_datum(datum), m_projection(projection), m_id(-1) // Invalid id
 {
 }
 
@@ -70,13 +115,13 @@ Rectangle Crs::projectTo(const CrsPtr& crs, const Rectangle& rect) const
     return Rectangle::fromPoints(newCorners);
 }
 
-double Crs::globalMeterScale() const
+double Crs::globalMetersPerUnit() const
 {
-    return m_projection->globalMeterScale(m_datum->ellipsoid());
+    return m_projection->globalMetersPerUnit(m_datum->ellipsoid());
 }
 
-double Crs::localMeterScaleAt(const Point& point) const
+double Crs::localMetersPerUnitAt(const Point& point) const
 {
     auto lngLat = m_projection->unProject(point, m_datum->ellipsoid());
-    return m_projection->localMeterScaleAt(lngLat, m_datum->ellipsoid());
+    return m_projection->localMetersPerUnitAt(lngLat, m_datum->ellipsoid());
 }

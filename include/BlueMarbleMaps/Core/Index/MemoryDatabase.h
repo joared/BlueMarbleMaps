@@ -19,9 +19,7 @@ namespace BlueMarble
         virtual void removeFeature(const FeatureId& id) override final;
         virtual size_t size() const override final;
 
-        virtual void save(const std::string& path) const override final;
-        virtual bool load(const std::string& path) override final;
-        virtual bool build(const FeatureCollectionPtr& features, const std::string& path) override final;
+        virtual bool build(const FeatureCollectionPtr& features) override final;
     private:
         FIFOCache m_cache;
     };

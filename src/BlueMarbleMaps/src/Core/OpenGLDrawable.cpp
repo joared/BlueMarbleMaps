@@ -96,7 +96,7 @@ BlueMarble::OpenGLDrawable::OpenGLDrawable(int width, int height, int colorDepth
     , m_height(height)
     , m_viewMatrix(glm::mat4x4(1))
     , m_projectionMatrix(glm::mat4x4(1))
-    , m_renderOrigin(0.0f)
+    , m_renderOrigin(0.0)
     , m_color(Color::white())
 {
     //glDisable(GL_CULL_FACE);
@@ -255,13 +255,11 @@ void BlueMarble::OpenGLDrawable::beginBatches()
 void BlueMarble::OpenGLDrawable::endBatches()
 {
     auto mat = glm::mat4(m_projectionMatrix * m_viewMatrix);
-    // auto renderOrigin = glm::vec3(float(m_renderOrigin.x()), float(m_renderOrigin.y()), float(m_renderOrigin.z()));
     if (polyBatch)
     {
         auto renderOrigin = glm::vec3(0.0f);
         m_basicShader->useProgram();
         m_basicShader->setMat4("viewMatrix", mat);
-        m_basicShader->setVec3("renderOrigin", renderOrigin);
         polyBatch->end();
         polyBatch->flush();
     }
@@ -269,7 +267,6 @@ void BlueMarble::OpenGLDrawable::endBatches()
     {
         m_lineShader->useProgram();
         m_lineShader->setMat4("viewMatrix", mat);
-        // m_lineShader->setVec3("renderOrigin", renderOrigin);
         lineBatch->end();
         lineBatch->flush();
     }
@@ -526,7 +523,7 @@ unsigned char* readImage(std::string path, int* width, int* height, int* nrOfCha
     return imgBytes;
 }
 
-void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, const Brush& brush)
+void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, const Brush& brush, const Rectangle& clip)
 {
     if (m_primitives.find(raster->getID()) == m_primitives.end())
     {
@@ -537,11 +534,8 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, con
         int w = (float)r.width();
         int h = (float)r.height();
 
-        std::vector<Point> bounds = raster->bounds().corners();
-        std::vector<Color> colors = brush.getColors();
-
-        double minX = raster->bounds().xMin();
-        double minY = raster->bounds().yMin();
+        const std::vector<Point>& bounds = raster->bounds().corners();
+        const std::vector<Color>& colors = brush.getColors();
         
         for (int i = 0; i < bounds.size(); i++)
         {
@@ -551,7 +545,7 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, con
             glm::vec4 glColor((float)bmColor.r()/255, (float)bmColor.g() / 255, (float)bmColor.b() / 255, bmColor.a());
 
             float texCoordX = i == 0 || i == 3 ? 0.0 : 1.0;
-            float texCoordY = i < 2 ? 0.0 : 1.0;
+            float texCoordY = i < 2 ? 1.0 : 0.0;
             glm::vec2 textureCoords(texCoordX, texCoordY);
 
             vertices.push_back(Vertice{ pos, glColor, textureCoords});
@@ -572,7 +566,7 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, con
 
         GLint texIndex = 0;
         info->m_texture = std::make_shared<Texture>();
-        info->m_texture->init(r.data(), r.width(), r.height(), r.channels(), GL_UNSIGNED_BYTE, texIndex);
+        info->m_texture->init((unsigned char*)r.data(), r.width(), r.height(), r.channels(), GL_UNSIGNED_BYTE, texIndex);
 
         info->m_shader->useProgram();
         info->m_shader->setInt("texture0", texIndex);
@@ -584,13 +578,41 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, con
     RectPtr rect = std::static_pointer_cast<Rect>(m_primitives[raster->getID()]);
     if (rect == nullptr) return;
 
+    // Renderorigin test
+    std::vector<Vertice> vertices;
+    auto rasterBounds = raster->bounds();
+    auto clipped = clip.isUndefined() ? raster->bounds() : clip;
+    // clipped = raster->bounds();
+    
+    const std::vector<Point>& bounds = clipped.corners();
+    const std::vector<Color>& colors = brush.getColors();
+
+    double ratioW = clipped.width() / rasterBounds.width();
+    double ratioH = clipped.height() / rasterBounds.height();
+    double xMinTex = (clipped.xMin()-rasterBounds.xMin()) / rasterBounds.width();
+    double yMaxTex = 1.0-(clipped.yMax()-rasterBounds.yMax()) / rasterBounds.height();
+    double xMaxTex = xMinTex + ratioW;
+    double yMinTex = yMaxTex + ratioH;
+    
+    for (int i = 0; i < bounds.size(); i++)
+    {
+        double texCoordX = i == 0 || i == 3 ? xMinTex : xMaxTex;
+        double texCoordY = i < 2 ? yMinTex : yMaxTex;
+        glm::vec2 textureCoords((float)texCoordX, (float)texCoordY);
+
+        Color bmColor = getColorFromList(brush.getColors(), i);
+        Vertice v = createPoint(bounds[i], bmColor);
+        v.texCoord = textureCoords;
+
+        vertices.push_back(v);
+    }
+
     auto mat = glm::mat4(m_projectionMatrix*m_viewMatrix);
-    auto renderOrigin = glm::vec3(float(m_renderOrigin.x()), float(m_renderOrigin.y()), float(m_renderOrigin.z()));
     if (rect->getShader() != nullptr)
     {
+        rect->getVbo().bufferData(vertices);
         rect->getShader()->useProgram();
         rect->getShader()->setMat4("viewMatrix", mat);
-        rect->getShader()->setVec3("renderOrigin", renderOrigin);
     }
     rect->drawIndex(6);
 }

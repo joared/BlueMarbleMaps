@@ -43,7 +43,7 @@ namespace BlueMarble
             virtual void drawPolygon(const PolygonGeometryPtr& geometry, const Pen& pen, const Brush& brush) = 0;
             virtual void drawRect(const Point& topLeft, const Point& bottomRight, const Color& color) = 0;
             virtual void drawRect(const Rectangle& rect, const Color& color) = 0; // Utility method, calls the above
-            virtual void drawRaster(const RasterGeometryPtr& raster, const Brush& brush) = 0;
+            virtual void drawRaster(const RasterGeometryPtr& raster, const Brush& brush, const Rectangle& clip=Rectangle::undefined()) = 0;
             virtual void drawText(int x, int y, const std::string& text, const Color& color, int fontSize=20, const Color& backgroundColor=Color::transparent()) = 0;
             virtual Color readPixel(int x, int y) = 0;
             virtual void setPixel(int x, int y, const Color& color) = 0;

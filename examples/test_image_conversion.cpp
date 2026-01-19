@@ -128,7 +128,7 @@ int main()
         auto start = BlueMarble::getTimeStampMs();
         for (int i(0); i < niterations; ++i)
         {
-            convertOpenGLToCImg(convertedImage, raster.data(), raster.width(), raster.height(), raster.channels());
+            convertOpenGLToCImg(convertedImage, (unsigned char*)raster.data(), raster.width(), raster.height(), raster.channels());
         }
         auto elapsed = BlueMarble::getTimeStampMs() - start;
         std::cout << "Elapsed V1: " << elapsed << " ms\n";
@@ -141,7 +141,7 @@ int main()
 
         for (int i(0); i < niterations; ++i)
         {
-            BlueMarble::interleavedToPlanar(convertedImage.data(), raster.data(), raster.width(), raster.height(), raster.channels());
+            BlueMarble::interleavedToPlanar(convertedImage.data(), (unsigned char*)raster.data(), raster.width(), raster.height(), raster.channels());
             convertedImage.mirror('y');
         }
         auto elapsed = BlueMarble::getTimeStampMs() - start;
@@ -155,7 +155,7 @@ int main()
         auto start = BlueMarble::getTimeStampMs();
         for (int i(0); i < niterations; ++i)
         {
-            BlueMarble::interleavedToPlanarFlipY(convertedImage.data(), raster.data(), raster.width(), raster.height(), raster.channels());
+            BlueMarble::interleavedToPlanarFlipY(convertedImage.data(), (unsigned char*)raster.data(), raster.width(), raster.height(), raster.channels());
         }
         auto elapsed = BlueMarble::getTimeStampMs() - start;
         std::cout << "Elapsed interleavedToPlanarWithYFlip: " << elapsed << " ms\n";

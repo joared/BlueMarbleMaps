@@ -71,18 +71,6 @@ Raster::Impl::Impl(const std::string& filePath)
         std::cout << "Couldn't load image '" << filePath << "': " << stbi_failure_reason() << "\n";
         return;
     }
-    /*
-    stbi_set_flip_vertically_on_load(true);
-    
-    m_data = stbi_load(filePath.c_str(), &m_width, &m_height, &m_channels, STBI_rgb_alpha);
-    if (m_data == nullptr)
-    {
-        std::cout << "Failed to load image: " << filePath << "\n";
-        throw std::exception();
-    }
-
-    std::cout << "Stb image raster loaded: " << m_width << ", " << m_height << ", " << m_channels << "\n";
-    */
 }
 
 Raster::Impl::~Impl()
@@ -284,7 +272,7 @@ void Raster::Impl::save(const std::string& filePath) const
     stbi_write_png(filePath.c_str(), width(), height(), channels(), data(), width() * channels());
 }
 
-const unsigned char* Raster::Impl::data() const
+void* Raster::Impl::data() const
 {
     return m_data;
 }

@@ -165,7 +165,8 @@ FeaturePtr deserializeFeature(const std::string& string)
 }
 
 FileDatabase::FileDatabase()
-    : m_filePath()
+    : m_stage()
+    , m_filePath()
     , m_index()
     , m_isLoaded()
     , m_file()
@@ -221,21 +222,32 @@ size_t FileDatabase::size() const
     return m_index.size();
 }
 
-void FileDatabase::save(const std::string& path) const
+void FileDatabase::save(const PersistanceContext& ctx) const
 {
-    throw std::runtime_error("FileDatabase::save() Not implemented.");
+    std::vector<std::string> lines;
+    for (const auto& f : *m_stage)//*getAllFeatures())
+    {
+        auto str = serializeFeature(f);
+        // str.erase(std::remove_if(str.begin(), str.end(),
+        //                      [](unsigned char c) { return std::isspace(c); }),
+        //       str.end());
+        lines.push_back(str);
+    }
+    
+    File::writeLines(ctx.fileName, lines);
+    m_stage = nullptr; // TODO: this is uggly
 }
 
-bool FileDatabase::load(const std::string& path)
+bool FileDatabase::load(const PersistanceContext& ctx)
 {
-    std::ifstream file(path);
+    std::ifstream file(ctx.fileName);
     if (!file.good())
     {
         return false;
     }
 
-    m_filePath = path;
-    m_file = std::make_unique<File>(path);
+    m_filePath = ctx.fileName;
+    m_file = std::make_unique<File>(ctx.fileName);
     m_file->buildIndex();
     m_index.clear();
 
@@ -252,21 +264,10 @@ bool FileDatabase::load(const std::string& path)
     return m_index.size() > 0;
 }
 
-bool FileDatabase::build(const FeatureCollectionPtr& features, const std::string& path)
+bool FileDatabase::build(const FeatureCollectionPtr& features)
 {
-    std::vector<std::string> lines;
+    m_stage = features;
     
-    for (const auto& f : *features)//*getAllFeatures())
-    {
-        auto str = serializeFeature(f);
-        // str.erase(std::remove_if(str.begin(), str.end(),
-        //                      [](unsigned char c) { return std::isspace(c); }),
-        //       str.end());
-        lines.push_back(str);
-    }
-    
-    File::writeLines(path, lines);
-
     return true;
 }
 

@@ -88,27 +88,6 @@ class BlueMarble::QuadTreeNode
             // std::cout  << "Added: " << center.x() << ", " << center.y() << "\n";
         }
 
-        // const FeatureCollection& features() { return m_features; }
-        // FeaturePtr getFeature(const Id& id, bool recursive=false) const
-        // {
-        //     for (const auto& e : m_entries)
-        //     {
-        //         if (id == e.second)
-        //             return f;
-        //     }
-
-        //     if (recursive)
-        //     {
-        //         for (auto child : m_children)
-        //         {
-        //             if (auto f = child->getFeature(id))
-        //                 return f;
-        //         }
-        //     }
-
-        //     return nullptr;
-        // }
-
         // Recursively retrives all features
         void queryAll(const FeatureIdCollectionPtr& featureIds) const
         {
@@ -155,54 +134,13 @@ class BlueMarble::QuadTreeNode
         QuadTree*                  m_owner;
 };
 
-
-
-JsonValue serializeNode(const QuadTreeNode* node)
-{
-    JsonValue::Object data;
-    
-    data["bounds"] = 
-    {
-        {"xMin", node->bounds().xMin()},
-        {"yMin", node->bounds().yMin()},
-        {"xMax", node->bounds().xMax()},
-        {"yMax", node->bounds().yMax()}
-    };
-
-    data["entries"] = JsonValue::Array();
-    auto& entries = data["entries"].get<JsonValue::Array>();
-    for (const auto& e : node->entries())
-    {
-        const auto& b = e.second;
-        entries.push_back({
-            {"id", (int)e.first},
-            {"bounds", {
-                {"xMin", b.xMin()},
-                {"yMin", b.yMin()},
-                {"xMax", b.xMax()},
-                {"yMax", b.yMax()}
-            }}
-        });
-    }
-    
-    data["children"] = JsonValue::Array();
-    auto& children = data["children"].get<JsonValue::Array>();
-    for (auto child : node->children())
-    {
-        children.push_back(serializeNode(child));
-    }
-
-    return data;
-}
-
-
 QuadTreeIndex::QuadTreeIndex(const Rectangle& rootBounds, double minSize)
     : m_root(new QuadTreeNode(rootBounds))
     , m_minSize(minSize)
 {
 }
 
-void QuadTreeIndex::build(const FeatureCollectionPtr& entries, const std::string& path)
+void QuadTreeIndex::build(const FeatureCollectionPtr& entries)
 {
     for (const auto& f : *entries)
     {
@@ -238,14 +176,104 @@ void QuadTreeIndex::clear()
 {
 }
 
-bool QuadTreeIndex::load(const std::string& path)
+bool QuadTreeIndex::load(const PersistanceContext& ctx)
 {
-    return false;
+    return loadJson(ctx.fileName);;
 }
 
-// BlueMarble::FeaturePtr QuadTree::findFeature(const Id &id) const
-// {
-//     return m_root->getFeature(id, true);
-// }
+void QuadTreeIndex::save(const PersistanceContext& ctx) const
+{
+    saveJson(ctx.fileName);
+}
 
+JsonValue serializeNode(const QuadTreeNode* node)
+{
+    JsonValue::Object data;
+    
+    data["bounds"] = 
+    {
+        {"xMin", node->bounds().xMin()},
+        {"yMin", node->bounds().yMin()},
+        {"xMax", node->bounds().xMax()},
+        {"yMax", node->bounds().yMax()}
+    };
 
+    data["entries"] = JsonValue::Array();
+    auto& entries = data["entries"].get<JsonValue::Array>();
+    for (const auto& e : node->entries())
+    {
+        const auto& b = e.second;
+        entries.push_back({
+            {"id", (int)e.first},
+            {"bounds", {
+                {"xMin", b.xMin()},
+                {"yMin", b.yMin()},
+                {"xMax", b.xMax()},
+                {"yMax", b.yMax()}
+            }}
+        });
+    }
+    
+    data["children"] = JsonValue::Array();
+    auto& children = data["children"].get<JsonValue::Array>();
+    for (auto child : node->children())
+    {
+        children.emplace_back(std::move(serializeNode(child)));
+    }
+
+    return data;
+}
+
+QuadTreeNode* deserializeNode(const JsonValue& json)
+{
+    const JsonValue::Object& data = json.asObject();
+
+    // Bounds of this node
+    double xMin = data.at("bounds").asObject().at("xMin").asDouble();
+    double yMin = data.at("bounds").asObject().at("yMin").asDouble();
+    double xMax = data.at("bounds").asObject().at("xMax").asDouble();
+    double yMax = data.at("bounds").asObject().at("yMax").asDouble();
+    auto bounds = Rectangle(xMin, yMin, xMax, yMax);
+
+    auto node = new QuadTreeNode(bounds);
+
+    const auto& entries = data.at("entries").asArray();
+    for (const auto& e : entries)
+    {
+        int id = e.asObject().at("id").asInteger();
+        double xMin = e.asObject().at("bounds").asObject().at("xMin").asDouble();
+        double yMin = e.asObject().at("bounds").asObject().at("yMin").asDouble();
+        double xMax = e.asObject().at("bounds").asObject().at("xMax").asDouble();
+        double yMax = e.asObject().at("bounds").asObject().at("yMax").asDouble();
+
+        node->add(id, Rectangle(xMin, yMin, xMax, yMax));
+    }
+
+    const auto& children = data.at("children").asArray();
+    for (const auto& c : children)
+    {
+        node->addChild(deserializeNode(c));
+    }
+
+    return node;
+}
+
+void QuadTreeIndex::saveJson(const std::string &path) const
+{
+    auto json = std::move(serializeNode(m_root));
+    File::writeString(path, json.toString());
+}
+
+bool QuadTreeIndex::loadJson(const std::string &path)
+{
+    auto f = File(path);
+    if (!f.isOpen())
+    {
+        return false;
+    }
+
+    JsonValue json = JsonValue::fromString(File::readAsString(path));
+    m_root = deserializeNode(json);
+
+    return true;
+}

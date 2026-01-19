@@ -1,5 +1,5 @@
-#ifndef BLUEMARBLE_PROJECTION
-#define BLUEMARBLE_PROJECTION
+#ifndef PROJECTION
+#define PROJECTION
 
 #include "BlueMarbleMaps/Core/Core.h"
 #include "BlueMarbleMaps/CoordinateSystem/Ellipsoid.h"
@@ -25,8 +25,8 @@ namespace BlueMarble
         static ProjectionPtr longLat();
         virtual Point project(const Point& lngLat, const EllipsoidPtr& ellipsoid) = 0;
         virtual Point unProject(const Point& point, const EllipsoidPtr& ellipsoid) = 0;
-        virtual double globalMeterScale(const EllipsoidPtr& ellipsoid) = 0;                      // meters per unit in the projection
-        virtual double localMeterScaleAt(const Point& lngLat, const EllipsoidPtr& ellipsoid) = 0; // meters per unit in the projection at a specific point
+        virtual double globalMetersPerUnit(const EllipsoidPtr& ellipsoid) = 0;                      // meters per unit in the projection
+        virtual double localMetersPerUnitAt(const Point& lngLat, const EllipsoidPtr& ellipsoid) = 0; // meters per unit in the projection at a specific point
     };
 
     class LongLatProjection : public Projection
@@ -35,11 +35,11 @@ namespace BlueMarble
         LongLatProjection() {}
         virtual Point project(const Point& lngLat, const EllipsoidPtr& ellipsoid) override final { return lngLat; };
         virtual Point unProject(const Point& point, const EllipsoidPtr& ellipsoid) override final { return point; };
-        virtual double globalMeterScale(const EllipsoidPtr& ellipsoid) override final
+        virtual double globalMetersPerUnit(const EllipsoidPtr& ellipsoid) override final
         {
             return BMM_PI / 180.0 * ellipsoid->a();
         };
-        virtual double localMeterScaleAt(const Point& lngLat, const EllipsoidPtr& ellipsoid) override final
+        virtual double localMetersPerUnitAt(const Point& lngLat, const EllipsoidPtr& ellipsoid) override final
         {
             double lat = lngLat.y() * BMM_PI / 180.0;
             return BMM_PI / 180.0 * ellipsoid->a() * cos(lat);
@@ -77,12 +77,12 @@ namespace BlueMarble
             return Point(lon, lat);
         };
 
-        virtual double globalMeterScale(const EllipsoidPtr& ellipsoid) override final
+        virtual double globalMetersPerUnit(const EllipsoidPtr& ellipsoid) override final
         {
             return 1.0;
         };
 
-        virtual double localMeterScaleAt(const Point& lngLat, const EllipsoidPtr& ellipsoid) override final
+        virtual double localMetersPerUnitAt(const Point& lngLat, const EllipsoidPtr& ellipsoid) override final
         {
             double lat = lngLat.y() * BMM_PI / 180.0;
             return 1.0 / cos(lat); // scale distortion increases with latitude
@@ -92,5 +92,5 @@ namespace BlueMarble
 } // namespace BlueMarble
 
 
-#endif /* BLUEMARBLE_PROJECTION */
+#endif /* PROJECTION */
 

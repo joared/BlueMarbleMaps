@@ -12,7 +12,7 @@ namespace BlueMarble
         : m_idToRect()
         {}
         
-        virtual void build(const FeatureCollectionPtr& entries, const std::string& path) override final
+        virtual void build(const FeatureCollectionPtr& entries) override final
         {
             for (const auto& f : *entries)
             {
@@ -54,7 +54,6 @@ namespace BlueMarble
             return ids;
         };
 
-        virtual bool load(const std::string& path) override final { return false; };
     private:
         std::map<FeatureId, Rectangle> m_idToRect;
     };

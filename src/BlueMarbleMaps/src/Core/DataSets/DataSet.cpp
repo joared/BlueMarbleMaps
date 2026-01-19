@@ -141,33 +141,33 @@ bool DataSet::ensureInitialized()
 IdCollectionPtr DataSet::getFeatureIds(const FeatureQuery& featureQuery)
 {
     if (!ensureInitialized()) return std::make_shared<IdCollection>();
-    return queryFeatureIds(featureQuery);
+    return onGetFeatureIds(featureQuery);
 }
 
 FeatureEnumeratorPtr DataSet::getFeatures(const FeatureQuery& featureQuery)
 {
     if (!ensureInitialized()) return std::make_shared<FeatureEnumerator>();
-    return queryFeatures(featureQuery);
+    return onGetFeatures(featureQuery);
 }
 
 FeatureCollectionPtr DataSet::getFeatures(const IdCollectionPtr& ids)
 {
     if (!ensureInitialized()) return std::make_shared<FeatureCollection>();
-    return queryFeatures(ids);
+    return onGetFeatures(ids);
 }
 
 FeaturePtr DataSet::getFeature(const Id& id)
 {
     if (!ensureInitialized()) return nullptr;
-    return queryFeature(id);
+    return onGetFeature(id);
 }
 
-FeatureCollectionPtr DataSet::queryFeatures(const IdCollectionPtr& ids)
+FeatureCollectionPtr DataSet::onGetFeatures(const IdCollectionPtr& ids)
 {
     auto features = std::make_shared<FeatureCollection>();
     for (const auto& id : *ids)
     {
-        features->add(queryFeature(id));
+        features->add(onGetFeature(id));
     }
     
     return features;

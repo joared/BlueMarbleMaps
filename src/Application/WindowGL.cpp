@@ -170,28 +170,28 @@ void WindowGL::getMousePosition(double* xPos, double* yPos) const
 void WindowGL::internalKeyEventCallback(GLFWwindow* window, int key, int scanCode, int action, int modifier)
 {
 	WindowGL* owner = reinterpret_cast<WindowGL*>(glfwGetWindowUserPointer(window));
-	std::cout << "function has been registered, am now calling function for one large mongoloid O____O" << std::endl;
+	// std::cout << "function has been registered, am now calling function for one large mongoloid O____O" << std::endl;
 	owner->keyEvent(owner, key, scanCode, action, modifier);
 }
 
 void WindowGL::internalResizeEventCallback(GLFWwindow* window, int width, int height)
 {
 	WindowGL* owner = reinterpret_cast<WindowGL*>(glfwGetWindowUserPointer(window));
-	std::cout << "Resizing mai balls to precisely x: " << width << " y: " << height << std::endl;
+	// std::cout << "Resizing mai balls to precisely x: " << width << " y: " << height << std::endl;
 	owner->resizeEvent(owner, width, height);
 }
 
 void WindowGL::internalResizeFrameBufferEventCallback(GLFWwindow* window, int width, int height)
 {
 	WindowGL* owner = reinterpret_cast<WindowGL*>(glfwGetWindowUserPointer(window));
-	std::cout << "gosh darn it resize your view port to x: " << width << " y: " << height << std::endl;
+	// std::cout << "gosh darn it resize your view port to x: " << width << " y: " << height << std::endl;
 	owner->resizeFrameBuffer(owner, width, height);
 }
 
 void WindowGL::internalMouseButtonEventCallback(GLFWwindow* window, int button, int action, int modifier)
 {
 	WindowGL* owner = reinterpret_cast<WindowGL*>(glfwGetWindowUserPointer(window));
-	std::cout << "mouse button baby: " << button << std::endl;
+	// std::cout << "mouse button baby: " << button << std::endl;
 	owner->mouseButtonEvent(owner, button, action, modifier);
 }
 
@@ -204,21 +204,21 @@ void WindowGL::internalMousePositionEventCallback(GLFWwindow* window, double xPo
 void WindowGL::internalMouseScrollEventCallback(GLFWwindow* window, double xOffs, double yOffs)
 {
 	WindowGL* owner = reinterpret_cast<WindowGL*>(glfwGetWindowUserPointer(window));
-	std::cout << "mouse scroll x: " << xOffs << " y: " << yOffs << std::endl;
+	// std::cout << "mouse scroll x: " << xOffs << " y: " << yOffs << std::endl;
 	owner->mouseScrollEvent(owner, xOffs, yOffs);
 }
 
 void WindowGL::internalMouseEnteredCallback(GLFWwindow* window, int entered)
 {
 	WindowGL* owner = reinterpret_cast<WindowGL*>(glfwGetWindowUserPointer(window));
-	std::cout << "mouse in " << entered << std::endl;
+	// std::cout << "mouse in " << entered << std::endl;
 	owner->mouseEntered(owner, entered);
 }
 
 void WindowGL::internalCloseWindowEventCallback(GLFWwindow* window)
 {
 	WindowGL* owner = reinterpret_cast<WindowGL*>(glfwGetWindowUserPointer(window));
-	std::cout << "I am going to die" << std::endl;
+	// std::cout << "I am going to die" << std::endl;
 	owner->windowClosed(owner);
 }
 

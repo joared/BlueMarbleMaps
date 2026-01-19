@@ -52,7 +52,7 @@ namespace BlueMarble
             void blur(double sigmaX, double sigmaY, double sigmaZ, bool isGaussian=false);
             Raster getCrop(int x0, int y0, int x1, int y1);
             void save(const std::string& filePath) const;
-            const unsigned char* data() const;
+            void* data() const;
 
             Raster& operator=(const Raster& raster);
             Raster& operator=(Raster&& raster) noexcept;

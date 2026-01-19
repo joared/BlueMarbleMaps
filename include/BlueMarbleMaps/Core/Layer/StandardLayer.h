@@ -60,6 +60,7 @@ namespace BlueMarble
             bool                    m_doRead;
             bool                    m_stop;
             FeatureQuery            m_query;
+            Rectangle               m_queryArea;
             CrsPtr                  m_crs;
             std::function<void()>   m_job;
 

@@ -84,13 +84,13 @@ class SignalImpl : public ISignal
                     , m_signal(other.m_signal)
                     , m_id(other.m_id)
                 {
-                    BMM_DEBUG() << "Subscription(Subscription&& other)\n";
+                    // BMM_DEBUG() << "Subscription(Subscription&& other)\n";
                     other.m_isValid = false;
                 }
 
                 Subscription& operator=(Subscription&& other) noexcept
                 {
-                    BMM_DEBUG() << "Subscription::operator==\n";
+                    // BMM_DEBUG() << "Subscription::operator==\n";
                     if (this != &other) {
                         if (m_isValid) // && m_id != other.m_id) 
                         {
@@ -161,7 +161,7 @@ class SignalImpl : public ISignal
 
         Subscription createSubscription(const Handler& handler)
         {
-            BMM_DEBUG() << "(subscription)";
+            // BMM_DEBUG() << "(subscription)";
             SubscriptionID id = reinterpret_cast<SubscriptionID>(&handler);
             subscribeInternal(id, std::move(handler));
 
@@ -170,7 +170,7 @@ class SignalImpl : public ISignal
 
         Subscription subscribe(Handler handler)
         {
-            BMM_DEBUG() << "(anonymous)";
+            // BMM_DEBUG() << "(anonymous)";
             SubscriptionID id = generateAnonymousUniqueId();
             subscribeInternal(id, std::move(handler));
             
@@ -190,7 +190,7 @@ class SignalImpl : public ISignal
         template<typename T>
         void subscribe(T* instance, void (T::*method)(Args...))
         {
-            BMM_DEBUG() << "(instance)";
+            // BMM_DEBUG() << "(instance)";
             if (std::is_base_of_v<ISignalHandler, T>)
             {
                 BMM_DEBUG() << "SIGNALHANDLER";
@@ -224,8 +224,8 @@ class SignalImpl : public ISignal
         template<typename T>
         void unsubscribe(const T& handler)
         {
-            // static_assert(std::is_lvalue_reference<T>::value, 
-            //     "You must unsubscribe with an lvalue, not a temporary!");
+            static_assert(std::is_lvalue_reference<T>::value, 
+                "You must unsubscribe with an lvalue, not a temporary!");
 
             unsubscribe(reinterpret_cast<SubscriptionID>(&handler));
         }
@@ -233,7 +233,7 @@ class SignalImpl : public ISignal
         template<typename T>
         void unsubscribe(T* instance)
         {
-            BMM_DEBUG() << "(instance)";
+            // BMM_DEBUG() << "(instance)";
             
             if (std::is_base_of_v<ISignalHandler, T>)
             {
@@ -254,7 +254,7 @@ class SignalImpl : public ISignal
 
         void unsubscribe(SubscriptionID id)
         {
-            BMM_DEBUG() << "Unsubscribe: "  << id << "\n";
+            // BMM_DEBUG() << "Unsubscribe: "  << id << "\n";
             std::lock_guard<LockPolicy> guard(m_lockPolicy);
             for (auto it=m_listeners.begin(); it!=m_listeners.end(); it++)
             {
@@ -314,7 +314,7 @@ class SignalImpl : public ISignal
         {
             SubscriptionID id = generateAnonymousUniqueId();
             subscribeInternal(id, std::move(handler));
-            BMM_DEBUG() << "(Permanent)";
+            // BMM_DEBUG() << "(Permanent)";
         }
 
     private:
@@ -329,7 +329,7 @@ class SignalImpl : public ISignal
                 }
             }
 
-            BMM_DEBUG() << "Subscription: " << id << "\n";
+            // BMM_DEBUG() << "Subscription: " << id << "\n";
             m_listeners.emplace_back(id, std::move(handler));
         }
 

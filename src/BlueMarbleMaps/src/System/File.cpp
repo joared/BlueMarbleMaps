@@ -31,8 +31,18 @@ void File::writeLines(const std::string &filePath, const std::vector<std::string
     file.close();
 }
 
-void File::writeString(const std::string& filePath, const std::string & string)
+void File::writeString(const std::string& filePath, const std::string& string)
 {
+    std::ofstream file;
+    file.open(filePath);
+    if (!file.is_open())
+    {
+        throw std::runtime_error("File::writeString() Failed to open file: " + filePath);
+    }
+
+    file << string << "\n";
+
+    file.close();
 }
 
 File::File()
@@ -196,15 +206,14 @@ void File::buildIndex()
     while (true) 
     {
         std::streampos pos = m_file.tellg();  // ← Save position FIRST
-        if (m_file.eof()) break;
 
+        if (!std::getline(m_file, line)) 
+        {
+            break;
+        }
         if (lineNo % m_step == 0) 
         {
             m_offsets.push_back(pos);
-        }
-
-        if (!std::getline(m_file, line)) {
-            break;
         }
 
         ++lineNo;

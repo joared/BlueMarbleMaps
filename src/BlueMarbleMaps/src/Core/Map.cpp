@@ -79,16 +79,17 @@ bool Map::update(bool forceUpdate)
         }
         else
         {
-            // BMM_DEBUG() << "To camera update needed\n";
+            // BMM_DEBUG() << "No camera update needed\n";
         }
     }
 
     events.onUpdating.notify(*this);
 
-    // Rendering
+    // Set camera frustom and call clearBuffer
+    
     beforeRender();
     renderLayers(); // Let layers do their work
-
+    
     auto proj = ScreenCameraProjection(m_drawable->width(), m_drawable->height());
 
     // Each onCustomDraw notification should have the transform set to "screen".
@@ -111,6 +112,7 @@ bool Map::update(bool forceUpdate)
         drawDebugInfo(getTimeStampMs() - timeStampMs);
     }
 
+    // Swap buffers
     afterRender();
 
     events.onUpdated.notify(*this);
@@ -171,11 +173,16 @@ FeatureQuery Map::produceUpdateQuery()
     featureQuery.area(updateArea);
     // Map to camera
     auto centerMap = screenToMap(screenCenter());
+    if (centerMap.isUndefined())
+    {
+        BMM_DEBUG() << "Map::produceUpdateQuery() Failed to get map position at center of screen!\n";
+        throw std::runtime_error("GG");
+    }
     auto centerCam = m_camera->worldToView(centerMap);
     double zCam = centerCam.z();
     // double unitsPerPixel = m_camera->projection()->unitsPerPixelAtDistanceNumerical(std::abs(zCam));
     double unitsPerPixel = m_camera->unitsPerPixelAtDistance(std::abs(zCam));
-    double queryScale = 1.0 / unitsPerPixel * m_drawable->pixelSize() / m_crs->globalMeterScale();
+    double queryScale = 1.0 / unitsPerPixel * m_drawable->pixelSize() / m_crs->globalMetersPerUnit();
     featureQuery.scale(queryScale);
 
     featureQuery.quickUpdate(quickUpdateEnabled());
@@ -191,7 +198,7 @@ double Map::invertedScale() const
     double zCam = centerCam.z();
     // double unitsPerPixel = m_camera->projection()->unitsPerPixelAtDistanceNumerical(std::abs(zCam));
     double unitsPerPixel = m_camera->unitsPerPixelAtDistance(std::abs(zCam));
-    double aprroximateScale = unitsPerPixel * m_crs->globalMeterScale() / m_drawable->pixelSize();
+    double aprroximateScale = unitsPerPixel * m_crs->globalMetersPerUnit() / m_drawable->pixelSize();
 
     return aprroximateScale;
 }
@@ -282,7 +289,7 @@ Point Map::screenToMap(double x, double y) const
                                          surfacePoint, 
                                          surfaceNormal))
     {
-        BMM_DEBUG() << "Map::screenToMap() No map intersection!\n";
+        // BMM_DEBUG() << "Map::screenToMap() No map intersection!\n";
     }
     
     return surfacePoint;
@@ -301,11 +308,11 @@ Point Map::screenToMapAtHeight(const Point& screenPos, double heightMeters) cons
     Point surfaceNormal = Point::undefined();
     if (!m_surfaceModel->rayIntersection(rayOriginWorldPoint, 
                                          rayDirWorldPoint.norm3D(), 
-                                         heightMeters/m_crs->globalMeterScale(),
+                                         heightMeters/m_crs->globalMetersPerUnit(),
                                          surfacePoint, 
                                          surfaceNormal))
     {
-        BMM_DEBUG() << "Map::screenToMapAtHeight() No map intersection!\n";
+        // BMM_DEBUG() << "Map::screenToMapAtHeight() No map intersection!\n";
     }
     
     return surfacePoint;
@@ -705,29 +712,46 @@ void Map::updateUpdateAttributes(int64_t timeStampMs)
 
 void Map::beforeRender()
 {
-    // TODO: near and far plane might need to be adjusted
-    // during camera manipulation. Maybe the camera controller should
-
-    float near = std::numeric_limits<float>::max();
-    float far = 0.0f;
-    auto visibleRegionWorld = m_crs->bounds().corners();
-
+    constexpr double maxRatio = 10000.0;
+    
+    double near = std::numeric_limits<double>::max();
+    double far = 0.0f;
+    
+    double w = m_drawable->width();
+    double h = m_drawable->height();
+    auto worldBounds = m_crs->bounds();
+    // TODO: becomes weird when tilting alot
+    // TODO: add some sort of "nearestHorizon" method to surfaceModel?
+    std::vector<Point> visibleRegionWorld = m_crs->bounds().corners();
+    visibleRegionWorld.push_back(screenToMap(0,0));
+    visibleRegionWorld.push_back(screenToMap(w,0));
+    visibleRegionWorld.push_back(screenToMap(w,h));
+    visibleRegionWorld.push_back(screenToMap(0,h));
+    
+    bool ok = false;
     for (auto& point : visibleRegionWorld)
     {
-        float d = -m_camera->worldToView(point).z();
+        if (point.isUndefined())
+            continue;
+        double d = -m_camera->worldToView(point).z();
         if (d <= 0.0f)
             continue; // behind camera, ignore
 
         near = std::min(near, d);
         far = std::max(far, d);
+        ok = true;
     }
-    near *= 0.001; 
-    far*=2.0;
+    if (!ok) BMM_DEBUG() << "COULDNT CALCULATE FRUSTIM!!!\n"; // THIS IS REALLY BAD IF IT HAPPENS
+    near *= 0.5; 
+    far *= 1.5;
 
-    float precision = far/near;
-    constexpr float maxRatio = 10000.0;
+    double precision = far/near;
     
-    near = far/maxRatio;
+    if (precision > maxRatio)
+    {
+        far = near*maxRatio;    // Favor near
+        // near = far/maxRatio; // Favor far
+    }
 
     // BMM_DEBUG() << "NEAR: " << near << "\n";
     // BMM_DEBUG() << "FAR: " << far << "\n";
@@ -814,10 +838,12 @@ const Point BlueMarble::Map::lngLatToMap(const Point& lngLat) const
     return wgs84->projectTo(m_crs, lngLat);
 }
 
-// TODO: remove this
+
 void Map::setDrawableFromCamera(const CameraPtr& camera)
 {
     m_drawable->setProjectionMatrix(camera->projectionMatrix());
+    //m_drawable->setViewMatrix(camera->viewMatrix());
+    
     m_drawable->setViewMatrix(glm::transpose(camera->rotationMatrix()));
     auto o = camera->translation();
     m_drawable->setRenderOrigin(o);

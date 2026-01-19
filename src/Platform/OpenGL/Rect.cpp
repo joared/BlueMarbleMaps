@@ -34,6 +34,11 @@ void Rect::setVbo(VBO& vbo)
 	m_rectGeometryInfo->m_vbo = vbo;
 }
 
+VBO& Rect::getVbo()
+{
+	return m_rectGeometryInfo->m_vbo;
+}
+
 void Rect::setIbo(IBO& ibo)
 {
 	m_rectGeometryInfo->m_ibo = ibo;

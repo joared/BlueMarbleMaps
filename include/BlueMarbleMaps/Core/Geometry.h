@@ -256,6 +256,7 @@ namespace BlueMarble
     {
         public:
             RasterGeometry();
+            RasterGeometry(const Raster& raster, double );
             RasterGeometry(const Raster& raster, const Rectangle& bounds);
             EngineObjectPtr clone() override final { return std::make_shared<RasterGeometry>(*this); };
             GeometryType type() override final { return GeometryType::Raster; };

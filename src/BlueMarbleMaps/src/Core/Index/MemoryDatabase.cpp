@@ -50,18 +50,7 @@ size_t MemoryDatabase::size() const
     return m_cache.size();
 }
 
-void MemoryDatabase::save(const std::string &path) const
-{
-    // Do nothing
-}
-
-bool MemoryDatabase::load(const std::string &path)
-{
-    // We don't support saving/loading for now
-    return false;
-}
-
-bool MemoryDatabase::build(const FeatureCollectionPtr& features, const std::string& path)
+bool MemoryDatabase::build(const FeatureCollectionPtr& features)
 {
     for (const auto& feature : * features)
     {

@@ -62,10 +62,10 @@ namespace BlueMarble
             virtual void flushCache() {}; // TODO: make pure virtual?
 
         protected:
-            virtual IdCollectionPtr queryFeatureIds(const FeatureQuery& featureQuery) = 0;
-            virtual FeatureEnumeratorPtr queryFeatures(const FeatureQuery& featureQuery) = 0;
-            virtual FeatureCollectionPtr queryFeatures(const IdCollectionPtr& ids); // Default implementation recursively calls getFeature()
-            virtual FeaturePtr queryFeature(const Id& id) = 0;
+            virtual IdCollectionPtr onGetFeatureIds(const FeatureQuery& featureQuery) = 0;
+            virtual FeatureEnumeratorPtr onGetFeatures(const FeatureQuery& featureQuery) = 0;
+            virtual FeatureCollectionPtr onGetFeatures(const IdCollectionPtr& ids); // Default implementation recursively calls getFeature()
+            virtual FeaturePtr onGetFeature(const Id& id) = 0;
             virtual void init() = 0;
         private:
             bool ensureInitialized();
