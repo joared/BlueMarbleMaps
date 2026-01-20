@@ -1,5 +1,4 @@
 #include "BlueMarbleMaps/Core/Serialization/JsonValue.h"
-
 #include <cassert>
 
 namespace BlueMarble
@@ -8,7 +7,16 @@ namespace BlueMarble
 JsonValue JsonValue::fromString(const std::string &str)
 {
     int idx = 0;
-    return parseJson(str, idx, 0);
+    try
+    {
+        return parseJson(str, idx, 0);
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+
+        return JsonValue();
+    }
 }
 
 std::string JsonValue::toString(bool format) const
@@ -155,13 +163,10 @@ bool isEndOfValueChar(const char &c)
 
 void parseWhiteSpace(const std::string &text, int &idx)
 {
-    std::string whiteSpace;
     while (text[idx] == ' ' || text[idx] == '\n' || text[idx] == '\r' || text[idx] == '\t')
     {
-        whiteSpace += text[idx];
         idx++;
     }
-    // std::cout << "white space: " << whiteSpace << "\n";
 }
 
 std::string parseKey(const std::string &text, int &idx)
@@ -184,7 +189,7 @@ std::string parseKey(const std::string &text, int &idx)
 
 std::pair<std::string, JsonValue> retrieveKeyValuePair(const std::string& text, int& idx, int level)
 {
-    auto key = parseKey(text, idx);
+    auto key = std::move(parseKey(text, idx));
     parseWhiteSpace(text, idx);
     expect(':', text, idx);
     idx++;
@@ -206,7 +211,6 @@ JsonValue parseJson(const std::string &text, int &idx, int level)
     if (text[idx] == '{')
     {
         // Object
-        //std::cout << "parseJson() enter: " << text.substr(0, idx+1) << "\n";
         expect('{', text, idx);
         idx++;
         JsonValue::Object jsonObject;
@@ -214,32 +218,17 @@ JsonValue parseJson(const std::string &text, int &idx, int level)
         do
         {
             parseWhiteSpace(text, idx);
-            try
+            jsonObject.emplace(std::move(retrieveKeyValuePair(text, idx, level)));
+            parseWhiteSpace(text, idx);
+            // FIXME: this is needed if comma is forgotten, but parseValue should not step over ','
+            if (text[idx] != '}')
             {
-                jsonObject.emplace(std::move(retrieveKeyValuePair(text, idx, level)));
+                expect(',', text, idx);
+                ++idx;
                 parseWhiteSpace(text, idx);
-                // FIXME: this is needed if comma is forgotten, but parseValue should not step over ','
-                if (text[idx] != '}')
-                {
-                    expect(',', text, idx);
-                    ++idx;
-                    parseWhiteSpace(text, idx);
-                }
-            }
-            catch(const std::exception& e)
-            {
-                std::cerr << e.what() << '\n';
-                while (text[idx] != '}')
-                {
-                    idx++;
-                }
-                idx++;
-                return jsonObject;
             }
         } 
         while (text[idx] != '}');
-
-        //std::cout << "parseJson() exit: " << text.substr(0, idx+1) << "\n";
 
         idx++; // after '}'
         return jsonObject;
@@ -290,7 +279,8 @@ JsonValue parseJson(const std::string &text, int &idx, int level)
             // idx++;
             char c = text[idx];
 
-            if (c == '\\') { // escape sequence
+            if (c == '\\') 
+            { // escape sequence
                 ++idx;
                 if (idx >= text.size()) break; // error: unexpected end
 
@@ -310,7 +300,8 @@ JsonValue parseJson(const std::string &text, int &idx, int level)
                         throwParseError(text, idx, "Invalid escape sequence");
                 }
             }
-            else if (c == '"') {
+            else if (c == '"') 
+            {
                 ++idx; // closing quote
                 break;
             }
@@ -326,8 +317,6 @@ JsonValue parseJson(const std::string &text, int &idx, int level)
             throwParseError(text, idx, "Expected string but parsed empty value");
         }
         idx++; // after last '"'
-
-        //std::cout << "Got actual string: " << value << "\n";
 
         return value;
     }
@@ -369,27 +358,32 @@ JsonValue parseJson(const std::string &text, int &idx, int level)
     else
     {
         // Double/int
-        std::string value;
+        
+        int start = idx;
         while (!isEndOfValueChar(text[idx]))
         {
-            value += text[idx];
             idx++;
         }
-        if (value.empty())
+        if (start == idx)
         {
             throwParseError(text, idx, "Expected double/int but parsed empty value");
         }
-
+        
+        std::string_view value = text.substr(start, idx-start);
         if (value.find('.') == std::string::npos)
         {
             try
             {
                 // Try to convert to int
-                return std::stoi(value);
+                return std::stoi(value.data());
+                // int v;
+                // std::from_chars(sv.data(), sv.data() + sv.size(), v);
+                // char* end;
+                // long v = std::strtol(text.data(), &end, 10);
             }
             catch(const std::exception& e)
             {
-                throwParseError(text, idx, "Could not convert '" +  value + "' to an integer");
+                throwParseError(text, idx, "Could not convert '" + std::string(value) + "' to an integer");
             }
         }
         else
@@ -397,11 +391,11 @@ JsonValue parseJson(const std::string &text, int &idx, int level)
             try
             {
                 // Try to convert to double
-                return std::stod(value);
+                return std::stod(value.data());
             }
             catch(const std::exception& e)
             {
-                throwParseError(text, idx, "Could not convert '" +  value + "' to a double");
+                throwParseError(text, idx, "Could not convert '" + std::string(value) + "' to a double");
             }  
         }
     }

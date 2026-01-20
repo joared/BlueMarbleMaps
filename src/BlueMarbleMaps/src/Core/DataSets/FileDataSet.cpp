@@ -17,7 +17,7 @@ AbstractFileDataSet::AbstractFileDataSet(const std::string& filePath, const std:
     , m_progress(0)
 {
     auto db = std::make_unique<FileDatabase>();
-    auto index = std::make_unique<QuadTreeIndex>(Rectangle(-180, -90, 180, 90), 0.05);
+    auto index = std::make_unique<QuadTreeIndex>(Rectangle(-180, -90, 180, 90)); // Use default depth
     auto cache = std::make_shared<FIFOCache>();
     //cache = nullptr; // Testing without cache
     m_featureStore = std::make_unique<FeatureStore>(dataSetId(), std::move(db), std::move(index), cache);

@@ -11,10 +11,11 @@ typedef std::pair<FeatureId, Rectangle> Entry;
 class BlueMarble::QuadTreeNode
 {
     public:
-        QuadTreeNode(const Rectangle& bounds)
+        inline QuadTreeNode(const Rectangle& bounds, int depth)
             : m_bounds(bounds)
             , m_entries()
             , m_children()
+            , m_depth(depth)
         {
             m_children.reserve(4);
         }
@@ -23,26 +24,26 @@ class BlueMarble::QuadTreeNode
         QuadTreeNode(const QuadTreeNode&) = delete;
         QuadTreeNode& operator=(const QuadTreeNode&) = delete;
 
-        const std::vector<QuadTreeNode>& children() const { return m_children; }
-        std::vector<QuadTreeNode>& children() { return m_children; }
-        const std::vector<Entry>& entries() const { return m_entries; }
+        inline const std::vector<QuadTreeNode>& children() const { return m_children; }
+        inline std::vector<QuadTreeNode>& children() { return m_children; }
+        inline const std::vector<Entry>& entries() const { return m_entries; }
         
-        QuadTreeNode& emplaceChild(QuadTreeNode&& child) 
+        inline QuadTreeNode& emplaceChild(Rectangle&& childBounds) 
         { 
             // assert(this != child);
-            m_children.emplace_back(std::move(child)); 
+            m_children.emplace_back(QuadTreeNode(childBounds, m_depth+1)); 
             return m_children.back();
         }
 
-        const Rectangle& bounds() const { return m_bounds; }
-        void setBounds(const Rectangle& bounds) { m_bounds = bounds; }
+        inline const Rectangle& bounds() const { return m_bounds; }
+        inline void setBounds(const Rectangle& bounds) { m_bounds = bounds; }
 
-        void add(const FeatureId& id, const Rectangle& bounds)
+        inline void add(const FeatureId& id, const Rectangle& bounds)
         {
-            m_entries.push_back({id, bounds});
+            m_entries.emplace_back(Entry{id, bounds});
         }
 
-        bool insert(const FeatureId& id, const Rectangle& bounds, double minSize)
+        inline bool insert(const FeatureId& id, const Rectangle& bounds, int maxDepth)
         {
             if (!m_bounds.isInside(bounds))
                 return false;
@@ -55,47 +56,37 @@ class BlueMarble::QuadTreeNode
             // a feature is inserted. maybe when the number of features exceeds 4?
             // For static datasets, it might be better/faster to first read all features,
             // and then call an "insertFeatures" or "setFeatures" method
-            if (m_children.empty())
-                extend(minSize);
+            if (m_depth < maxDepth && m_children.empty())
+                extend();
             
             for (auto& child : m_children)
             {
-                if (child.insert(id, bounds, minSize))
+                if (child.insert(id, bounds, maxDepth))
                 {
                     return true;
                 }
             }
 
             // No child bounds the entire feature, we add it!
-            m_entries.push_back({id, bounds});
+            m_entries.emplace_back(Entry{id, bounds});
             return true;
         }
 
         // Creates children (extends the tree)
-        void extend(double minSize)
+        inline void extend()
         {
             assert(m_children.empty());
 
-            if (m_bounds.width()*0.5 < minSize || m_bounds.height()*0.5 < minSize )
-            {
-                // std::cout << "Reached min size: " << minSize << "\n";
-                return;
-            }
-
             auto center = m_bounds.center();
-            // std::cout  << "Center: " << center.x() << ", " << center.y() << "\n";
-            // std::cout  << "Rect: " << m_bounds.xMin() << ", " << m_bounds.yMin() << ", " << m_bounds.xMax() << ", " << m_bounds.yMax() << "\n";
-            
-            emplaceChild(QuadTreeNode(Rectangle(m_bounds.xMin(), m_bounds.yMin(), center.x(), center.y()))); // south west
-            emplaceChild(QuadTreeNode(Rectangle(center.x(), m_bounds.yMin(), m_bounds.xMax(), center.y()))); // south east
-            emplaceChild(QuadTreeNode(Rectangle(m_bounds.xMin(), center.y(), center.x(), m_bounds.yMax()))); // north west
-            emplaceChild(QuadTreeNode(Rectangle(center.x(), center.y(), m_bounds.xMax(), m_bounds.yMax()))); // north east
-
-            // std::cout  << "Added: " << center.x() << ", " << center.y() << "\n";
+            int depth = m_depth+1;
+            emplaceChild(Rectangle(m_bounds.xMin(), m_bounds.yMin(), center.x(), center.y())); // south west
+            emplaceChild(Rectangle(center.x(), m_bounds.yMin(), m_bounds.xMax(), center.y())); // south east
+            emplaceChild(Rectangle(m_bounds.xMin(), center.y(), center.x(), m_bounds.yMax())); // north west
+            emplaceChild(Rectangle(center.x(), center.y(), m_bounds.xMax(), m_bounds.yMax())); // north east
         }
 
         // Recursively retrives all features
-        void queryAll(const FeatureIdCollectionPtr& featureIds) const
+        inline void queryAll(const FeatureIdCollectionPtr& featureIds) const
         {
             for (const auto& e : m_entries)
                 featureIds->add(e.first);
@@ -104,7 +95,7 @@ class BlueMarble::QuadTreeNode
                 child.queryAll(featureIds);
         }
 
-        void query(const Rectangle& bounds, const FeatureIdCollectionPtr& featureIds) const
+        inline void query(const Rectangle& bounds, const FeatureIdCollectionPtr& featureIds) const
         {
             if (!m_bounds.overlap(bounds))
                 return;
@@ -137,16 +128,18 @@ class BlueMarble::QuadTreeNode
         Rectangle                  m_bounds;
         std::vector<Entry>         m_entries;
         std::vector<QuadTreeNode>  m_children;
+        int                        m_depth;
         // QuadTree*                  m_owner;
 };
 
-QuadTreeIndex::QuadTreeIndex(const Rectangle& rootBounds, double minSize)
+QuadTreeIndex::QuadTreeIndex(const Rectangle& rootBounds, int maxDepth)
     : m_root(nullptr)
-    , m_minSize(minSize)
+    , m_maxDepth(maxDepth)
 {
+    m_root = std::make_unique<QuadTreeNode>(rootBounds, 0);
 }
 
-BlueMarble::QuadTreeIndex::~QuadTreeIndex()
+QuadTreeIndex::~QuadTreeIndex()
 {
 }
 
@@ -160,7 +153,7 @@ void QuadTreeIndex::build(const FeatureCollectionPtr &entries)
 
 void QuadTreeIndex::insert(const FeatureId &id, const Rectangle &bounds)
 {
-    if (!m_root->insert(id, bounds, m_minSize))
+    if (!m_root->insert(id, bounds, m_maxDepth))
     {
         std::cout << "Failed to insert feature id: " << id << "\n";
     }
@@ -196,7 +189,12 @@ void QuadTreeIndex::save(const PersistanceContext& ctx) const
     saveJson(ctx.fileName);
 }
 
-JsonValue serializeNode(const QuadTreeNode* node)
+double QuadTreeIndex::minimumCellSize() const
+{
+    return std::max(m_root->bounds().width(), m_root->bounds().height()) / std::pow(2, m_maxDepth);
+}
+
+JsonValue serializeNode(const QuadTreeNode *node)
 {
     JsonValue::Object data;
     
@@ -262,7 +260,7 @@ QuadTreeNode& deserializeNode(const JsonValue& json, QuadTreeNode& nodeOut)
     const auto& children = data.at("children").asArray();
     for (auto& c : children)
     {
-        auto& child = nodeOut.emplaceChild(QuadTreeNode(Rectangle(0,0,0,0)));
+        auto& child = nodeOut.emplaceChild(Rectangle(0,0,0,0));
         deserializeNode(c, child);
     }
 
@@ -284,7 +282,7 @@ bool QuadTreeIndex::loadJson(const std::string &path)
     }
 
     JsonValue json = JsonValue::fromString(File::readAsString(path));
-    m_root = std::make_unique<QuadTreeNode>(Rectangle(0,0,0,0)); // dummy rect
+    m_root = std::make_unique<QuadTreeNode>(Rectangle(0,0,0,0), 0); // dummy rect
     deserializeNode(json, *m_root.get());
 
     return true;
