@@ -261,6 +261,8 @@ bool FileDatabase::load(const PersistanceContext& ctx)
         lineIdx++;
     }
 
+    BMM_DEBUG() << "FileDatabase loaded " << lineIdx << " features\n";
+
     return m_index.size() > 0;
 }
 

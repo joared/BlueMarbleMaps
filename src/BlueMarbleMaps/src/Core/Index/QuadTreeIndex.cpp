@@ -34,7 +34,7 @@ class BlueMarble::QuadTreeNode
             m_children.emplace_back(QuadTreeNode(childBounds, m_depth+1)); 
             return m_children.back();
         }
-
+        inline int depth() const { return m_depth; }
         inline const Rectangle& bounds() const { return m_bounds; }
         inline void setBounds(const Rectangle& bounds) { m_bounds = bounds; }
 
@@ -189,9 +189,9 @@ void QuadTreeIndex::save(const PersistanceContext& ctx) const
     saveJson(ctx.fileName);
 }
 
-double QuadTreeIndex::minimumCellSize() const
+double QuadTreeIndex::minimumCellSize(const Rectangle& rootBounds, int depth)
 {
-    return std::max(m_root->bounds().width(), m_root->bounds().height()) / std::pow(2, m_maxDepth);
+    return std::max(rootBounds.width(), rootBounds.height()) / std::pow(2, depth);
 }
 
 JsonValue serializeNode(const QuadTreeNode *node)
@@ -232,7 +232,7 @@ JsonValue serializeNode(const QuadTreeNode *node)
     return data;
 }
 
-QuadTreeNode& deserializeNode(const JsonValue& json, QuadTreeNode& nodeOut)
+QuadTreeNode& deserializeNode(const JsonValue& json, QuadTreeNode& nodeOut, int& maxDepth)
 {
     const JsonValue::Object& data = json.asObject();
 
@@ -244,6 +244,7 @@ QuadTreeNode& deserializeNode(const JsonValue& json, QuadTreeNode& nodeOut)
     auto bounds = Rectangle(xMin, yMin, xMax, yMax);
 
     nodeOut.setBounds(bounds);
+    maxDepth = std::max(maxDepth, nodeOut.depth());
 
     const auto& entries = data.at("entries").asArray();
     for (const auto& e : entries)
@@ -261,7 +262,7 @@ QuadTreeNode& deserializeNode(const JsonValue& json, QuadTreeNode& nodeOut)
     for (auto& c : children)
     {
         auto& child = nodeOut.emplaceChild(Rectangle(0,0,0,0));
-        deserializeNode(c, child);
+        deserializeNode(c, child, maxDepth);
     }
 
     return nodeOut;
@@ -283,7 +284,11 @@ bool QuadTreeIndex::loadJson(const std::string &path)
 
     JsonValue json = JsonValue::fromString(File::readAsString(path));
     m_root = std::make_unique<QuadTreeNode>(Rectangle(0,0,0,0), 0); // dummy rect
-    deserializeNode(json, *m_root.get());
+    m_maxDepth = 0;
+    deserializeNode(json, *m_root.get(), m_maxDepth);
+
+    BMM_DEBUG() << "Quad tree depth: " << m_maxDepth << "\n";
+    BMM_DEBUG() << "Quad tree min cell size: " << minimumCellSize(m_root->bounds(), m_maxDepth) << "\n";
 
     return true;
 }

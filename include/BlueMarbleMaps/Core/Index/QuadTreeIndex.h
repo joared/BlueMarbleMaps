@@ -12,7 +12,9 @@ namespace BlueMarble
     class QuadTreeIndex : public ISpatialIndex, public IPersistable
     {
     public:
-        QuadTreeIndex(const Rectangle& rootBounds, int maxDepth=10);
+        static double minimumCellSize(const Rectangle& rootBounds, int maxDepth);
+
+        QuadTreeIndex(const Rectangle& rootBounds, int maxDepth=12);
         ~QuadTreeIndex();
 
         virtual void build(const FeatureCollectionPtr& entries) override final;
@@ -27,14 +29,12 @@ namespace BlueMarble
         virtual bool load(const PersistanceContext& path) override final;
         virtual void save(const PersistanceContext& path) const override final;
 
-        double minimumCellSize() const;
-
     private:
         void saveJson(const std::string& path) const;
         bool loadJson(const std::string& path);
 
         std::unique_ptr<QuadTreeNode> m_root;
-        double m_maxDepth;
+        int                           m_maxDepth;
     };
 }
 
