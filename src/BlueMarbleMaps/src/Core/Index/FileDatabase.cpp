@@ -177,7 +177,7 @@ FileDatabase::FileDatabase()
 FeaturePtr FileDatabase::getFeature(const FeatureId& id)
 {   
     auto record = m_index.at(id);
-    auto str = m_file->getLine(record.lineOffset);
+    auto str = getLine(record.lineOffset);
     auto f = deserializeFeature(str);
 
     return f;
@@ -245,6 +245,7 @@ bool FileDatabase::load(const PersistanceContext& ctx)
     {
         return false;
     }
+    file.close();
 
     m_filePath = ctx.fileName;
     m_file = std::make_unique<File>(ctx.fileName);
@@ -252,7 +253,7 @@ bool FileDatabase::load(const PersistanceContext& ctx)
     m_index.clear();
 
     int64_t lineIdx = 0;
-    auto lines = m_file->getLines();
+    auto lines = std::move(m_file->getLines());
     for (const auto& line : lines)
     {
         // TODO
@@ -268,9 +269,14 @@ bool FileDatabase::load(const PersistanceContext& ctx)
 
 bool FileDatabase::build(const FeatureCollectionPtr& features)
 {
-    m_stage = features;
+    m_stage = features; // FIXME: this is uggly
     
     return true;
+}
+
+std::string FileDatabase::getLine(int64_t lineNo)
+{
+    return m_file->getLine(lineNo);
 }
 
 void FileDatabase::verifyLoaded() const

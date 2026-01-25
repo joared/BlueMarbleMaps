@@ -11,6 +11,8 @@ typedef std::pair<FeatureId, Rectangle> Entry;
 class BlueMarble::QuadTreeNode
 {
     public:
+        const int MaxEntries = 8;
+
         inline QuadTreeNode(const Rectangle& bounds, int depth)
             : m_bounds(bounds)
             , m_entries()
@@ -50,25 +52,45 @@ class BlueMarble::QuadTreeNode
             
             // It is inside our bounds, 
             // but first check children before adding
-            
-            // TODO: it is unnecessary to extend this node if it is empty.
-            // However, if we do that, we need to reorganize the tree very time 
-            // a feature is inserted. maybe when the number of features exceeds 4?
-            // For static datasets, it might be better/faster to first read all features,
-            // and then call an "insertFeatures" or "setFeatures" method
-            if (m_depth < maxDepth && m_children.empty())
-                extend();
-            
-            for (auto& child : m_children)
+            if (!m_children.empty())
             {
-                if (child.insert(id, bounds, maxDepth))
+                for (auto& child : m_children)
                 {
-                    return true;
+                    if (child.insert(id, bounds, maxDepth))
+                    {
+                        return true;
+                    }
                 }
             }
 
             // No child bounds the entire feature, we add it!
             m_entries.emplace_back(Entry{id, bounds});
+
+            if (m_entries.size() > MaxEntries && 
+                m_depth < maxDepth && 
+                m_children.empty())
+            {
+                // We have reached max capacity, and we can extend 
+                extend();
+
+                // Redistribute
+                for (auto it = m_entries.begin(); it!=m_entries.end();)
+                {
+                    bool inserted = false;
+                    for (auto& child : m_children)
+                    {
+                        if (child.insert(it->first, it->second, maxDepth))
+                        {
+                            inserted = true;
+                            break;
+                        }
+                    }
+
+                    if (inserted) it = m_entries.erase(it);
+                    else          it++;
+                }
+            }
+            
             return true;
         }
 
@@ -129,7 +151,6 @@ class BlueMarble::QuadTreeNode
         std::vector<Entry>         m_entries;
         std::vector<QuadTreeNode>  m_children;
         int                        m_depth;
-        // QuadTree*                  m_owner;
 };
 
 QuadTreeIndex::QuadTreeIndex(const Rectangle& rootBounds, int maxDepth)
@@ -224,6 +245,7 @@ JsonValue serializeNode(const QuadTreeNode *node)
     
     data["children"] = JsonValue::Array();
     auto& children = data["children"].get<JsonValue::Array>();
+
     for (const auto& child : node->children())
     {
         children.emplace_back(std::move(serializeNode(&child)));
@@ -287,8 +309,31 @@ bool QuadTreeIndex::loadJson(const std::string &path)
     m_maxDepth = 0;
     deserializeNode(json, *m_root.get(), m_maxDepth);
 
+
     BMM_DEBUG() << "Quad tree depth: " << m_maxDepth << "\n";
     BMM_DEBUG() << "Quad tree min cell size: " << minimumCellSize(m_root->bounds(), m_maxDepth) << "\n";
 
+    debug();
+
     return true;
+}
+
+int QuadTreeIndex::calculateNumberOfNodes(QuadTreeNode *node)
+{
+    int n = 1; // This node
+    for (auto& c : node->children())
+    {
+        n += calculateNumberOfNodes(&c);
+    }
+
+    return n;
+}
+
+void QuadTreeIndex::debug() const
+{
+    if (!m_root) throw std::runtime_error("QuadTreeIndex::debug() no root!");
+
+    int nNodes = calculateNumberOfNodes(m_root.get());
+
+    BMM_DEBUG() << "Number of nodes: " << nNodes << "\n";
 }

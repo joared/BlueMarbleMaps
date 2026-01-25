@@ -1,11 +1,12 @@
-#ifndef BLUEMARBLE_JSON
-#define BLUEMARBLE_JSON
+#ifndef JSONVALUE
+#define JSONVALUE
 
 #include <iostream>
 #include <variant>
 #include <map>
 #include <vector>
 #include <string>
+#include <sstream>
 #include <initializer_list>
 #include <algorithm>
 
@@ -122,6 +123,7 @@ public:
 
     // }
 
+    // static bool parseSax(const std::stringstream& ss, JSONParseHandler* handler);
     static JsonValue fromString(const std::string& str);
 
     std::string toString(bool format=false) const;
@@ -156,8 +158,8 @@ void expect(const char& c, const std::string& text, int& idx);
 void parseWhiteSpace(const std::string& text, int& idx);
 std::string parseKey(const std::string& text, int& idx);
 std::pair<std::string, JsonValue> retrieveKeyValuePair(const std::string& text, int& idx, int level);
-JsonValue parseJson(const std::string& text, int& idx, int level);
+JsonValue parseJson(const std::string& text, int& idx, int level, JSONParseHandler* handler=nullptr);
 
 }
 
-#endif /* BLUEMARBLE_JSON */
+#endif /* JSONVALUE */

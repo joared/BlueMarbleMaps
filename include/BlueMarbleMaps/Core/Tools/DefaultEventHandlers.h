@@ -853,7 +853,7 @@ namespace BlueMarble
                 }
 
                 // TODO rendering enabled
-                if (keyStroke == 27 && // r
+                if (keyStroke == Key::R && //27 && // r
                     event.modificationKey && ModificationKeyCtrl)
                 {
                     bool enabled = !m_map->renderingEnabled();
@@ -866,7 +866,7 @@ namespace BlueMarble
                         BMM_DEBUG() << "Disabled rendering!\n";
                 }
                 
-                if (keyStroke == 40 && // d
+                if (keyStroke == Key::D && // d
                     event.modificationKey && ModificationKeyCtrl)
                 {
                     bool enabled = !m_map->showDebugInfo();

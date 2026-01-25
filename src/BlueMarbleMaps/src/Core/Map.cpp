@@ -32,7 +32,7 @@ Map::Map()
     m_camera = Camera::perspectiveCamera(m_drawable->width(), m_drawable->height(), 0.1, 1.0, 45.0);
     // TODO: set reasonable start position of the camera
 
-    m_presentationObjects.reserve(1000000); // Reserve a good amount for efficiency
+    m_presentationObjects.reserve(10000); // Reserve a good amount for efficiency
 
     m_lastUpdateTimeStamp = getTimeStampMs();
     updateUpdateAttributes(m_lastUpdateTimeStamp);

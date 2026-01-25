@@ -60,6 +60,7 @@ File::File(const std::string &filePath)
     , m_step(1)
 {
     m_file = std::ifstream(filePath, std::ios::in | std::ios::binary);
+    
     if (!isOpen())
     {
         std::cerr << "Failed to open file: " << filePath << "\n";

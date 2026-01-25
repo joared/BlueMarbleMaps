@@ -33,6 +33,9 @@ namespace BlueMarble
         void saveJson(const std::string& path) const;
         bool loadJson(const std::string& path);
 
+        static int calculateNumberOfNodes(QuadTreeNode* node);
+        void debug() const;
+
         std::unique_ptr<QuadTreeNode> m_root;
         int                           m_maxDepth;
     };

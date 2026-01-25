@@ -617,19 +617,22 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, con
     rect->drawIndex(6);
 }
 
-void OpenGLDrawable::drawText(int x, int y, const std::string& text, const Color& color, int fontSize, const Color& backgroundColor)
+void BlueMarble::OpenGLDrawable::drawText(int x, int y, const std::string& text, const Color& color, int fontSize, const Color& backgroundColor)
 {
     //auto mat = m_projectionMatrix*m_viewMatrix;
     //m_lineShader.setMat4("viewMatrix", mat);
 }
 
-Color OpenGLDrawable::readPixel(int x, int y)
+Color BlueMarble::OpenGLDrawable::readPixel(int x, int y)
 {
-    Raster raster(m_width, m_height, 4);
-    unsigned char* data = (unsigned char*)(raster.data());
-    glReadBuffer(GL_FRONT); // FIXME: front or back?
-    glReadPixels(x, width()-y, m_width, m_height,
-                GL_RGBA, GL_UNSIGNED_BYTE,
+    unsigned char data[4];
+    glReadBuffer(GL_BACK); // FIXME: front or back?
+    glReadPixels(x, 
+                height()-y-1,
+                1, 
+                1,
+                GL_RGBA, 
+                GL_UNSIGNED_BYTE,
                 data);
     
     return Color((int)(data[0]),

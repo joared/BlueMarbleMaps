@@ -5,6 +5,8 @@
 #include "IPersistable.h"
 #include "BlueMarbleMaps/System/File.h"
 
+#include <unordered_map>
+
 namespace BlueMarble
 {
     
@@ -30,13 +32,14 @@ namespace BlueMarble
         virtual bool load(const PersistanceContext& path) override final;
         
     private:
+        std::string getLine(int64_t lineNo);
         void verifyLoaded() const;
 
         mutable FeatureCollectionPtr m_stage;
 
         std::string m_filePath;
         std::unique_ptr<File>        m_file;
-        std::map<FeatureId, FeatureRecord> m_index;
+        std::unordered_map<FeatureId, FeatureRecord> m_index;
         bool m_isLoaded;
 
     };

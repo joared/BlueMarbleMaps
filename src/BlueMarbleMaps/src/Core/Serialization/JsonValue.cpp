@@ -4,6 +4,11 @@
 namespace BlueMarble
 {
 
+// bool JsonValue::parseSax(const std::stringstream &ss, JSONParseHandler *handler)
+// {
+//     return false;
+// }
+
 JsonValue JsonValue::fromString(const std::string &str)
 {
     int idx = 0;
@@ -24,7 +29,7 @@ std::string JsonValue::toString(bool format) const
     std::string baseIndentation="";
     if (format)
     {
-        baseIndentation = "    ";
+        baseIndentation = "  ";
     }
 
     return toString("", baseIndentation);
@@ -140,8 +145,9 @@ std::string JsonValue::toString(const std::string& currentIndentation, const std
 
 void throwParseError(const std::string &text, int &idx, const std::string& error)
 {
+    constexpr int errLength = 40;
     auto e = error + ":\n";
-    e += text.substr(idx-20, 21) + "<---\n";
+    e += text.substr(idx-errLength, errLength+1) + "<---\n";
     throw std::runtime_error(e);
 }
 
@@ -198,7 +204,7 @@ std::pair<std::string, JsonValue> retrieveKeyValuePair(const std::string& text, 
     return { std::move(key), std::move(parseJson(text, idx, level)) };
 }
 
-JsonValue parseJson(const std::string &text, int &idx, int level)
+JsonValue parseJson(const std::string &text, int &idx, int level, JSONParseHandler* handler)
 {
     parseWhiteSpace(text, idx);
 
@@ -210,11 +216,12 @@ JsonValue parseJson(const std::string &text, int &idx, int level)
 
     if (text[idx] == '{')
     {
+        
         // Object
         expect('{', text, idx);
         idx++;
         JsonValue::Object jsonObject;
-
+        if (handler) handler->onStartObject(jsonObject);
         do
         {
             parseWhiteSpace(text, idx);
@@ -231,6 +238,8 @@ JsonValue parseJson(const std::string &text, int &idx, int level)
         while (text[idx] != '}');
 
         idx++; // after '}'
+
+        if (handler) handler->onEndObject(jsonObject);
         return jsonObject;
     }
     else if (text[idx] == '[')
@@ -252,7 +261,8 @@ JsonValue parseJson(const std::string &text, int &idx, int level)
             {
                 // parse element value ',' or '['
                 parseWhiteSpace(text, idx);
-                list.emplace_back(std::move(parseJson(text, idx, level)));
+                if (text[idx] != ']')
+                    list.emplace_back(std::move(parseJson(text, idx, level)));
                 parseWhiteSpace(text, idx);
                 if (text[idx] != ']')
                 {
