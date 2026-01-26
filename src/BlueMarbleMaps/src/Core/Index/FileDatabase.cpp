@@ -253,13 +253,15 @@ bool FileDatabase::load(const PersistanceContext& ctx)
     m_index.clear();
 
     int64_t lineIdx = 0;
-    auto lines = std::move(m_file->getLines());
-    for (const auto& line : lines)
+    //auto lines = std::move(m_file->getLines());
+    std::string line = std::move(m_file->getLine(lineIdx));
+    while (!line.empty())
     {
         // TODO
         Id id = deserializeId(line);
         m_index[id.featureId()] = FeatureRecord{lineIdx};
         lineIdx++;
+        line = std::move(m_file->getLine(lineIdx));
     }
 
     BMM_DEBUG() << "FileDatabase loaded " << lineIdx << " features\n";

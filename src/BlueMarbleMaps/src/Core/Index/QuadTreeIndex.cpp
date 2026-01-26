@@ -304,16 +304,16 @@ bool QuadTreeIndex::loadJson(const std::string &path)
         return false;
     }
 
-    JsonValue json = JsonValue::fromString(File::readAsString(path));
+    std::ifstream stream(path);
+    JsonValue json = JsonValue::fromStream(stream, nullptr);//File::readAsString(path));
     m_root = std::make_unique<QuadTreeNode>(Rectangle(0,0,0,0), 0); // dummy rect
     m_maxDepth = 0;
     deserializeNode(json, *m_root.get(), m_maxDepth);
 
-
     BMM_DEBUG() << "Quad tree depth: " << m_maxDepth << "\n";
     BMM_DEBUG() << "Quad tree min cell size: " << minimumCellSize(m_root->bounds(), m_maxDepth) << "\n";
 
-    debug();
+    // debug();
 
     return true;
 }

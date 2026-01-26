@@ -117,103 +117,103 @@ REFL_AUTO(
 );
 
 
-class JsonParser : public JSONParseHandler
-{
-    public:
-        JsonParser()
-            : m_objects()
-            , m_currObj("")
-            , m_currKey("")
-            , m_gotType(false)
-        {}
+// class JsonParser : public JsonParseHandler
+// {
+//     public:
+//         JsonParser()
+//             : m_objects()
+//             , m_currObj("")
+//             , m_currKey("")
+//             , m_gotType(false)
+//         {}
 
-        void onInteger(int value) override final 
-        {
-            //std::cout << "onInteger: " << value << "\n";
-            onString(std::to_string(value));
-        }
+//         void onInteger(int value) override final 
+//         {
+//             //std::cout << "onInteger: " << value << "\n";
+//             onString(std::to_string(value));
+//         }
 
-        void onDouble(double value) override final 
-        {
-            //std::cout << "onDouble: " << value << "\n";
-            onString(std::to_string(value));
-        }
+//         void onDouble(double value) override final 
+//         {
+//             //std::cout << "onDouble: " << value << "\n";
+//             onString(std::to_string(value));
+//         }
 
-        void onString(const std::string& value) override final
-        {
-            std::cout << "onString: " << value << "\n";
+//         void onString(const std::string& value) override final
+//         {
+//             std::cout << "onString: " << value << "\n";
 
-            if (m_gotType)
-            {
-                std::cout << "Storing object type\n";
-                m_currObj = value;
-                m_gotType = false;
-                return;
-            }
+//             if (m_gotType)
+//             {
+//                 std::cout << "Storing object type\n";
+//                 m_currObj = value;
+//                 m_gotType = false;
+//                 return;
+//             }
 
-            assert(!m_currKey.empty());
-            m_currProps[m_currKey] = value;
-            m_currKey = "";
-        }
+//             assert(!m_currKey.empty());
+//             m_currProps[m_currKey] = value;
+//             m_currKey = "";
+//         }
 
-        void onNull() override final
-        {
-            std::cout << "onNull" << "\n";
-        }
+//         void onNull() override final
+//         {
+//             std::cout << "onNull" << "\n";
+//         }
 
-        void onStartArray(const JsonValue::Array& value) override final 
-        {
-            std::cout << "onStartList: " << value.size() << "\n";
-        }
+//         void onStartArray(const JsonValue::Array& value) override final 
+//         {
+//             std::cout << "onStartList: " << value.size() << "\n";
+//         }
 
-        void onEndArray(const JsonValue::Array& value) override final
-        {
-            std::cout << "onEndList" << "\n";
-        }
+//         void onEndArray(const JsonValue::Array& value) override final
+//         {
+//             std::cout << "onEndList" << "\n";
+//         }
 
-        void onStartObject(const JsonValue::Object& value) override final
-        {
-            std::cout << "onStartObject: " << value.size() << "\n";
-            assert(m_currObj.empty());
-        }
+//         void onStartObject(const JsonValue::Object& value) override final
+//         {
+//             std::cout << "onStartObject: " << value.size() << "\n";
+//             assert(m_currObj.empty());
+//         }
         
-        void onEndObject(const JsonValue::Object& value) override final
-        {
-            std::cout << "onEndObject: " << "\n";
-            if (m_currObj.empty())
-            {
-                std::cout << "No object type found!\n";
-                throw std::exception();
-            }
+//         void onEndObject(const JsonValue::Object& value) override final
+//         {
+//             std::cout << "onEndObject: " << "\n";
+//             if (m_currObj.empty())
+//             {
+//                 std::cout << "No object type found!\n";
+//                 throw std::exception();
+//             }
 
-            m_objects[m_currObj] = m_currProps;
-            m_currObj = "";
-            m_gotType = false;
-        }
+//             m_objects[m_currObj] = m_currProps;
+//             m_currObj = "";
+//             m_gotType = false;
+//         }
         
-        void onKey(const std::string& key) override final
-        {
-            std::cout << "onKey: " << key << "\n";
-            assert(m_currKey.empty());
-            if (key == "type")
-            {
-                m_gotType = true;
-            }
-            else
-            {
-                m_currKey = key;
-            }
-        }
+//         void onKey(const std::string& key) override final
+//         {
+//             std::cout << "onKey: " << key << "\n";
+//             assert(m_currKey.empty());
+//             if (key == "type")
+//             {
+//                 m_gotType = true;
+//             }
+//             else
+//             {
+//                 m_currKey = key;
+//             }
+//         }
 
-    std::map<std::string, UiElementProperties> getObjects() { return m_objects; }
+//     std::map<std::string, UiElementProperties> getObjects() { return m_objects; }
 
-    private:
-        std::map<std::string, UiElementProperties> m_objects;
-        std::string m_currObj;
-        UiElementProperties m_currProps;
-        std::string m_currKey;
-        bool m_gotType;
-};
+//     private:
+//         std::map<std::string, UiElementProperties> m_objects;
+//         std::string m_currObj;
+//         UiElementProperties m_currProps;
+//         std::string m_currKey;
+//         bool m_gotType;
+// };
 
 class LayoutParser
 {

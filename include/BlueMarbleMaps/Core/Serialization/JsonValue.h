@@ -15,6 +15,69 @@ namespace BlueMarble
     
 #define DEBUG_JsonValue false
 
+class JsonParseHandler;
+
+class ICharReader
+{
+public:
+    virtual ~ICharReader() = default;
+    virtual char peek() const = 0;
+    virtual char get() = 0;
+    virtual bool eof() const = 0;
+};
+
+class StringReader : public ICharReader
+{
+public:
+    explicit StringReader(const std::string& str)
+        : m_str(str)
+        , m_idx(0)
+        {}
+    
+    virtual char peek() const override final
+    {
+        return m_str[m_idx];
+    }
+
+    virtual char get() override final
+    {
+        return m_str[m_idx++];
+    }
+
+    virtual bool eof() const override final
+    {
+        return m_idx >= m_str.size();
+    }   
+private:
+    const std::string& m_str;
+    int                m_idx;
+};
+
+class StreamReader : public ICharReader
+{
+public:
+    explicit StreamReader(std::istream& stream)
+        : m_stream(stream)
+        {}
+    
+    virtual char peek() const override final
+    {
+        return m_stream.peek();
+    }
+
+    virtual char get() override final
+    {
+        return m_stream.get();
+    }
+
+    virtual bool eof() const override final
+    {
+        return m_stream.eof();
+    }   
+private:
+    std::istream& m_stream;
+};
+
 class JsonValue
 {
 public:
@@ -123,7 +186,7 @@ public:
 
     // }
 
-    // static bool parseSax(const std::stringstream& ss, JSONParseHandler* handler);
+    static JsonValue fromStream(std::istream& ss, JsonParseHandler* handler);
     static JsonValue fromString(const std::string& str);
 
     std::string toString(bool format=false) const;
@@ -136,29 +199,47 @@ private:
     Value m_val;
 };
 
-class JSONParseHandler
+class JsonParseHandler
 {
     public:
-        virtual void onInteger(int value) {}
-        virtual void onDouble(double value) {}
-        virtual void onString(const std::string& value) {}
-        virtual void onNull() {}
+        virtual ~JsonParseHandler() = default;
 
-        virtual void onStartArray(const JsonValue::Array& value) {}
-        virtual void onEndArray(const JsonValue::Array& value) {}
+        // structure
+        virtual bool onStartObject(std::size_t /*estimated_size*/) { return true; }
+        virtual bool onEndObject() { return true; }
 
-        virtual void onStartObject(const JsonValue::Object& value) {}
-        virtual void onEndObject(const JsonValue::Object& value) {}
+        virtual bool onStartArray(std::size_t /*estimated_size*/) { return true; }
+        virtual bool onEndArray() { return true; }
+
+        // object-specific
+        virtual bool onKey(const std::string& key) { return true; }
+
+        // values
+        virtual bool onNull() { return true; }
+        virtual bool onBoolean(bool v) { return true; }
+        virtual bool onInteger(int64_t v) { return true; }
+        virtual bool onDouble(double v) { return true; }
+        virtual bool onString(std::string_view v) { return true; }
+        // virtual void onInteger(int value) {}
+        // virtual void onDouble(double value) {}
+        // virtual void onString(const std::string& value) {}
+        // virtual void onNull() {}
+
+        // virtual void onStartArray(const JsonValue::Array& value) {}
+        // virtual void onEndArray(const JsonValue::Array& value) {}
+
+        // virtual void onStartObject(const JsonValue::Object& value) {}
+        // virtual void onEndObject(const JsonValue::Object& value) {}
         
-        virtual void onKey(const std::string& key) {}
+        // virtual void onKey(const std::string& key) {}
 };
 
 bool isEndOfValueChar(const char& c);
-void expect(const char& c, const std::string& text, int& idx);
-void parseWhiteSpace(const std::string& text, int& idx);
-std::string parseKey(const std::string& text, int& idx);
-std::pair<std::string, JsonValue> retrieveKeyValuePair(const std::string& text, int& idx, int level);
-JsonValue parseJson(const std::string& text, int& idx, int level, JSONParseHandler* handler=nullptr);
+void expect(const char& c, ICharReader* reader);
+void parseWhiteSpace(ICharReader* reader);
+std::string parseKey(ICharReader* reader);
+std::pair<std::string, JsonValue> retrieveKeyValuePair(ICharReader* reader, int level);
+JsonValue parseJson(ICharReader* reader, int level, JsonParseHandler* handler=nullptr);
 
 }
 

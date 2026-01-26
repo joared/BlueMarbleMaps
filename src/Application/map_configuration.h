@@ -205,7 +205,7 @@ void configureMap(const MapPtr& map)
     const bool backgroundLayersSelectable = true;
     const bool asyncBackgroundReading = true;
 
-    const bool includeBackgroundRaster = true;
+    const bool includeBackgroundRaster = false;
     const bool includeContinents = true;
     const bool includeCountries = true;
     const bool includeRoadsEurope = true;

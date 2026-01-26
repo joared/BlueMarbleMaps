@@ -4,17 +4,27 @@
 namespace BlueMarble
 {
 
-// bool JsonValue::parseSax(const std::stringstream &ss, JSONParseHandler *handler)
-// {
-//     return false;
-// }
+JsonValue JsonValue::fromStream(std::istream &ss, JsonParseHandler *handler)
+{
+    StreamReader reader(ss);
+    try
+    {
+        return parseJson(&reader, 0, handler);
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+
+        return JsonValue();
+    }
+}
 
 JsonValue JsonValue::fromString(const std::string &str)
 {
-    int idx = 0;
+    StringReader reader(str);
     try
     {
-        return parseJson(str, idx, 0);
+        return parseJson(&reader, 0);
     }
     catch(const std::exception& e)
     {
@@ -143,21 +153,21 @@ std::string JsonValue::toString(const std::string& currentIndentation, const std
     return "";
 }
 
-void throwParseError(const std::string &text, int &idx, const std::string& error)
+void throwParseError(ICharReader* reader, const std::string& error)
 {
     constexpr int errLength = 40;
     auto e = error + ":\n";
-    e += text.substr(idx-errLength, errLength+1) + "<---\n";
+    //e += text.substr(idx-errLength, errLength+1) + "<---\n";
     throw std::runtime_error(e);
 }
 
-void expect(const char &c, const std::string &text, int &idx)
+void expect(const char &c, ICharReader* reader)
 {
-    if (c != text[idx])
+    if (c != reader->peek())
     {
         
-        std::string err = "Expected '" + std::string(1, c) + "' but got '" + text[idx];
-        throwParseError(text, idx, err);
+        std::string err = "Expected '" + std::string(1, c) + "' but got '" + reader->peek();
+        throwParseError(reader, err);
     }
 }
 
@@ -167,108 +177,108 @@ bool isEndOfValueChar(const char &c)
     return c == ',' || c == '}' || c == ']';
 }
 
-void parseWhiteSpace(const std::string &text, int &idx)
+void parseWhiteSpace(ICharReader* reader)
 {
-    while (text[idx] == ' ' || text[idx] == '\n' || text[idx] == '\r' || text[idx] == '\t')
+    char v = reader->peek();
+    while (v == ' ' || v == '\n' || v == '\r' || v == '\t')
     {
-        idx++;
+        reader->get();
+        v = reader->peek();
     }
 }
 
-std::string parseKey(const std::string &text, int &idx)
+std::string parseKey(ICharReader* reader)
 {
-    expect('\"', text, idx);
-    idx++;
+    expect('\"', reader);
+    reader->get();
 
     std::string key;
-    while (text[idx] != '\"')
+    while (reader->peek() != '\"')
     {
-        key += text[idx];
-        idx++;
+        key += reader->peek();
+        reader->get();
     }
-    idx++;
+    reader->get();
 
     assert(!key.empty());
 
     return key;
 }
 
-std::pair<std::string, JsonValue> retrieveKeyValuePair(const std::string& text, int& idx, int level)
+std::pair<std::string, JsonValue> retrieveKeyValuePair(ICharReader* reader, int level)
 {
-    auto key = std::move(parseKey(text, idx));
-    parseWhiteSpace(text, idx);
-    expect(':', text, idx);
-    idx++;
-    parseWhiteSpace(text, idx);
+    auto key = std::move(parseKey(reader));
+    parseWhiteSpace(reader);
+    expect(':', reader);
+    reader->get();
+    parseWhiteSpace(reader);
 
-    return { std::move(key), std::move(parseJson(text, idx, level)) };
+    return { std::move(key), std::move(parseJson(reader, level)) };
 }
 
-JsonValue parseJson(const std::string &text, int &idx, int level, JSONParseHandler* handler)
+JsonValue parseJson(ICharReader* reader, int level, JsonParseHandler* handler)
 {
-    parseWhiteSpace(text, idx);
+    parseWhiteSpace(reader);
 
-    if (text[idx] == ',')
+    if (reader->peek() == ',')
     {
-        std::cout << "parseJson() WARNING: Trailing comma... skipping over...\n"; ++idx;
-        parseWhiteSpace(text, idx);
+        std::cout << "parseJson() WARNING: Trailing comma... skipping over...\n"; reader->get();
+        parseWhiteSpace(reader);
     }
 
-    if (text[idx] == '{')
+    if (reader->peek() == '{')
     {
         
         // Object
-        expect('{', text, idx);
-        idx++;
+        expect('{', reader);
+        reader->get();
         JsonValue::Object jsonObject;
-        if (handler) handler->onStartObject(jsonObject);
         do
         {
-            parseWhiteSpace(text, idx);
-            jsonObject.emplace(std::move(retrieveKeyValuePair(text, idx, level)));
-            parseWhiteSpace(text, idx);
+            parseWhiteSpace(reader);
+            jsonObject.emplace(std::move(retrieveKeyValuePair(reader, level)));
+            parseWhiteSpace(reader);
             // FIXME: this is needed if comma is forgotten, but parseValue should not step over ','
-            if (text[idx] != '}')
+            if (reader->peek() != '}')
             {
-                expect(',', text, idx);
-                ++idx;
-                parseWhiteSpace(text, idx);
+                expect(',', reader);
+                reader->get();
+                parseWhiteSpace(reader);
             }
         } 
-        while (text[idx] != '}');
+        while (reader->peek() != '}');
 
-        idx++; // after '}'
+        reader->get(); // after '}'
 
-        if (handler) handler->onEndObject(jsonObject);
         return jsonObject;
     }
-    else if (text[idx] == '[')
+    else if (reader->peek() == '[')
     {
         // Array
         auto list = JsonValue::Array();
         int nList = 1;
-        idx++;
+        reader->get();
         do
         {
-            if (text[idx] == ']')
+            if (reader->peek() == ']')
             {
                 // List done
                 nList--;
-                idx++;
+                reader->get();
                 assert(nList == 0);
             }
             else
             {
                 // parse element value ',' or '['
-                parseWhiteSpace(text, idx);
-                if (text[idx] != ']')
-                    list.emplace_back(std::move(parseJson(text, idx, level)));
-                parseWhiteSpace(text, idx);
-                if (text[idx] != ']')
+                parseWhiteSpace(reader);
+                if (reader->peek() != ']')
+                    list.emplace_back(std::move(parseJson(reader, level)));
+                parseWhiteSpace(reader);
+                if (reader->peek() != ']')
                 {
-                    expect(',', text, idx);
-                    ++idx;
-                    parseWhiteSpace(text, idx);
+                    expect(',', reader);
+                    reader->get();
+                    parseWhiteSpace(reader);
                 }
             }
 
@@ -276,25 +286,25 @@ JsonValue parseJson(const std::string &text, int &idx, int level, JSONParseHandl
 
         return list;
     }
-    else if (text[idx] == '\"')
+    else if (reader->peek() == '\"')
     {
         // TODO: escape sequences
         // String
-        idx++;
+        reader->get();
         std::string value;
-        while (text[idx] != '\"')
+        while (reader->peek() != '\"')
         {
             // TODO: not working
-            // value += text[idx];
-            // idx++;
-            char c = text[idx];
+            // value += reader->peek();
+            // reader->get();
+            char c = reader->peek();
 
             if (c == '\\') 
             { // escape sequence
-                ++idx;
-                if (idx >= text.size()) break; // error: unexpected end
+                reader->get();
+                if (reader->eof()) break; // error: unexpected end
 
-                char esc = text[idx];
+                char esc = reader->peek();
                 switch (esc) {
                     case '"': value += '"'; break;
                     case '\\':value += '\\'; break;
@@ -307,61 +317,61 @@ JsonValue parseJson(const std::string &text, int &idx, int level, JSONParseHandl
                     case 'u': value += "HEX not implemented:"; break;
                     // optionally: handle \uXXXX unicode escapes
                     default:
-                        throwParseError(text, idx, "Invalid escape sequence");
+                        throwParseError(reader, "Invalid escape sequence");
                 }
             }
             else if (c == '"') 
             {
-                ++idx; // closing quote
+                reader->get(); // closing quote
                 break;
             }
             else 
             {
                 value += c;
             }
-            ++idx;
+            reader->get();
         }
         
         if (value.empty())
         {
-            throwParseError(text, idx, "Expected string but parsed empty value");
+            throwParseError(reader, "Expected string but parsed empty value");
         }
-        idx++; // after last '"'
+        reader->get(); // after last '"'
 
         return value;
     }
-    else if (text[idx] == 'n')
+    else if (reader->peek() == 'n')
     {
         // Null
-        ++idx; expect('u', text, idx);
-        ++idx; expect('l', text, idx);
-        ++idx; expect('l', text, idx);
-        ++idx;
+        reader->get(); expect('u', reader);
+        reader->get(); expect('l', reader);
+        reader->get(); expect('l', reader);
+        reader->get();
         
         return JsonValue();
     }
-    else if (text[idx] == 't' || text[idx] == 'f')
+    else if (reader->peek() == 't' || reader->peek() == 'f')
     {
         // Boolean
         bool value;
-        if (text[idx] == 't')
+        if (reader->peek() == 't')
         {
-            ++idx; expect('r', text, idx);
-            ++idx; expect('u', text, idx);
-            ++idx; expect('e', text, idx);
+            reader->get(); expect('r', reader);
+            reader->get(); expect('u', reader);
+            reader->get(); expect('e', reader);
             
             value = true;
         }
         else
         {
-            ++idx; expect('a', text, idx);
-            ++idx; expect('l', text, idx);
-            ++idx; expect('s', text, idx);
-            ++idx; expect('e', text, idx);
+            reader->get(); expect('a', reader);
+            reader->get(); expect('l', reader);
+            reader->get(); expect('s', reader);
+            reader->get(); expect('e', reader);
 
             value = false;
         }
-        ++idx;
+        reader->get();
 
         return value;
     }
@@ -369,17 +379,16 @@ JsonValue parseJson(const std::string &text, int &idx, int level, JSONParseHandl
     {
         // Double/int
         
-        int start = idx;
-        while (!isEndOfValueChar(text[idx]))
+        std::string value;
+        while (!isEndOfValueChar(reader->peek()))
         {
-            idx++;
+            value += reader->get();
         }
-        if (start == idx)
+        if (value.empty())
         {
-            throwParseError(text, idx, "Expected double/int but parsed empty value");
+            throwParseError(reader, "Expected double/int but parsed empty value");
         }
         
-        std::string_view value = text.substr(start, idx-start);
         if (value.find('.') == std::string::npos)
         {
             try
@@ -393,7 +402,7 @@ JsonValue parseJson(const std::string &text, int &idx, int level, JSONParseHandl
             }
             catch(const std::exception& e)
             {
-                throwParseError(text, idx, "Could not convert '" + std::string(value) + "' to an integer");
+                throwParseError(reader, "Could not convert '" + std::string(value) + "' to an integer");
             }
         }
         else
@@ -405,7 +414,7 @@ JsonValue parseJson(const std::string &text, int &idx, int level, JSONParseHandl
             }
             catch(const std::exception& e)
             {
-                throwParseError(text, idx, "Could not convert '" + std::string(value) + "' to a double");
+                throwParseError(reader, "Could not convert '" + std::string(value) + "' to a double");
             }  
         }
     }

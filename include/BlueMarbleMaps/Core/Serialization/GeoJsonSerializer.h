@@ -1,6 +1,7 @@
 #ifndef BLUEMARBLE_JSONSERIALIZER
 #define BLUEMARBLE_JSONSERIALIZER
 
+
 //#include "BlueMarbleMaps/System/JsonFile.h"
 #include "BlueMarbleMaps/Core/Serialization/JsonValue.h"
 #include "BlueMarbleMaps/Core/Feature.h"
