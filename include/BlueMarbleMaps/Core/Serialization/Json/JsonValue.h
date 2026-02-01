@@ -50,7 +50,7 @@ public:
     }   
 private:
     const std::string& m_str;
-    int                m_idx;
+    size_t             m_idx;
 };
 
 class StreamReader : public ICharReader
@@ -67,6 +67,7 @@ public:
 
     virtual char get() override final
     {
+        if (eof()) throw std::runtime_error("StreamReader eof");
         return m_stream.get();
     }
 
@@ -87,6 +88,16 @@ public:
     using Value  = std::variant<Null, bool, int64_t, double, std::string, Array, Object>;
 
     JsonValue() : m_val(Null{}) {}
+    // TODO: make only movable?
+    // JsonValue(JsonValue&& v) : m_val(std::move(v.m_val)) {}
+    // void operator=(JsonValue&& v) { m_val = std::move(v.m_val); }
+    // Move semantics (explicit)
+    JsonValue(JsonValue&& v) noexcept = default;
+    JsonValue& operator=(JsonValue&& v) noexcept = default;
+    
+    // Delete copies to prevent accidental copying
+    JsonValue(const JsonValue&) = default;
+    JsonValue& operator=(const JsonValue&) = delete;
 
     //JsonValue(bool v) : m_val(v) {} // Can apparently do JsonValue({}) which is bool
     //JsonValue(std::initializer_list<bool>) = delete;
@@ -131,8 +142,8 @@ public:
             Object obj;
             for (const auto& element : init)
             {
-                const auto& arr = element.asArray();   // arr[0] = key, arr[1] = value
-                obj.emplace(arr[0].asString(), arr[1]);
+                auto& arr = element.asArray();   // arr[0] = key, arr[1] = value
+                obj.emplace(arr[0].asString(), std::move(arr[1]));
             }
             m_val = std::move(obj);
         }
@@ -142,6 +153,8 @@ public:
             m_val = Array(init);
         }
     }
+
+    // void operator=(JsonValue&& v) { m_val = std::move(v.m_val); }
 
     bool hasValue() const { return !std::holds_alternative<std::monostate>(m_val); }
     bool isBool() const { return std::holds_alternative<bool>(m_val); }
@@ -155,8 +168,11 @@ public:
     int64_t asInteger() const { return std::get<int64_t>(m_val); }
     double asDouble() const { return std::get<double>(m_val); }
     const std::string& asString() const { return std::get<std::string>(m_val); }
+    std::string& asString() { return std::get<std::string>(m_val); }
     const Array& asArray() const { return std::get<Array>(m_val); }
+    Array& asArray() { return std::get<Array>(m_val); }
     const Object& asObject() const { return std::get<Object>(m_val); }
+    Object& asObject() { return std::get<Object>(m_val); }
 
     template<typename T>
     bool tryGet(T& val) const 
@@ -179,15 +195,10 @@ public:
     template<typename T>
     T& get() { return std::get<T>(m_val); }
 
-    // template <typename Serializer>
-    // std::string serialize(Serializer s)
-    // {
-    //     // using T = std::decay_t<decltype(v)>
-
-    // }
-
-    static JsonValue fromStream(std::istream& ss, JsonParseHandler* handler);
+    static JsonValue fromStream(std::istream& ss);
     static JsonValue fromString(const std::string& str);
+    static bool fromStream(std::istream& ss, JsonParseHandler* handler);
+    static bool fromString(const std::string& str, JsonParseHandler* handler);
 
     std::string toString(bool format=false) const;
 
@@ -212,34 +223,20 @@ class JsonParseHandler
         virtual bool onEndArray() { return true; }
 
         // object-specific
-        virtual bool onKey(const std::string& key) { return true; }
+        virtual bool onKey(std::string&& key) { return true; }
 
         // values
         virtual bool onNull() { return true; }
-        virtual bool onBoolean(bool v) { return true; }
+        virtual bool onBool(bool v) { return true; }
         virtual bool onInteger(int64_t v) { return true; }
         virtual bool onDouble(double v) { return true; }
-        virtual bool onString(std::string_view v) { return true; }
-        // virtual void onInteger(int value) {}
-        // virtual void onDouble(double value) {}
-        // virtual void onString(const std::string& value) {}
-        // virtual void onNull() {}
+        virtual bool onString(std::string&& v) { return true; }
 
-        // virtual void onStartArray(const JsonValue::Array& value) {}
-        // virtual void onEndArray(const JsonValue::Array& value) {}
-
-        // virtual void onStartObject(const JsonValue::Object& value) {}
-        // virtual void onEndObject(const JsonValue::Object& value) {}
-        
-        // virtual void onKey(const std::string& key) {}
+        virtual bool onError(std::string&& v) { return false; }
 };
 
-bool isEndOfValueChar(const char& c);
-void expect(const char& c, ICharReader* reader);
-void parseWhiteSpace(ICharReader* reader);
-std::string parseKey(ICharReader* reader);
-std::pair<std::string, JsonValue> retrieveKeyValuePair(ICharReader* reader, int level);
-JsonValue parseJson(ICharReader* reader, int level, JsonParseHandler* handler=nullptr);
+
+bool parseJson(ICharReader* reader, JsonParseHandler* handler);
 
 }
 

@@ -144,7 +144,7 @@ std::string serializeFeature(const FeaturePtr& feature)
 
 Id deserializeId(const std::string& string)
 {
-    auto value = JsonValue::fromString(string);
+    auto value = std::move(JsonValue::fromString(string));
     auto idList = value.get<JsonValue::Object>()["id"].get<JsonValue::Array>();
     auto id = Id(idList[0].asInteger(), idList[1].asInteger());
 

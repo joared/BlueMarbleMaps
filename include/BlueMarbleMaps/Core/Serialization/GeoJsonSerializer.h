@@ -3,7 +3,7 @@
 
 
 //#include "BlueMarbleMaps/System/JsonFile.h"
-#include "BlueMarbleMaps/Core/Serialization/JsonValue.h"
+#include "BlueMarbleMaps/Core/Serialization/Json/JsonValue.h"
 #include "BlueMarbleMaps/Core/Feature.h"
 
 namespace BlueMarble

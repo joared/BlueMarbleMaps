@@ -15,7 +15,7 @@
 #include <cassert>
 
 // Blue marble includes
-#include "BlueMarbleMaps/Core/Serialization/JsonValue.h"
+#include "BlueMarbleMaps/Core/Serialization/Json/JsonValue.h"
 
 #include "reflection_utils.h"
 

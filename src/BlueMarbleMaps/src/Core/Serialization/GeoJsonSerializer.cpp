@@ -141,7 +141,7 @@ Attributes GeoJsonSerializer::deserializeProperties(const JsonValue& jsonValue)
 
     for (auto& pair : jsonData)
     {
-        auto value = pair.second;
+        auto& value = pair.second;
         auto x = AttributeValue();
         if (value.isInteger())
         {
@@ -284,9 +284,9 @@ std::vector<Point> GeoJsonSerializer::extractPoints(const JsonValue& pointListVa
     // std::cout << "GeoJsonSerializer::extractPoints\n";
     const auto& pointList = pointListValue.get<JsonValue::Array>();
     std::vector<Point> points;
-    for (auto p : pointList)
+    for (const auto& p : pointList)
     {
-        points.push_back(extractPoint(p));
+        points.emplace_back(extractPoint(p));
     }
 
     return points;

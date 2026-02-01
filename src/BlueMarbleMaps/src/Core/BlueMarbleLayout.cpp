@@ -1,5 +1,5 @@
 #include "BlueMarbleMaps/Core/BlueMarbleLayout.h"
-#include "BlueMarbleMaps/Core/Serialization/JsonValue.h"
+#include "BlueMarbleMaps/Core/Serialization/Json/JsonValue.h"
 
 using namespace BlueMarble;
 

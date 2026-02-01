@@ -1,6 +1,6 @@
 #include "BlueMarbleMaps/Core/Index/QuadTreeIndex.h"
 #include "BlueMarbleMaps/System/File.h"
-#include "BlueMarbleMaps/Core/Serialization/JsonValue.h"
+#include "BlueMarbleMaps/Core/Serialization/Json/JsonValue.h"
 
 
 using namespace BlueMarble;
@@ -202,12 +202,14 @@ void QuadTreeIndex::clear()
 
 bool QuadTreeIndex::load(const PersistanceContext& ctx)
 {
-    return loadJson(ctx.fileName);;
+    return loadJson2(ctx.fileName);
+    // return loadJson(ctx.fileName);
 }
 
 void QuadTreeIndex::save(const PersistanceContext& ctx) const
-{
-    saveJson(ctx.fileName);
+{    
+    saveJson2(ctx.fileName);
+    // saveJson(ctx.fileName);
 }
 
 double QuadTreeIndex::minimumCellSize(const Rectangle& rootBounds, int depth)
@@ -304,8 +306,9 @@ bool QuadTreeIndex::loadJson(const std::string &path)
         return false;
     }
 
-    std::ifstream stream(path);
-    JsonValue json = JsonValue::fromStream(stream, nullptr);//File::readAsString(path));
+    // std::ifstream stream(path);
+    //File::readAsString(path));
+    JsonValue json = std::move(JsonValue::fromString(File::readAsString(path)));
     m_root = std::make_unique<QuadTreeNode>(Rectangle(0,0,0,0), 0); // dummy rect
     m_maxDepth = 0;
     deserializeNode(json, *m_root.get(), m_maxDepth);
@@ -316,6 +319,124 @@ bool QuadTreeIndex::loadJson(const std::string &path)
     // debug();
 
     return true;
+}
+
+void QuadTreeIndex::saveJson2(const std::string &path) const
+{
+    JsonValue json = JsonValue::Object();
+    json.asObject()["rootBounds"] = JsonValue::Object({
+        {"xMin", m_root->bounds().xMin()},
+        {"yMin", m_root->bounds().yMin()},
+        {"xMax", m_root->bounds().xMax()},
+        {"yMax", m_root->bounds().yMax()}
+    });
+    json.asObject()["maxDepth"] = (int)m_maxDepth;
+    
+    std::string totString;
+    totString += json.toString() + "\n";
+
+    foreachEntry([&](const FeatureId& id, const Rectangle& bounds)
+    {
+        JsonValue jsonEntry({
+            {"id", (int)id},
+            {"bounds", {
+                {"xMin", bounds.xMin()},
+                {"yMin", bounds.yMin()},
+                {"xMax", bounds.xMax()},
+                {"yMax", bounds.yMax()}
+            }}
+        });
+        totString += jsonEntry.toString() + "\n";
+    });
+
+    File::writeString(path, totString);
+}
+
+bool QuadTreeIndex::loadJson2(const std::string &path)
+{
+    auto f = File(path);
+    if (!f.isOpen())
+    {
+        return false;
+    }
+
+    // m_filePath = ctx.fileName;
+    // m_file = std::make_unique<File>(ctx.fileName);
+    // m_file->buildIndex();
+    // m_index.clear();
+
+    // int64_t lineIdx = 0;
+    // //auto lines = std::move(m_file->getLines());
+    // std::string line = std::move(m_file->getLine(lineIdx));
+    // while (!line.empty())
+    // {
+    //     // TODO
+    //     Id id = deserializeId(line);
+    //     m_index[id.featureId()] = FeatureRecord{lineIdx};
+    //     lineIdx++;
+    //     line = std::move(m_file->getLine(lineIdx));
+    // }
+
+    // BMM_DEBUG() << "FileDatabase loaded " << lineIdx << " features\n";
+
+    // return m_index.size() > 0;
+
+    m_root = nullptr;
+    
+    auto ifstream = std::ifstream(path);
+    // auto file = File(path);
+    // file.buildIndex();
+    // size_t lineCount = 0;
+    // std::string line = std::move(file.getLine(lineCount));
+    std::string line;
+    while (std::getline(ifstream, line))
+    {
+        if (line.empty())
+            continue;
+        // First line is root bounds and max depth
+        if (m_root == nullptr)
+        {           
+            JsonValue json = std::move(JsonValue::fromString(line));
+            double xMin = json.asObject().at("rootBounds").asObject().at("xMin").asDouble();
+            double yMin = json.asObject().at("rootBounds").asObject().at("yMin").asDouble();
+            double xMax = json.asObject().at("rootBounds").asObject().at("xMax").asDouble();
+            double yMax = json.asObject().at("rootBounds").asObject().at("yMax").asDouble();
+            m_root = std::make_unique<QuadTreeNode>(Rectangle(xMin, yMin, xMax, yMax), 0);
+            m_maxDepth = json.asObject().at("maxDepth").asInteger();
+        }
+        else
+        {
+            JsonValue json = std::move(JsonValue::fromString(line));
+            int id = json.asObject().at("id").asInteger();
+            double xMin = json.asObject().at("bounds").asObject().at("xMin").asDouble();
+            double yMin = json.asObject().at("bounds").asObject().at("yMin").asDouble();
+            double xMax = json.asObject().at("bounds").asObject().at("xMax").asDouble();
+            double yMax = json.asObject().at("bounds").asObject().at("yMax").asDouble();
+
+            insert(id, Rectangle(xMin, yMin, xMax, yMax));
+        }
+    }
+
+    return true;
+}
+
+void QuadTreeIndex::foreachEntry(const std::function<void(const FeatureId&, const Rectangle &)> &func) const
+{
+    std::function<void(const QuadTreeNode*)> recurse =
+        [&](const QuadTreeNode* node)
+    {
+        for (const auto& e : node->entries())
+        {
+            func(e.first, e.second);
+        }
+
+        for (const auto& child : node->children())
+        {
+            recurse(&child);
+        }
+    };
+
+    recurse(m_root.get());
 }
 
 int QuadTreeIndex::calculateNumberOfNodes(QuadTreeNode *node)
