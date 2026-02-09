@@ -32,7 +32,7 @@ Map::Map()
     m_camera = Camera::perspectiveCamera(m_drawable->width(), m_drawable->height(), 0.1, 1.0, 45.0);
     // TODO: set reasonable start position of the camera
 
-    m_presentationObjects.reserve(10000); // Reserve a good amount for efficiency
+    m_presentationObjects.reserve(100000); // Reserve a good amount for efficiency
 
     m_lastUpdateTimeStamp = getTimeStampMs();
     updateUpdateAttributes(m_lastUpdateTimeStamp);
@@ -167,7 +167,7 @@ FeatureQuery Map::produceUpdateQuery()
     int w = m_drawable->width();
     int h = m_drawable->height();
     auto screenArea = Rectangle(0,0,w,h);
-    screenArea.scale(0.5); // TODO: this scaling is for debugging querying, remove
+    screenArea.scale(0.75); // TODO: this scaling is for debugging querying, remove
 
     auto updateArea = screenToMap(screenArea);
     featureQuery.area(updateArea);

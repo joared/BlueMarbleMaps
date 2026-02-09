@@ -202,14 +202,12 @@ void QuadTreeIndex::clear()
 
 bool QuadTreeIndex::load(const PersistanceContext& ctx)
 {
-    return loadJson2(ctx.fileName);
-    // return loadJson(ctx.fileName);
+    return loadJson(ctx.fileName);
 }
 
 void QuadTreeIndex::save(const PersistanceContext& ctx) const
 {    
-    saveJson2(ctx.fileName);
-    // saveJson(ctx.fileName);
+    saveJson(ctx.fileName);
 }
 
 double QuadTreeIndex::minimumCellSize(const Rectangle& rootBounds, int depth)
@@ -294,35 +292,6 @@ QuadTreeNode& deserializeNode(const JsonValue& json, QuadTreeNode& nodeOut, int&
 
 void QuadTreeIndex::saveJson(const std::string &path) const
 {
-    auto json = std::move(serializeNode(m_root.get()));
-    File::writeString(path, json.toString());
-}
-
-bool QuadTreeIndex::loadJson(const std::string &path)
-{
-    auto f = File(path);
-    if (!f.isOpen())
-    {
-        return false;
-    }
-
-    // std::ifstream stream(path);
-    //File::readAsString(path));
-    JsonValue json = std::move(JsonValue::fromString(File::readAsString(path)));
-    m_root = std::make_unique<QuadTreeNode>(Rectangle(0,0,0,0), 0); // dummy rect
-    m_maxDepth = 0;
-    deserializeNode(json, *m_root.get(), m_maxDepth);
-
-    BMM_DEBUG() << "Quad tree depth: " << m_maxDepth << "\n";
-    BMM_DEBUG() << "Quad tree min cell size: " << minimumCellSize(m_root->bounds(), m_maxDepth) << "\n";
-
-    // debug();
-
-    return true;
-}
-
-void QuadTreeIndex::saveJson2(const std::string &path) const
-{
     JsonValue json = JsonValue::Object();
     json.asObject()["rootBounds"] = JsonValue::Object({
         {"xMin", m_root->bounds().xMin()},
@@ -335,7 +304,7 @@ void QuadTreeIndex::saveJson2(const std::string &path) const
     std::string totString;
     totString += json.toString() + "\n";
 
-    foreachEntry([&](const FeatureId& id, const Rectangle& bounds)
+    forEachEntry([&](const FeatureId& id, const Rectangle& bounds)
     {
         JsonValue jsonEntry({
             {"id", (int)id},
@@ -352,7 +321,7 @@ void QuadTreeIndex::saveJson2(const std::string &path) const
     File::writeString(path, totString);
 }
 
-bool QuadTreeIndex::loadJson2(const std::string &path)
+bool QuadTreeIndex::loadJson(const std::string &path)
 {
     auto f = File(path);
     if (!f.isOpen())
@@ -360,39 +329,16 @@ bool QuadTreeIndex::loadJson2(const std::string &path)
         return false;
     }
 
-    // m_filePath = ctx.fileName;
-    // m_file = std::make_unique<File>(ctx.fileName);
-    // m_file->buildIndex();
-    // m_index.clear();
-
-    // int64_t lineIdx = 0;
-    // //auto lines = std::move(m_file->getLines());
-    // std::string line = std::move(m_file->getLine(lineIdx));
-    // while (!line.empty())
-    // {
-    //     // TODO
-    //     Id id = deserializeId(line);
-    //     m_index[id.featureId()] = FeatureRecord{lineIdx};
-    //     lineIdx++;
-    //     line = std::move(m_file->getLine(lineIdx));
-    // }
-
-    // BMM_DEBUG() << "FileDatabase loaded " << lineIdx << " features\n";
-
-    // return m_index.size() > 0;
 
     m_root = nullptr;
     
     auto ifstream = std::ifstream(path);
-    // auto file = File(path);
-    // file.buildIndex();
-    // size_t lineCount = 0;
-    // std::string line = std::move(file.getLine(lineCount));
     std::string line;
     while (std::getline(ifstream, line))
     {
         if (line.empty())
             continue;
+        
         // First line is root bounds and max depth
         if (m_root == nullptr)
         {           
@@ -404,7 +350,7 @@ bool QuadTreeIndex::loadJson2(const std::string &path)
             m_root = std::make_unique<QuadTreeNode>(Rectangle(xMin, yMin, xMax, yMax), 0);
             m_maxDepth = json.asObject().at("maxDepth").asInteger();
         }
-        else
+        else // Subsequent lines are entries
         {
             JsonValue json = std::move(JsonValue::fromString(line));
             int id = json.asObject().at("id").asInteger();
@@ -420,7 +366,7 @@ bool QuadTreeIndex::loadJson2(const std::string &path)
     return true;
 }
 
-void QuadTreeIndex::foreachEntry(const std::function<void(const FeatureId&, const Rectangle &)> &func) const
+void QuadTreeIndex::forEachEntry(const std::function<void(const FeatureId&, const Rectangle &)> &func) const
 {
     std::function<void(const QuadTreeNode*)> recurse =
         [&](const QuadTreeNode* node)

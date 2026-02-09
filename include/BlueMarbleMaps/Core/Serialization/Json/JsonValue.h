@@ -1,6 +1,8 @@
 #ifndef JSONVALUE
 #define JSONVALUE
 
+#include "JsonDetails.h"
+
 #include <iostream>
 #include <variant>
 #include <map>
@@ -34,17 +36,17 @@ public:
         , m_idx(0)
         {}
     
-    virtual char peek() const override final
+    inline virtual char peek() const override final
     {
         return m_str[m_idx];
     }
 
-    virtual char get() override final
+    inline virtual char get() override final
     {
         return m_str[m_idx++];
     }
 
-    virtual bool eof() const override final
+    inline virtual bool eof() const override final
     {
         return m_idx >= m_str.size();
     }   
@@ -60,18 +62,18 @@ public:
         : m_stream(stream)
         {}
     
-    virtual char peek() const override final
+    inline virtual char peek() const override final
     {
         return m_stream.peek();
     }
 
-    virtual char get() override final
+    inline virtual char get() override final
     {
-        if (eof()) throw std::runtime_error("StreamReader eof");
+        // if (eof()) throw std::runtime_error("StreamReader eof");
         return m_stream.get();
     }
 
-    virtual bool eof() const override final
+    inline virtual bool eof() const override final
     {
         return m_stream.eof();
     }   
@@ -88,32 +90,20 @@ public:
     using Value  = std::variant<Null, bool, int64_t, double, std::string, Array, Object>;
 
     JsonValue() : m_val(Null{}) {}
-    // TODO: make only movable?
-    // JsonValue(JsonValue&& v) : m_val(std::move(v.m_val)) {}
-    // void operator=(JsonValue&& v) { m_val = std::move(v.m_val); }
-    // Move semantics (explicit)
     JsonValue(JsonValue&& v) noexcept = default;
     JsonValue& operator=(JsonValue&& v) noexcept = default;
-    
-    // Delete copies to prevent accidental copying
     JsonValue(const JsonValue&) = default;
     JsonValue& operator=(const JsonValue&) = delete;
 
-    //JsonValue(bool v) : m_val(v) {} // Can apparently do JsonValue({}) which is bool
-    //JsonValue(std::initializer_list<bool>) = delete;
-    // JsonValue(bool v)
-    //     requires(!std::is_same_v<std::decay_t<decltype(v)>, std::initializer_list<JsonValue>>) 
-    //     : m_val(v) {}
     JsonValue(std::nullptr_t) : m_val(Null{}) {}
     template <typename T, typename = std::enable_if_t<std::is_same_v<T, bool>>>
     JsonValue(T v) : m_val(v) {}
     template <typename T,
           typename = std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<T,bool>>, typename = void>
     JsonValue(T v) : m_val(std::in_place_type<int64_t>, static_cast<int64_t>(v)) {}
-    // JsonValue(int64_t v) : m_val(v) {}
-    // JsonValue(int v) : m_val(std::in_place_type<int64_t>, v) {}
-
-    JsonValue(double v) : m_val(v) {}
+    template <typename T,
+          typename = std::enable_if_t<std::is_floating_point_v<T>>, typename = void, typename = void>
+    JsonValue(T v) : m_val((double)v) {}
     
     JsonValue(const char* v) : m_val(std::string(v)) {}
     JsonValue(const std::string& v) : m_val(v) {}
@@ -197,8 +187,14 @@ public:
 
     static JsonValue fromStream(std::istream& ss);
     static JsonValue fromString(const std::string& str);
-    static bool fromStream(std::istream& ss, JsonParseHandler* handler);
-    static bool fromString(const std::string& str, JsonParseHandler* handler);
+
+    template<typename ReaderType, typename HandlerType>
+    static bool load(ReaderType* reader, HandlerType* handler)
+    {
+        return JsonDetails::parseJson(reader, handler);
+    }
+    // static bool fromStream(std::istream& ss, JsonParseHandler* handler);
+    // static bool fromString(const std::string& str, JsonParseHandler* handler);
 
     std::string toString(bool format=false) const;
 
@@ -235,9 +231,6 @@ class JsonParseHandler
         virtual bool onError(std::string&& v) { return false; }
 };
 
-
-bool parseJson(ICharReader* reader, JsonParseHandler* handler);
-
-}
+} /* namespace BlueMarble */
 
 #endif /* JSONVALUE */

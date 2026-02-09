@@ -90,7 +90,7 @@ void StandardLayer::hitTest(const MapPtr& map, const Rectangle& bounds, std::vec
                 // {
                 //     BMM_DEBUG() << "Id in query: " << idd.toString() << "\n";
                 // }
-                //BMM_DEBUG() << "StandardLayer::hitTest() Feature with id '" + id.toString() + "' missing in cache, should not happen!\n";
+                BMM_DEBUG() << "StandardLayer::hitTest() Feature with id '" + id.toString() + "' missing in cache, should not happen!\n";
             }
             else
             {
@@ -192,9 +192,7 @@ void StandardLayer::update(const MapPtr& map)
 
             if (renderingEnabled())
             {
-                //m_drawable->visualizerBegin();
                 vis->renderFeature(*map->drawable(), f, updateAttributes, updateArea); // Calls drawable->drawLine, drawable->drawPolygon etc
-                //m_drawable->visualizerEnd();
             }
 
             if (!hasAddedHoverAnSelection)

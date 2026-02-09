@@ -32,9 +32,7 @@ namespace BlueMarble
     private:
         void saveJson(const std::string& path) const;
         bool loadJson(const std::string& path);
-        void saveJson2(const std::string& path) const;
-        bool loadJson2(const std::string& path);
-        void foreachEntry(const std::function<void(const FeatureId&, const Rectangle&)>& func) const;
+        void forEachEntry(const std::function<void(const FeatureId&, const Rectangle&)>& func) const;
 
         static int calculateNumberOfNodes(QuadTreeNode* node);
         void debug() const;

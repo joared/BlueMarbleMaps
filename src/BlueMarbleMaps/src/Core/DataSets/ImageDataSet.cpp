@@ -39,8 +39,8 @@ FeaturePtr loadWithGDAL(const std::string& filePath)
         double pixelSizeX = gt[1];
         double pixelSizeY = gt[5];
         bounds = Rectangle(origX, 
-                           origY+height*pixelSizeY,  // Use the original width              
-                           origX+width*pixelSizeX, // Use the original height
+                           origY+height*pixelSizeY, // Use the original height              
+                           origX+width*pixelSizeX,  // Use the original width
                            origY);
     }
     else
