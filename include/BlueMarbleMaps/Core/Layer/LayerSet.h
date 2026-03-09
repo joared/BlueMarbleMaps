@@ -17,13 +17,18 @@ namespace BlueMarble
         virtual ~LayerSet() = default;
 
         virtual void hitTest(const MapPtr& map, const Rectangle& bounds, std::vector<PresentationObject>& presObjects) override final;
-        virtual void prepare(const CrsPtr &crs, const FeatureQuery& featureQuery) override;
-        virtual void update(const MapPtr &crs) override;
+        virtual FeatureEnumeratorPtr prepare(const CrsPtr &crs, const FeatureQuery& featureQuery) override;
+        virtual void update(const MapPtr& map, const FeatureEnumeratorPtr& features, const FeatureQuery& featureQuery) override;
         virtual FeatureEnumeratorPtr getFeatures(const CrsPtr& crs, const FeatureQuery& featureQuery, bool activeLayersOnly) override final;
+
+        void addLayer(const LayerPtr& layer) { m_subLayers.push_back(layer); }
+        const std::vector<LayerPtr>& layers() const { return m_subLayers; }
+
         virtual void flushCache() override;
     private:
-        std::vector<LayerPtr> m_subLayers;
+        std::vector<LayerPtr>               m_subLayers;
     };
+    using LayerSetPtr = std::shared_ptr<LayerSet>;
 }
 
 #endif /* BLUEMARBLE_LAYERSET */

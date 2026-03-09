@@ -42,7 +42,7 @@ namespace BlueMarble
         private:
             MapPtr  m_mapView;
             ToolPtr m_tool;
-            bool    m_updateRequired;
+            std::atomic_bool m_updateRequired;
 
     };
     typedef std::shared_ptr<MapControl> MapControlPtr;

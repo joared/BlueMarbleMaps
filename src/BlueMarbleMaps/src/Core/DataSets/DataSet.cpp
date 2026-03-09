@@ -146,7 +146,9 @@ IdCollectionPtr DataSet::getFeatureIds(const FeatureQuery& featureQuery)
 
 FeatureEnumeratorPtr DataSet::getFeatures(const FeatureQuery& featureQuery)
 {
-    if (!ensureInitialized()) return std::make_shared<FeatureEnumerator>();
+    // Return incomplete enumerator if not initialized to avoid blocking the caller with initialization. 
+    // Caller can check if the enumerator is complete and decide to query again later or show a loading indicator or something.
+    if (!ensureInitialized()) return std::make_shared<FeatureEnumerator>(false);
     return onGetFeatures(featureQuery);
 }
 

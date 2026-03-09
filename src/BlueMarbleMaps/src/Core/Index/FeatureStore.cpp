@@ -42,11 +42,14 @@ FeatureCollectionPtr FeatureStore::getFeatures(const FeatureIdCollectionPtr& fea
     auto cacheMissingIds = std::make_shared<FeatureIdCollection>();
     if (m_cache)
     {
+        std::lock_guard lock(m_cacheMutex);
         for (const auto& featureId : *featureIds)
         {
             auto id = Id(m_dataSetId, featureId);
             if (m_cache->contains(id))
             {
+                // TODO: We need to make the cache thread safe if we want to use it in a multithreaded way, which we do in StandardLayer. We can either make the cache itself thread safe, or we can add a mutex here in FeatureStore to protect the cache access. I think it would be better to make the cache itself thread safe, since it can be used in other places as well. For now, we will add a mutex here in FeatureStore to protect the cache access, since making the cache itself thread safe would require more changes and testing.
+                // std::lock_guard lock(m_cacheMutex);
                 features->add(m_cache->getFeature(id));
             }
             else
@@ -67,23 +70,27 @@ FeatureCollectionPtr FeatureStore::getFeatures(const FeatureIdCollectionPtr& fea
         m_dataBase->getFeatures(cacheMissingIds, nonCachedFeatures);
 
         // Add the noncached features to the cache
-        for (const auto& f : *nonCachedFeatures)
+        if (m_cache)
         {
-            f->id(Id(m_dataSetId, f->id().featureId())); // The database has no idea about the dataset id, but we do!
-            if (m_cache)
+            std::lock_guard lock(m_cacheMutex);
+            for (const auto& f : *nonCachedFeatures)
+            {
+                f->id(Id(m_dataSetId, f->id().featureId())); // The database has no idea about the dataset id, but we do!
                 m_cache->insert(f->id(), f);
+            }
         }
+        
 
         // Add the noncached features to the result
         features->addRange(*nonCachedFeatures);
 
         // Some debugging
-        BMM_DEBUG() << "FeatureStore::getFeatures()\n";
-        BMM_DEBUG() << "Queried " << nonCachedFeatures->size() << " new features from database\n";
-        BMM_DEBUG() << "Database size: " << m_dataBase->size() << "\n";
-        if (m_cache)
-            BMM_DEBUG() << "Cache size: " << m_cache->size() << "\n";
-        BMM_DEBUG() << "-------------------------\n";
+        // BMM_DEBUG() << "FeatureStore::getFeatures()\n";
+        // BMM_DEBUG() << "Queried " << nonCachedFeatures->size() << " new features from database\n";
+        // BMM_DEBUG() << "Database size: " << m_dataBase->size() << "\n";
+        // if (m_cache)
+        //     BMM_DEBUG() << "Cache size: " << m_cache->size() << "\n";
+        // BMM_DEBUG() << "-------------------------\n";
     }
 
     return features;
@@ -221,7 +228,10 @@ bool FeatureStore::verifyIndex() const
 void FeatureStore::flushCache()
 {
     if (m_cache)
+    {
+        std::lock_guard lock(m_cacheMutex);
         m_cache->clear();
+    }
 }
 
 IPersistable::PersistanceContext BlueMarble::FeatureStore::getIndexPersistanceContext(IPersistable* p, const std::string& indexPath)

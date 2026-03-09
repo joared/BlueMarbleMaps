@@ -165,40 +165,67 @@ Point BlueMarble::RasterGeometry::rasterIndexToPoint(int x, int y) const
                  bounds().yMax() - cellHeight()*y);
 }
 
-RasterGeometryPtr RasterGeometry::getSubRasterGeometry(const Rectangle &subBounds)
+RasterGeometryPtr RasterGeometry::getSubRasterGeometry(const Rectangle& subBounds) const
 {
     if (!subBounds.overlap(bounds()))
     {
-        std::cout << "RasterGeometry::getSubRasterGeometry() Bounds do not overlap: " << bounds().toString() << "(this), " << subBounds.toString() << " (other)\n";
+        std::cout << "RasterGeometry::getSubRasterGeometry() Bounds do not overlap: "
+                  << bounds().toString() << "(this), "
+                  << subBounds.toString() << " (other)\n";
         throw std::exception();
     }
 
-    double cellW = cellWidth();
-    double cellH = cellHeight();
     auto& raster = m_raster;
 
-    // Retrie the crop that is inside the update area
-    int x0 = std::max((int)(subBounds.xMin()/cellW), 0);
-    int y0 = std::max((int)(subBounds.yMin()/cellH), 0);
-    int x1 = std::min((int)(subBounds.xMax()/cellW), (int)(raster.width()-1));
-    int y1 = std::min((int)(subBounds.yMax()/cellH), (int)(raster.height()-1));
+    auto topLeft = pointToRasterIndex(Point(subBounds.xMin(), subBounds.yMax()));
+    auto bottomRight = pointToRasterIndex(Point(subBounds.xMax(), subBounds.yMin()));
 
-    // New bounds of sub/cropped raster. Assuming 0 at the very left pixel
-    Rectangle rasterBounds(x0*cellW, 
-                           y0*cellH, 
-                           (x1+1)*cellW, 
-                           (y1+1)*cellH);
+    int x0 = std::max((int)topLeft.x(), 0);
+    int x1 = std::min((int)bottomRight.x(), (int)raster.width() - 1);
 
-    // Create new sub geometry
-    // auto subGeometry =  std::make_shared<RasterGeometry>();
-    // subGeometry->m_cellWidth = cellWidth;
-    // subGeometry->m_cellHeight = cellHeight;
-    // subGeometry->m_bounds = rasterBounds;
-    // subGeometry->m_raster = raster.getCrop(minPixelX, minPixelY, maxPixelX, maxPixelY);
+    int y0 = std::max((int)topLeft.y(), 0);
+    int y1 = std::min((int)bottomRight.y(), (int)raster.height() - 1);
 
-    // return subGeometry;
+    auto topLeftWorld = rasterIndexToPoint(x0, y0);
+    auto bottomRightWorld = rasterIndexToPoint(x1 + 1, y1 + 1);
+
+    Rectangle rasterBounds = Rectangle::fromPoints({topLeftWorld, bottomRightWorld});
+
     auto cropped = raster.getCrop(x0, y0, x1, y1);
     return std::make_shared<RasterGeometry>(cropped, rasterBounds);
+
+    // if (!subBounds.overlap(bounds()))
+    // {
+    //     std::cout << "RasterGeometry::getSubRasterGeometry() Bounds do not overlap: " << bounds().toString() << "(this), " << subBounds.toString() << " (other)\n";
+    //     throw std::exception();
+    // }
+
+    // double cellW = cellWidth();
+    // double cellH = cellHeight();
+    // auto& raster = m_raster;
+
+    // // Retrie the crop that is inside the update area
+    // int x0 = std::max((int)(subBounds.xMin()/cellW), 0);
+    // int y0 = std::max((int)(subBounds.yMin()/cellH), 0);
+    // int x1 = std::min((int)(subBounds.xMax()/cellW), (int)(raster.width()-1));
+    // int y1 = std::min((int)(subBounds.yMax()/cellH), (int)(raster.height()-1));
+
+    // // New bounds of sub/cropped raster. Assuming 0 at the very left pixel
+    // Rectangle rasterBounds(x0*cellW, 
+    //                        y0*cellH, 
+    //                        (x1+1)*cellW, 
+    //                        (y1+1)*cellH);
+
+    // // Create new sub geometry
+    // // auto subGeometry =  std::make_shared<RasterGeometry>();
+    // // subGeometry->m_cellWidth = cellWidth;
+    // // subGeometry->m_cellHeight = cellHeight;
+    // // subGeometry->m_bounds = rasterBounds;
+    // // subGeometry->m_raster = raster.getCrop(minPixelX, minPixelY, maxPixelX, maxPixelY);
+
+    // // return subGeometry;
+    // auto cropped = raster.getCrop(x0, y0, x1, y1);
+    // return std::make_shared<RasterGeometry>(cropped, rasterBounds);
 }
 
 MultiPolygonGeometry::MultiPolygonGeometry()

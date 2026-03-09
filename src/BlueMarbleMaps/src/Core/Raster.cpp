@@ -104,7 +104,7 @@ void Raster::blur(double sigmaX, double sigmaY, double sigmaZ, bool isGaussian)
     m_impl->blur(sigmaX, sigmaY, sigmaZ, isGaussian);
 }
 
-Raster Raster::getCrop(int x0, int y0, int x1, int y1)
+Raster Raster::getCrop(int x0, int y0, int x1, int y1) const
 {
     return m_impl->getCrop(x0, y0, x1, y1);
 }

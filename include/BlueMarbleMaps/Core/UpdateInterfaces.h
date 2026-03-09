@@ -1,5 +1,5 @@
-#ifndef BLUEMARBLE_UPDATEINTERFACES
-#define BLUEMARBLE_UPDATEINTERFACES
+#ifndef UPDATEINTERFACES
+#define UPDATEINTERFACES
 
 #include "Feature.h"
 
@@ -40,15 +40,19 @@ namespace BlueMarble
     class FeatureEnumerator
     {
         public:
-            FeatureEnumerator();
+            FeatureEnumerator(bool isComplete=true);
             void addEnumerator(const FeatureEnumeratorPtr& enumerator) { m_subEnumerators.push_back(enumerator); }
+            const std::vector<FeatureEnumeratorPtr>& subEnumerators() const { return m_subEnumerators; }
             const FeaturePtr& current() const;
             bool moveNext();
             void reset();
             void add(const FeaturePtr& feature);
             void setFeatures(const FeatureCollectionPtr& features);
+            FeatureCollectionPtr features() const { return m_features; }
             int size();
+            bool isComplete() const;
         private:
+            bool m_isComplete;
             int m_iteratorIndex;
             int m_iterationIndex;
             FeatureCollectionPtr m_features;
@@ -89,4 +93,4 @@ namespace BlueMarble
     };
 }
 
-#endif /* BLUEMARBLE_UPDATEINTERFACES */
+#endif /* UPDATEINTERFACES */

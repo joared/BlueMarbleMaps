@@ -249,6 +249,7 @@ int main()
     std::cout << "opengl version: " << version << "\n";
 
     auto view = std::make_shared<Map>();
+    // view->crs(Crs::wgs84MercatorWeb());
     // Configure some background layers
     configureMap(view);
     mapControl->setView(view);

@@ -1,6 +1,7 @@
 #include "BlueMarbleMaps/Core/Map.h"
 #include "BlueMarbleMaps/Utility/Utils.h"
 #include "BlueMarbleMaps/Core/DataSets/DataSet.h"
+#include "BlueMarbleMaps/Core/Layer/LayerSet.h"
 #include "BlueMarbleMaps/Core/MapControl.h"
 #include "BlueMarbleMaps/Core/SoftwareDrawable.h"
 #include "BlueMarbleMaps/Logging/Logging.h"
@@ -132,8 +133,8 @@ bool Map::update(bool forceUpdate)
 
 void Map::renderLayer(const LayerPtr& layer, const FeatureQuery& featureQuery)
 {
-    layer->prepare(crs(), featureQuery);
-    layer->update(shared_from_this());
+    auto prepared = layer->prepare(crs(), featureQuery);
+    layer->update(shared_from_this(), prepared, featureQuery);
 }
 
 void Map::renderLayers()
@@ -455,15 +456,25 @@ void Map::featuresInside(const Rectangle& bounds, FeatureCollection& hitFeatures
 
 const std::vector<PresentationObject>& Map::hitTest(int x, int y, double pointerRadius)
 {
-    auto area = Rectangle({(double)x,(double)y}, pointerRadius, pointerRadius);
-    area = screenToMap(area);
+    double scale = invertedScale() * m_drawable->pixelSize() / m_crs->globalMetersPerUnit();
+    double size = pointerRadius * 2.0 * scale;
+    Point center = screenToMap(Point((double)x, (double)y));
+    auto area = Rectangle(center, size, size);
+    // area = screenToMap(area);
+
+    if (area.isUndefined())
+    {
+        BMM_DEBUG() << "Map::hitTest() Failed to get map position at screen position (" << x << ", " << y << ")!\n";
+        m_presentationObjects.clear();
+        return m_presentationObjects;
+    }
 
     return hitTest(area);
 }
 
 const std::vector<PresentationObject>& Map::hitTest(const Rectangle& bounds)
 {
-    FeatureQuery featureQuery = produceUpdateQuery();
+    //FeatureQuery featureQuery = produceUpdateQuery();
 
     // TODO: this is to limit hittesting within the visible view area
     // auto boundsNew = Rectangle(
@@ -684,9 +695,24 @@ void Map::flushCache()
 void Map::renderingEnabled(bool enabled)
 {
     m_renderingEnabled = enabled;
+
+    std::function<void(const LayerPtr&, bool)> enableLayerRendering;
+    enableLayerRendering = [&enableLayerRendering](const LayerPtr& layer, bool enabled)
+    {
+        layer->renderingEnabled(enabled);
+        if (auto layerSet = std::dynamic_pointer_cast<LayerSet>(layer))
+        {
+            // LayerSet needs to be handled differently since it does not have its own rendering, but relies on its children
+            for (const auto& l : layerSet->layers())
+            {
+                enableLayerRendering(l, enabled);
+            }
+        }
+    };
+
     for (const auto& l : m_layers)
     {
-        l->renderingEnabled(enabled);
+        enableLayerRendering(l, enabled);
     }
 }
 

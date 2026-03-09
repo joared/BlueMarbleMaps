@@ -3,6 +3,7 @@
 
 #include "BlueMarbleMaps/Core/Map.h"
 #include "BlueMarbleMaps/Core/Layer/StandardLayer.h"
+#include "BlueMarbleMaps/Core/Layer/TileLayer.h"
 #include "BlueMarbleMaps/Core/DataSets/DataSets.h"
 
 using namespace BlueMarble;
@@ -198,12 +199,12 @@ void addDataSetInitializationObserver(const MapPtr& map)
 }
 
 
-void configureMap(const MapPtr& map)
+void configureMap(const MapPtr& mapView)
 {
     const std::string commonIndexPath = "../../../bluemarble_index"; // Relative to the build/bin/<debug/release>/ folder
     const DataSetInitializationType dataSetInitialization = DataSetInitializationType::BackgroundThread;
     const bool backgroundLayersSelectable = true;
-    const bool asyncBackgroundReading = true;
+    const bool asyncBackgroundReading = false; // set to false when using tilelayer
 
     const bool includeBackgroundRaster = true;
     const bool includeContinents = true;
@@ -214,14 +215,20 @@ void configureMap(const MapPtr& map)
 
     const double minScaleCountries = 1.0/60000000.0;
 
-    addDataSetInitializationObserver(map);
+    // auto map = mapView; 
+    auto map = std::make_shared<TileLayer>();
+    map->selectable(true);
+    // map->asyncRead(true);
+
+    addDataSetInitializationObserver(mapView);
 
     if (includeBackgroundRaster)
     {
         #ifdef WIN32
         #define PATH_TO_FANNY_FILE "../../../bluemarble_index/backgroundmap.png"
         #else 
-        #define PATH_TO_FANNY_FILE "../../../geodata/HYP_HR_SR_OB_DR/HYP_HR_SR_OB_DR.tif"
+        //#define PATH_TO_FANNY_FILE "../../../geodata/HYP_HR_SR_OB_DR/HYP_HR_SR_OB_DR.tif"
+        #define PATH_TO_FANNY_FILE "../../../geodata/NE2_HR_LC_SR_W_DR/NE2_HR_LC_SR_W_DR.tif"
         #endif
         auto backgroundImageDataSet = std::make_shared<ImageDataSet>(PATH_TO_FANNY_FILE);
         backgroundImageDataSet->initialize(DataSetInitializationType::RightHereRightNow);
@@ -233,6 +240,7 @@ void configureMap(const MapPtr& map)
         rasterVis->alpha(DirectDoubleAttributeVariable(0.7));
         backgroundLayer->visualizers().push_back(rasterVis);
         
+        // TESTING tiling
         map->addLayer(backgroundLayer);
     }
 
@@ -293,7 +301,7 @@ void configureMap(const MapPtr& map)
         roadsGeoJsonLayer->selectable(backgroundLayersSelectable);
         roadsGeoJsonLayer->minScale(1.0/2500000.0);
         //roadsGeoJsonLayer->enabledDuringQuickUpdates(false);
-
+        
         map->addLayer(roadsGeoJsonLayer);
     }
     if (includeSwedenRoads)
@@ -312,6 +320,8 @@ void configureMap(const MapPtr& map)
 
         map->addLayer(swedenroadsGeoJsonLayer);
     }
+
+    mapView->addLayer(map);
 
     if (includeMemoryDataSet)
     {
@@ -339,7 +349,7 @@ void configureMap(const MapPtr& map)
         polyVis->color(DirectColorAttributeVariable(Color(255,194,209)));
         vectorLayer->visualizers().push_back(polyVis);
 
-        map->addLayer(vectorLayer);
+        mapView->addLayer(vectorLayer);
     }
 
 }

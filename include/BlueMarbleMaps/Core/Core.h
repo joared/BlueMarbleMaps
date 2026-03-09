@@ -159,6 +159,11 @@ namespace BlueMarble
                     yMin = std::min(yMin, p.y());
                     xMax = std::max(xMax, p.x());
                     yMax = std::max(yMax, p.y());
+
+                    if (p.isUndefined())
+                    {
+                        return undefined();
+                    }
                 }
 
                 return Rectangle(xMin, yMin, xMax, yMax);
@@ -298,6 +303,21 @@ namespace BlueMarble
                 auto points = corners();
                 auto rotated = Utils::rotatePoints(points, angle, center());
                 return fromPoints(rotated);
+            }
+
+            inline Rectangle intersect(const Rectangle& other) const
+            {
+                double xMin = std::max(m_xMin, other.xMin());
+                double yMin = std::max(m_yMin, other.yMin());
+                double xMax = std::min(m_xMax, other.xMax());
+                double yMax = std::min(m_yMax, other.yMax());
+
+                if (xMin >= xMax || yMin >= yMax)
+                {
+                    return undefined();
+                }
+
+                return Rectangle(xMin, yMin, xMax, yMax);
             }
 
             inline Point minCorner() const

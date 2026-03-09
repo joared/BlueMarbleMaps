@@ -720,6 +720,25 @@ namespace BlueMarble
                     line->points().push_back(Point((double)screen.x, (double)screen.y));
                 }
 
+                // Draw hittest rectangle for debugging
+                const double pointerRadius = 10.0;
+
+                double scale = map.invertedScale() * drawable->pixelSize() / map.crs()->globalMetersPerUnit();
+                double size = pointerRadius * 2.0 * scale;
+                Point center = map.screenToMap(Point((double)m_currPos.x, (double)m_currPos.y));
+                auto area = Rectangle(center, size, size);
+
+                auto points = map.mapToScreen(area.corners(true));
+                auto rectLine = std::make_shared<LineGeometry>(points);
+                rectLine->isClosed(true);
+                auto pen = Pen();
+                pen.setColor(Color::blue());
+                auto brush = Brush();
+                brush.setColor(Color(0, 0, 255, 0.25));
+
+                drawable->drawLine(rectLine, pen);
+                drawable->drawPolygon(std::make_shared<PolygonGeometry>(points), pen, brush);
+
                 Pen p;
                 p.setAntiAlias(true);
                 c1 = Color(c1.r(), c1.g(), c1.b(), 1.0);
@@ -817,10 +836,13 @@ namespace BlueMarble
             {
                 Key keyStroke(event.keyCode);
             
+                BMM_DEBUG() << "Key stroke: " << keyStroke << " (" << keyStroke.toString() << ")\n";
+                BMM_DEBUG() << "Key action controller: " << event.keyCode << "\n";
+
                 if (keyStroke == Key::S)
                     BMM_DEBUG() << "OHHH YAAS\n";
 
-                BMM_DEBUG() << "Key action controller: " << event.keyCode << "\n";
+                
                 if (keyStroke == Key::S &&
                     event.modificationKey && ModificationKeyCtrl)
                 {
@@ -850,6 +872,14 @@ namespace BlueMarble
 
                     m_map->update();
                     return true;
+                }
+
+                if (keyStroke == Key::F &&
+                    event.modificationKey && ModificationKeyCtrl)
+                {
+                    BMM_DEBUG() << "Flushing cache!!!\n";
+                    m_map->flushCache();
+                    m_map->update();
                 }
 
                 // TODO rendering enabled

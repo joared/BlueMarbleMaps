@@ -225,7 +225,7 @@ void Raster::Impl::blur(double sigmaX, double sigmaY, double sigmaZ, bool isGaus
     std::cout << "Raster::Impl::blur() not implemented!\n";
 }
 
-Raster Raster::Impl::getCrop(int x0, int y0, int x1, int y1)
+Raster Raster::Impl::getCrop(int x0, int y0, int x1, int y1) const
 {
     // Validate input coordinates
     if (x0 < 0 || y0 < 0 || x1 >= m_width || y1 >= m_height || x0 > x1 || y0 > y1) 
@@ -247,12 +247,12 @@ Raster Raster::Impl::getCrop(int x0, int y0, int x1, int y1)
         for (int x = 0; x < cropWidth; ++x) {
             for (int c = 0; c < m_channels; ++c) {
                 // Calculate source and destination indices
-                int srcIndex = ((m_height - 1 - y - y0) * m_width + (x + x0)) * m_channels + c;
-                int destIndex = ((cropHeight - 1 - y) * cropWidth + x) * m_channels + c;
+                // int srcIndex = ((m_height - 1 - y - y0) * m_width + (x + x0)) * m_channels + c;
+                // int destIndex = ((cropHeight - 1 - y) * cropWidth + x) * m_channels + c;
 
                 // Prev implementation, flipped y
-                // int srcIndex = ((y + y0) * m_width + (x + x0)) * m_channels + c;
-                // int destIndex = (y * cropWidth + x) * m_channels + c;
+                int srcIndex = ((y + y0) * m_width + (x + x0)) * m_channels + c;
+                int destIndex = (y * cropWidth + x) * m_channels + c;
 
                 // Copy the pixel
                 croppedRaster.m_impl->m_data[destIndex] = m_data[srcIndex];
@@ -260,7 +260,7 @@ Raster Raster::Impl::getCrop(int x0, int y0, int x1, int y1)
         }
     }
 
-    return std::move(croppedRaster);
+    return croppedRaster;
 }
 
 void Raster::Impl::save(const std::string& filePath) const

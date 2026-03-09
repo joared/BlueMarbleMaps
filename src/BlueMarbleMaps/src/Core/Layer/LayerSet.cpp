@@ -16,20 +16,26 @@ void LayerSet::hitTest(const MapPtr& map, const Rectangle& bounds, std::vector<P
     }
 }
 
-void LayerSet::prepare(const CrsPtr &crs, const FeatureQuery &featureQuery)
+FeatureEnumeratorPtr LayerSet::prepare(const CrsPtr &crs, const FeatureQuery &featureQuery)
 {
+    auto e = std::make_shared<FeatureEnumerator>();
+
     for (const auto& l : m_subLayers)
     {
-        l->prepare(crs, featureQuery);
+        e->addEnumerator(l->prepare(crs, featureQuery));
     }
+
+    return e;
 }
 
 
-void LayerSet::update(const MapPtr& map)
+void LayerSet::update(const MapPtr& map, const FeatureEnumeratorPtr& features, const FeatureQuery& featureQuery)
 {
-    for (const auto& l : m_subLayers)
+    assert(features->subEnumerators().size() == layers().size());
+
+    for (int i(0); i<features->subEnumerators().size(); ++i)
     {
-        l->update(map);
+        layers()[i]->update(map, features->subEnumerators()[i], featureQuery);
     }
 }
 

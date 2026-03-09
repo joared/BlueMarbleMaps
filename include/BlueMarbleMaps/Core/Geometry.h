@@ -282,7 +282,7 @@ namespace BlueMarble
             Point rasterIndexToPoint(int x, int y) const;
 
             Raster& raster() { return m_raster; }
-            RasterGeometryPtr getSubRasterGeometry(const Rectangle& bounds);
+            RasterGeometryPtr getSubRasterGeometry(const Rectangle& bounds) const;
         private:
             Raster m_raster;
             Rectangle m_bounds;

@@ -50,7 +50,7 @@ namespace BlueMarble
             void rotate(double angle, int cx, int cy, ResizeInterpolation interpolation = ResizeInterpolation::NearestNeighbor);
             void fill(int val);
             void blur(double sigmaX, double sigmaY, double sigmaZ, bool isGaussian=false);
-            Raster getCrop(int x0, int y0, int x1, int y1);
+            Raster getCrop(int x0, int y0, int x1, int y1) const;
             void save(const std::string& filePath) const;
             void* data() const;
 

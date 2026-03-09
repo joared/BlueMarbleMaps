@@ -1,6 +1,7 @@
 #include "BlueMarbleMaps/Core/UpdateInterfaces.h"
 #include "BlueMarbleMaps/Core/EngineObject.h"
 
+
 using namespace BlueMarble;
 
 // void UpdateRequestPropagator::addUpdateHandler(IUpdateHandler* handler)
@@ -19,8 +20,9 @@ using namespace BlueMarble;
 // {
 // }
 
-FeatureEnumerator::FeatureEnumerator()
-    : m_iteratorIndex(-1)
+FeatureEnumerator::FeatureEnumerator(bool isComplete)
+    : m_isComplete(isComplete)
+    , m_iteratorIndex(-1)
     , m_iterationIndex(-1)
     , m_features(std::make_shared<FeatureCollection>())
     , m_subEnumerators()
@@ -94,6 +96,12 @@ bool FeatureEnumerator::moveNext()
 
 void FeatureEnumerator::reset()
 {
+    // if (m_iterationIndex == -1 && m_iteratorIndex == -1)
+    // {
+    //     // Already reset
+    //     return;
+    // }
+    
     m_iteratorIndex = -1;
     m_iterationIndex = -1;
 
@@ -123,6 +131,24 @@ int FeatureEnumerator::size()
     }
 
     return s;
+}
+
+bool FeatureEnumerator::isComplete() const
+{
+    if (!m_isComplete)
+    {
+        return false;
+    }
+
+    for (const auto& e : m_subEnumerators)
+    {
+        if (!e->isComplete())
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 FeatureHandler::FeatureHandler()

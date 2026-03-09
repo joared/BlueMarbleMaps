@@ -11,7 +11,7 @@ namespace BlueMarble
         public:
             struct IdHash
             {
-                std::size_t operator()(const BlueMarble::Id& id) const noexcept
+                std::size_t operator()(const Id& id) const noexcept
                 {
                     return std::hash<uint64_t>{}(id.dataSetId()) ^
                         (std::hash<uint64_t>{}(id.featureId()) << 1);

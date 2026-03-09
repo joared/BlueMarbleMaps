@@ -1,5 +1,5 @@
-#ifndef BLUEMARBLE_FEATURESTORE
-#define BLUEMARBLE_FEATURESTORE
+#ifndef FEATURESTORE
+#define FEATURESTORE
 
 #include "BlueMarbleMaps/Core/Feature.h"
 #include "BlueMarbleMaps/Core/Index/ISpatialIndex.h"
@@ -8,6 +8,8 @@
 #include "BlueMarbleMaps/Core/Index/IPersistable.h"
 
 #include <memory>
+#include <mutex>
+//#include <shared_mutex> // TODO: consider using shared_mutex for cache access
 
 namespace BlueMarble
 {
@@ -41,7 +43,8 @@ namespace BlueMarble
         std::unique_ptr<IFeatureDataBase>   m_dataBase;
         std::unique_ptr<ISpatialIndex>      m_index;
         IFeatureCachePtr                    m_cache;
+        std::mutex                          m_cacheMutex; // Mutex to protect cache access in multithreaded scenarios
     };
 }
 
-#endif /* BLUEMARBLE_FEATURESTORE */
+#endif /* FEATURESTORE */

@@ -1,8 +1,9 @@
-#ifndef BLUEMARBLE_STANDARDLAYER
-#define BLUEMARBLE_STANDARDLAYER
+#ifndef STANDARDLAYER
+#define STANDARDLAYER
 
 #include "BlueMarbleMaps/Core//Layer/Layer.h"
 #include "BlueMarbleMaps/Core/Index/FIFOCache.h"
+#include "BlueMarbleMaps/System/Thread.h"
 
 #include <thread>
 #include <condition_variable>
@@ -30,8 +31,8 @@ namespace BlueMarble
             std::vector<EffectPtr>& effects() { return m_effects; }
 
             virtual void hitTest(const MapPtr& map, const Rectangle& bounds, std::vector<PresentationObject>& presObjects) override final;
-            virtual void prepare(const CrsPtr &crs, const FeatureQuery& featureQuery) override final;
-            virtual void update(const MapPtr& map) override final;
+            virtual FeatureEnumeratorPtr prepare(const CrsPtr &crs, const FeatureQuery& featureQuery) override final;
+            virtual void update(const MapPtr& map, const FeatureEnumeratorPtr& features, const FeatureQuery& featureQuery) override final;
             virtual FeatureEnumeratorPtr getFeatures(const CrsPtr& crs, const FeatureQuery& featureQuery, bool activeLayersOnly) override final;
             virtual void flushCache() override final;
         private:
@@ -40,10 +41,6 @@ namespace BlueMarble
             FeatureCollectionPtr getFeatures(const CrsPtr& crs, const IdCollectionPtr& ids);
 
             void createDefaultVisualizers();
-
-            void backgroundReadingThread();
-            void startbackgroundReadingThread();
-            void stopBackgroundReadingThread();
 
             std::vector<VisualizerPtr> m_visualizers;
             std::vector<VisualizerPtr> m_hoverVisualizers;
@@ -54,15 +51,9 @@ namespace BlueMarble
 
             FIFOCachePtr            m_cache;
             bool                    m_readAsync;
-            std::thread             m_readingThread;
-            std::condition_variable m_cond;
             std::mutex              m_mutex;
-            bool                    m_doRead;
-            bool                    m_stop;
             FeatureQuery            m_query;
-            Rectangle               m_queryArea;
-            CrsPtr                  m_crs;
-            std::function<void()>   m_job;
+            System::ThreadPool      m_threadPool;
 
             FeatureEnumeratorPtr    m_queriedFeatures;
 
@@ -72,4 +63,4 @@ namespace BlueMarble
 
 }
 
-#endif /* BLUEMARBLE_STANDARDLAYER */
+#endif /* STANDARDLAYER */

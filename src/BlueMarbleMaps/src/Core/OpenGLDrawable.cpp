@@ -546,6 +546,7 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, con
 
             float texCoordX = i == 0 || i == 3 ? 0.0 : 1.0;
             float texCoordY = i < 2 ? 1.0 : 0.0;
+            
             glm::vec2 textureCoords(texCoordX, texCoordY);
 
             vertices.push_back(Vertice{ pos, glColor, textureCoords});
@@ -576,29 +577,41 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, con
     }
     //std::cout << "Drawing raster with id: " << raster->getID() << "\n";
     RectPtr rect = std::static_pointer_cast<Rect>(m_primitives[raster->getID()]);
-    if (rect == nullptr) return;
+    if (rect == nullptr) 
+    {
+        std::cout << "Couldn't find rect primitive for raster with id: " << raster->getID() << "\n";
+        return;
+    }
+    
 
     // Renderorigin test
     std::vector<Vertice> vertices;
     auto rasterBounds = raster->bounds();
     auto clipped = clip.isUndefined() ? raster->bounds() : clip;
-    // clipped = raster->bounds();
+    clipped = raster->bounds(); // Commentout to use provided "clip" rectangle
     
     const std::vector<Point>& bounds = clipped.corners();
     const std::vector<Color>& colors = brush.getColors();
 
     double ratioW = clipped.width() / rasterBounds.width();
     double ratioH = clipped.height() / rasterBounds.height();
+    
     double xMinTex = (clipped.xMin()-rasterBounds.xMin()) / rasterBounds.width();
     double yMaxTex = 1.0-(clipped.yMax()-rasterBounds.yMax()) / rasterBounds.height();
     double xMaxTex = xMinTex + ratioW;
     double yMinTex = yMaxTex + ratioH;
     
+    // BMM_DEBUG() << "Raster bounds: " << raster->bounds().toString() << "\n";
     for (int i = 0; i < bounds.size(); i++)
     {
-        double texCoordX = i == 0 || i == 3 ? xMinTex : xMaxTex;
-        double texCoordY = i < 2 ? yMinTex : yMaxTex;
+        float texCoordX = i == 0 || i == 3 ? 0.0 : 1.0;
+        float texCoordY = i < 2 ? 1.0 : 0.0;
+        // double texCoordX = i == 0 || i == 3 ? xMinTex : xMaxTex;
+        // double texCoordY = i < 2 ? yMinTex : yMaxTex;
+
         glm::vec2 textureCoords((float)texCoordX, (float)texCoordY);
+        
+        // BMM_DEBUG() << "Tex coords: " << texCoordX << ", " << texCoordY << "\n";
 
         Color bmColor = getColorFromList(brush.getColors(), i);
         Vertice v = createPoint(bounds[i], bmColor);

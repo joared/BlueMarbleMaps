@@ -54,9 +54,13 @@ FeaturePtr loadWithGDAL(const std::string& filePath)
     int outBands = std::min(channels, 3);
     
     // Adjust size such that it fits in gpu memory
+    // auto inf = std::numeric_limits<int>::infinity();
+    // int maxTex = inf;
     int maxTex = 16384;
     int newW = std::min(width, maxTex);
     int newH = std::min(height, maxTex);
+    newW = width;
+    newH = height;
     unsigned char* data = new unsigned char[newW * newH * outBands];
 
     int bandMap[3] = {1, 2, 3};

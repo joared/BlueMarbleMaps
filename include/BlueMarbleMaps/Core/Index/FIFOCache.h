@@ -2,6 +2,7 @@
 #define BLUEMARBLE_FIFOCACHE
 
 #include "IFeatureCache.h"
+#include <mutex>
 
 namespace BlueMarble
 {

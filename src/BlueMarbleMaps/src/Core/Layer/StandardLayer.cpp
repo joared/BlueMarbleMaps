@@ -16,9 +16,8 @@ StandardLayer::StandardLayer(bool createDefaultVisualizerz)
     , m_dataSets()
     , m_cache(std::make_shared<FIFOCache>())
     , m_readAsync(false)
-    , m_doRead(false)
-    , m_stop(false)
     , m_queriedFeatures(std::make_shared<FeatureEnumerator>())
+    , m_threadPool() // TODO: make these parameters configurable
 {
     // TODO: remove, this is a temporary solution
     if (createDefaultVisualizerz)
@@ -27,18 +26,18 @@ StandardLayer::StandardLayer(bool createDefaultVisualizerz)
 
 StandardLayer::~StandardLayer()
 {
-    stopBackgroundReadingThread();
+    m_threadPool.stop();
 }
 
 void StandardLayer::asyncRead(bool async)
 {
     if (m_readAsync && !async)
     {
-        stopBackgroundReadingThread();
+        m_threadPool.stop();
     }
     else if (!m_readAsync && async)
     {
-        startbackgroundReadingThread();
+        m_threadPool.start(1, 1, System::ThreadPool::QueuePolicy::ReplaceOldestWhenFull);
     }
 
     m_readAsync = async;
@@ -90,7 +89,7 @@ void StandardLayer::hitTest(const MapPtr& map, const Rectangle& bounds, std::vec
                 // {
                 //     BMM_DEBUG() << "Id in query: " << idd.toString() << "\n";
                 // }
-                BMM_DEBUG() << "StandardLayer::hitTest() Feature with id '" + id.toString() + "' missing in cache, should not happen!\n";
+                // BMM_DEBUG() << "StandardLayer::hitTest() Feature with id '" + id.toString() + "' missing in cache, should not happen!\n";
             }
             else
             {
@@ -131,50 +130,59 @@ void StandardLayer::hitTest(const MapPtr& map, const Rectangle& bounds, std::vec
     }
 }
 
-void StandardLayer::prepare(const CrsPtr &crs, const FeatureQuery& featureQuery)
+FeatureEnumeratorPtr StandardLayer::prepare(const CrsPtr &crs, const FeatureQuery& featureQuery)
 {
-    m_queriedFeatures = std::make_shared<FeatureEnumerator>();
+    auto queriedFeatures = std::make_shared<FeatureEnumerator>();
     if (!isActiveForQuery(featureQuery))
     {
-        return;
+        return queriedFeatures;
     }
 
     if (m_readAsync)
     {
         {
-            std::lock_guard lock(m_mutex);
             auto ids = getFeatureIds(crs, featureQuery);
             auto cacheMissingIds = std::make_shared<IdCollection>();
-            for (auto const& id : *ids)
             {
-                if (m_cache->contains(id))
+                std::lock_guard lock(m_mutex);
+                for (auto const& id : *ids)
                 {
-                    m_queriedFeatures->add(m_cache->getFeature(id));
-                }
-                else
-                {
-                    cacheMissingIds->add(id);
+                    if (m_cache->contains(id))
+                    {
+                        queriedFeatures->add(m_cache->getFeature(id));
+                    }
+                    else
+                    {
+                        cacheMissingIds->add(id);
+                    }
                 }
             }
-            m_doRead = true;
-            m_query = featureQuery;
-            m_queryArea = featureQuery.area();
-            m_query.ids(cacheMissingIds);
-            m_crs = crs;
+
+            m_threadPool.enqueue([this, crs, featureQuery, cacheMissingIds]()
+            {
+                auto features = getFeatures(crs, cacheMissingIds);
+                // std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // Faking load
+                {
+                    std::lock_guard lock(m_mutex);
+                    for (const auto& f : *features)
+                    {
+                        m_cache->insert(f->id(), f);
+                    }
+                }
+            });
         }
-        m_cond.notify_one();
     }
     else
     {
-        m_queryArea = featureQuery.area();
-        m_queriedFeatures = getFeatures(crs, featureQuery, true);
+        queriedFeatures = getFeatures(crs, featureQuery, true);
     }
+
+    return queriedFeatures;
 }
 
-void StandardLayer::update(const MapPtr& map)
+void StandardLayer::update(const MapPtr& map, const FeatureEnumeratorPtr& features, const FeatureQuery& featureQuery)
 {
-    const auto& features = m_queriedFeatures;
-    const auto& updateArea = m_queryArea;
+    const auto& updateArea = featureQuery.area();
     auto& updateAttributes = map->updateAttributes();
     
     std::vector<FeaturePtr> hoveredFeatures;
@@ -211,25 +219,32 @@ void StandardLayer::update(const MapPtr& map)
         hasAddedHoverAnSelection = true;
     }
 
-    for (const auto& vis : hoverVisualizers())
+    if (!hoveredFeatures.empty())
     {
-        map->drawable()->beginBatches();
-        for (const auto& f : hoveredFeatures)
+        for (const auto& vis : hoverVisualizers())
         {
-            if (renderingEnabled())
-                vis->renderFeature(*map->drawable(), f, updateAttributes, updateArea);
+            map->drawable()->beginBatches();
+            for (const auto& f : hoveredFeatures)
+            {
+                if (renderingEnabled())
+                    vis->renderFeature(*map->drawable(), f, updateAttributes, updateArea);
+            }
+            map->drawable()->endBatches();
         }
-        map->drawable()->endBatches();
     }
-    for (const auto& vis : selectionVisualizers())
+    
+    if (!selectedFeatures.empty())
     {
-        map->drawable()->beginBatches();
-        for (const auto& f : selectedFeatures)
+        for (const auto& vis : selectionVisualizers())
         {
-            if (renderingEnabled())
-                vis->renderFeature(*map->drawable(), f, updateAttributes, updateArea);
+            map->drawable()->beginBatches();
+            for (const auto& f : selectedFeatures)
+            {
+                if (renderingEnabled())
+                    vis->renderFeature(*map->drawable(), f, updateAttributes, updateArea);
+            }
+            map->drawable()->endBatches();
         }
-        map->drawable()->endBatches();
     }
 }
 
@@ -273,7 +288,7 @@ FeatureEnumeratorPtr StandardLayer::getFeatures(const CrsPtr& crs, const Feature
 void StandardLayer::flushCache()
 {
     {
-        std::unique_lock lock2(m_mutex);
+        std::unique_lock lock(m_mutex);
         m_cache->clear();
     }
     
@@ -509,69 +524,3 @@ void StandardLayer::createDefaultVisualizers()
     //m_selectionVisualizers.push_back(textVisSelect);
 }
 
-
-void StandardLayer::backgroundReadingThread()
-{
-    BMM_DEBUG() << "StandardLayer::backgroundReadingThread() Started background reading thread\n";
-    
-    while (true)
-    {
-        std::unique_lock lock(m_mutex);
-        m_cond.wait(lock, [this](){ return m_doRead || m_stop; });
-        if (m_stop) break;
-
-        m_doRead = false;
-        auto crs = m_crs; // FIXME: this crs is not thread safe
-        auto query = m_query;
-
-        // reset just so I can debug
-        m_query = FeatureQuery();
-        m_crs = nullptr;
-
-        lock.unlock();
-
-        // BMM_DEBUG() << "StandardLayer::backgroundReadingThread() LOAD for some time\n";
-        // std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // Faking load
-        // BMM_DEBUG() << "StandardLayer::backgroundReadingThread() LOAD done!\n";
-        
-        // New
-        auto features = getFeatures(crs, query.ids());
-        std::unique_lock lock2(m_mutex);
-        for (const auto& f : *features)
-        {
-            m_cache->insert(f->id(), f);
-        }
-        
-        // Old
-        // auto features = getFeatures(crs, query, true);
-        // std::unique_lock lock2(m_mutex);
-        // while (features->moveNext())
-        // {
-        //     const auto& f = features->current();
-        //     m_cache->insert(f->id(), f);
-        // }
-        lock2.unlock();
-        
-        m_cond.notify_one();
-    }
-
-    BMM_DEBUG() << "StandardLayer::backgroundReadingThread() Background reading thread exited\n";
-}
-
-void StandardLayer::startbackgroundReadingThread()
-{
-    m_readingThread = std::thread([this](){backgroundReadingThread();});
-}
-
-void StandardLayer::stopBackgroundReadingThread()
-{
-    {
-        std::lock_guard lock(m_mutex);
-        m_stop = true;
-    }
-    m_cond.notify_one();
-    if (m_readingThread.joinable())
-    {
-        m_readingThread.join();
-    }
-}
