@@ -94,7 +94,7 @@ TileLayer::TileLayer()
     if (m_readAsync)
     {
         // TODO: make these parameters configurable
-        m_threadPool.start(4, 1, System::ThreadPool::QueuePolicy::ReplaceOldestWhenFull);
+        m_threadPool.start(40, 1, System::ThreadPool::QueuePolicy::ReplaceOldestWhenFull);
         
         // TODO: add pruning of cache to prevent memory explosion
         // m_threadPool.enqueue([this]{
@@ -164,38 +164,29 @@ FeatureEnumeratorPtr TileLayer::prepare(const CrsPtr &crs, const FeatureQuery &f
     std::lock_guard lock(m_mutex);
     for (Tile& tile : tiles)
     {
-        if (!m_tileManager->hasTile(tile)) // Should be locked
+
+        if (!m_tileManager->hasTile(tile))
         {
             // If the tile is not in the cache, we need to load it asynchronously
             auto tileQuery = featureQuery;
             tileQuery.area(m_tileManager->tileBounds(tile.x, tile.y, tile.zoom));
             tileQuery.scale(clampedScale);
             // tileQuery.resolution(zoom0Resolution / std::pow(2, zoom)); // TODO
+
+            // TODO: add "onDropped"
             m_threadPool.enqueue([this, tile, crs, tileQuery, zoom0Resolution, zoom]()
             {
                 {
                     BMM_DEBUG() << "Waiting...\n";
                     std::lock_guard lock(m_mutex);
-                    if (m_tileManager->hasLoadedTile(tile)) // Its loaded or loading, we can return
+                    if (m_tileManager->hasTile(tile)) // Its loaded or loading, we can return
                     {
                         BMM_DEBUG() << "Nothing to do...\n";
                         return;
                     }
-
-                    
+                    BMM_DEBUG() << "Start loading tile...\n";
                     // Placeholder tile to mark it as loading
-                    auto dummy = std::make_shared<FeatureEnumerator>();
-                    dummy->setFeatures(std::make_shared<FeatureCollection>());
-                    if (!m_tileManager->hasTile(tile))
-                    {
-                        BMM_DEBUG() << "Start loading tile...\n";
-                        m_tileManager->setTile(Tile{tile.x, tile.y, tile.zoom, nullptr});
-                    }
-                    else
-                    {
-                        BMM_DEBUG() << "Reloading incomplete tile...\n";
-                        //m_tileManager->setTile(Tile{tile.x, tile.y, tile.zoom, dummy});
-                    }
+                    m_tileManager->setTile(Tile{tile.x, tile.y, tile.zoom, nullptr});
                 }
 
                 //std::this_thread::sleep_for(std::chrono::milliseconds(5000)); // Simulate loading time
@@ -207,14 +198,13 @@ FeatureEnumeratorPtr TileLayer::prepare(const CrsPtr &crs, const FeatureQuery &f
                     double unitPerPix = zoom0Resolution / std::pow(2.0, zoom);
                     enumerator = thinFeatures(enumerator, unitPerPix, tileQuery.area());
                     enumerator->reset();
+
                     std::lock_guard lock(m_mutex);
-                    // m_tileManager->markTileDirty(tile);
                     m_tileManager->setTile(Tile{tile.x, tile.y, tile.zoom, enumerator});
                 }
                 else
                 {
                     std::lock_guard lock(m_mutex);
-                    //m_tileManager->markTileDirty(tile);
                     m_tileManager->removeTile(tile);
                 }
             });
@@ -297,7 +287,60 @@ void TileLayer::flushCache()
     LayerSet::flushCache();
 }
 
-FeatureEnumeratorPtr TileLayer::thinFeatures(const FeatureEnumeratorPtr& features, double unitsPerPixel, const Rectangle& tileArea) const
+void TileLayer::loadTile(Tile &tile)
+{
+    // TODO
+    // // If the tile is not in the cache, we need to load it asynchronously
+    // auto tileQuery = featureQuery;
+    // tileQuery.area(m_tileManager->tileBounds(tile.x, tile.y, tile.zoom));
+    // tileQuery.scale(clampedScale);
+    // // tileQuery.resolution(zoom0Resolution / std::pow(2, zoom)); // TODO
+    // m_threadPool.enqueue([this, tile, crs, tileQuery, zoom0Resolution, zoom]()
+    // {
+    //     {
+    //         BMM_DEBUG() << "Waiting...\n";
+    //         std::lock_guard lock(m_mutex);
+    //         if (m_tileManager->hasLoadedTile(tile)) // Its loaded or loading, we can return
+    //         {
+    //             BMM_DEBUG() << "Nothing to do...\n";
+    //             return;
+    //         }
+
+            
+    //         if (!m_tileManager->hasTile(tile))
+    //         {
+    //             BMM_DEBUG() << "Start loading tile...\n";
+    //             // Placeholder tile to mark it as loading
+    //             m_tileManager->setTile(Tile{tile.x, tile.y, tile.zoom, nullptr});
+    //         }
+    //         else
+    //         {
+    //             BMM_DEBUG() << "Reloading incomplete tile...\n";
+    //         }
+    //     }
+
+    //     //std::this_thread::sleep_for(std::chrono::milliseconds(5000)); // Simulate loading time
+    //     // FIXME: if datasets have not been initialized, the enumerator will not include all features
+    //     auto enumerator = LayerSet::getFeatures(crs, tileQuery, true);
+        
+    //     if (enumerator->isComplete())
+    //     {
+    //         double unitPerPix = zoom0Resolution / std::pow(2.0, zoom);
+    //         enumerator = thinFeatures(enumerator, unitPerPix, tileQuery.area());
+    //         enumerator->reset();
+
+    //         std::lock_guard lock(m_mutex);
+    //         m_tileManager->setTile(Tile{tile.x, tile.y, tile.zoom, enumerator});
+    //     }
+    //     else
+    //     {
+    //         std::lock_guard lock(m_mutex);
+    //         m_tileManager->removeTile(tile);
+    //     }
+    // });
+}
+
+FeatureEnumeratorPtr TileLayer::thinFeatures(const FeatureEnumeratorPtr &features, double unitsPerPixel, const Rectangle &tileArea) const
 {
     // This method can be used to thin the features in a tile to reduce the number of features that need to be processed and drawn
     // For example, we could implement a simple grid-based thinning algorithm that only keeps one feature per grid cell

@@ -15,6 +15,13 @@ namespace BlueMarble::System
 class ThreadPool
 {
 public:
+
+    struct Task
+    {
+        std::function<void()> task;
+        std::function<void()> onDropped = []{};
+    };
+
     enum class QueuePolicy
     {
         GrowWhenFull,
@@ -26,19 +33,25 @@ public:
     ThreadPool();
     ~ThreadPool();
     void start(size_t numThreads = std::thread::hardware_concurrency(), size_t maxQueueSize = 50, QueuePolicy queuePolicy = QueuePolicy::GrowWhenFull);
-    void stop();
+    void stop(bool dropQueuedTasks = false);
     bool isRunning() const { return !m_stop; }
     // template<class F, class... Args>
     // auto enqueue(F&& f, Args&&... args) -> std::future<typename std::result_of<F(Args...)>::type>;
-    void enqueue(std::function<void()>&& task);
+    void enqueue(Task&& task);
+    void enqueue(std::function<void()>&& task) { enqueue(Task{std::move(task), []{}}); };
 private:
-    std::vector<std::thread> m_workers;
-    std::queue<std::function<void()>> m_tasks;
-    size_t m_maxQueueSize;
-    std::mutex m_queueMutex;
-    QueuePolicy m_queuePolicy;
-    std::condition_variable m_condition;
-    std::atomic<bool> m_stop;
+    ThreadPool(const ThreadPool&) = delete;
+    ThreadPool& operator=(const ThreadPool&) = delete;
+    ThreadPool(ThreadPool&&) = delete;
+    ThreadPool& operator=(ThreadPool&&) = delete;
+
+    std::vector<std::thread>    m_workers;
+    std::queue<Task>            m_tasks;
+    size_t                      m_maxQueueSize;
+    std::mutex                  m_queueMutex;
+    QueuePolicy                 m_queuePolicy;
+    std::condition_variable     m_condition;
+    std::atomic<bool>           m_stop;
 };
 
 // template <class F, class... Args>
