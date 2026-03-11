@@ -529,16 +529,25 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, con
 {
     if (m_primitives.find(raster->getID()) == m_primitives.end())
     {
-        std::vector<Vertice> vertices;
-        std::vector<GLuint> indices;
-
-        Raster& r = raster->raster();
-        int w = (float)r.width();
-        int h = (float)r.height();
+        #define MAX_TEXTURE_SIZE 16384
+        
+        int W = raster->raster().width();
+        int H = raster->raster().height();
+        RasterGeometryPtr raceter = raster;
+        if (W > MAX_TEXTURE_SIZE || H > MAX_TEXTURE_SIZE)
+        {
+            BMM_DEBUG() << "Resizing raster that is too large to put in a texture!\n";
+            raceter = std::dynamic_pointer_cast<RasterGeometry>(raster->deepClone()); // Keeps unique id
+            int newW = std::min(W, MAX_TEXTURE_SIZE);
+            int newH = std::min(H, MAX_TEXTURE_SIZE);
+            raceter->raster().resize(newW, newH);
+        }
+        
 
         const std::vector<Point>& bounds = raster->bounds().corners();
         const std::vector<Color>& colors = brush.getColors();
-        
+        std::vector<Vertice> vertices;
+
         for (int i = 0; i < bounds.size(); i++)
         {
             glm::vec3 pos(bounds[i].x(), bounds[i].y(), 0);
@@ -554,6 +563,8 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, con
             vertices.push_back(Vertice{ pos, glColor, textureCoords});
         }
         if (vertices.empty()) return;
+
+        std::vector<GLuint> indices;
         std::vector<Vertice> triangles;
         std::vector<Vertice> holes;
         if (Algorithms::triangulatePolygon(vertices, holes, triangles, indices,false) == false)
@@ -569,6 +580,8 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, con
 
         GLint texIndex = 0;
         info->m_texture = std::make_shared<Texture>();
+        
+        Raster& r = raceter->raster();
         info->m_texture->init((unsigned char*)r.data(), r.width(), r.height(), r.channels(), GL_UNSIGNED_BYTE, texIndex);
 
         info->m_shader->useProgram();

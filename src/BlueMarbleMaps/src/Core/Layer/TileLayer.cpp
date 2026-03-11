@@ -1,4 +1,5 @@
 #include "BlueMarbleMaps/Core/Layer/TileLayer.h"
+#include "BlueMarbleMaps/Core/Layer/StandardLayer.h"
 #include "BlueMarbleMaps/Core/Map.h"
 
 
@@ -167,6 +168,7 @@ FeatureEnumeratorPtr TileLayer::prepare(const CrsPtr &crs, const FeatureQuery &f
     if (!m_tileManager)
     {
         m_tileManager = std::make_unique<TileManager>(crs->bounds());
+        verifyValidSubLayers();
     }
 
     if (!m_readAsync)
@@ -296,6 +298,44 @@ void TileLayer::flushCache()
     LayerSet::flushCache();
 
     m_threadPool.start(TILELAYER_NUM_WORKERS, TILELAYER_QUEUE_SIZE, TILELAYER_QUEUE_POLICY);
+}
+
+void TileLayer::verifyValidSubLayers()
+{
+    // Sublayers should not have async reading under a tile layer.
+    // For now, we throw exception
+    std::function<void(const LayerPtr& layer)> checkLayer;
+
+    checkLayer = [&checkLayer](const auto& layer)
+    {
+        if (auto standard = std::dynamic_pointer_cast<StandardLayer>(layer))
+        {
+            if (standard->asyncRead())
+            {
+                throw std::runtime_error("Found StandardLayer under TilaLayer with async read. It's not allowed!");
+            }
+        }
+        else if (auto layerSet = std::dynamic_pointer_cast<LayerSet>(layer))
+        {
+            if (auto tileLayer = std::dynamic_pointer_cast<TileLayer>(layer))
+            {
+                if (tileLayer->asyncRead())
+                {
+                    throw std::runtime_error("Found TileLayer under TileLayer with async read. It's not!");
+                }
+            }
+            for (const auto& l : layerSet->layers())
+            {
+                checkLayer(l);
+            }
+        }
+        // TODO: check TileLayer as well
+    };
+
+    for (const auto& l : layers())
+    {
+        checkLayer(l);
+    }
 }
 
 void TileLayer::scheduleTileLoad(const Tile& tile, const CrsPtr& crs, const FeatureQuery& tileQuery)

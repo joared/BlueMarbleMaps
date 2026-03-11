@@ -14,6 +14,13 @@ namespace BlueMarble
 			int height;
 	};
 
+	class DropEvent : public Event
+	{
+		public:
+			DEFINE_EVENT(Drop);
+			std::vector<std::string> paths;
+	};
+
 	class PointerEvent : public Event
 	{
 		public:

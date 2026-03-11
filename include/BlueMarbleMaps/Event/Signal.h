@@ -168,7 +168,7 @@ class SignalImpl : public ISignal
             return Subscription(*this, id);
         }
 
-        Subscription subscribe(Handler handler)
+        [[nodiscard]] Subscription subscribe(Handler handler)
         {
             // BMM_DEBUG() << "(anonymous)";
             SubscriptionID id = generateAnonymousUniqueId();

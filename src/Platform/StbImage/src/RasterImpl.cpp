@@ -62,7 +62,7 @@ Raster::Impl::Impl(const std::string& filePath)
     // if (!std::filesystem::exists(filePath)) { // C++17 filesystem
     // std::cerr << "File does not exist: " << filePath << std::endl;
     // }
-    stbi_set_flip_vertically_on_load(true);
+    //stbi_set_flip_vertically_on_load(true);
 
     m_data = stbi_load(filePath.c_str(), &m_width, &m_height, &m_channels, 0);
 

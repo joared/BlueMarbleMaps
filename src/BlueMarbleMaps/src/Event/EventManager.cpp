@@ -116,6 +116,13 @@ bool EventManager::mouseWheel(int delta, int x, int y, ModificationKey modKeys, 
     return dispatchEvent(event, timeStampMs);
 }
 
+bool EventManager::dropEvent(const std::vector<std::string>& paths, int64_t timeStampMs)
+{
+    DropEvent event;
+    event.paths = paths;
+    return dispatchEvent(event, timeStampMs);
+}
+
 bool EventManager::keyUp(int key, ModificationKey modKeys, int64_t timeStampMs)
 {
     KeyUpEvent event;

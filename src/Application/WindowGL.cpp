@@ -88,6 +88,7 @@ bool WindowGL::init(int width, int height, std::string windowTitle)
 	glfwSetCursorPosCallback(m_window, internalMousePositionEventCallback);
 	glfwSetScrollCallback(m_window, internalMouseScrollEventCallback);
 	glfwSetCursorEnterCallback(m_window, internalMouseEnteredCallback);
+	glfwSetDropCallback(m_window, internalDropEventCallback);
 	glfwSetWindowCloseCallback(m_window, internalCloseWindowEventCallback);
 
 	return true;
@@ -220,6 +221,13 @@ void WindowGL::internalCloseWindowEventCallback(GLFWwindow* window)
 	WindowGL* owner = reinterpret_cast<WindowGL*>(glfwGetWindowUserPointer(window));
 	// std::cout << "I am going to die" << std::endl;
 	owner->windowClosed(owner);
+}
+
+void WindowGL::internalDropEventCallback(GLFWwindow* window, int n, const char** paths)
+{
+	WindowGL* owner = reinterpret_cast<WindowGL*>(glfwGetWindowUserPointer(window));
+	// std::cout << "I am going to die" << std::endl;
+	owner->dropEvent(owner, n, paths);
 }
 
 GLFWwindow* WindowGL::getGLFWWindowHandle() const

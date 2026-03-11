@@ -54,14 +54,7 @@ void addDataSetInitializationObserver(const MapPtr& map)
     static int64_t startTs = getTimeStampMs();
     static std::mutex m;
 
-    DataSet::globalEvents.onInitializing += [&](auto d)
-    {
-        // These signals might be notified from a different thread
-        std::lock_guard lock(m);
-        dataSetsInitializing.push_back(d);
-    };
-
-    DataSet::globalEvents.onInitialized += [&](auto d)
+    auto onDataSetInitializedOrFailed = [&](auto d)
     {
         // These signals might be notified from a different thread
         std::lock_guard lock(m);
@@ -73,6 +66,23 @@ void addDataSetInitializationObserver(const MapPtr& map)
                 break;
             }
         }
+    };
+
+    DataSet::s_globalEvents.onInitializing += [&](auto d)
+    {
+        // These signals might be notified from a different thread
+        std::lock_guard lock(m);
+        dataSetsInitializing.push_back(d);
+    };
+
+
+    DataSet::s_globalEvents.onInitialized += [&](auto d)
+    {
+        onDataSetInitializedOrFailed(d);
+    };
+    DataSet::s_globalEvents.onInitializationFailed += [&](auto d)
+    {
+        onDataSetInitializedOrFailed(d);
     };
 
     auto generateArcLine = [](double r, double theta1, double theta2)
@@ -204,22 +214,29 @@ void configureMap(const MapPtr& mapView)
     const std::string commonIndexPath = "../../../bluemarble_index"; // Relative to the build/bin/<debug/release>/ folder
     const DataSetInitializationType dataSetInitialization = DataSetInitializationType::BackgroundThread;
     const bool backgroundLayersSelectable = true;
-    
 
-    const bool includeBackgroundRaster = true;
+    const bool includeBackgroundRaster = false;
     const bool includeContinents = true;
     const bool includeCountries = true;
     const bool includeRoadsEurope = true;
     const bool includeSwedenRoads = true;
     const bool includeMemoryDataSet = true;
+    bool asyncBackgroundReading = true; //NOTE: Will be set to false if using tilelayer below
 
     const double minScaleCountries = 1.0/60000000.0;
+    
+    #define USE_TILELAYER false
 
-    const bool asyncBackgroundReading = false; // set to false when using tilelayer
-    // auto map = mapView; 
+    #if USE_TILELAYER
+    asyncBackgroundReading = false;
     auto map = std::make_shared<TileLayer>();
     map->selectable(true);
-    // map->asyncRead(true);
+    map->asyncRead(true);
+    mapView->addLayer(map);
+    #else
+    auto map = mapView;
+    #endif
+    
 
     addDataSetInitializationObserver(mapView);
 
@@ -243,7 +260,7 @@ void configureMap(const MapPtr& mapView)
             
             auto backgroundLayer = std::make_shared<StandardLayer>(false);
             backgroundLayer->addDataSet(backgroundImageDataSet);
-            backgroundLayer->asyncRead(true); // NOTE: If this is false, changing coordinate system is expensive!
+            backgroundLayer->asyncRead(asyncBackgroundReading); // NOTE: If this is false, changing coordinate system is expensive!
             auto rasterVis = std::make_shared<RasterVisualizer>();
             rasterVis->alpha(DirectDoubleAttributeVariable(alpha));
             backgroundLayer->visualizers().push_back(rasterVis);
@@ -330,7 +347,6 @@ void configureMap(const MapPtr& mapView)
         map->addLayer(swedenroadsGeoJsonLayer);
     }
 
-    mapView->addLayer(map);
 
     if (includeMemoryDataSet)
     {

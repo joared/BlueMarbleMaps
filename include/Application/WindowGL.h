@@ -62,6 +62,7 @@ private:
 	virtual void mousePositionEvent(WindowGL* window, double x, double y) = 0;
 	virtual void mouseScrollEvent(WindowGL* window, double xOffs, double yOffs) = 0;
 	virtual void mouseEntered(WindowGL* window, int entered) = 0;
+	virtual void dropEvent(WindowGL* window, int n, const char** paths) = 0;
 	virtual void windowClosed(WindowGL* window) = 0;
 	
 	/*std::function<void(WindowGL*, int, int, int, int)> externalKeyEventCallback;
@@ -81,5 +82,6 @@ private:
 	static void internalMousePositionEventCallback(GLFWwindow* window, double xPos, double yPos);
 	static void internalMouseScrollEventCallback(GLFWwindow* window, double xOffs, double yOffs);
 	static void internalMouseEnteredCallback(GLFWwindow* window, int entered);
+	static void internalDropEventCallback(GLFWwindow* window, int n, const char** paths);
 	static void internalCloseWindowEventCallback(GLFWwindow* window);
 };

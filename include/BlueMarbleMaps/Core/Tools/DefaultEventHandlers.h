@@ -3,6 +3,9 @@
 
 #include "BlueMarbleMaps/Event/EventHandler.h"
 #include "BlueMarbleMaps/Core/Map.h"
+#include "BlueMarbleMaps/Core/Layer/StandardLayer.h"
+#include "BlueMarbleMaps/Core/Layer/TileLayer.h"
+#include "BlueMarbleMaps/Core/DataSets/ImageDataSet.h"
 #include "BlueMarbleMaps/Core/Core.h"
 #include "BlueMarbleMaps/Event/PointerEvent.h"
 #include "BlueMarbleMaps/Event/KeyEvent.h"
@@ -825,6 +828,8 @@ namespace BlueMarble
             void onConnected(const MapControlPtr& control, const MapPtr& map) override final
             {
                 m_map = map;
+                m_tileLayerToDrop = std::make_shared<TileLayer>();
+                m_map->layers().insert(m_map->layers().begin(), m_tileLayerToDrop);
             }
 
             void onDisconnected() override final
@@ -911,10 +916,51 @@ namespace BlueMarble
 
                 return false;
             }
+
+            bool onDrop(const DropEvent& event) override final
+            {
+                BMM_DEBUG() << "On drop...\n";
+                static std::mutex             mtx;
+                static std::vector<DataSetId> addedDataSets;
+
+                {
+                    std::lock_guard lock(mtx);
+                    addedDataSets.clear();
+                }
+
+                m_tileLayerToDrop->flushCache();
+                m_tileLayerToDrop->layers().clear();
+
+                for (const auto& file : event.paths)
+                {
+                    auto backgroundImageDataSet = std::make_shared<ImageDataSet>(file);
+                    try
+                    {
+                        backgroundImageDataSet->initialize(DataSetInitializationType::RightHereRightNow);
+                    }
+                    catch(const std::exception& e)
+                    {
+                        std::cerr << e.what() << '\n';
+                        continue;
+                    }
+                    
+                    auto backgroundLayer = std::make_shared<StandardLayer>(false);
+                    backgroundLayer->addDataSet(backgroundImageDataSet);
+                    auto rasterVis = std::make_shared<RasterVisualizer>();
+                    backgroundLayer->visualizers().push_back(rasterVis);
+
+                    m_tileLayerToDrop->addLayer(backgroundLayer);
+                }
+
+                m_map->update();
+            }
+
         private:
             MapPtr m_map;
+            TileLayerPtr m_tileLayerToDrop;
     };
     typedef std::shared_ptr<KeyActionTool> KeyActionToolPtr;
+
 
     class DebugEventHandler : public Tool
     {

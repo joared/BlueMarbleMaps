@@ -23,6 +23,7 @@ namespace BlueMarble
 
         void addLayer(const LayerPtr& layer) { m_subLayers.push_back(layer); }
         const std::vector<LayerPtr>& layers() const { return m_subLayers; }
+        std::vector<LayerPtr>& layers() { return m_subLayers; }
 
         virtual void flushCache() override;
     private:

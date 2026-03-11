@@ -43,6 +43,7 @@ namespace BlueMarble
             bool mouseMove(MouseButton button, int x, int y, ModificationKey modKeys, int64_t timeStamp);
             bool mouseUp(MouseButton button, int x, int y, ModificationKey modKeys, int64_t timeStamp);
             bool mouseWheel(int delta, int x, int y, ModificationKey modKeys, int64_t timeStamp);
+            bool dropEvent(const std::vector<std::string>& paths, int64_t timeStamp);
 
             virtual void getMousePos(ScreenPos& pos) const { throw std::exception(); }; // Window specific
             virtual ModificationKey getModificationKeyMask() const { throw std::exception(); }; // Window specific

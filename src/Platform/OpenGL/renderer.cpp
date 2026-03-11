@@ -228,6 +228,10 @@ public:
 	{
 		std::cout << "received mouse entered event" << "\n";
 	}
+	void dropEvent(WindowGL* window, int n, const char** paths) override
+	{
+		std::cout << "received mouse entered event" << "\n";
+	}
 	void windowClosed(WindowGL* window) override
 	{
 		std::cout << "he's dead..." << "\n";

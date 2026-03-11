@@ -11,28 +11,26 @@
 
 using namespace BlueMarble;
 
-std::map<DataSetId, DataSetPtr> DataSet::dataSets;
-DataSet::GlobalDataSetEvents DataSet::globalEvents;
-
-const std::map<DataSetId, DataSetPtr> &BlueMarble::DataSet::getDataSets()
-{
-    return dataSets;
-}
+std::mutex                      DataSet::s_dataSetsMutex;
+std::map<DataSetId, DataSetPtr> DataSet::s_dataSets;
+DataSet::GlobalDataSetEvents    DataSet::s_globalEvents;
 
 DataSetPtr DataSet::getDataSetById(const DataSetId &dataSetId)
 {
-    auto it = dataSets.find(dataSetId);
-    if (it == dataSets.end())
+    std::lock_guard lock(s_dataSetsMutex);
+
+    auto it = s_dataSets.find(dataSetId);
+    if (it == s_dataSets.end())
     {
         std::string availableDataSetIds;
-        for (const auto& el : dataSets)
+        for (const auto& el : s_dataSets)
         {
             availableDataSetIds += std::to_string(el.first) + "\n";
         }
         throw std::runtime_error("DataSet::getDataSetById() Available data sets:\n" + availableDataSetIds + "\nCould not find data set with id: " + std::to_string(dataSetId));
     }
     
-    return dataSets[dataSetId];
+    return s_dataSets[dataSetId];
 }
 
 DataSet::DataSet()
@@ -47,7 +45,10 @@ DataSet::DataSet()
 
 DataSet::~DataSet()
 {
-    dataSets.erase(m_dataSetId);
+    {
+        std::lock_guard lock(s_dataSetsMutex);
+        s_dataSets.erase(m_dataSetId);
+    }
 }
 
 void DataSet::initialize(DataSetInitializationType initType)
@@ -55,28 +56,38 @@ void DataSet::initialize(DataSetInitializationType initType)
     assert(!m_isInitialized);
     assert(!m_isInitializing);
 
-    dataSets[m_dataSetId] = shared_from_this();
+    {
+        std::lock_guard lock(s_dataSetsMutex);
+        s_dataSets[m_dataSetId] = shared_from_this();
+    }
     
     auto initWork = [this]()
     {
+        // If we want this true, we need to properly 
+        // add handling for an invalid dataset
         bool surpressErrors = false;
+        m_isInitializing = true;
+        s_globalEvents.onInitializing.notify(shared_from_this());
+        
         try
         {
-            m_isInitializing = true;
-            globalEvents.onInitializing.notify(shared_from_this());
             init();
-            globalEvents.onInitialized.notify(shared_from_this());
-            m_isInitializing = false;
+            
         }
         catch(const std::exception& e)
         {
             std::cerr << "Data set initialization failed: " << e.what() << '\n';
+
+            m_isInitializing = false;
+            s_globalEvents.onInitializationFailed.notify(shared_from_this());
+
             if (!surpressErrors) throw e;
-            m_isInitialized = false;
+            
             return;
         }
-        
+        m_isInitializing = false;
         m_isInitialized = true;
+        s_globalEvents.onInitialized.notify(shared_from_this());
     };
 
     if (initType == DataSetInitializationType::RightHereRightNow)

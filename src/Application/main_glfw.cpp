@@ -191,11 +191,23 @@ public:
         
     }
 
+    void dropEvent(WindowGL* window, int n, const char** paths) override final
+    {
+        std::vector<std::string> pathsVec;
+        pathsVec.reserve(n);
+        for (int i(0); i<n; ++i)
+        {
+            pathsVec.emplace_back(paths[i]);
+        }
+
+        EventManager::dropEvent(pathsVec, getGinotonicTimeStampMs());
+    };
+
     void windowClosed(WindowGL* window) override
     {
         std::cout << "Window will close\n";
     }
-
+    
     void* getWindow() override final
     {
         return (void*)getGLFWWindowHandle();

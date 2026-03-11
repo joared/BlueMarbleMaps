@@ -29,15 +29,16 @@ namespace BlueMarble
         , public ResourceObject
     {
         private:
-            static std::map<DataSetId, DataSetPtr> dataSets;
+            static std::mutex                      s_dataSetsMutex;
+            static std::map<DataSetId, DataSetPtr> s_dataSets;
         public:
-            static const std::map<DataSetId, DataSetPtr>& getDataSets(); 
             static DataSetPtr getDataSetById(const DataSetId& dataSetId);
             static struct GlobalDataSetEvents
             {
-                SafeSignal<DataSetPtr> onInitializing;
-                SafeSignal<DataSetPtr> onInitialized;
-            } globalEvents;
+                SafeSignal<DataSetPtr> onInitializing;          // Called in init()
+                SafeSignal<DataSetPtr> onInitialized;           // If initialization was successful
+                SafeSignal<DataSetPtr> onInitializationFailed;  // If initialization was unsuccessful
+            } s_globalEvents;
 
 
             DataSet();

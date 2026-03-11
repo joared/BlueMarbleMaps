@@ -4,7 +4,7 @@
 
 using namespace BlueMarble;
 
-FeaturePtr loadWithGDAL(const std::string& filePath)
+FeaturePtr loadWithGDAL(const std::string& filePath, const Id& id)
 {
     static bool gdalInitialized = false;
     if (!gdalInitialized)
@@ -118,10 +118,10 @@ FeaturePtr loadWithGDAL(const std::string& filePath)
     }
 
     auto raster = Raster(data, newW, newH, outBands);
-    auto rasterGeometry = std::make_shared<RasterGeometry>(raster, bounds);
+    auto rasterGeometry = std::make_shared<RasterGeometry>(std::move(raster), bounds);
 
     auto feature = std::make_shared<Feature>(
-        Id(0,0),
+        id,
         crs,
         rasterGeometry
     );
@@ -175,11 +175,27 @@ void ImageDataSet::init()
     // m_rasterFeature = std::make_shared<Feature>(generateId(), crs(), m_rasterGeometry);
 
     
-    m_rasterFeature = loadWithGDAL(m_filePath);
+    m_rasterFeature = loadWithGDAL(m_filePath, Id(dataSetId(), 1));
     if (!m_rasterFeature)
     {
-        throw std::runtime_error("Failed to read image file: " + m_filePath);
+        // throw std::runtime_error("Failed to read image file: " + m_filePath);
+        BMM_DEBUG() << "Failed to read geodata image file: " << m_filePath;
+        crs(Crs::wgs84LngLat());
+        auto raster = Raster(m_filePath);
+        if (raster.width() == 0 || raster.height() == 0)
+        {
+            throw std::runtime_error("Failed to read image file as well");
+        }
+
+        auto rasterGeometry = std::make_shared<RasterGeometry>(std::move(raster), crs()->bounds());
+        auto feature = std::make_shared<Feature>(
+            Id(dataSetId(), 1),
+            crs(),
+            rasterGeometry
+        );
+        m_rasterFeature = feature;
     }
+
     m_rasterGeometry = m_rasterFeature->geometryAsRaster();
     if (!m_rasterGeometry)
     {

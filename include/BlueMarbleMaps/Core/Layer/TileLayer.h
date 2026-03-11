@@ -206,6 +206,7 @@ namespace BlueMarble
         virtual void update(const MapPtr& map, const FeatureEnumeratorPtr& features, const FeatureQuery& featureQuery) override final;
         virtual void flushCache() override final;
     private:
+        void verifyValidSubLayers();
         void scheduleTileLoad(const Tile& tile, const CrsPtr& crs, const FeatureQuery& tileQuery);
         FeatureEnumeratorPtr thinFeatures(const FeatureEnumeratorPtr& features, double unitsPerPixel, const Rectangle& tileArea) const;
         FeaturePtr thinFeature(const FeaturePtr& feature, double unitsPerPixel, const Rectangle& tileArea) const;
