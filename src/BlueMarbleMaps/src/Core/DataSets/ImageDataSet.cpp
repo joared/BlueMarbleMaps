@@ -52,15 +52,16 @@ FeaturePtr loadWithGDAL(const std::string& filePath)
 
     // Force RGB or grayscale output
     int outBands = std::min(channels, 3);
+    // int outBands = 3;
     
     // Adjust size such that it fits in gpu memory
     // auto inf = std::numeric_limits<int>::infinity();
     // int maxTex = inf;
-    int maxTex = 16384;
-    int newW = std::min(width, maxTex);
-    int newH = std::min(height, maxTex);
-    newW = width;
-    newH = height;
+    // int maxTex = 16384;
+    // int newW = std::min(width, maxTex);
+    // int newH = std::min(height, maxTex);
+    int newW = width;
+    int newH = height;
     unsigned char* data = new unsigned char[newW * newH * outBands];
 
     int bandMap[3] = {1, 2, 3};
@@ -99,6 +100,22 @@ FeaturePtr loadWithGDAL(const std::string& filePath)
         crs = Crs::wgs84LngLat();
     }
     GDALClose(ds);
+
+
+    if (channels == 1)
+    {
+        // Force to RGB
+        auto gray = data;
+        outBands = 3;
+        data = new unsigned char[newW * newH * outBands];
+        for (int i = 0; i < newW * newH; i++)
+        {
+            data[3*i+0] = gray[i];
+            data[3*i+1] = gray[i];
+            data[3*i+2] = gray[i];
+        }
+        delete[] gray;
+    }
 
     auto raster = Raster(data, newW, newH, outBands);
     auto rasterGeometry = std::make_shared<RasterGeometry>(raster, bounds);
@@ -214,7 +231,40 @@ FeatureEnumeratorPtr ImageDataSet::onGetFeatures(const FeatureQuery &featureQuer
     if(featureQuery.area().overlap(m_rasterGeometry->bounds()))
     {
         //auto feature = std::make_shared<Feature>(Id(0,0), rasterGeometry); // TODO: overviews improves performance for software implementation
-        features->add(m_rasterFeature);
+        if (featureQuery.rasterGeometryMode() == FeatureQuery::RasterGeometryMode::Clipped)
+        {
+            auto subRasterGeom = m_rasterFeature->geometryAsRaster()->getSubRasterGeometry(featureQuery.area());
+            auto subFeature = std::make_shared<Feature>(
+                m_rasterFeature->id(),
+                m_rasterFeature->crs(),
+                subRasterGeom,
+                m_rasterFeature->attributes()
+            );
+
+            int W = subRasterGeom->raster().width();
+            double w = subRasterGeom->bounds().width();
+            double rasterUnitsPerPix = (double)w / W;
+
+            // BMM_DEBUG() << "Raster size: " << rastergeom->raster().width() << ", " << rastergeom->raster().height() << "\n";
+            // BMM_DEBUG() << "Sub raster size: " << subRasterGeom->raster().width() << ", " << subRasterGeom->raster().height() << "\n";
+            if (featureQuery.resolution() > 0.0)
+            {
+                double unitsPerPixel = featureQuery.resolution();
+                int newW = std::round(subRasterGeom->bounds().width() / unitsPerPixel);
+                int newH = std::round(subRasterGeom->bounds().height() / unitsPerPixel);
+
+                if (rasterUnitsPerPix <= unitsPerPixel)
+                {
+                    subRasterGeom->raster().resize(newW, newH);
+                }
+            }
+
+            features->add(subFeature);
+        }
+        else
+        {
+            features->add(m_rasterFeature);
+        }
     }
 
     return features;

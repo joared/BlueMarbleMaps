@@ -120,6 +120,7 @@ namespace BlueMarble
             PolygonGeometry(const PolygonGeometry& other);
             PolygonGeometry(const std::vector<Point>& outerRing);
             PolygonGeometry(const std::vector<std::vector<Point>>& rings);
+            PolygonGeometry(const Rectangle& outerRect);
             PolygonGeometry& operator=(const PolygonGeometry& other);
 
             EngineObjectPtr clone() override final { return std::make_shared<PolygonGeometry>(*this); };
@@ -238,8 +239,9 @@ namespace BlueMarble
             bool isInside(const Rectangle& bounds) const override final 
             {  
                 // TODO
+                return false;
             }
-            bool isStrictlyInside(const Rectangle& bounds) const override final 
+            bool isStrictlyInside(const Rectangle& bounds) const override final
             { 
                 //TODO
             }
@@ -258,6 +260,7 @@ namespace BlueMarble
             RasterGeometry();
             RasterGeometry(const Raster& raster, double );
             RasterGeometry(const Raster& raster, const Rectangle& bounds);
+            RasterGeometry(Raster&& raster, const Rectangle& bounds);
             EngineObjectPtr clone() override final { return std::make_shared<RasterGeometry>(*this); };
             GeometryType type() override final { return GeometryType::Raster; };
             

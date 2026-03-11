@@ -60,6 +60,7 @@ namespace BlueMarble
 
 	    std::map<BMID,PrimitivePtr> m_primitives;
         ShaderPtr m_basicShader;
+        ShaderPtr m_polyShader;
         ShaderPtr m_lineShader;
         Transform m_transform;
         glm::dmat4 m_viewMatrix;

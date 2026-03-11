@@ -105,6 +105,8 @@ BlueMarble::OpenGLDrawable::OpenGLDrawable(int width, int height, int colorDepth
 	glEnable(GL_BLEND);
     m_basicShader = std::make_shared<Shader>();
     m_basicShader->linkProgram("Shaders/basic.vert", "Shaders/basic.frag");
+    m_polyShader = std::make_shared<Shader>();
+    m_polyShader->linkProgram("Shaders/polygon.vert", "Shaders/polygon.frag");
     m_lineShader = std::make_shared<Shader>();
     m_lineShader->linkProgram("Shaders/line.vert", "Shaders/line.frag");
 
@@ -258,8 +260,8 @@ void BlueMarble::OpenGLDrawable::endBatches()
     if (polyBatch)
     {
         auto renderOrigin = glm::vec3(0.0f);
-        m_basicShader->useProgram();
-        m_basicShader->setMat4("viewMatrix", mat);
+        m_polyShader->useProgram();
+        m_polyShader->setMat4("viewMatrix", mat);
         polyBatch->end();
         polyBatch->flush();
     }

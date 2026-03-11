@@ -86,7 +86,7 @@ void Raster::resize(int width, int height, ResizeInterpolation interpolation)
 
 void Raster::resize(float scaleRatio, ResizeInterpolation interpolation)
 {
-    resize(width()*scaleRatio, height()*scaleRatio, interpolation);
+    resize(std::round(width()*scaleRatio), std::round(height()*scaleRatio), interpolation);
 }
 
 void Raster::rotate(double angle, int cx, int cy, ResizeInterpolation interpolation)

@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <cstdint>
+#include <atomic>
 
 /*#define BLUEMARBLE_OBJECT_PROPERTY(propertyName, propertyType) \
     private: \
@@ -19,7 +20,7 @@ namespace BlueMarble
     class EngineObject;
 
     typedef std::shared_ptr<EngineObject> EngineObjectPtr;
-    typedef int64_t BMID;
+    typedef uint64_t BMID;
     
     class EngineObject; typedef std::shared_ptr<EngineObject> EngineObjectPtr;
 
@@ -68,7 +69,7 @@ namespace BlueMarble
             std::string m_name;
             std::vector<EngineObject*> m_children;
             BMID m_id;
-            static int64_t newestID;
+            static std::atomic<BMID> newestID;
     };
 }
 

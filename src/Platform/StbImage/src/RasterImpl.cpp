@@ -193,8 +193,9 @@ void Raster::Impl::resize(int width, int height, ResizeInterpolation interpolati
                                              nullptr, width, height, 0, 
                                              pixelLayout);
 
-    if (!newData) {
-        std::cerr << "Failed to resize image! (" << width << ", " << height << ")" << std::endl;
+    if (!newData) 
+    {
+        std::cerr << "Raster::Impl::resize() Failed to resize raster! (" << width << ", " << height << ")" << std::endl;
         return;
     }
 

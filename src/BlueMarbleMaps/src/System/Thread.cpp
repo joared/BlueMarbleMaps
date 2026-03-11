@@ -2,27 +2,37 @@
 #include "BlueMarbleMaps/Logging/Logging.h"
 
 #include <iostream>
+#include <cassert>
 
 using namespace BlueMarble::System;
 
-ThreadPool::ThreadPool()
-    : m_workers(0)
+ThreadPool::ThreadPool(size_t numThreads, size_t maxQueueSize, QueuePolicy queuePolicy)
+    : m_workers(numThreads)
     , m_tasks()
     , m_queueMutex()
-    , m_maxQueueSize(0)
-    , m_queuePolicy(QueuePolicy::GrowWhenFull)
+    , m_maxQueueSize(maxQueueSize)
+    , m_queuePolicy(queuePolicy)
     , m_condition()
     , m_stop(true)
 {
+    // We store the thread id such that we can verify that all calls to
+    // this ThreadPool are made from the same thread.
+    // The reason is a use case where "onDropped" can be hard to debug in the
+    // scenario that shared resources are synched with a mutex outside of 
+    // this thread pool. Forcing all calls to be made on the main thread,
+    // guarantees that all calls to onDropped are as well.
+    m_mainThreadId = std::this_thread::get_id();
 }
 
 ThreadPool::~ThreadPool()
 {
-    stop();
+    stop(true);
 }
 
 void ThreadPool::start(size_t numThreads, size_t maxQueueSize, QueuePolicy queuePolicy)
 {
+    assert(isValidThreadAccess());
+
     if (maxQueueSize == 0)
     {
         throw std::runtime_error("ThreadPool::start() max queuesize must be greater than 0");
@@ -34,7 +44,7 @@ void ThreadPool::start(size_t numThreads, size_t maxQueueSize, QueuePolicy queue
     }
     else
     {
-        throw std::runtime_error("ThreadPool is already running");
+        throw std::runtime_error("ThreadPool::start() called while thread pool is already running");
     }
 
     m_workers.resize(numThreads);
@@ -74,6 +84,7 @@ void ThreadPool::start(size_t numThreads, size_t maxQueueSize, QueuePolicy queue
 
 void ThreadPool::stop(bool dropQueuedTasks)
 {
+    assert(isValidThreadAccess());
     BMM_DEBUG() << "ThreadPool::stop()\n";
     {
         std::unique_lock<std::mutex> lock(m_queueMutex);
@@ -104,6 +115,7 @@ void ThreadPool::stop(bool dropQueuedTasks)
 
 void ThreadPool::enqueue(Task&& task)
 {
+    assert(isValidThreadAccess());
     {
         std::unique_lock<std::mutex> lock(m_queueMutex);
 
@@ -140,6 +152,8 @@ void ThreadPool::enqueue(Task&& task)
                 lock.unlock();
 
                 t.onDropped();
+
+                lock.lock();
                 break;
             }  
             default:

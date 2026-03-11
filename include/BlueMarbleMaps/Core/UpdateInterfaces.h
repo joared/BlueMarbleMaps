@@ -12,6 +12,11 @@ namespace BlueMarble
     class FeatureQuery
     {
         public:
+            enum class RasterGeometryMode
+            {
+                Original,
+                Clipped
+            };
             FeatureQuery()
             {
 
@@ -20,6 +25,11 @@ namespace BlueMarble
             void area(const Rectangle& area) { m_area = area; }
             double scale() const { return m_scale; }
             void scale(double scale) { m_scale = scale; }
+            RasterGeometryMode rasterGeometryMode() const { return m_rasterMode; }
+            void rasterGeometryMode(RasterGeometryMode mode) { m_rasterMode = mode; }
+            // Units per pixel in the crs
+            double resolution() const { return m_resolution; }
+            void resolution(double res) { m_resolution = res; }
             Attributes* updateAttributes() const { return m_updateAttributes; }
             void updateAttributes(Attributes* attr) { m_updateAttributes = attr; }
             bool quickUpdate() const { return m_quickUpdate; }
@@ -33,6 +43,8 @@ namespace BlueMarble
             double      m_scale = 1.0;
             Attributes* m_updateAttributes = nullptr;
             bool        m_quickUpdate = false;
+            RasterGeometryMode m_rasterMode = RasterGeometryMode::Original;
+            double              m_resolution=-1.0;
     };
 
     class FeatureEnumerator;

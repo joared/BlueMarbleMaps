@@ -4,7 +4,7 @@
 
 using namespace BlueMarble;
 
-BMID BlueMarble::EngineObject::newestID = 0;
+std::atomic<BMID> BlueMarble::EngineObject::newestID = 0;
 
 BlueMarble::EngineObject::EngineObject()
     : m_name()
@@ -57,5 +57,5 @@ EngineObject* EngineObject::findChild(const std::string &name, bool recursive)
 
 BMID BlueMarble::EngineObject::generateUUID()
 {
-    return ++newestID;
+    return newestID.fetch_add(1, std::memory_order_relaxed);
 }

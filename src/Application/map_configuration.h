@@ -204,7 +204,7 @@ void configureMap(const MapPtr& mapView)
     const std::string commonIndexPath = "../../../bluemarble_index"; // Relative to the build/bin/<debug/release>/ folder
     const DataSetInitializationType dataSetInitialization = DataSetInitializationType::BackgroundThread;
     const bool backgroundLayersSelectable = true;
-    const bool asyncBackgroundReading = false; // set to false when using tilelayer
+    
 
     const bool includeBackgroundRaster = true;
     const bool includeContinents = true;
@@ -215,6 +215,7 @@ void configureMap(const MapPtr& mapView)
 
     const double minScaleCountries = 1.0/60000000.0;
 
+    const bool asyncBackgroundReading = false; // set to false when using tilelayer
     // auto map = mapView; 
     auto map = std::make_shared<TileLayer>();
     map->selectable(true);
@@ -226,22 +227,30 @@ void configureMap(const MapPtr& mapView)
     {
         #ifdef WIN32
         #define PATH_TO_FANNY_FILE "../../../bluemarble_index/backgroundmap.png"
+        #define PATH_TO_FANNY_FILE2 "../../../bluemarble_index/backgroundmap.png"
         #else 
-        //#define PATH_TO_FANNY_FILE "../../../geodata/HYP_HR_SR_OB_DR/HYP_HR_SR_OB_DR.tif"
         #define PATH_TO_FANNY_FILE "../../../geodata/NE2_HR_LC_SR_W_DR/NE2_HR_LC_SR_W_DR.tif"
+        #define PATH_TO_FANNY_FILE2 "../../../geodata/SR_HR/SR_HR.tif"
         #endif
-        auto backgroundImageDataSet = std::make_shared<ImageDataSet>(PATH_TO_FANNY_FILE);
-        backgroundImageDataSet->initialize(DataSetInitializationType::RightHereRightNow);
+
+        std::vector<std::pair<std::string, double>> files = {{PATH_TO_FANNY_FILE, 1.0},
+                                                             {PATH_TO_FANNY_FILE2, 0.7}};
         
-        auto backgroundLayer = std::make_shared<StandardLayer>(false);
-        backgroundLayer->addDataSet(backgroundImageDataSet);
-        backgroundLayer->asyncRead(true); // NOTE: If this is false, changing coordinate system is expensive!
-        auto rasterVis = std::make_shared<RasterVisualizer>();
-        rasterVis->alpha(DirectDoubleAttributeVariable(0.7));
-        backgroundLayer->visualizers().push_back(rasterVis);
-        
-        // TESTING tiling
-        map->addLayer(backgroundLayer);
+        for (const auto& [file, alpha] : files)
+        {
+            auto backgroundImageDataSet = std::make_shared<ImageDataSet>(file);
+            backgroundImageDataSet->initialize(DataSetInitializationType::RightHereRightNow);
+            
+            auto backgroundLayer = std::make_shared<StandardLayer>(false);
+            backgroundLayer->addDataSet(backgroundImageDataSet);
+            backgroundLayer->asyncRead(true); // NOTE: If this is false, changing coordinate system is expensive!
+            auto rasterVis = std::make_shared<RasterVisualizer>();
+            rasterVis->alpha(DirectDoubleAttributeVariable(alpha));
+            backgroundLayer->visualizers().push_back(rasterVis);
+            
+            // TESTING tiling
+            map->addLayer(backgroundLayer);
+        }
     }
 
     if (includeCountries) 

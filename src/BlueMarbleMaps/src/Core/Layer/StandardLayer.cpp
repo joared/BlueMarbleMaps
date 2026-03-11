@@ -262,6 +262,14 @@ FeatureEnumeratorPtr StandardLayer::getFeatures(const CrsPtr& crs, const Feature
     {
         auto newQuery = featureQuery;
         newQuery.area(crs->projectTo(d->crs(), newQuery.area()));
+        if (featureQuery.resolution() > 0.0)
+        {
+            double scale1 = crs->globalMetersPerUnit() / Drawable::pixelSize();
+            double scale2 = d->crs()->globalMetersPerUnit() / Drawable::pixelSize();
+
+            newQuery.resolution(featureQuery.resolution() * scale1/scale2);
+        }
+            
         auto dataSetFeatures = d->getFeatures(newQuery);
 
         // If the crs and data set crs is different, we need to reproject them
@@ -427,7 +435,7 @@ void StandardLayer::createDefaultVisualizers()
 
     // Line visualizer
     auto lineVis = std::make_shared<LineVisualizer>();
-    lineVis->color(ColorEvaluation([](FeaturePtr, Attributes&) { return Color(50,50,50,0.7); }));
+    lineVis->color(ColorEvaluation([](FeaturePtr, Attributes&) { return Color(60, 80, 110,0.7); }));
     //lineVis->color(colorEvalSelect);
     lineVis->width([](FeaturePtr, Attributes&) -> double { return 3.0; });
 

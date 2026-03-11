@@ -30,13 +30,19 @@ public:
         ReplaceOldestWhenFull
     };
 
-    ThreadPool();
+    ThreadPool(size_t numThreads = std::thread::hardware_concurrency(), 
+               size_t maxQueueSize = 50, 
+               QueuePolicy queuePolicy = QueuePolicy::GrowWhenFull);
     ~ThreadPool();
-    void start(size_t numThreads = std::thread::hardware_concurrency(), size_t maxQueueSize = 50, QueuePolicy queuePolicy = QueuePolicy::GrowWhenFull);
+    void start() { start(m_workers.size(), m_maxQueueSize, m_queuePolicy); };
+    void start(size_t numThreads, size_t maxQueueSize, QueuePolicy queuePolicy);
     void stop(bool dropQueuedTasks = false);
     bool isRunning() const { return !m_stop; }
     // template<class F, class... Args>
     // auto enqueue(F&& f, Args&&... args) -> std::future<typename std::result_of<F(Args...)>::type>;
+    // Enqueues a task with an optional "onDropped" callback. onDropped is called
+    // synchronuously when calling enqueue, or stop(true) (or when the thread pool is destroyed).
+    // onDropped is always called on the same thread as of which the thread pool was created.
     void enqueue(Task&& task);
     void enqueue(std::function<void()>&& task) { enqueue(Task{std::move(task), []{}}); };
 private:
@@ -45,6 +51,8 @@ private:
     ThreadPool(ThreadPool&&) = delete;
     ThreadPool& operator=(ThreadPool&&) = delete;
 
+    inline bool isValidThreadAccess() const { return std::this_thread::get_id() == m_mainThreadId; };
+
     std::vector<std::thread>    m_workers;
     std::queue<Task>            m_tasks;
     size_t                      m_maxQueueSize;
@@ -52,6 +60,8 @@ private:
     QueuePolicy                 m_queuePolicy;
     std::condition_variable     m_condition;
     std::atomic<bool>           m_stop;
+
+    std::thread::id m_mainThreadId; // To enforce calls only be made from one thread
 };
 
 // template <class F, class... Args>

@@ -92,6 +92,11 @@ PolygonGeometry::PolygonGeometry(const std::vector<std::vector<Point>>& rings)
 {
 }
 
+PolygonGeometry::PolygonGeometry(const Rectangle& outerRect)
+    : PolygonGeometry(outerRect.corners())
+{
+}
+
 PolygonGeometry& PolygonGeometry::operator=(const PolygonGeometry& other)
 {
     m_rings = other.m_rings;
@@ -141,16 +146,34 @@ BlueMarble::RasterGeometry::RasterGeometry(const Raster& raster, const Rectangle
     }
 }
 
+RasterGeometry::RasterGeometry(Raster&& raster, const Rectangle& bounds)
+    : Geometry()
+    , m_raster(std::move(raster))
+    , m_bounds(bounds)
+{
+    if (cellWidth() <= 0 || cellHeight() <= 0)
+    {
+        throw std::runtime_error("Invalid cell size: " + std::to_string(cellWidth()) + "," + std::to_string(cellHeight()));
+    }
+}
+
 Point RasterGeometry::pointToRasterIndex(const Point& point) const
 {
     if (!m_bounds.isInside(point))
+    {
         return Point::undefined();
+    }
 
     double xRel = point.x() - m_bounds.xMin();
     double yRel = m_bounds.yMax() - point.y();
 
-    int xInd = (int)std::round(xRel / cellWidth());
-    int yInd = (int)std::round(yRel / cellHeight());
+    int xInd = std::floor(xRel / cellWidth());
+    int yInd = std::floor(yRel / cellHeight());
+
+    // If the point is exactly on the border (not captured by isInside())
+    // it may produce an invlid index. So we clamp the result here.
+    xInd = std::min(xInd, m_raster.width()-1);
+    yInd = std::min(yInd, m_raster.height()-1);
 
     return Point(xInd, yInd);
 }
@@ -161,8 +184,8 @@ Point BlueMarble::RasterGeometry::rasterIndexToPoint(int x, int y) const
     // assert(x < raster().width());
     // assert(y < raster().height());
 
-    return Point(bounds().xMin() + cellWidth()*x, 
-                 bounds().yMax() - cellHeight()*y);
+    return Point(bounds().xMin() + cellWidth()*(x+0.5), 
+                 bounds().yMax() - cellHeight()*(y+0.5));
 }
 
 RasterGeometryPtr RasterGeometry::getSubRasterGeometry(const Rectangle& subBounds) const
@@ -185,14 +208,15 @@ RasterGeometryPtr RasterGeometry::getSubRasterGeometry(const Rectangle& subBound
 
     int y0 = std::max((int)topLeft.y(), 0);
     int y1 = std::min((int)bottomRight.y(), (int)raster.height() - 1);
-
-    auto topLeftWorld = rasterIndexToPoint(x0, y0);
-    auto bottomRightWorld = rasterIndexToPoint(x1 + 1, y1 + 1);
+    
+    auto cellAdjust = Point(cellWidth(), -cellHeight())*0.5; 
+    auto topLeftWorld = rasterIndexToPoint(x0, y0) - cellAdjust;
+    auto bottomRightWorld = rasterIndexToPoint(x1 , y1) + cellAdjust;
 
     Rectangle rasterBounds = Rectangle::fromPoints({topLeftWorld, bottomRightWorld});
 
     auto cropped = raster.getCrop(x0, y0, x1, y1);
-    return std::make_shared<RasterGeometry>(cropped, rasterBounds);
+    return std::make_shared<RasterGeometry>(std::move(cropped), rasterBounds);
 
     // if (!subBounds.overlap(bounds()))
     // {

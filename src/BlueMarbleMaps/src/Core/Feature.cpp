@@ -26,7 +26,7 @@ Feature::~Feature()
 
 FeaturePtr Feature::clone()
 {
-    const GeometryPtr& geom = std::static_pointer_cast<Geometry>(m_geometry->clone());
+    auto geom = std::static_pointer_cast<Geometry>(m_geometry->clone());
     return std::make_shared<Feature>(m_id, m_crs, geom, m_attributes);
 }
 
@@ -63,7 +63,9 @@ void Feature::reProjectTo(const CrsPtr &crs)
         auto& currRaster = geometryAsRaster()->raster();
 
         auto newBounds = this->crs()->projectTo(crs, bounds());
-        RasterGeometryPtr newRaster = std::make_shared<RasterGeometry>(currRaster, newBounds);
+
+        auto newRast = Raster(currRaster.width(), currRaster.height(), currRaster.channels());
+        RasterGeometryPtr newRaster = std::make_shared<RasterGeometry>(std::move(newRast), newBounds);
 
         for (int i(0); i < currRaster.width(); ++i)
         {

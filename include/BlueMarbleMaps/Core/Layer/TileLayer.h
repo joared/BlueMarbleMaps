@@ -12,19 +12,23 @@ namespace BlueMarble
     {
     public:
         // Tile coordinates, e.g. XYZ or TMS
-        int x;
-        int y;
-        int zoom;
+        int x=-1;
+        int y=-1;
+        int zoom=-1;
 
-        FeatureEnumeratorPtr features; // The features contained in this tile, could be empty if not loaded yet
+        FeatureEnumeratorPtr features{nullptr}; // The features contained in this tile, could be empty if not loaded yet
 
+        inline bool isValid() const
+        {
+            return x >= 0 && y >= 0 && zoom >= 0 && zoom <= 20;
+        }
 
         TileId id() const 
         {
             return ((uint64_t)zoom << 58) |
                     ((uint64_t)x << 29) |
                     (uint64_t)y;
-         }
+        }
 
         bool isLoaded() const
         {
@@ -150,8 +154,12 @@ namespace BlueMarble
             tiles.reserve((xMax - xMin + 1) * (yMax - yMin + 1));
 
             for (int x = xMin; x <= xMax; ++x)
+            {
                 for (int y = yMin; y <= yMax; ++y)
+                {
                     tiles.push_back({x, y, zoom});
+                }
+            }
 
             return tiles;
         }
@@ -166,7 +174,6 @@ namespace BlueMarble
     {
     public:
         TileManager(const Rectangle& fullExtent);
-        
         Rectangle tileBounds(int x, int y, int zoom) const;
 
         std::vector<Tile> getTilesForArea(const Rectangle& area, int zoom) const;
@@ -186,7 +193,7 @@ namespace BlueMarble
 
     private:
         TilingScheme m_tilingScheme;
-        std::unordered_map<std::uint64_t, Tile> m_tileCache; // Cache of loaded tiles, keyed by a hash of the tile coordinates
+        std::map<std::uint64_t, Tile> m_tileCache; // Cache of loaded tiles, keyed by a hash of the tile coordinates
     };
 
     class TileLayer : public LayerSet
@@ -199,7 +206,7 @@ namespace BlueMarble
         virtual void update(const MapPtr& map, const FeatureEnumeratorPtr& features, const FeatureQuery& featureQuery) override final;
         virtual void flushCache() override final;
     private:
-        void loadTile(Tile& tile);
+        void scheduleTileLoad(const Tile& tile, const CrsPtr& crs, const FeatureQuery& tileQuery);
         FeatureEnumeratorPtr thinFeatures(const FeatureEnumeratorPtr& features, double unitsPerPixel, const Rectangle& tileArea) const;
         FeaturePtr thinFeature(const FeaturePtr& feature, double unitsPerPixel, const Rectangle& tileArea) const;
         void thinLine(std::vector<Point>& thinned, const std::vector<Point>& line, bool closed, double unitsPerPixel) const;
@@ -210,6 +217,7 @@ namespace BlueMarble
         std::unique_ptr<TileManager>    m_tileManager;
         bool                            m_readAsync;
         mutable std::mutex              m_mutex; // Mutex for synchronizing access to the tile cache
+        int                             m_tileSize;
     };
 
     using TileLayerPtr = std::shared_ptr<TileLayer>;
