@@ -1,4 +1,5 @@
 .vscode
+bluemarble_index/*
 geodata/*
 !geodata/.gitkeep
 *.tfw
