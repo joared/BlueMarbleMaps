@@ -181,9 +181,8 @@ Point RasterGeometry::pointToRasterIndex(const Point& point) const
 
 Point BlueMarble::RasterGeometry::rasterIndexToPoint(int x, int y) const
 {
-    // TODO make Raster::width()/height() const
-    // assert(x < raster().width());
-    // assert(y < raster().height());
+    assert(x < raster().width());
+    assert(y < raster().height());
 
     return Point(bounds().xMin() + cellWidth()*(x+0.5), 
                  bounds().yMax() - cellHeight()*(y+0.5));
