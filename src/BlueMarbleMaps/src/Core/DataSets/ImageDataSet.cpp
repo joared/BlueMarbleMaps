@@ -92,12 +92,30 @@ FeaturePtr loadWithGDAL(const std::string& filePath, const Id& id)
         return nullptr;
     }
 
-    auto projectionWKT = ds->GetProjectionRef();
-    auto crs = Crs::fromWkt(projectionWKT);
+    const char* projectionWKT;
+    CrsPtr crs;
+    try
+    {
+        projectionWKT = ds->GetProjectionRef();
+        crs = Crs::fromWkt(projectionWKT);
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+    }
+    
     if (crs == nullptr)
     {
         BMM_DEBUG() << "Unsupported SRS: " << projectionWKT << ". Falling back to WGS84\n";
-        crs = Crs::wgs84LngLat();
+        if (bounds.width() < 400.0)
+        {
+            crs = Crs::wgs84LngLat();
+        }
+        else
+        {
+            crs = Crs::wgs84MercatorWeb();
+        }
+        
     }
     GDALClose(ds);
 

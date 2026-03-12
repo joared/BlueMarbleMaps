@@ -952,6 +952,27 @@ namespace BlueMarble
                     m_tileLayerToDrop->addLayer(backgroundLayer);
                 }
 
+                FeatureQuery query;
+                query.area(m_map->crs()->bounds());
+                auto features = m_tileLayerToDrop->getFeatures(m_map->crs(), query, false);
+                Rectangle bounds = Rectangle::undefined();
+                features->reset();
+                while (features->moveNext())
+                {
+                    auto f = features->current();
+                    if (bounds.isUndefined())
+                    {
+                        bounds = f->bounds();
+                        continue;
+                    }
+                    auto points = bounds.corners();
+                    auto pointsFeature = f->bounds().corners();
+                    points.insert(points.begin(), pointsFeature.begin(), pointsFeature.end());
+                    bounds = Rectangle::fromPoints(points);
+                }
+
+                BMM_DEBUG() << "Bounds: " << bounds.toString() << "\n";
+
                 m_map->update();
             }
 

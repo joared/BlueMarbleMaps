@@ -219,7 +219,18 @@ namespace BlueMarble
 
             inline bool isInside(const Point& point) const
             {
-                return m_xMin <= point.x() && m_yMin <= point.y() && m_xMax >= point.x() && m_yMax >= point.y();
+                return m_xMin <= point.x() && 
+                       m_yMin <= point.y() && 
+                       m_xMax >= point.x() && 
+                       m_yMax >= point.y();
+            }
+
+            inline bool isInsideDelta(const Point& point, double delta) const
+            {
+                return m_xMin <= point.x()+delta && 
+                       m_yMin <= point.y()+delta && 
+                       m_xMax >= point.x()-delta && 
+                       m_yMax >= point.y()-delta;
             }
 
             // TODO: rename to anyInside/anyPointsInside?

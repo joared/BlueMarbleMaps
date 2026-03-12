@@ -159,7 +159,8 @@ RasterGeometry::RasterGeometry(Raster&& raster, const Rectangle& bounds)
 
 Point RasterGeometry::pointToRasterIndex(const Point& point) const
 {
-    if (!m_bounds.isInside(point))
+    // To account for floating point errors
+    if (!m_bounds.isInsideDelta(point, 1e-7))
     {
         return Point::undefined();
     }
