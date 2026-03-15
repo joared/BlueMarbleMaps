@@ -64,6 +64,11 @@ namespace BlueMarble
             inline int g() const { return m_g; }
             inline double a() const { return m_alpha; }
 
+            inline double luminance() const
+            {
+                return (r()*0.2126 + g()*0.7152 + b()*0.0722) / 255.0;
+            }
+
             inline Color operator+(const Color& other) const
             {
                 return Color(r()+other.r(),

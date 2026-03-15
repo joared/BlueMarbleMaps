@@ -19,6 +19,7 @@
 #include "gtc/type_ptr.hpp"
 #include "gtc/matrix_transform.hpp"
 
+
 #define SEVERITY_THRESHOLD GL_DEBUG_SEVERITY_HIGH
 
 using namespace BlueMarble;
@@ -706,7 +707,12 @@ RendererImplementation BlueMarble::OpenGLDrawable::renderer()
     return RendererImplementation();
 }
 
-glm::mat4x4 BlueMarble::OpenGLDrawable::transformToMatrix(const Transform& transform)
+void BlueMarble::OpenGLDrawable::flushCache()
+{
+    m_primitives.clear();
+}
+
+glm::mat4x4 BlueMarble::OpenGLDrawable::transformToMatrix(const Transform &transform)
 {
     // auto center = transform.translation();
     // auto rotation = transform.rotation();

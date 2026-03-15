@@ -50,6 +50,7 @@ namespace BlueMarble
             virtual void swapBuffers() = 0;
             virtual void clearBuffer() = 0;
             virtual Raster getRaster() = 0;
+            virtual void flushCache() = 0;
             virtual RendererImplementation renderer() = 0;
 
             // Static methods

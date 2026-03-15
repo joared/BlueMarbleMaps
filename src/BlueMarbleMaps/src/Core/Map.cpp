@@ -168,7 +168,7 @@ FeatureQuery Map::produceUpdateQuery()
     int w = m_drawable->width();
     int h = m_drawable->height();
     auto screenArea = Rectangle(0,0,w,h);
-    screenArea.scale(0.5); // TODO: this scaling is for debugging querying, remove
+    screenArea.scale(0.9); // TODO: this scaling is for debugging querying, remove
 
     auto updateArea = screenToMap(screenArea);
     featureQuery.area(updateArea);
@@ -686,6 +686,7 @@ void Map::resize(int width, int height)
 
 void Map::flushCache()
 {
+    m_drawable->flushCache();
     for (const auto& l : m_layers)
     {
         l->flushCache();

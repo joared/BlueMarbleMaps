@@ -5,6 +5,7 @@
 #include "BlueMarbleMaps/Core/Layer/StandardLayer.h"
 #include "BlueMarbleMaps/Core/Layer/TileLayer.h"
 #include "BlueMarbleMaps/Core/DataSets/DataSets.h"
+#include "BlueMarbleMaps/Core/Serialization/Json/JsonValue.h"
 
 using namespace BlueMarble;
 
@@ -87,7 +88,7 @@ void addDataSetInitializationObserver(const MapPtr& map)
 
     auto generateArcLine = [](double r, double theta1, double theta2)
     {
-        auto line = std::make_shared<LineGeometry>();
+        std::vector<Point> points;
 
         int pointsPerRev = 30;
         double diff = Utils::normalizeValue(theta2-theta1, 0.0, BMM_PI*2.0);
@@ -99,10 +100,10 @@ void addDataSetInitializationObserver(const MapPtr& map)
             double x = r*std::cos(a);
             double y = r*std::sin(a);
             auto p = Point(x,y);
-            line->points().push_back(p);
+            points.push_back(p);
         }
 
-        return line;
+        return points;
     };
 
     auto drawLoadingSymbol = [&](const DrawablePtr& drawable, int x, int y, double radius, double progress)
@@ -112,20 +113,27 @@ void addDataSetInitializationObserver(const MapPtr& map)
         static auto theta2Eval = AnimationFunctions::AnimationBuilder().subDivide(2).easeOut(2.5).build();
 
         double radiusProgress = radiusEval(progress);
-        radius =  (1.0-radiusProgress) * 5.0 + std::max(radius - 5.0, 5.0);
+        //radius = (1.0-radiusProgress) * 5.0 + std::max(radius - 5.0, 5.0);
         
         double ratio1 = theta1Eval(progress);
         double ratio2 = theta2Eval(progress);
 
         double aTo = ratio1 * BMM_PI * 2.0 - BMM_PI * 0.2;
         double aFrom = ratio2 * BMM_PI * 2.0 - BMM_PI * 0.2;
-        auto line = generateArcLine(radius, aFrom, aTo);
+        auto points = generateArcLine(radius, aFrom, aTo);
+        auto points2 = generateArcLine(radius-1, aFrom, aTo);
         
-        line->move(Point(x, y));
+        points.insert(points.begin(), points2.rbegin(), points2.rend());
+
+        // Line
+        auto l1 = std::make_shared<LineGeometry>(points);
+        auto colors = Color::colorRamp(Color::red(0.2), Color::red(), points.size());
+        l1->isClosed(true);
+        l1->move(Point(x, y));
         Pen p;
-        p.setColors(Color::colorRamp(Color::red(0.2), Color::red(), line->points().size()));
+        p.setColors(colors);
         p.setThickness(5.0);
-        drawable->drawLine(line, p);
+        drawable->drawLine(l1, p);
     };
 
     auto tempAnimationView = [&](Map& view)
@@ -208,6 +216,21 @@ void addDataSetInitializationObserver(const MapPtr& map)
     });
 }
 
+void saveLayout(const MapPtr& mapView, const std::string& path)
+{
+    // auto objectReference = [](JsonValue::Object& references, const ResourceObjectPtr& obj)
+    // {
+
+    // };
+
+    // auto json = JsonValue::Object();
+    
+    // // json["Map"] = JsonValue::Array();
+    // json["BackgroundLayers"] = JsonValue::Array();
+    // json["DataSets"] = JsonValue::Array();
+
+    // for ()
+}
 
 void configureMap(const MapPtr& mapView)
 {
@@ -376,6 +399,8 @@ void configureMap(const MapPtr& mapView)
 
         mapView->addLayer(vectorLayer);
     }
+
+    saveLayout(mapView, "default_layout.bml");
 
 }
 

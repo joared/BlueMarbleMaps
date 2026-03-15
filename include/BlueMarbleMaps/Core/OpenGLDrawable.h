@@ -48,6 +48,7 @@ namespace BlueMarble
         void swapBuffers();
         Raster getRaster() override final;
         RendererImplementation renderer();
+        void flushCache() override final;
     protected:
         GLFWwindow* m_window;
         int m_width;

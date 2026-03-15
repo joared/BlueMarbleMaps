@@ -5,8 +5,8 @@
 
 using namespace BlueMarble;
 
-#define TILELAYER_TILE_SIZE 256
-#define TILELAYER_NUM_WORKERS 8
+#define TILELAYER_TILE_SIZE 512
+#define TILELAYER_NUM_WORKERS std::thread::hardware_concurrency()
 #define TILELAYER_QUEUE_SIZE 4
 #define TILELAYER_QUEUE_POLICY System::ThreadPool::QueuePolicy::ReplaceOldestWhenFull
 
@@ -280,7 +280,7 @@ void TileLayer::update(const MapPtr& map, const FeatureEnumeratorPtr& features, 
     // // For now, delegate to LayerSet's update with the prepared features
     LayerSet::update(map, features, featureQuery);
 
-    bool drawDebugTiles = true; // TODO: make this configurable
+    bool drawDebugTiles = false; // TODO: make this configurable
     if (drawDebugTiles)
     {
         drawTiles(map, featureQuery);

@@ -344,6 +344,16 @@ namespace BlueMarble
                     constexpr double symbolScale = 1.5; //1.3; // Adjust this for scaling the whole symbol
                     
                     const auto& orbitPoint = m_orbitPoint;
+                    double ratio = m_map->invertedScale() / m_interactionStartScale;
+                    double orbitRotation = BMM_PI * std::log2(ratio);
+                    auto screen = m_map->mapToScreen(orbitPoint);
+                    Color colorAtPos = m_map->drawable()->readPixel((int)screen.x(), (int)screen.y());
+                    double luminance = colorAtPos.luminance();
+
+                    BMM_DEBUG() << "Start " << m_interactionStartScale << "\n";
+                    BMM_DEBUG() << "Curr " << m_map->invertedScale() << "\n";
+                    BMM_DEBUG() << "Rot " << orbitRotation << "\n";
+                    
 
                     int64_t elapsed = getTimeStampMs()-m_startTsOrbit;
                     double progress = elapsed/double(animationTime);
@@ -358,7 +368,7 @@ namespace BlueMarble
 
                     // Rotation
                     double rotationProgress = rotationProgressEval(progress);
-                    double rotation = BMM_PI * (1.0-rotationProgress);
+                    double rotation = orbitRotation + BMM_PI * (1.0-rotationProgress);
 
                     // Z-displacement
                     double zProgress = radiusProgressEval(progress);
@@ -369,7 +379,7 @@ namespace BlueMarble
                     d->beginBatches();
                     m_map->setDrawableFromCamera(m_map->camera());
                     Pen ppp;
-                    ppp.setColor(Color::white(0.5));
+                    ppp.setColor(luminance < 0.5 ? Color::white(0.5) : Color::black(0.5));
                     Brush bbb;;
                     bbb.setColor(Color(70, 50, 255, 0.5));
                     Brush bbb2;
@@ -597,7 +607,12 @@ namespace BlueMarble
                         const double ZOOM_SCALE = 0.01;
                         
                         auto mapPoint = m_map->screenToMap(m_map->pixelToScreen(Point{dragEvent.startPos.x, dragEvent.startPos.y}));
-                        m_orbitPoint = mapPoint;
+                        if (m_orbitPoint.isUndefined())
+                        {
+                            m_orbitPoint = mapPoint;
+                            m_interactionStartScale = m_map->invertedScale();
+                        }
+                        
                         double deltaY = dragEvent.pos.y - dragEvent.lastPos.y;
                         double scale = 1 + abs(deltaY)*ZOOM_SCALE;
                         double zoomFactor = deltaY > 0 ? scale : 1.0/scale;
@@ -610,24 +625,8 @@ namespace BlueMarble
                 }
                 case BlueMarble::MouseButtonMiddle:
                 {
-                    // auto rayCurr = m_map->screenToViewRay(dragEvent.pos.x, dragEvent.pos.y);
-                    // auto rayLast = m_map->screenToViewRay(dragEvent.lastPos.x, dragEvent.lastPos.y);
-                    
-                    // // TODO: For orthographic wee need to offset instead
-                    // // Point delta = rayCurr.origin - rayLast.origin;
-
-                    // auto xzCurr = Point(rayCurr.direction.x(), 0.0, rayCurr.direction.z()).norm3D();
-                    // auto xzLast = Point(rayLast.direction.x(), 0.0, rayLast.direction.z()).norm3D();
-                    // auto yzCurr = Point(0.0, rayCurr.direction.y(), rayCurr.direction.z()).norm3D();
-                    // auto yzLast = Point(0.0, rayLast.direction.y(), rayLast.direction.z()).norm3D();
-                    
-                    // double yaw = std::atan2(xzCurr.crossProduct(xzLast).y(), xzCurr.dotProduct(xzLast));
-                    // double pitch = std::atan2(yzCurr.crossProduct(yzLast).x(), yzCurr.dotProduct(yzLast));
-                    
-                    // m_cameraController.rotateBy(-RAD_TO_DEG*yaw*2);
-                    // m_cameraController.tiltBy(-RAD_TO_DEG*pitch*2);
-                    
                     m_orbitPoint = m_map->screenToMap(m_map->screenCenter());
+                    m_interactionStartScale = m_map->invertedScale();
                     constexpr double rotateFactor = 0.3;
                     constexpr double tiltFactor = 0.3; // TODO: should factor with fov
 
@@ -666,6 +665,7 @@ namespace BlueMarble
             PlaneCameraController m_cameraController;
             BlueMarble::Rectangle m_rectangle;
             Point m_orbitPoint;
+            double m_interactionStartScale;
             int64_t m_startTsOrbit;
             bool m_zoomToRect;
             bool m_selectArea;

@@ -9,9 +9,9 @@
 
 namespace BlueMarble
 {
-    #define OBJECT_PROPERTY(type, name) public: const type& name() { return m_##name; }\
+    #define OBJECT_PROPERTY(type, name) public: const type& name() { return m_##name; }                 \
                                         public: const void name(const type& value) { m_##name = value; }\
-                                        private: type m_##name;\
+                                        private: type m_##name;                                         \
 
     class ResourceObject; typedef std::shared_ptr<ResourceObject> ResourceObjectPtr;
 
@@ -41,13 +41,24 @@ namespace BlueMarble
     }
 
     
+    class IResourceObject
+    {
+        virtual const ResourcePropertiesPtr& getProperties() const = 0;
+        virtual const ResourcePropertiesPtr& setProperty() const = 0;
+    };
 
+    // template<typename T>
     class ResourceObject : public EngineObject
     {
+        // static ResourcePropertiesPtr props = std::make_shared<ResourceProperties>();
         public:
             virtual ~ResourceObject() = default;
             OBJECT_PROPERTY(std::string, name);
-            virtual const ResourcePropertiesPtr& getProperties() const { return nullptr; } // TODO make pure virtual
+
+            virtual const ResourcePropertiesPtr& getProperties() const 
+            { 
+                return nullptr;
+             } // TODO make pure virtual
     };
 
 }
