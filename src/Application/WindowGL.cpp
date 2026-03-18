@@ -81,7 +81,13 @@ bool WindowGL::init(int width, int height, std::string windowTitle)
 	}
 
 	//bind internal callbacks
-	glfwSetKeyCallback(m_window, internalKeyEventCallback);
+	// glfwSetKeyCallback(m_window, internalKeyEventCallback);
+	glfwSetKeyCallback(m_window, [](GLFWwindow* window, int key, int scanCode, int action, int modifier)
+	{
+		WindowGL* owner = reinterpret_cast<WindowGL*>(glfwGetWindowUserPointer(window));
+		// std::cout << "function has been registered, am now calling function for one large mongoloid O____O" << std::endl;
+		owner->keyEvent(owner, key, scanCode, action, modifier);
+	});
 	glfwSetWindowSizeCallback(m_window, internalResizeEventCallback);
 	glfwSetFramebufferSizeCallback(m_window, internalResizeFrameBufferEventCallback);
 	glfwSetMouseButtonCallback(m_window, internalMouseButtonEventCallback);

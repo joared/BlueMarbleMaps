@@ -162,6 +162,7 @@ namespace BlueMarble
             void beforeRender();
             void renderLayers();
             FeatureQuery produceUpdateQuery();
+            FeatureQuery produceUpdateQuery(const Rectangle& mapArea);
             void renderLayer(const LayerPtr& layer, const FeatureQuery& featureQuery);
             void afterRender();
 

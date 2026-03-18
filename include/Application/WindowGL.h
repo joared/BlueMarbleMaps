@@ -3,6 +3,7 @@
 #include "glad/glad.h"
 #include <glfw3.h>
 #include <functional>
+
 class WindowGL
 {
 public:

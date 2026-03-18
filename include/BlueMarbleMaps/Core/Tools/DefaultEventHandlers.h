@@ -350,11 +350,6 @@ namespace BlueMarble
                     Color colorAtPos = m_map->drawable()->readPixel((int)screen.x(), (int)screen.y());
                     double luminance = colorAtPos.luminance();
 
-                    BMM_DEBUG() << "Start " << m_interactionStartScale << "\n";
-                    BMM_DEBUG() << "Curr " << m_map->invertedScale() << "\n";
-                    BMM_DEBUG() << "Rot " << orbitRotation << "\n";
-                    
-
                     int64_t elapsed = getTimeStampMs()-m_startTsOrbit;
                     double progress = elapsed/double(animationTime);
                     progress = progress < 1.0 ? progress : 1.0;
@@ -951,27 +946,6 @@ namespace BlueMarble
 
                     m_tileLayerToDrop->addLayer(backgroundLayer);
                 }
-
-                FeatureQuery query;
-                query.area(m_map->crs()->bounds());
-                auto features = m_tileLayerToDrop->getFeatures(m_map->crs(), query, false);
-                Rectangle bounds = Rectangle::undefined();
-                features->reset();
-                while (features->moveNext())
-                {
-                    auto f = features->current();
-                    if (bounds.isUndefined())
-                    {
-                        bounds = f->bounds();
-                        continue;
-                    }
-                    auto points = bounds.corners();
-                    auto pointsFeature = f->bounds().corners();
-                    points.insert(points.begin(), pointsFeature.begin(), pointsFeature.end());
-                    bounds = Rectangle::fromPoints(points);
-                }
-
-                BMM_DEBUG() << "Bounds: " << bounds.toString() << "\n";
 
                 m_map->update();
             }

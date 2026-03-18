@@ -40,7 +40,8 @@ UiElementProperties parse_properties(std::string str)
     UiElementProperties props;
 
     std::smatch matches;
-    while (std::regex_search(str, matches, propRegex)) {
+    while (std::regex_search(str, matches, propRegex)) 
+    {
         auto&& propName = matches[1];
         auto&& propValue = matches[2];
         props.insert({ propName.str(), propValue.str() });

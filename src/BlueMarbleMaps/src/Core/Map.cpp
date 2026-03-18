@@ -163,29 +163,36 @@ void Map::renderLayers()
 
 FeatureQuery Map::produceUpdateQuery()
 {
-    FeatureQuery featureQuery;
-
     int w = m_drawable->width();
     int h = m_drawable->height();
     auto screenArea = Rectangle(0,0,w,h);
     screenArea.scale(0.9); // TODO: this scaling is for debugging querying, remove
 
-    auto updateArea = screenToMap(screenArea);
-    featureQuery.area(updateArea);
+    
+
+    return produceUpdateQuery(screenArea);
+}
+
+FeatureQuery BlueMarble::Map::produceUpdateQuery(const Rectangle& screenArea)
+{
     // Map to camera
-    auto centerMap = screenToMap(screenCenter());
+    auto centerMap = screenToMap(screenArea.center());
     if (centerMap.isUndefined())
     {
         BMM_DEBUG() << "Map::produceUpdateQuery() Failed to get map position at center of screen!\n";
         throw std::runtime_error("GG");
     }
+
+    // Map to camera
     auto centerCam = m_camera->worldToView(centerMap);
     double zCam = centerCam.z();
     // double unitsPerPixel = m_camera->projection()->unitsPerPixelAtDistanceNumerical(std::abs(zCam));
     double unitsPerPixel = m_camera->unitsPerPixelAtDistance(std::abs(zCam));
     double queryScale = 1.0 / unitsPerPixel * m_drawable->pixelSize() / m_crs->globalMetersPerUnit();
+    
+    FeatureQuery featureQuery;
     featureQuery.scale(queryScale);
-
+    featureQuery.area(screenToMap(screenArea));
     featureQuery.quickUpdate(quickUpdateEnabled());
     featureQuery.updateAttributes(&updateAttributes());
 
@@ -792,7 +799,7 @@ void Map::beforeRender()
 
 void Map::afterRender()
 {
-    m_drawable->swapBuffers();
+    // m_drawable->swapBuffers();
 }
 
 void Map::drawDebugInfo(int elapsedMs)
