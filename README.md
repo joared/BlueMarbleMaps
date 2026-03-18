@@ -7,10 +7,11 @@ cd external/emsdk
 ./emsdk install 3.1.45
 ./emsdk activate 3.1.45
 source ./emsdk_env.sh
+export EM_NODE_JS=$(which node) 
+
+( forgot when to use if needed : export EMSDK_NODE=/usr/bin/node (fallback))
 
 cd ../../
-export EMSDK_NODE=/usr/bin/node (fallback)
-export EM_NODE_JS=$(which node) (system?)
 mkdir build_web
 cd build_web
 emcmake cmake ..
