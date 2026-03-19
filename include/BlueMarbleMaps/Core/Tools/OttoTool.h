@@ -28,7 +28,8 @@ namespace BlueMarble
             {
                 if (event.mouseButton == MouseButtonLeft)
                 {
-                    auto delta = m_map->screenToMap(Point{event.lastPos.x, event.lastPos.y}) - m_map->screenToMap(Point{event.pos.x, event.pos.y});
+                    auto delta = m_map->screenToMap(Point{(double)event.lastPos.x, (double)event.lastPos.y}) - 
+                                                    m_map->screenToMap(Point{(double)event.pos.x, (double)event.pos.y});
                     m_cameraController.panBy(delta.x(), delta.y());
                     m_map->update();
                 }
@@ -44,8 +45,8 @@ namespace BlueMarble
                         return true;
                     }
                     constexpr double factor = 0.001;
-                    double deltaX = event.lastPos.x - event.pos.x;
-                    double deltaY = event.lastPos.y - event.pos.y;
+                    double deltaX = (double)event.lastPos.x - event.pos.x;
+                    double deltaY = (double)event.lastPos.y - event.pos.y;
                     m_cameraController.orbitBy(deltaX*factor, deltaY*factor);
                     m_map->update();
                 }

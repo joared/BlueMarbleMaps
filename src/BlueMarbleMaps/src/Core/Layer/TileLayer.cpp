@@ -429,33 +429,33 @@ FeaturePtr TileLayer::thinFeature(const FeaturePtr& feature, double unitsPerPixe
             // BMM_DEBUG() << "Raster size: " << rastergeom->raster().width() << ", " << rastergeom->raster().height() << "\n";
             return feature;
 
-            auto subRasterGeom = rastergeom->getSubRasterGeometry(tileArea);
+            // auto subRasterGeom = rastergeom->getSubRasterGeometry(tileArea);
 
-            int W = subRasterGeom->raster().width();
-            double w = subRasterGeom->bounds().width();
-            double rasterUnitsPerPix = (double)w / W;
+            // int W = subRasterGeom->raster().width();
+            // double w = subRasterGeom->bounds().width();
+            // double rasterUnitsPerPix = (double)w / W;
 
             
-            // BMM_DEBUG() << "Sub raster size: " << subRasterGeom->raster().width() << ", " << subRasterGeom->raster().height() << "\n";
-            int newW = std::round(subRasterGeom->bounds().width() / unitsPerPixel);
-            int newH = std::round(subRasterGeom->bounds().height() / unitsPerPixel);
-            // BMM_DEBUG() << "Unit per pixel: " << unitsPerPixel << "\n";
-            // BMM_DEBUG() << "Raster unit per pixel: " << rasterUnitsPerPix << "\n";
-            // BMM_DEBUG() << "Sub raster width: " << w << "\n";
-            // BMM_DEBUG() << "Sub raster WIDTH: " << W << "\n";
-            if (rasterUnitsPerPix <= unitsPerPixel)
-            {
-                subRasterGeom->raster().resize(newW, newH);
-                // BMM_DEBUG() << "Requested raster size: " << newW << ", " << newH << "\n";
-                // BMM_DEBUG() << "New raster size: " << subRasterGeom->raster().width() << ", " << subRasterGeom->raster().height() << "\n";
-            }
-            else
-            {
-                // BMM_DEBUG() << "Did not resize\n";
-            }
+            // // BMM_DEBUG() << "Sub raster size: " << subRasterGeom->raster().width() << ", " << subRasterGeom->raster().height() << "\n";
+            // int newW = std::round(subRasterGeom->bounds().width() / unitsPerPixel);
+            // int newH = std::round(subRasterGeom->bounds().height() / unitsPerPixel);
+            // // BMM_DEBUG() << "Unit per pixel: " << unitsPerPixel << "\n";
+            // // BMM_DEBUG() << "Raster unit per pixel: " << rasterUnitsPerPix << "\n";
+            // // BMM_DEBUG() << "Sub raster width: " << w << "\n";
+            // // BMM_DEBUG() << "Sub raster WIDTH: " << W << "\n";
+            // if (rasterUnitsPerPix <= unitsPerPixel)
+            // {
+            //     subRasterGeom->raster().resize(newW, newH);
+            //     // BMM_DEBUG() << "Requested raster size: " << newW << ", " << newH << "\n";
+            //     // BMM_DEBUG() << "New raster size: " << subRasterGeom->raster().width() << ", " << subRasterGeom->raster().height() << "\n";
+            // }
+            // else
+            // {
+            //     // BMM_DEBUG() << "Did not resize\n";
+            // }
 
-            auto fakeId = Id(0, (FeatureId)subRasterGeom.get()); // FIXME: bad solution. Faking id since we only draw features with different ids
-            return std::make_shared<Feature>(feature->id(), feature->crs(), subRasterGeom, feature->attributes());
+            // auto fakeId = Id(0, (FeatureId)subRasterGeom.get()); // FIXME: bad solution. Faking id since we only draw features with different ids
+            // return std::make_shared<Feature>(feature->id(), feature->crs(), subRasterGeom, feature->attributes());
         }
         default:
             return feature; // No thinning for other geometry types for now

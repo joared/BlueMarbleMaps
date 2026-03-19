@@ -61,12 +61,7 @@ namespace BlueMarble
 
      const Color& Pen::getColor() const
      {
-         if (m_colors.empty())
-		 {
-			return Color::black();
-		 }
-
-		 return m_colors[0];
+        return m_colors.at(0);
      }
 
      const std::vector<Color>& Pen::getColors() const

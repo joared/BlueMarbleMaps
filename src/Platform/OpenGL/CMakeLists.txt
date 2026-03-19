@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.13)
 
 #project(GraphicsRendererGL)
 
@@ -48,8 +48,8 @@ source_group("shaders" FILES ${SHADER_SOURCES})
 add_custom_command(
         TARGET GraphicsRendererGL POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "$<TARGET_PROPERTY:GraphicsRendererGL,SOURCE_DIR>/shaders"
-            "$<TARGET_PROPERTY:GraphicsRendererGL,BINARY_DIR>/shaders"
+            "$<TARGET_PROPERTY:GraphicsRendererGL,SOURCE_DIR>/Shaders"
+            "$<TARGET_PROPERTY:GraphicsRendererGL,BINARY_DIR>/Shaders"
     )
 
 add_library(GraphicsRendererGLLib ${RENDERER_SOURCES} ${SHADER_SOURCER})
@@ -81,6 +81,6 @@ source_group("shaders" FILES ${SHADER_SOURCES})
 add_custom_command(
         TARGET GraphicsRendererGLLib POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "$<TARGET_PROPERTY:GraphicsRendererGLLib,SOURCE_DIR>/shaders"
-            "$<TARGET_PROPERTY:GraphicsRendererGLLib,BINARY_DIR>/shaders"
+            "$<TARGET_PROPERTY:GraphicsRendererGLLib,SOURCE_DIR>/Shaders"
+            "$<TARGET_PROPERTY:GraphicsRendererGLLib,BINARY_DIR>/Shaders"
     )

@@ -1,9 +1,6 @@
 if (NOT EMSCRIPTEN)
-    
     add_subdirectory(Glad)
     add_subdirectory(cimg_lib)
-    
-    add_subdirectory(refl-cpp)
 endif()
 
 # TODO: only this works wit EMSCRIPTEN

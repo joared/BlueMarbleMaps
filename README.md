@@ -19,4 +19,4 @@ cmake --build .
 
 copy ExampleImgui.html to bin folder (cant compile it, old version) 
 
-python -m http.server 8080 (in bin folder)
+cmd in bin folder: python3 -m http.server 8080 --bind 0.0.0.0 

@@ -203,8 +203,8 @@ namespace BlueMarble
                     return;
                 }
                 auto points = std::vector<Point>();
-                points.push_back(Point{event.pos.x, event.pos.y});
-                points.push_back(Point{event.startPos.x, event.startPos.y});
+                points.push_back(Point{(double)event.pos.x, (double)event.pos.y});
+                points.push_back(Point{(double)event.startPos.x, (double)event.startPos.y});
                 m_selectionRectangle = Rectangle::fromPoints(points);
 
                 auto selectionBounds = m_map->screenToMap(m_selectionRectangle);
@@ -556,16 +556,16 @@ namespace BlueMarble
                         // zoom to rect
                         m_zoomToRect = true;
                         auto points = std::vector<Point>(); 
-                        points.push_back(m_map->screenToMap(Point{dragEvent.pos.x, dragEvent.pos.y}));
-                        points.push_back(m_map->screenToMap(Point{dragEvent.startPos.x, dragEvent.startPos.y}));
+                        points.push_back(m_map->screenToMap(Point{(double)dragEvent.pos.x, (double)dragEvent.pos.y}));
+                        points.push_back(m_map->screenToMap(Point{(double)dragEvent.startPos.x, (double)dragEvent.startPos.y}));
                         m_rectangle = Rectangle::fromPoints(points);
                         m_map->update();
                     }
                     else
                     {
                         // New
-                        auto screen1 = Point(dragEvent.pos.x, dragEvent.pos.y);
-                        auto screen2 = Point(dragEvent.lastPos.x, dragEvent.lastPos.y);
+                        auto screen1 = Point((double)dragEvent.pos.x, (double)dragEvent.pos.y);
+                        auto screen2 = Point((double)dragEvent.lastPos.x, (double)dragEvent.lastPos.y);
                         auto offsetWorld = m_map->screenToMap(screen2) - m_map->screenToMap(screen1);
                         auto to = m_cameraController.center() + offsetWorld;
                         //m_cameraController.center(to);
@@ -601,7 +601,8 @@ namespace BlueMarble
                         // Zoom
                         const double ZOOM_SCALE = 0.01;
                         
-                        auto mapPoint = m_map->screenToMap(m_map->pixelToScreen(Point{dragEvent.startPos.x, dragEvent.startPos.y}));
+                        auto mapPoint = m_map->screenToMap(m_map->pixelToScreen(Point{(double)dragEvent.startPos.x, 
+                                                                                      (double)dragEvent.startPos.y}));
                         if (m_orbitPoint.isUndefined())
                         {
                             m_orbitPoint = mapPoint;

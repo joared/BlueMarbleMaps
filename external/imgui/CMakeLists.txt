@@ -76,7 +76,7 @@ if(NOT EMSCRIPTEN)
 
     target_link_libraries(imgui
         glfw
-        OpenGL::GL
+        #OpenGL::GL
     )
 endif()
 

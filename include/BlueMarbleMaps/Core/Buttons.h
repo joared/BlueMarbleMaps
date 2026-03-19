@@ -33,27 +33,19 @@ namespace BlueMarble
 
 	inline std::string mouseButtonToString(MouseButton button)
 	{
-		std::string str = "ErrorButton";
 		switch (button)
 		{
 		case BlueMarble::MouseButtonNone:
-			str = "None";
-			break;
+			return "None";
 		case BlueMarble::MouseButtonLeft:
-			str = "Left";
-			break;
+			return "Left";
 		case BlueMarble::MouseButtonRight:
-			str = "Right";
-			break;
+			return "Right";
 		case BlueMarble::MouseButtonMiddle:
-			str = "Middle";
-			break;
-		
-		default:
-			break;
+			return "Middle";		
 		}
 
-		return str;
+		throw std::runtime_error("mouseButtonToString() Unrecognized mouse button " + std::to_string(button));
 	}
 
 	enum class KeyButton

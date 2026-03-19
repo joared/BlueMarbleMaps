@@ -16,9 +16,10 @@ if (EMSCRIPTEN)
     #set_target_properties(ExampleImgui PROPERTIES
     #        SUFFIX ".html")
 
-
+else()
+    target_link_libraries(ExampleImgui PUBLIC Glad)
 endif()
-#target_link_libraries(ExampleImgui PUBLIC Glad)
+
 #target_link_libraries(ExampleImgui PUBLIC GraphicsRendererGLLib)
 
 #target_link_libraries(ExampleImgui PUBLIC BlueMarbleMapsLib)
