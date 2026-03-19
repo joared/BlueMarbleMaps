@@ -684,7 +684,7 @@ void Map::drawable(const DrawablePtr &drawable)
 void Map::resize(int width, int height)
 {
     m_drawable->resize(width, height);
-    m_camera->setViewPort(width, height);
+    m_camera->setViewPortSize(width, height);
     if (m_cameraController)
     {
         m_cameraController->onActivated(m_camera, m_crs, m_surfaceModel);

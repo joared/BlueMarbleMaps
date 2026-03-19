@@ -35,7 +35,7 @@ public:
 
     virtual ~CameraProjection() = default;
 
-    void setViewPort(int width, int height) { m_w = width; m_h = height; };
+    void setViewPortSize(int width, int height) { m_w = width; m_h = height; };
     double width() const { return m_w; }
     double height() const { return m_h; }
     void setFrustum(double near, double far) { m_near = near; m_far = far; };
@@ -150,7 +150,7 @@ public:
 
     // Projection, these methods are needed for the view
     const std::unique_ptr<CameraProjection>& projection() { return m_projection; }
-    void setViewPort(int width, int height) { m_projection->setViewPort(width, height); };
+    void setViewPortSize(int width, int height) { m_projection->setViewPortSize(width, height); };
     void setFrustum(double near, double far) { m_projection->setFrustum(near, far); }
     glm::dmat4 projectionMatrix() const { return m_projection->projectionMatrix(); };
     // Optimization for the view to calculate a scale factor for feature queries

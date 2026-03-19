@@ -1,5 +1,5 @@
-#ifndef BLUEMARBLE_DRAWABLE
-#define BLUEMARBLE_DRAWABLE
+#ifndef DRAWABLE
+#define DRAWABLE
 
 #include "glm.hpp"
 #include "BlueMarbleMaps/Core/Raster.h"
@@ -31,6 +31,9 @@ namespace BlueMarble
             virtual void backgroundColor(const Color& color) = 0;
             
             // Methods
+            // TODO: these two methods are now half-baked into the projection matrix
+            // virtual void setViewPort(int x, int y, int width, int height) = 0;
+            // virtual void setFrustum(double near, double  far) = 0;
             virtual void setProjectionMatrix(const glm::dmat4& proj) = 0;
             virtual void setViewMatrix(const glm::dmat4& viewMatrix) = 0;
             virtual void setRenderOrigin(const Point& origin) = 0;
@@ -73,4 +76,4 @@ namespace BlueMarble
     typedef std::shared_ptr<WindowDrawable> WindowDrawablePtr;
 }
 
-#endif /* BLUEMARBLE_DRAWABLE */
+#endif /* DRAWABLE */
