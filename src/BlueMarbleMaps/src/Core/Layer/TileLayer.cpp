@@ -355,6 +355,7 @@ void TileLayer::scheduleTileLoad(const Tile& tile, const CrsPtr& crs, const Feat
                 if (enumerator->isComplete())
                 {
                     double unitPerPix = tileQuery.resolution();
+                    enumerator->reset();
                     enumerator = thinFeatures(enumerator, unitPerPix, tileQuery.area());
                     enumerator->reset();
 
@@ -367,16 +368,14 @@ void TileLayer::scheduleTileLoad(const Tile& tile, const CrsPtr& crs, const Feat
                     m_tileManager->removeTile(tile);
                 }
             },
-            .onDropped = [this, tile]() { m_tileManager->removeTile(tile); }// NOTE: we dont acquire the lock here! This should always be called on the main thread
+            // NOTE: we dont acquire the lock here! This should always be called on the main thread
+            .onDropped = [this, tile]() { m_tileManager->removeTile(tile); }
         }
     );
 }
 
 FeatureEnumeratorPtr TileLayer::thinFeatures(const FeatureEnumeratorPtr &features, double unitsPerPixel, const Rectangle &tileArea) const
 {
-    // This method can be used to thin the features in a tile to reduce the number of features that need to be processed and drawn
-    // For example, we could implement a simple grid-based thinning algorithm that only keeps one feature per grid cell
-
     auto thinnedEnumerator = std::make_shared<FeatureEnumerator>(features->isComplete());
 
     for (auto& f : *features->features())
@@ -384,7 +383,6 @@ FeatureEnumeratorPtr TileLayer::thinFeatures(const FeatureEnumeratorPtr &feature
         thinnedEnumerator->add(thinFeature(f, unitsPerPixel, tileArea));
     }
 
-    // Placeholder implementation that just returns the original features without thinning
     for (auto& subEnum : features->subEnumerators())
     {
         thinnedEnumerator->addEnumerator(thinFeatures(subEnum, unitsPerPixel, tileArea));
@@ -464,7 +462,7 @@ FeaturePtr TileLayer::thinFeature(const FeaturePtr& feature, double unitsPerPixe
 
 void TileLayer::thinLine(std::vector<Point>& thinned, const std::vector<Point>& line, bool closed, double unitsPerPixel) const
 {
-    int PIXELS_PER_POINT = 3;
+    double PIXELS_PER_POINT = 3;
 
     thinned.reserve(line.size());
     for(size_t i=0; i<line.size(); i++)

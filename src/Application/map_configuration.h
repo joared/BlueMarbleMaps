@@ -248,7 +248,7 @@ void configureMap(const MapPtr& mapView)
 
     const double minScaleCountries = 1.0/60000000.0;
     
-    #define USE_TILELAYER false
+    #define USE_TILELAYER true
 
     #if USE_TILELAYER
     asyncBackgroundReading = false;
