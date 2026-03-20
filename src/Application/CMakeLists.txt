@@ -1,6 +1,5 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.13)
 
-find_package(GLFW3 REQUIRED)
 
 file(GLOB_RECURSE APPLICATION_SOURCES 
     "${CMAKE_SOURCE_DIR}/include/Application/*.h"
@@ -19,10 +18,15 @@ else()
     target_link_libraries(Application BlueMarbleMapsLib)
     target_link_libraries(Application CImgLib)
     target_link_libraries(Application imgui)
-    find_package(GLFW3 REQUIRED)
-    target_include_directories(Application PRIVATE ${GLFW3_INCLUDE_DIR})
-    target_link_libraries(Application ${GLFW3_LIBRARY})
-    target_link_libraries(Application Glad)
+    message("WHAT IS THE FICEAE SOURCE: ${CMAKE_SOURCE_DIR}")
+
+    if (NOT EMSCRIPTEN)
+	find_package(GLFW3 REQUIRED)
+        target_include_directories(Application PRIVATE ${GLFW3_INCLUDE_DIR})
+        target_link_libraries(Application ${GLFW3_LIBRARY})
+	target_link_libraries(Application Glad)
+    endif()
+    
 endif()
 target_include_directories(Application PRIVATE "${CMAKE_SOURCE_DIR}/include/Common")
 

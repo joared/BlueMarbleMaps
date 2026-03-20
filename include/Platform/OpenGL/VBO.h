@@ -1,5 +1,9 @@
 #pragma once
-#include <glad/glad.h>
+#if defined(__EMSCRIPTEN__)
+#include <GLES2/gl2.h>
+#else
+#include "glad/glad.h"
+#endif
 #include <vector>
 #include "Platform/OpenGL/Vertice.h"
 struct VBO

@@ -1,7 +1,11 @@
 #pragma once
 #include <vector>
 #include "Vertice.h"
-#include <glad/glad.h>
+#if defined(__EMSCRIPTEN__)
+#include <GLES2/gl2.h>
+#else
+#include "glad/glad.h"
+#endif
 
 class Algorithms final
 {

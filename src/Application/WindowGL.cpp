@@ -1,6 +1,5 @@
 #include "Application/WindowGL.h"
 #include "BlueMarbleMaps/Logging/Logging.h"
-
 #include <iostream>
 #include <sstream>
 
@@ -44,41 +43,39 @@ bool WindowGL::init(int width, int height, std::string windowTitle)
 		return false;
 	}
 
-	bool useCoreProfile = true;
-	if (useCoreProfile)
-	{
-		std::cout << "Using OpenGL core profile\n";
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-		glfwWindowHint(GLFW_SAMPLES, 4);
-	}
-	else
-	{
-		std::cout << "WARNING: using OpenGL legacy profile\n";
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);  // 2.1 is guaranteed to support legacy
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_ANY_PROFILE);
-		glfwWindowHint(GLFW_SAMPLES, 4);
-	}
+	#ifdef __EMSCRIPTEN__
+	const char* glsl_version = "#version 100";
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
+	#else
+	std::cout << "Using OpenGL core profile\n";
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_SAMPLES, 4);
+	#endif
 
 	//glDebugMessageCallback(MessageCallback, 0);
 	m_windowTitle = windowTitle;
 	m_window = glfwCreateWindow(width, height, m_windowTitle.c_str(), nullptr, nullptr);
 	glfwMakeContextCurrent(m_window);
 	glfwSwapInterval(0); // Speeeeed!!!
-	gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
+	
+	#ifndef __EMSCRIPTEN__
+    gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
+    #endif
 	//Sets the this pointer as the owner of the glfw window
 	glfwSetWindowUserPointer(m_window, reinterpret_cast<void*>(this));
-	glEnable(GL_DEBUG_OUTPUT);
+	// glEnable(GL_DEBUG_OUTPUT);
 
-	if (!useCoreProfile)
-	{
-		glEnable(GL_MULTISAMPLE);
-		GLint samples = 0;
-		glGetIntegerv(GL_SAMPLES, &samples);
-		BMM_DEBUG() << "MSAA samples: " << samples << std::endl;
-	}
+	// if (!useCoreProfile)
+	// {
+	// 	glEnable(GL_MULTISAMPLE);
+	// 	GLint samples = 0;
+	// 	glGetIntegerv(GL_SAMPLES, &samples);
+	// 	BMM_DEBUG() << "MSAA samples: " << samples << std::endl;
+	// }
 
 	//bind internal callbacks
 	// glfwSetKeyCallback(m_window, internalKeyEventCallback);

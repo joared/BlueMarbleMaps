@@ -1,7 +1,12 @@
 #pragma once
 #include <string>
+
+#if defined(__EMSCRIPTEN__)
+#include <GLES2/gl2.h>
+#else
 #include "glad/glad.h"
-#include <glfw3.h>
+#endif
+#include <GLFW/glfw3.h>
 #include <functional>
 
 class WindowGL

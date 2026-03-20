@@ -1,6 +1,10 @@
 #pragma once
 #include <memory>
-#include <glad/glad.h>
+#if defined(__EMSCRIPTEN__)
+#include <GLES2/gl2.h>
+#else
+#include "glad/glad.h"
+#endif
 #include <VAO.h>
 #include <VBO.h>
 #include <IBO.h>

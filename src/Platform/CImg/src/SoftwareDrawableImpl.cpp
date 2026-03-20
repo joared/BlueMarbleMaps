@@ -78,7 +78,7 @@ void SoftwareDrawable::Impl::drawCircle(int x, int y, double radius, const Pen& 
 {
     // m_renderer->drawCircle(x, y,radius,color);
     auto color = brush.getColor();
-    unsigned char c[] = {color.r(), color.g(), color.b(), (unsigned char)(color.a()*255)};
+    unsigned char c[] = {(unsigned char)color.r(), (unsigned char)color.g(), (unsigned char)color.b(), (unsigned char)(color.a()*255)};
     m_img.draw_circle(x, y, radius, c, color.a());
 }
 
@@ -92,7 +92,7 @@ void SoftwareDrawable::Impl::drawLine(const LineGeometryPtr& geometry, const Pen
     auto color = pen.getColor();
     double width = pen.getThickness();
     // m_renderer->drawLine(points, color, width);
-    unsigned char c[] = {color.r(), color.g(), color.b(), (unsigned char)(color.a()*255)};
+    unsigned char c[] = {(unsigned char)color.r(), (unsigned char)color.g(), (unsigned char)color.b(), (unsigned char)(color.a()*255)};
     auto line = geometry->points();
     for (int i(0); i < size-1; ++i)
     {
@@ -139,7 +139,7 @@ void SoftwareDrawable::Impl::drawPolygon(const PolygonGeometryPtr& geometry, con
         pointsCImg(i,1) = p.y(); 
     }
     
-    unsigned char c[] = {color.r(), color.g(), color.b(), (unsigned char)(color.a()*255)};
+    unsigned char c[] = {(unsigned char)color.r(), (unsigned char)color.g(), (unsigned char)color.b(), (unsigned char)(color.a()*255)};
     m_img.draw_polygon(pointsCImg, c, color.a()); // .display();
 }
 
@@ -148,7 +148,7 @@ void SoftwareDrawable::Impl::drawRect(const Point& topLeft, const Point& bottomR
     // m_renderer->drawRect(topLeft, bottomRight, color);
     auto topLeftRounded = topLeft.round();
     auto bottomRightRounded = bottomRight.round();
-    unsigned char c[] = {color.r(), color.g(), color.b(), (unsigned char)(color.a()*255)};
+    unsigned char c[] = {(unsigned char)color.r(), (unsigned char)color.g(), (unsigned char)color.b(), (unsigned char)(color.a()*255)};
     m_img.draw_rectangle(topLeftRounded.x(), 
                             topLeftRounded.y(), 
                             bottomRightRounded.x(), 
@@ -222,11 +222,11 @@ void SoftwareDrawable::Impl::drawText(int x, int y, const std::string& text, con
 {
     // m_renderer->drawText(x, y, text, color, fontSize, bcolor);
     // TODO: fix opacity/alpha stuff
-    unsigned char c[] = {color.r(), color.g(), color.b(), (unsigned char)(color.a()*255)};
+    unsigned char c[] = {(unsigned char)color.r(), (unsigned char)color.g(), (unsigned char)color.b(), (unsigned char)(color.a()*255)};
     if (bcolor.a() > 0)
     {
         // With background color
-        unsigned char backc[] = {bcolor.r(), bcolor.g(), bcolor.b(), (unsigned char)(bcolor.a()*255)};
+        unsigned char backc[] = {(unsigned char)bcolor.r(), (unsigned char)bcolor.g(), (unsigned char)bcolor.b(), (unsigned char)(bcolor.a()*255)};
         m_img.draw_text(x, y, text.c_str(), backc, backc, bcolor.a(), fontSize);
         m_img.draw_text(x, y, text.c_str(), c, 0, color.a(), fontSize);
     }

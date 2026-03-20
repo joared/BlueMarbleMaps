@@ -1,11 +1,15 @@
 #include "BlueMarbleMaps/Core/DataSets/ImageDataSet.h"
+
+#ifndef __EMSCRIPTEN__
 #include <gdal_priv.h>
 #include <cpl_conv.h>
+#endif
 
 using namespace BlueMarble;
 
 FeaturePtr loadWithGDAL(const std::string& filePath, const Id& id)
 {
+#ifndef __EMSCRIPTEN__
     static bool gdalInitialized = false;
     if (!gdalInitialized)
     {
@@ -143,6 +147,9 @@ FeaturePtr loadWithGDAL(const std::string& filePath, const Id& id)
         crs,
         rasterGeometry
     );
+#else
+    FeaturePtr feature = nullptr;
+#endif
 
     return feature;
 }

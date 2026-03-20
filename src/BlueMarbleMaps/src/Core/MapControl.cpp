@@ -1,7 +1,7 @@
 #include "BlueMarbleMaps/Core/MapControl.h"
 #include "BlueMarbleMaps/Core/SoftwareDrawable.h"
 #include "BlueMarbleMaps/Core/OpenGLDrawable.h"
-#include <glfw3.h>
+// #include <glfw3.h>
 #include <exception>
 #include <cstring>
 
@@ -119,32 +119,32 @@ bool MapControl::resize(int width, int height, int64_t timeStampMs)
 void MapControl::setMouseCursor(MouseCursor cursor)
 {
     // For more cursors: https://www.glfw.org/docs/3.3/group__shapes.html#gabb3eb0109f11bb808fc34659177ca962
-    GLFWwindow* window = reinterpret_cast<GLFWwindow*>(getWindow());
-    if (!window)
-    {
-        throw std::runtime_error("MapControl::setMouseCursor() Failed to retrieve glfw window");
-    }
+    // GLFWwindow* window = reinterpret_cast<GLFWwindow*>(getWindow());
+    // if (!window)
+    // {
+    //     throw std::runtime_error("MapControl::setMouseCursor() Failed to retrieve glfw window");
+    // }
     
-    GLFWcursor* glfwCursor = nullptr;
-    switch (cursor)
-    {
-    case MouseCursor::Standard:
-        glfwCursor = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
-        break;
-    case MouseCursor::Custom:
-        unsigned char pixels[16 * 16 * 4];
-        memset(pixels, 0xff, sizeof(pixels));
-        GLFWimage image;
-        image.width = 16;
-        image.height = 16;
-        image.pixels = pixels;
-        glfwCursor = glfwCreateCursor(&image, 0, 0);
-    default:
-        break;
-    }
+    // GLFWcursor* glfwCursor = nullptr;
+    // switch (cursor)
+    // {
+    // case MouseCursor::Standard:
+    //     glfwCursor = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
+    //     break;
+    // case MouseCursor::Custom:
+    //     unsigned char pixels[16 * 16 * 4];
+    //     memset(pixels, 0xff, sizeof(pixels));
+    //     GLFWimage image;
+    //     image.width = 16;
+    //     image.height = 16;
+    //     image.pixels = pixels;
+    //     glfwCursor = glfwCreateCursor(&image, 0, 0);
+    // default:
+    //     break;
+    // }
     
 
-    glfwSetCursor(window, glfwCursor);
+    // glfwSetCursor(window, glfwCursor);
 }
 
 void MapControl::handleResize(int width, int height)

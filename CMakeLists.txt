@@ -64,12 +64,12 @@ if (NOT EMSCRIPTEN)
     
     message("Finding GDAL")
     find_package(GDAL REQUIRED)
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src)
 else()
     message("Using Emscripten compiler")
 endif()
 
 # TODO: currently we only have an example that works with EMSCRIPTEN
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/examples)
 

@@ -22,5 +22,5 @@ endif()
 
 #target_link_libraries(ExampleImgui PUBLIC GraphicsRendererGLLib)
 
-#target_link_libraries(ExampleImgui PUBLIC BlueMarbleMapsLib)
+target_link_libraries(ExampleImgui PUBLIC BlueMarbleMapsLib)
 

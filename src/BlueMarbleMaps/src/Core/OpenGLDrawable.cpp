@@ -33,60 +33,60 @@ void GLAPIENTRY BlueMarble::OpenGLDrawable::MessageCallback(GLenum source,
     const void* userParam)
 {
 
-    std::string severityStr;
-        switch (severity) {
-        case GL_DEBUG_SEVERITY_NOTIFICATION:
-            if (SEVERITY_THRESHOLD == GL_DEBUG_SEVERITY_LOW || SEVERITY_THRESHOLD == GL_DEBUG_SEVERITY_MEDIUM || SEVERITY_THRESHOLD == GL_DEBUG_SEVERITY_HIGH)
-            {
-                return;
-            }
-            severityStr = "NOTIFICATION";
-            break;
-        case GL_DEBUG_SEVERITY_LOW:
-            if (SEVERITY_THRESHOLD == GL_DEBUG_SEVERITY_MEDIUM || SEVERITY_THRESHOLD == GL_DEBUG_SEVERITY_HIGH)
-            {
-                return;
-            }
-            severityStr = "LOW";
-            break;
-        case GL_DEBUG_SEVERITY_MEDIUM:
-            if (SEVERITY_THRESHOLD == GL_DEBUG_SEVERITY_HIGH)
-            {
-                return;
-            }
-            severityStr = "MEDIUM";
-            break;
-        case GL_DEBUG_SEVERITY_HIGH:
-            severityStr = "HIGH";
-            break;
-        }
-    std::cout << "---------------------opengl-callback-start------------" << std::endl;
+    // std::string severityStr;
+    //     switch (severity) {
+    //     case GL_DEBUG_SEVERITY_NOTIFICATION:
+    //         if (SEVERITY_THRESHOLD == GL_DEBUG_SEVERITY_LOW || SEVERITY_THRESHOLD == GL_DEBUG_SEVERITY_MEDIUM || SEVERITY_THRESHOLD == GL_DEBUG_SEVERITY_HIGH)
+    //         {
+    //             return;
+    //         }
+    //         severityStr = "NOTIFICATION";
+    //         break;
+    //     case GL_DEBUG_SEVERITY_LOW:
+    //         if (SEVERITY_THRESHOLD == GL_DEBUG_SEVERITY_MEDIUM || SEVERITY_THRESHOLD == GL_DEBUG_SEVERITY_HIGH)
+    //         {
+    //             return;
+    //         }
+    //         severityStr = "LOW";
+    //         break;
+    //     case GL_DEBUG_SEVERITY_MEDIUM:
+    //         if (SEVERITY_THRESHOLD == GL_DEBUG_SEVERITY_HIGH)
+    //         {
+    //             return;
+    //         }
+    //         severityStr = "MEDIUM";
+    //         break;
+    //     case GL_DEBUG_SEVERITY_HIGH:
+    //         severityStr = "HIGH";
+    //         break;
+    //     }
+    // std::cout << "---------------------opengl-callback-start------------" << std::endl;
     std::cout << "message: " << message << std::endl;
-    std::cout << "type: ";
-    switch (type) {
-    case GL_DEBUG_TYPE_ERROR:
-        std::cout << "ERROR";
-        break;
-    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
-        std::cout << "DEPRECATED_BEHAVIOR";
-        break;
-    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
-        std::cout << "UNDEFINED_BEHAVIOR";
-        break;
-    case GL_DEBUG_TYPE_PORTABILITY:
-        std::cout << "PORTABILITY";
-        break;
-    case GL_DEBUG_TYPE_PERFORMANCE:
-        std::cout << "PERFORMANCE";
-        break;
-    case GL_DEBUG_TYPE_OTHER:
-        std::cout << "OTHER";
-        break;
-    }
+    // std::cout << "type: ";
+    // switch (type) {
+    // case GL_DEBUG_TYPE_ERROR:
+    //     std::cout << "ERROR";
+    //     break;
+    // case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+    //     std::cout << "DEPRECATED_BEHAVIOR";
+    //     break;
+    // case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+    //     std::cout << "UNDEFINED_BEHAVIOR";
+    //     break;
+    // case GL_DEBUG_TYPE_PORTABILITY:
+    //     std::cout << "PORTABILITY";
+    //     break;
+    // case GL_DEBUG_TYPE_PERFORMANCE:
+    //     std::cout << "PERFORMANCE";
+    //     break;
+    // case GL_DEBUG_TYPE_OTHER:
+    //     std::cout << "OTHER";
+    //     break;
+    // }
     std::cout << std::endl;
 
     std::cout << "id: " << id << std::endl;
-    std::cout << "severity: " << severityStr << std::endl;
+    // std::cout << "severity: " << severityStr << std::endl;
     std::cout << "---------------------opengl-callback-end--------------" << std::endl;
 }
 
@@ -101,7 +101,7 @@ BlueMarble::OpenGLDrawable::OpenGLDrawable(int width, int height, int colorDepth
     , m_color(Color::white())
 {
     //glDisable(GL_CULL_FACE);
-    glDebugMessageCallback(MessageCallback, 0);
+    // glDebugMessageCallback(MessageCallback, 0);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
     m_basicShader = std::make_shared<Shader>();
@@ -655,7 +655,7 @@ void BlueMarble::OpenGLDrawable::drawText(int x, int y, const std::string& text,
 Color BlueMarble::OpenGLDrawable::readPixel(int x, int y)
 {
     unsigned char data[4];
-    glReadBuffer(GL_BACK); // FIXME: front or back?
+    // glReadBuffer(GL_BACK); // FIXME: front or back?
     glReadPixels(x, 
                 height()-y-1,
                 1, 
@@ -679,7 +679,9 @@ void BlueMarble::OpenGLDrawable::setPixel(int x, int y, const Color& color)
 
 void BlueMarble::OpenGLDrawable::swapBuffers()
 {
+    #ifndef __EMSCRIPTEN__
     glfwSwapBuffers(m_window);
+    #endif
 }
 
 void BlueMarble::OpenGLDrawable::clearBuffer()
@@ -695,7 +697,7 @@ Raster BlueMarble::OpenGLDrawable::getRaster()
 {
     Raster raster(m_width, m_height, 4);
     unsigned char* data = (unsigned char*)(raster.data());
-    glReadBuffer(GL_FRONT); // FIXME: front or back?
+    // glReadBuffer(GL_FRONT); // FIXME: front or back?
     glReadPixels(0, 0, m_width, m_height,
                 GL_RGBA, GL_UNSIGNED_BYTE,
                 data);
@@ -751,7 +753,9 @@ Color BlueMarble::OpenGLDrawable::getColorFromList(const std::vector<Color>& col
 
 void BlueMarble::WindowOpenGLDrawable::setWindow(void *window)
 {
+    #ifndef __EMSCRIPTEN__
     m_window = reinterpret_cast<GLFWwindow*>(window);
     glfwGetWindowSize(m_window, &m_width, &m_height);
+    #endif
     glViewport(0, 0, m_width, m_height);
 }

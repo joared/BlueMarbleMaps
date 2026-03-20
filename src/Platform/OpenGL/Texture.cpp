@@ -25,8 +25,8 @@ bool Texture::init(const unsigned char* data, int width, int height, int format,
 	GLenum glFormat;
 	switch (format)
 	{
-	case 1: glFormat = GL_R;    break;
-	case 2: glFormat = GL_RG;   break;
+	// case 1: glFormat = GL_R;    break;
+	// case 2: glFormat = GL_RG;   break;
 	case 3: glFormat = GL_RGB;  break;
 	case 4: glFormat = GL_RGBA; break;
 	default:glFormat = GL_RGBA;
@@ -35,7 +35,7 @@ bool Texture::init(const unsigned char* data, int width, int height, int format,
 	glGenTextures(1,&m_id);
 
 	glBindTexture(GL_TEXTURE_2D, m_id);
-	glBindTextureUnit(activeIndex, m_id);
+	// glBindTextureUnit(activeIndex, m_id);
 	
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);

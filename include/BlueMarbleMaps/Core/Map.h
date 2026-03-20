@@ -180,7 +180,7 @@ namespace BlueMarble
 
             CameraPtr           m_camera;
             ICameraController*  m_cameraController;
-            ino64_t             m_lastUpdateTimeStamp;
+            int64_t             m_lastUpdateTimeStamp;
 
             Attributes m_updateAttributes;
 

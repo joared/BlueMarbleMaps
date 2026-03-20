@@ -1,5 +1,4 @@
-#include "glad/glad.h"
-#include <glfw3.h>
+
 #include <iostream>
 
 #include "BlueMarbleMaps/Core/Map.h"
@@ -20,6 +19,16 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
+#ifdef __EMSCRIPTEN__
+#include "libs/emscripten/emscripten_mainloop_stub.h"
+#else
+#include <glad/glad.h>
+#endif
+
+#if defined(IMGUI_IMPL_OPENGL_ES2)
+#include <GLES2/gl2.h>
+#endif
+#include <GLFW/glfw3.h> // Will drag system OpenGL headers
 
 using namespace BlueMarble;
 
@@ -212,9 +221,9 @@ public:
         std::cout << "Key is: " << keyStroke << " " << keyStroke.toString() << "\n"; 
         if (keyStroke == Key::F && action == GLFW_PRESS)
         {
-            m_wireFrameMode = !m_wireFrameMode;
-            if (m_wireFrameMode) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-            else			  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            // m_wireFrameMode = !m_wireFrameMode;
+            // if (m_wireFrameMode) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            // else			  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         }
 
         if (action == GLFW_PRESS)
@@ -468,10 +477,22 @@ int main()
     mapControl->init2();
     
 
+    // Main loop
+#ifdef __EMSCRIPTEN__
+    // For an Emscripten build we are disabling file-system access, so let's not attempt to do a fopen() of the imgui.ini file.
+    // You may manually call LoadIniSettingsFromMemory() to load settings from your own storage.
+    // io.IniFilename = nullptr;
+    EMSCRIPTEN_MAINLOOP_BEGIN
+#else
     while (!mapControl->windowShouldClose())
+#endif
+    
     {
         mapControl->loop();
     }
+#ifdef __EMSCRIPTEN__
+    EMSCRIPTEN_MAINLOOP_END;
+#endif
     glfwTerminate();
 
     return 0;

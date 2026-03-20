@@ -5,6 +5,8 @@
 #define ACTUAL_ID(id) id
 #elif __linux__
 #define ACTUAL_ID(id) id + 8 // Linux key codes are offset by 8 compared to Windows
+#else
+#define ACTUAL_ID(id) id
 #endif
 
 #define KEY_STROKES \

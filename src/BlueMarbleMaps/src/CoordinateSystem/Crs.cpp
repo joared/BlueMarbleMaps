@@ -1,5 +1,7 @@
 #include "BlueMarbleMaps/CoordinateSystem/Crs.h"
+#ifndef __EMSCRIPTEN__
 #include <ogr_spatialref.h>
+#endif
 
 using namespace BlueMarble;
 
@@ -29,6 +31,10 @@ CrsPtr Crs::wgs84MercatorWeb()
 
 CrsPtr Crs::fromWkt(const std::string &wkt)
 {
+    
+    #ifndef __EMSCRIPTEN__
+
+    
     OGRSpatialReference srs;
     const char* wktCStr = wkt.c_str();
     char* wktMutable = const_cast<char*>(wktCStr);
@@ -72,6 +78,9 @@ CrsPtr Crs::fromWkt(const std::string &wkt)
 
     // Unsupported CRS
     throw std::runtime_error("Unsupported CRS in dataset");
+    #else
+    return Crs::wgs84MercatorWeb();
+    #endif
 }
 
 Crs::Crs(const GeodeticDatumPtr &datum, const ProjectionPtr &projection)

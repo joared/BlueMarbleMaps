@@ -1,6 +1,10 @@
 #pragma once
-#include <glad/glad.h>
-#include <glfw3.h>
+#if defined(__EMSCRIPTEN__)
+#include <GLES2/gl2.h>
+#else
+#include "glad/glad.h"
+#endif
+#include <GLFW/glfw3.h>
 #include "Drawable.h"
 #include "BlueMarbleMaps/Core/Brush.h"
 #include "BlueMarbleMaps/Core/Pen.h"
@@ -50,7 +54,9 @@ namespace BlueMarble
         RendererImplementation renderer();
         void flushCache() override final;
     protected:
+        #ifndef __EMSCRIPTEN__
         GLFWwindow* m_window;
+        #endif
         int m_width;
         int m_height;
     private:
