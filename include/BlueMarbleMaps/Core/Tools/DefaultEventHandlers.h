@@ -824,8 +824,8 @@ namespace BlueMarble
             void onConnected(const MapControlPtr& control, const MapPtr& map) override final
             {
                 m_map = map;
-                m_tileLayerToDrop = std::make_shared<TileLayer>();
-                m_map->layers().insert(m_map->layers().begin(), m_tileLayerToDrop);
+                // m_tileLayerToDrop = std::make_shared<TileLayer>();
+                // m_map->layers().insert(m_map->layers().begin(), m_tileLayerToDrop);
             }
 
             void onDisconnected() override final

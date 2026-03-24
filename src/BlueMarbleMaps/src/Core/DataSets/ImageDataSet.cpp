@@ -204,7 +204,7 @@ void ImageDataSet::init()
     if (!m_rasterFeature)
     {
         // throw std::runtime_error("Failed to read image file: " + m_filePath);
-        BMM_DEBUG() << "Failed to read geodata image file: " << m_filePath;
+        BMM_DEBUG() << "Failed to read geodata image file: " << m_filePath << "\n";
         crs(Crs::wgs84LngLat());
         auto raster = Raster(m_filePath);
         if (raster.width() == 0 || raster.height() == 0)

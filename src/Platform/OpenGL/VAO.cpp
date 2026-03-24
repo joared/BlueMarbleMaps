@@ -9,27 +9,28 @@ VAO::VAO()
 VAO::~VAO()
 {
 	std::cout << "Deleting VAO with id: " << m_id << "\n";
-	// glDeleteVertexArrays(1, &m_id);
+	glDeleteVertexArrays(1, &m_id);
 }
 void VAO::init()
 {
-	// glGenVertexArrays(1,&m_id);
+	glGenVertexArrays(1,&m_id);
 }
 void VAO::bind()
 {
-	// glBindVertexArray(m_id);
+	glBindVertexArray(m_id);
 }
 void VAO::link(VBO& vbo, GLuint layout, GLuint nrOfComponents, GLenum type, GLsizeiptr stride, GLvoid* offset)
 {
-	// glEnableVertexAttribArray(layout);
-	// glVertexAttribPointer(layout,nrOfComponents,type,GL_FALSE,stride,offset);
+	
+	glEnableVertexAttribArray(layout);
+	glVertexAttribPointer(layout,nrOfComponents,type,GL_FALSE,stride,offset);
 }
 void VAO::linkInt(VBO& vbo, GLuint layout, GLuint nrOfComponents, GLenum type, GLsizeiptr stride, GLvoid* offset)
 {
-	// glEnableVertexAttribArray(layout);
-	// glVertexAttribIPointer(layout, nrOfComponents, type, stride, offset);
+	glEnableVertexAttribArray(layout);
+	glVertexAttribIPointer(layout, nrOfComponents, type, stride, offset);
 }
 void VAO::unbind()
 {
-	// glBindVertexArray(0);
+	glBindVertexArray(0);
 }

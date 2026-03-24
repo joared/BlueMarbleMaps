@@ -102,6 +102,7 @@ BlueMarble::OpenGLDrawable::OpenGLDrawable(int width, int height, int colorDepth
 {
     //glDisable(GL_CULL_FACE);
     // glDebugMessageCallback(MessageCallback, 0);
+    BMM_DEBUG() << "OpenGLDrawable() enter\n";
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
     m_basicShader = std::make_shared<Shader>();
@@ -111,7 +112,9 @@ BlueMarble::OpenGLDrawable::OpenGLDrawable(int width, int height, int colorDepth
     m_lineShader = std::make_shared<Shader>();
     m_lineShader->linkProgram("Shaders/line.vert", "Shaders/line.frag");
 
+    BMM_DEBUG() << "OpenGLDrawable() manual resize\n";
     resize(m_width, m_height);
+    BMM_DEBUG() << "OpenGLDrawable() manual exit\n";
 }
 
 int BlueMarble::OpenGLDrawable::width() const
@@ -528,6 +531,7 @@ unsigned char* readImage(std::string path, int* width, int* height, int* nrOfCha
 
 void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, const Brush& brush, const Rectangle& clip)
 {
+    // BMM_DEBUG() << "Draw raster begin\n";
     if (m_primitives.find(raster->getID()) == m_primitives.end())
     {
         #define MAX_TEXTURE_SIZE 16384
@@ -537,7 +541,7 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, con
         RasterGeometryPtr raceter = raster;
         if (W > MAX_TEXTURE_SIZE || H > MAX_TEXTURE_SIZE)
         {
-            BMM_DEBUG() << "Resizing raster that is too large to put in a texture!\n";
+            BMM_DEBUG() << "Resizing raster that is too large to put in a texture! (" << W << ", " << H << ")\n";
             raceter = std::dynamic_pointer_cast<RasterGeometry>(raster->deepClone()); // Keeps unique id
             int newW = std::min(W, MAX_TEXTURE_SIZE);
             int newH = std::min(H, MAX_TEXTURE_SIZE);
@@ -588,6 +592,12 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, con
         info->m_shader->useProgram();
         info->m_shader->setInt("texture0", texIndex);
 
+        BMM_DEBUG() << "Indices: ";
+        for (int ind : indices)
+        {
+            BMM_DEBUG() << ind << ", ";
+        }
+        BMM_DEBUG() << "\n";
         RectPtr rect = std::make_shared<Rect>(info, vertices, indices);
         m_primitives[raster->getID()] = rect;
     }
@@ -639,11 +649,21 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, con
     auto mat = glm::mat4(m_projectionMatrix*m_viewMatrix);
     if (rect->getShader() != nullptr)
     {
+        // rect->getVbo().bind();
+        // rect->getVbo().bufferData(vertices);
+
+        // rect->getIbo().bind();
+        // rect->getIbo().bufferData(indices);
+
+        rect->getVao().bind();
+        rect->getVbo().bind();
         rect->getVbo().bufferData(vertices);
         rect->getShader()->useProgram();
         rect->getShader()->setMat4("viewMatrix", mat);
     }
     rect->drawIndex(6);
+
+    // BMM_DEBUG() << "Draw raster end\n";
 }
 
 void BlueMarble::OpenGLDrawable::drawText(int x, int y, const std::string& text, const Color& color, int fontSize, const Color& backgroundColor)

@@ -1,4 +1,5 @@
 #include "Rect.h"
+#include <iostream>
 
 Rect::Rect()
 	:m_rectGeometryInfo()
@@ -11,13 +12,23 @@ Rect::Rect(RectGeometryInfoPtr info, std::vector<Vertice>& vertices, std::vector
 	if (vertices.empty() || indices.empty()) return;
 
 	m_rectGeometryInfo->m_vbo.init();
+	m_rectGeometryInfo->m_vbo.bind();
 	m_rectGeometryInfo->m_vbo.bufferData(vertices);
 	m_rectGeometryInfo->m_ibo.init();
 	m_rectGeometryInfo->m_ibo.bufferData(indices);
 	m_rectGeometryInfo->m_vao.init();
-
 	m_rectGeometryInfo->m_vao.bind();
-	m_rectGeometryInfo->m_vbo.bind();
+
+	
+	
+	int stride = sizeof(Vertice);
+	std::cout << "Stride: " << stride << "\n";
+	int offsetPos = offsetof(Vertice, position);
+	int offsetColor = offsetof(Vertice, color);
+	int offsetTex = offsetof(Vertice, texCoord);
+	std::cout << "offsetPos: " << offsetPos << "\n";
+	std::cout << "offsetColor: " << offsetColor << "\n";
+	std::cout << "offsetTex: " << offsetTex << "\n";
 	m_rectGeometryInfo->m_vao.link(m_rectGeometryInfo->m_vbo, 0, 3, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, position));
 	m_rectGeometryInfo->m_vao.link(m_rectGeometryInfo->m_vbo, 1, 4, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, color));
 	m_rectGeometryInfo->m_vao.link(m_rectGeometryInfo->m_vbo, 2, 2, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, texCoord));
@@ -27,6 +38,11 @@ Rect::Rect(RectGeometryInfoPtr info, std::vector<Vertice>& vertices, std::vector
 void Rect::setVao(VAO& vao)
 {
 	m_rectGeometryInfo->m_vao = vao;
+}
+
+VAO& Rect::getVao()
+{
+	return m_rectGeometryInfo->m_vao;
 }
 
 void Rect::setVbo(VBO& vbo)

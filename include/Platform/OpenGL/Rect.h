@@ -49,6 +49,7 @@ public:
 	Rect(RectGeometryInfoPtr info, std::vector<Vertice>& vertices, std::vector<GLuint>& indices);
 
 	void setVao(VAO& vao) override;
+	VAO& getVao();
 	void setVbo(VBO& vbo) override;
 	VBO& getVbo();
 	void setIbo(IBO& ibo) override;

@@ -25,6 +25,21 @@ else()
         target_include_directories(Application PRIVATE ${GLFW3_INCLUDE_DIR})
         target_link_libraries(Application ${GLFW3_LIBRARY})
 	target_link_libraries(Application Glad)
+    else()
+	target_link_options(Application PRIVATE
+	    -sUSE_GLFW=3
+            -sUSE_WEBGL2=1
+            -sFULL_ES3=1
+            -sALLOW_MEMORY_GROWTH=1
+
+            -sNO_DISABLE_EXCEPTION_CATCHING
+	    -sASSERTIONS=1
+	    -sSAFE_HEAP=1
+	    -sSTACK_OVERFLOW_CHECK=1
+	)
+	target_link_options(Application PRIVATE
+	    --preload-file ${CMAKE_SOURCE_DIR}/src/Platform/OpenGL/ShadersOpenGLES@/Shaders
+	)
     endif()
     
 endif()

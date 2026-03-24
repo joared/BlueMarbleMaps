@@ -60,7 +60,7 @@ bool WindowGL::init(int width, int height, std::string windowTitle)
 	m_windowTitle = windowTitle;
 	m_window = glfwCreateWindow(width, height, m_windowTitle.c_str(), nullptr, nullptr);
 	glfwMakeContextCurrent(m_window);
-	glfwSwapInterval(0); // Speeeeed!!!
+	glfwSwapInterval(1); // Speeeeed!!!
 	
 	#ifndef __EMSCRIPTEN__
     gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);

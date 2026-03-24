@@ -19,6 +19,8 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
+#include <unistd.h>             // for usleep()
+
 #ifdef __EMSCRIPTEN__
 #include "libs/emscripten/emscripten_mainloop_stub.h"
 #else
@@ -26,7 +28,7 @@
 #endif
 
 #if defined(IMGUI_IMPL_OPENGL_ES2)
-#include <GLES2/gl2.h>
+#include <GLES3/gl3.h>
 #endif
 #include <GLFW/glfw3.h> // Will drag system OpenGL headers
 
@@ -70,7 +72,21 @@ public:
         style.FontScaleDpi = main_scale;        // Set initial font scale. (in docking branch: using io.ConfigDpiScaleFonts=true automatically overrides this for every window depending on the current monitor)
 
         // Setup Platform/Renderer backends
-        const char* glsl_version = "#version 130";
+        #if defined(IMGUI_IMPL_OPENGL_ES2)
+            // GL ES 2.0 + GLSL 100 (WebGL 1.0)
+            const char* glsl_version = "#version 100";
+        #elif defined(IMGUI_IMPL_OPENGL_ES3)
+            // GL ES 3.0 + GLSL 300 es (WebGL 2.0)
+            const char* glsl_version = "#version 300 es";
+        #elif defined(__APPLE__)
+            // GL 3.2 + GLSL 150
+            const char* glsl_version = "#version 150";
+        #else
+            // GL 3.0 + GLSL 130
+            const char* glsl_version = "#version 130";
+            
+            //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
+        #endif
         ImGui_ImplGlfw_InitForOpenGL(window, true);
         #ifdef __EMSCRIPTEN__
             ImGui_ImplGlfw_InstallEmscriptenCallbacks(window, "#canvas");
@@ -95,7 +111,11 @@ public:
         //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf");
         //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf");
         //IM_ASSERT(font != nullptr);
-
+        #ifdef __EMSCRIPTEN__
+        // For an Emscripten build we are disabling file-system access, so let's not attempt to do a fopen() of the imgui.ini file.
+        // You may manually call LoadIniSettingsFromMemory() to load settings from your own storage.
+        io.IniFilename = nullptr;
+        #endif
         
     }
 
@@ -401,7 +421,11 @@ public:
         {
             // gui.update();
             // swapBuffers();
+            #ifndef __EMSCRIPTEN__
             waitWindowEvents();
+            #else
+            updateReq=true; // TODO: remove?
+            #endif
             updateReq |= gui.wantCaptureEvents();
             updateReq |= updateRequired();
         }
@@ -453,17 +477,20 @@ int main()
     {
         std::cout << "Could not initiate window..." << "\n";
     }
+    mapControl->init2();
     //glDebugMessageCallback(MessageCallback, 0);
     const unsigned char* version = glGetString(GL_VERSION);
     std::cout << "opengl version: " << version << "\n";
 
     auto view = std::make_shared<Map>();
+    
     // view->crs(Crs::wgs84MercatorWeb());
     // Configure some background layers
     configureMap(view);
     mapControl->setView(view);
     view->drawable()->backgroundColor(Color(120,170,255,0));
 
+    BMM_DEBUG() << "Setting up tools\n";
     //auto tool = std::make_shared<OttoTool>();
     auto toolSet = std::make_shared<ToolSet>();
     toolSet->addSubTool(std::make_shared<EditFeatureTool>());
@@ -473,10 +500,12 @@ int main()
     toolSet->addSubTool(std::make_shared<CameraControllerTwoHalfD>());
     mapControl->setTool(toolSet);
 
+    BMM_DEBUG() << "Calling update view\n";
+    // view->renderingEnabled(false); // TODO remove
     mapControl->updateView();
-    mapControl->init2();
     
-
+    
+    BMM_DEBUG() << "Starting main loop\n";
     // Main loop
 #ifdef __EMSCRIPTEN__
     // For an Emscripten build we are disabling file-system access, so let's not attempt to do a fopen() of the imgui.ini file.

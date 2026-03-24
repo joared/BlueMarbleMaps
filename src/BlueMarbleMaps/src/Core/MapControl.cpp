@@ -97,6 +97,13 @@ void MapControl::updateView()
 
 void MapControl::updateViewInternal()
 {
+    if (!m_mapView)
+    {
+        BMM_DEBUG() << "MapControl::updateViewInternal() without map view attached!\n";
+        m_updateRequired = false;
+        return;
+    }
+
     if (m_updateRequired)
     {
         m_updateRequired = false;
@@ -150,6 +157,11 @@ void MapControl::setMouseCursor(MouseCursor cursor)
 void MapControl::handleResize(int width, int height)
 {
     // double prevMapWidth = m_mapView->width();
+    if (!m_mapView)
+    {
+        BMM_DEBUG() << "Got resize event without map view attached!\n";
+        return;
+    }
     m_mapView->resize(width, height);
     
     updateView();

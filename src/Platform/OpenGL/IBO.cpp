@@ -18,7 +18,7 @@ void IBO::init()
 void IBO::bufferData(std::vector<GLuint> indicies)
 {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_id);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indicies), &indicies[0], GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicies.size()*sizeof(GLuint), &indicies[0], GL_STATIC_DRAW);
 }
 void IBO::allocateDynamicBuffer(GLuint size)
 {

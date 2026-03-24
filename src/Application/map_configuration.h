@@ -238,17 +238,17 @@ void configureMap(const MapPtr& mapView)
     const DataSetInitializationType dataSetInitialization = DataSetInitializationType::BackgroundThread;
     const bool backgroundLayersSelectable = true;
 
-    const bool includeBackgroundRaster = false;
-    const bool includeContinents = true;
-    const bool includeCountries = true;
-    const bool includeRoadsEurope = true;
-    const bool includeSwedenRoads = true;
-    const bool includeMemoryDataSet = true;
-    bool asyncBackgroundReading = true; //NOTE: Will be set to false if using tilelayer below
+    const bool includeBackgroundRaster = true;
+    const bool includeContinents = false;
+    const bool includeCountries = false;
+    const bool includeRoadsEurope = false;
+    const bool includeSwedenRoads = false;
+    const bool includeMemoryDataSet = false;
+    bool asyncBackgroundReading = false; //NOTE: Will be set to false if using tilelayer below
 
     const double minScaleCountries = 1.0/60000000.0;
     
-    #define USE_TILELAYER true
+    #define USE_TILELAYER false
 
     #if USE_TILELAYER
     asyncBackgroundReading = false;
@@ -270,10 +270,11 @@ void configureMap(const MapPtr& mapView)
         #define PATH_TO_FANNY_FILE2 "../../../bluemarble_index/backgroundmap.png"
         #else 
         #define PATH_TO_FANNY_FILE "../../../geodata/NE2_HR_LC_SR_W_DR/NE2_HR_LC_SR_W_DR.tif"
-        #define PATH_TO_FANNY_FILE2 "../../../geodata/SR_HR/SR_HR.tif"
+        //#define PATH_TO_FANNY_FILE2 "../../../geodata/SR_HR/SR_HR.tif"
+        #define PATH_TO_FANNY_FILE2 "Shaders/ablue_marble_256.jpg"
         #endif
 
-        std::vector<std::pair<std::string, double>> files = {{PATH_TO_FANNY_FILE, 1.0},
+        std::vector<std::pair<std::string, double>> files = {//{PATH_TO_FANNY_FILE, 1.0},
                                                              {PATH_TO_FANNY_FILE2, 0.7}};
         
         for (const auto& [file, alpha] : files)
