@@ -68,9 +68,15 @@ void ThreadPool::start(size_t numThreads, size_t maxQueueSize, QueuePolicy queue
                     BMM_DEBUG() << "Worker thread exiting\n";
                     return;
                 }
-                    
-                Task task = std::move(m_tasks.front());
-                m_tasks.pop();
+                   
+                // std::queue
+                // Task task = std::move(m_tasks.front());
+                // m_tasks.pop();
+
+                // std::multiset
+                auto it = m_tasks.begin();
+                Task task = std::move(it->task);
+                m_tasks.erase(it);
 
                 lock.unlock();
                 m_condition.notify_one();
@@ -94,10 +100,17 @@ void ThreadPool::stop(bool dropQueuedTasks)
             BMM_DEBUG() << "ThreadPool::stop() dropping queued tasks\n";
             while (!m_tasks.empty())
             {
-                auto t = std::move(m_tasks.front());
-                m_tasks.pop();
+                // std::queue
+                // auto t = std::move(m_tasks.front());
+                // m_tasks.pop();
+
+                // std::multiset
+                auto it = m_tasks.begin();
+                Task task = std::move(it->task);
+                m_tasks.erase(it);
+
                 lock.unlock();
-                t.onDropped();
+                task.onDropped();
                 lock.lock();
             }
         }
@@ -130,12 +143,11 @@ void ThreadPool::enqueue(Task&& task)
             {
             case QueuePolicy::GrowWhenFull:
                 // Just allow it to grow, no need to do anything here
-                m_tasks.emplace(std::move(task));
                 break;
             case QueuePolicy::BlockWhenFull:
                 m_condition.wait(lock, [this](){ return m_tasks.size() < m_maxQueueSize || m_stop; });
                 if (m_stop)                    throw std::runtime_error("enqueue on stopped ThreadPool");
-                m_tasks.emplace(std::move(task));
+                
                 break;
             case QueuePolicy::DropWhenFull:
                 // Just return and drop the task, no need to do anything here
@@ -144,26 +156,39 @@ void ThreadPool::enqueue(Task&& task)
                 return;
             case QueuePolicy::ReplaceOldestWhenFull:
             {
-                // Remove the oldest task and add the new one
-                auto t = std::move(m_tasks.front());
-                m_tasks.pop();
-                m_tasks.emplace(std::move(task));
+                m_tasks.insert({
+                    std::move(task),
+                    m_nextTaskSequence++
+                });
+                auto lowest = std::prev(m_tasks.end());
+                auto droppedTask = std::move(lowest->task);
+                m_tasks.erase(lowest);
 
+                // New task isn't more important than anything already queued.
                 lock.unlock();
+                droppedTask.onDropped();
+                return;
+                // // Remove the oldest task and add the new one
+                // auto t = std::move(m_tasks.front());
+                // m_tasks.pop();
+                // m_tasks.emplace(std::move(task));
 
-                t.onDropped();
+                // lock.unlock();
 
-                lock.lock();
-                break;
+                // t.onDropped();
+
+                // lock.lock();
+                // break;
             }  
             default:
                 throw std::runtime_error("Invalid queue policy");
             }
         }
-        else
-        {
-            m_tasks.emplace(std::move(task));
-        }
+
+        m_tasks.insert({
+            std::move(task),
+            m_nextTaskSequence++
+        });
     }
     m_condition.notify_one();
 }

@@ -48,6 +48,21 @@ namespace BlueMarble
                 m_camera = nullptr;
             }
 
+            void onCrsChanged(const CrsPtr& crs) override final
+            {
+                // TODO
+            }   
+
+            void onSurfaceModelChanged(const SurfaceModelPtr& surfaceModel) override final
+            {
+                // TODO
+            }
+
+            void onViewportSizeChanged(int width, int height) override final
+            {
+                // TODO
+            }
+
             void panBy(float x, float y, float z=0)
             {
                 m_cameraInfo.m_pos += x * m_cameraInfo.m_right;

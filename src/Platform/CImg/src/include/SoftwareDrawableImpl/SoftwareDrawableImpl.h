@@ -31,7 +31,6 @@ namespace BlueMarble
             void clearBuffer();
             void swapBuffers();
             void setWindow(void* window);
-            RendererImplementation renderer();
             Color readPixel(int x, int y);
             void setPixel(int x, int y, const Color& color);
         private:

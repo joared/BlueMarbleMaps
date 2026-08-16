@@ -65,9 +65,15 @@ namespace BlueMarble
             const CrsPtr& crs() const { return m_crs; }
             void crs(const CrsPtr& crs);
             SurfaceModelPtr surfaceModel() { return m_surfaceModel; };
-            void setSurfaceModel(const SurfaceModelPtr& model) { m_surfaceModel=model; };
+            void setSurfaceModel(const SurfaceModelPtr& model);;
             
+            // Camera controller
             void setCameraController(ICameraController* controller);
+            // Primitive camera controller options, for simple panning and zooming.
+            // Forwarded to the internal camera controller, if one is set, and if the
+            // controller implements the ICameraNavigator interface.
+            void panTo(const Point& target);
+            void zoomTo(const Rectangle& bounds);
 
             Point pixelToScreen(const Point& pixel) const;
             Point pixelToScreen(int px, int py) const;
@@ -145,11 +151,11 @@ namespace BlueMarble
                 Signal<Map&> onIdle;        // This event needs refinement, dont use
 
                 // State events
-                Signal<Map&, int, int> onSizeChanged;                               // width, height
-                Signal<Map&, const CrsPtr&, const CrsPtr&> onCrsChanged;            // oldSurface, newSurface
-                Signal<Map&, const CrsPtr&, const CrsPtr&> onSurfaceModelChanged;   // oldCrs, newCrs
-                Signal<Map&, const Id&> onHoverChanged;                             // hoveredId
-                Signal<Map&, const IdCollectionPtr&> onSelectionChanged;            // selectedIds
+                Signal<Map&, int, int>                                       onSizeChanged;           // width, height
+                Signal<Map&, const CrsPtr&, const CrsPtr&>                   onCrsChanged;            // oldSurface, newSurface
+                Signal<Map&, const SurfaceModelPtr&, const SurfaceModelPtr&> onSurfaceModelChanged;   // oldCrs, newCrs
+                Signal<Map&, const Id&>                                      onHoverChanged;          // hoveredId
+                Signal<Map&, const IdCollectionPtr&>                         onSelectionChanged;      // selectedIds
 
             } events;
 
@@ -180,6 +186,7 @@ namespace BlueMarble
 
             CameraPtr           m_camera;
             ICameraController*  m_cameraController;
+            ICameraNavigator*   m_cameraNavigator;
             int64_t             m_lastUpdateTimeStamp;
 
             Attributes m_updateAttributes;

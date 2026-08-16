@@ -101,16 +101,24 @@ BlueMarble::OpenGLDrawable::OpenGLDrawable(int width, int height, int colorDepth
     , m_color(Color::white())
 {
     //glDisable(GL_CULL_FACE);
-    // glDebugMessageCallback(MessageCallback, 0);
+    glDebugMessageCallback(MessageCallback, 0);
     BMM_DEBUG() << "OpenGLDrawable() enter\n";
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glEnable(GL_BLEND);
+    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // This is not right apparently
+    glEnable(GL_BLEND);
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA); // separate alpha factor avoids alpha getting squared when compositing offscreen buffers onto each other
+	
+    bool success = false;
     m_basicShader = std::make_shared<Shader>();
-    m_basicShader->linkProgram("Shaders/basic.vert", "Shaders/basic.frag");
+    success = m_basicShader->linkProgram("Shaders/basic.vert", "Shaders/basic.frag");
     m_polyShader = std::make_shared<Shader>();
-    m_polyShader->linkProgram("Shaders/polygon.vert", "Shaders/polygon.frag");
+    success = m_polyShader->linkProgram("Shaders/polygon.vert", "Shaders/polygon.frag");
     m_lineShader = std::make_shared<Shader>();
-    m_lineShader->linkProgram("Shaders/line.vert", "Shaders/line.frag");
+    success = m_lineShader->linkProgram("Shaders/line.vert", "Shaders/line.frag");
+
+    if (!success)
+    {
+        std::cout << "Failed to link shader program\n";
+    }
 
     BMM_DEBUG() << "OpenGLDrawable() manual resize\n";
     resize(m_width, m_height);
@@ -138,25 +146,72 @@ void BlueMarble::OpenGLDrawable::backgroundColor(const Color& color)
     m_color = color;
 }
 
-const Transform& BlueMarble::OpenGLDrawable::getTransform()
+DrawablePtr OpenGLDrawable::createCompatibleOffscreenDrawable(int width, int height, int colorDepth)
+{
+    // Create new context
+    //glDebugMessageCallback(MessageCallback, 0);
+    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+	auto window = glfwCreateWindow(width, height, "Off-screen window", nullptr, nullptr);
+    glfwMakeContextCurrent(window);
+
+    auto offscreenDrawable = std::make_shared<OpenGLDrawable>(width, height, colorDepth); // same context — no glfwCreateWindow, no glfwMakeContextCurrent
+    offscreenDrawable->m_window = window;
+
+    glGenFramebuffers(1, &offscreenDrawable->m_framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, offscreenDrawable->m_framebuffer);
+
+    glGenTextures(1, &offscreenDrawable->m_fboTexture);
+    glBindTexture(GL_TEXTURE_2D, offscreenDrawable->m_fboTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, offscreenDrawable->m_fboTexture, 0);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    {
+        std::cout << "Offscreen FBO incomplete\n";
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        return nullptr;
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);   // don't leave it bound — restore default before returning
+    offscreenDrawable->m_width = width;
+    offscreenDrawable->m_height = height;
+
+    offscreenDrawable->setProjectionMatrix(m_projectionMatrix);
+    offscreenDrawable->setViewMatrix(m_viewMatrix);
+    offscreenDrawable->setRenderOrigin(m_renderOrigin);
+    offscreenDrawable->backgroundColor(m_color);
+    
+    return offscreenDrawable;
+}
+
+const Transform &BlueMarble::OpenGLDrawable::getTransform()
 {
     return m_transform;
 }
 
 void BlueMarble::OpenGLDrawable::resize(int width, int height)
 {
+    bool sizeChanged = (width != m_width || height != m_height);
     m_width = width;
     m_height = height;
-    //std::cout << "I shalle be doing a glViewPort resize yes" << "\n";
     glViewport(0, 0, width, height);
 
-    float w2 = width * 0.5;
-    float h2 = height * 0.5;
-    glm::mat4 proj = glm::ortho(-w2, w2, -h2, h2, -100000000.0f, 100000000.0f);
-    // float fov = glm::radians(85.0);
-    // glm::mat4 proj = glm::perspectiveFov(fov, (float)width, (float)height, 0.1f, 100000000.0f);
+    if (m_framebuffer != 0 && sizeChanged)
+    {
+        glBindTexture(GL_TEXTURE_2D, m_fboTexture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+        // glBindTexture(GL_TEXTURE_2D, 0);
+    }
 
-    m_projectionMatrix = proj;
+    // float w2 = width * 0.5;
+    // float h2 = height * 0.5;
+    // glm::mat4 proj = glm::ortho(-w2, w2, -h2, h2, -100000000.0f, 100000000.0f);
+    // // float fov = glm::radians(85.0);
+    // // glm::mat4 proj = glm::perspectiveFov(fov, (float)width, (float)height, 0.1f, 100000000.0f);
+
+    // m_projectionMatrix = proj;
 
     // Legacy opengl
     // glMatrixMode(GL_PROJECTION);
@@ -290,6 +345,13 @@ void BlueMarble::OpenGLDrawable::drawArc(double cx, double cy, double rx, double
         polyBatch = std::make_shared<Batch>(true);
         polyBatch->begin();
     }
+
+    if (lineBatch == nullptr)
+    {
+        lineBatch = std::make_shared<Batch>(false);
+        lineBatch->begin();
+    }
+
     std::vector<Vertice> vertices;
     std::vector<GLuint> indices;
     std::vector<Color>  colors = brush.getColors();
@@ -547,7 +609,6 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, con
             int newH = std::min(H, MAX_TEXTURE_SIZE);
             raceter->raster().resize(newW, newH);
         }
-        
 
         const std::vector<Point>& bounds = raster->bounds().corners();
         const std::vector<Color>& colors = brush.getColors();
@@ -592,12 +653,13 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, con
         info->m_shader->useProgram();
         info->m_shader->setInt("texture0", texIndex);
 
-        BMM_DEBUG() << "Indices: ";
-        for (int ind : indices)
-        {
-            BMM_DEBUG() << ind << ", ";
-        }
-        BMM_DEBUG() << "\n";
+        // BMM_DEBUG() << "Indices: ";
+        // for (int ind : indices)
+        // {
+        //     BMM_DEBUG() << ind << ", ";
+        // }
+        // BMM_DEBUG() << "\n";
+        
         RectPtr rect = std::make_shared<Rect>(info, vertices, indices);
         m_primitives[raster->getID()] = rect;
     }
@@ -614,7 +676,7 @@ void BlueMarble::OpenGLDrawable::drawRaster(const RasterGeometryPtr& raster, con
     std::vector<Vertice> vertices;
     auto rasterBounds = raster->bounds();
     auto clipped = clip.isUndefined() ? raster->bounds() : clip;
-    clipped = raster->bounds(); // Commentout to use provided "clip" rectangle
+    clipped = raster->bounds(); // Comment out to use provided "clip" rectangle
     
     const std::vector<Point>& bounds = clipped.corners();
     const std::vector<Color>& colors = brush.getColors();
@@ -699,6 +761,7 @@ void BlueMarble::OpenGLDrawable::setPixel(int x, int y, const Color& color)
 
 void BlueMarble::OpenGLDrawable::swapBuffers()
 {
+    if (m_framebuffer != 0) return; // Don't swap buffers for offscreen FBOs
     #ifndef __EMSCRIPTEN__
     glfwSwapBuffers(m_window);
     #endif
@@ -717,16 +780,30 @@ Raster BlueMarble::OpenGLDrawable::getRaster()
 {
     Raster raster(m_width, m_height, 4);
     unsigned char* data = (unsigned char*)(raster.data());
-    // glReadBuffer(GL_FRONT); // FIXME: front or back?
+    if (m_fboTexture != 0)
+    {
+        glReadBuffer(GL_FRONT); // FIXME: front or back?
+    }
+    else
+    {
+        glReadBuffer(GL_BACK); // FIXME: front or back?
+    }
+    
     glReadPixels(0, 0, m_width, m_height,
                 GL_RGBA, GL_UNSIGNED_BYTE,
                 data);
+
+    // Flip
+    const size_t rowSize = m_width * 4;
+    for (int y = 0; y < m_height / 2; ++y) 
+    {
+        auto* top = data + y * rowSize;
+        auto* bottom = data + (m_height - 1 - y) * rowSize;
+
+        std::swap_ranges(top, top + rowSize, bottom);
+    }
     
     return raster;
-}
-RendererImplementation BlueMarble::OpenGLDrawable::renderer()
-{
-    return RendererImplementation();
 }
 
 void BlueMarble::OpenGLDrawable::flushCache()
@@ -776,6 +853,6 @@ void BlueMarble::WindowOpenGLDrawable::setWindow(void *window)
     #ifndef __EMSCRIPTEN__
     m_window = reinterpret_cast<GLFWwindow*>(window);
     glfwGetWindowSize(m_window, &m_width, &m_height);
-    #endif
     glViewport(0, 0, m_width, m_height);
+    #endif
 }

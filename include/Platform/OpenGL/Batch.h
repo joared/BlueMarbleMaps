@@ -30,5 +30,12 @@ private:
 	GLuint m_indexCount;
 	GLuint m_verticeCounter;
 	bool m_isPolygon;
+
+	#ifdef __EMSCRIPTEN__
+	std::vector<Vertice> m_cpuVertices;
+	std::vector<GLuint> m_cpuIndices;
+	std::vector<GLsizei> m_counts;
+	std::vector<const void*> m_offsets;
+	#endif
 };
 typedef std::shared_ptr<Batch> BatchPtr;

@@ -22,6 +22,7 @@ namespace BlueMarble
     namespace FeatureAttributeKeys
     {
         const std::string StartAnimationTimeMs = std::string("__animationTimeMs");
+        const std::string TileLoadTimeMs = std::string("__tileLoadTimeMs");
     };
 
     enum class AttributeValueType
@@ -114,6 +115,16 @@ namespace BlueMarble
             }
 
             template <typename T>
+            inline const T& get(const std::string& key, const T& defaultValue) const {
+                auto it = m_attributes.find(key);
+                if (it != m_attributes.end()) 
+                {
+                    return std::get<T>(it->second);
+                }
+                return defaultValue;
+            }
+
+            template <typename T>
             inline const T& tryGet(const std::string& key) const {
                 try
                 {
@@ -127,7 +138,6 @@ namespace BlueMarble
                     std::cout << "Tried to get index: " << value.index() << "\n";
                     throw e;
                 }
-                
             }
 
             inline const AttributeValue& val(const std::string& key) { return m_attributes[key]; }

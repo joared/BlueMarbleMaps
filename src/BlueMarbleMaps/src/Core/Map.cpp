@@ -134,6 +134,7 @@ bool Map::update(bool forceUpdate)
 void Map::renderLayer(const LayerPtr& layer, const FeatureQuery& featureQuery)
 {
     auto prepared = layer->prepare(crs(), featureQuery);
+    m_drawable->makeCurrent();
     layer->update(shared_from_this(), prepared, featureQuery);
 }
 
@@ -150,6 +151,7 @@ void Map::renderLayers()
         renderLayer(l, featureQuery);
     }
 
+    m_drawable->makeCurrent();
     // Debug draw update area
     m_drawable->beginBatches();
     auto line = std::make_shared<LineGeometry>(featureQuery.area());
@@ -167,8 +169,6 @@ FeatureQuery Map::produceUpdateQuery()
     int h = m_drawable->height();
     auto screenArea = Rectangle(0,0,w,h);
     screenArea.scale(0.9); // TODO: this scaling is for debugging querying, remove
-
-    
 
     return produceUpdateQuery(screenArea);
 }
@@ -233,12 +233,27 @@ void Map::crs(const CrsPtr& newCrs)
 
     if (m_cameraController)
     {
-        m_cameraController->onActivated(m_camera, m_crs, m_surfaceModel);
+        m_cameraController->onCrsChanged(m_crs);
     }
 
     flushCache(); // We need to flush layer caches since the crs has changed
 
     events.onCrsChanged.notify(*this, oldCrs, newCrs);
+}
+
+void Map::setSurfaceModel(const SurfaceModelPtr &model)
+{
+    auto oldSurfaceModel = m_surfaceModel;
+    m_surfaceModel = model;
+
+    if (m_cameraController)
+    {
+        m_cameraController->onSurfaceModelChanged(m_surfaceModel);
+    }
+
+    flushCache(); // We need to flush layer caches since the surface model has changed
+
+    events.onSurfaceModelChanged.notify(*this, oldSurfaceModel, m_surfaceModel);
 }
 
 void Map::setCameraController(ICameraController* controller)
@@ -251,11 +266,33 @@ void Map::setCameraController(ICameraController* controller)
     if (controller)
     {
         m_cameraController = controller;
+        m_cameraNavigator = dynamic_cast<ICameraNavigator*>(controller);
         m_camera = m_cameraController->onActivated(m_camera, m_crs, m_surfaceModel);
+    }
+    else
+    {
+        m_cameraController = nullptr;
+        m_cameraNavigator = nullptr;
     }
 }
 
-Point Map::pixelToScreen(const Point& pixel) const
+void Map::panTo(const Point &target)
+{
+    if (m_cameraNavigator)
+    {
+        m_cameraNavigator->panTo(target);
+    }
+}
+
+void Map::zoomTo(const Rectangle &bounds)
+{
+    if (m_cameraNavigator)
+    {
+        m_cameraNavigator->zoomTo(bounds);
+    }
+}
+
+Point Map::pixelToScreen(const Point &pixel) const
 {
     return pixelToScreen((int)std::round(pixel.x()), (int)std::round(pixel.y()));
 }
@@ -677,8 +714,20 @@ DrawablePtr Map::drawable()
 
 void Map::drawable(const DrawablePtr &drawable)
 {
+    bool sizeChanged = false;
+    if (m_drawable)
+    {
+        if (drawable->width() != m_drawable->width() || drawable->height() != m_drawable->height())
+        {
+            sizeChanged = true;
+        }
+    }
+
     m_drawable = drawable;
-    resize(drawable->width(), drawable->height()); 
+    drawable->makeCurrent();
+
+    if (sizeChanged)
+        resize(drawable->width(), drawable->height()); 
 }
 
 void Map::resize(int width, int height)
@@ -687,17 +736,19 @@ void Map::resize(int width, int height)
     m_camera->setViewPortSize(width, height);
     if (m_cameraController)
     {
-        m_cameraController->onActivated(m_camera, m_crs, m_surfaceModel);
+        m_cameraController->onViewportSizeChanged(width, height);
     }
 }
 
 void Map::flushCache()
 {
+    m_drawable->makeCurrent();
     m_drawable->flushCache();
     for (const auto& l : m_layers)
     {
         l->flushCache();
     }
+    m_drawable->makeCurrent();
 }
 
 void Map::renderingEnabled(bool enabled)
@@ -726,7 +777,10 @@ void Map::renderingEnabled(bool enabled)
 
 void Map::updateUpdateAttributes(int64_t timeStampMs)
 {
+    // FIXME: this is a big issue for animations and time stamps.
+    // The int truncation may completely fuck upp stuff
     m_updateAttributes.set(UpdateAttributeKeys::UpdateTimeMs, (int)timeStampMs);
+
     m_updateAttributes.set(UpdateAttributeKeys::UpdateViewScale, scale());
     m_updateAttributes.set(UpdateAttributeKeys::QuickUpdate, false);
     m_updateAttributes.set(UpdateAttributeKeys::SelectionUpdate, false);
@@ -793,6 +847,7 @@ void Map::beforeRender()
 
     m_camera->setFrustum(near, far);
 
+    m_drawable->makeCurrent();
     m_drawable->clearBuffer();
     setDrawableFromCamera(m_camera);
 }

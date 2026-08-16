@@ -9,8 +9,10 @@
 struct Texture
 {
 	GLuint m_id;
+	bool m_owned;
 
 	Texture();
+	Texture(GLuint externalId); // Wraps an existing texture without taking ownership of it
 	~Texture();
 	bool init(const unsigned char* data, int width, int height, int format, GLenum pixelType, GLuint activeIndex);
 	void bind();

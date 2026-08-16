@@ -69,7 +69,7 @@ Raster::Impl::Impl(const std::string& filePath)
     if (m_data == NULL)
     {
         std::cout << "Couldn't load image '" << filePath << "': " << stbi_failure_reason() << "\n";
-        return;
+        throw std::runtime_error("Couldn't load image '" + filePath + "': " + stbi_failure_reason());
     }
 }
 
@@ -267,7 +267,7 @@ Raster Raster::Impl::getCrop(int x0, int y0, int x1, int y1) const
 void Raster::Impl::save(const std::string& filePath) const
 {
     // Flip vertically if needed (OpenGL's origin is bottom-left)
-    stbi_flip_vertically_on_write(1);
+    //stbi_flip_vertically_on_write(1);
 
     // Save as PNG
     stbi_write_png(filePath.c_str(), width(), height(), channels(), data(), width() * channels());

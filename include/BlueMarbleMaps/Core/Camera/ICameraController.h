@@ -25,6 +25,9 @@ class ICameraController
         // has changed
         virtual CameraPtr onActivated(const CameraPtr& currentCamera, const CrsPtr& crs, const SurfaceModelPtr& surfaceModel) = 0;
         virtual void onDeactivated() = 0;
+        virtual void onCrsChanged(const CrsPtr& crs) = 0;
+        virtual void onSurfaceModelChanged(const SurfaceModelPtr& surfaceModel) = 0;
+        virtual void onViewportSizeChanged(int width, int height) = 0;
         virtual ControllerStatus updateCamera(const CameraPtr& camera, int64_t deltaMs) = 0;
 };
 
@@ -39,6 +42,18 @@ constexpr bool hasFlag(ICameraController::ControllerStatus value, ICameraControl
     return (static_cast<T>(value) & static_cast<T>(flag)) != 0;
 }
 
+class ICameraNavigator : public ICameraController
+{
+    public:
+        virtual ~ICameraNavigator() = default;
+        // virtual void setTarget(const Point& target) = 0;
+        // virtual void setTarget(const Point& target, double distance) = 0;
+        // virtual void setTarget(const Point& target, double distance, const glm::dquat& orientation) = 0;
+        // virtual void setDistance(double distance) = 0;
+        // virtual void setOrientation(const glm::dquat& orientation) = 0;
+        virtual void panTo(const Point& target) = 0;
+        virtual void zoomTo(const Rectangle& bounds) = 0;
+};
 
 }
 

@@ -30,15 +30,19 @@ else()
 	    -sUSE_GLFW=3
             -sUSE_WEBGL2=1
             -sFULL_ES3=1
+	    -sWASM=1
             -sALLOW_MEMORY_GROWTH=1
-
-            -sNO_DISABLE_EXCEPTION_CATCHING
-	    -sASSERTIONS=1
-	    -sSAFE_HEAP=1
-	    -sSTACK_OVERFLOW_CHECK=1
+            -03
+	    -flto
+	    # For debugging, kills performance
+            #-sNO_DISABLE_EXCEPTION_CATCHING
+	    #-sASSERTIONS=1
+	    #-sSAFE_HEAP=1
+	    #-sSTACK_OVERFLOW_CHECK=1
 	)
 	target_link_options(Application PRIVATE
-	    --preload-file ${CMAKE_SOURCE_DIR}/src/Platform/OpenGL/ShadersOpenGLES@/Shaders
+	    "SHELL:--preload-file ${CMAKE_SOURCE_DIR}/src/Platform/OpenGL/ShadersOpenGLES@/Shaders"
+	    "SHELL:--preload-file ${CMAKE_SOURCE_DIR}/bluemarble_index/web_index@/bluemarble_index"
 	)
     endif()
     

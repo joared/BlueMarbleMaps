@@ -18,6 +18,9 @@ namespace BlueMarble
 
         FeatureEnumeratorPtr features{nullptr}; // The features contained in this tile, could be empty if not loaded yet
 
+        int64_t timestamp=0.0;
+        FeaturePtr cachedBitmapFeature=nullptr;
+
         inline bool isValid() const
         {
             return x >= 0 && y >= 0 && zoom >= 0 && zoom <= 20;
@@ -32,7 +35,7 @@ namespace BlueMarble
 
         bool isLoaded() const
         {
-            return features != nullptr;
+            return features != nullptr || cachedBitmapFeature != nullptr;
         }
 
         std::string toString() const 
@@ -208,9 +211,11 @@ namespace BlueMarble
     private:
         void verifyValidSubLayers();
         void scheduleTileLoad(const Tile& tile, const CrsPtr& crs, const FeatureQuery& tileQuery);
+        void renderTile(Tile& cachedTile, const CrsPtr& crs, const FeatureQuery& featureQuery);
         FeatureEnumeratorPtr thinFeatures(const FeatureEnumeratorPtr& features, double unitsPerPixel, const Rectangle& tileArea) const;
         FeaturePtr thinFeature(const FeaturePtr& feature, double unitsPerPixel, const Rectangle& tileArea) const;
         void thinLine(std::vector<Point>& thinned, const std::vector<Point>& line, bool closed, double unitsPerPixel) const;
+        void markFeaturesAsLoaded(const FeatureEnumeratorPtr& features, int64_t timestamp) const;
         void drawTiles(const MapPtr& map, const FeatureQuery& featureQuery) const;
         void cleanCache();
 
@@ -219,6 +224,10 @@ namespace BlueMarble
         bool                            m_readAsync;
         mutable std::mutex              m_mutex; // Mutex for synchronizing access to the tile cache
         int                             m_tileSize;
+        DrawablePtr                     m_offscreenDrawable; // Offscreen drawable for rendering tiles
+        bool                            m_cacheAsBitmaps;
+        RasterVisualizerPtr             m_tileVisualizer;
+        MapPtr                          m_currentMainMap;
     };
 
     using TileLayerPtr = std::shared_ptr<TileLayer>;

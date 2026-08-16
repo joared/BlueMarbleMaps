@@ -277,10 +277,6 @@ void SoftwareDrawable::Impl::setWindow(void* window)
     #endif
 }
 
-RendererImplementation SoftwareDrawable::Impl::renderer()
-{
-    return RendererImplementation::Software;
-}
 
 Color SoftwareDrawable::Impl::readPixel(int x, int y)
 {

@@ -8,6 +8,7 @@
 #include <queue>
 #include <functional>
 #include <future>
+#include <set>
 
 namespace BlueMarble::System
 {
@@ -20,6 +21,26 @@ public:
     {
         std::function<void()> task;
         std::function<void()> onDropped = []{};
+        std::function<double()> priority = []{ return 0.0; }; // 0 lowest priority
+    };
+
+    struct QueuedTask
+    {
+        Task task;
+        uint64_t sequence;
+    };
+
+    struct TaskCompare
+    {
+        bool operator()(const QueuedTask& a, const QueuedTask& b) const
+        {
+            auto prioA = a.task.priority();
+            auto prioB = b.task.priority();
+            if (prioA != prioB)
+                return prioA > prioB; // highest first
+
+            return a.sequence < b.sequence; // oldest first for equal priority
+        }
     };
 
     enum class QueuePolicy
@@ -53,13 +74,14 @@ private:
 
     inline bool isValidThreadAccess() const { return std::this_thread::get_id() == m_mainThreadId; };
 
-    std::vector<std::thread>    m_workers;
-    std::queue<Task>            m_tasks;
-    size_t                      m_maxQueueSize;
-    std::mutex                  m_queueMutex;
-    QueuePolicy                 m_queuePolicy;
-    std::condition_variable     m_condition;
-    std::atomic<bool>           m_stop;
+    std::vector<std::thread>                m_workers;
+    std::multiset<QueuedTask, TaskCompare>  m_tasks;
+    uint64_t                                m_nextTaskSequence;
+    size_t                                  m_maxQueueSize;
+    std::mutex                              m_queueMutex;
+    QueuePolicy                             m_queuePolicy;
+    std::condition_variable                 m_condition;
+    std::atomic<bool>                       m_stop;
 
     std::thread::id m_mainThreadId; // To enforce calls only be made from one thread
 };

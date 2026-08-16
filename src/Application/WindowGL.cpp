@@ -3,6 +3,10 @@
 #include <iostream>
 #include <sstream>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten/html5.h>
+#endif
+
 //Public functions
 
 // void GLAPIENTRY
@@ -60,7 +64,7 @@ bool WindowGL::init(int width, int height, std::string windowTitle)
 	m_windowTitle = windowTitle;
 	m_window = glfwCreateWindow(width, height, m_windowTitle.c_str(), nullptr, nullptr);
 	glfwMakeContextCurrent(m_window);
-	glfwSwapInterval(1); // Speeeeed!!!
+	glfwSwapInterval(0); // 0 for no vsync, 1 for vsync
 	
 	#ifndef __EMSCRIPTEN__
     gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
@@ -78,7 +82,6 @@ bool WindowGL::init(int width, int height, std::string windowTitle)
 	// }
 
 	//bind internal callbacks
-	// glfwSetKeyCallback(m_window, internalKeyEventCallback);
 	glfwSetKeyCallback(m_window, [](GLFWwindow* window, int key, int scanCode, int action, int modifier)
 	{
 		WindowGL* owner = reinterpret_cast<WindowGL*>(glfwGetWindowUserPointer(window));
@@ -93,6 +96,52 @@ bool WindowGL::init(int width, int height, std::string windowTitle)
 	glfwSetCursorEnterCallback(m_window, internalMouseEnteredCallback);
 	glfwSetDropCallback(m_window, internalDropEventCallback);
 	glfwSetWindowCloseCallback(m_window, internalCloseWindowEventCallback);
+	
+	// void WindowGL::internalMouseButtonEventCallback(GLFWwindow* window, int button, int action, int modifier)
+	// {
+	// 	WindowGL* owner = reinterpret_cast<WindowGL*>(glfwGetWindowUserPointer(window));
+	// 	// std::cout << "mouse button baby: " << button << std::endl;
+	// 	owner->mouseButtonEvent(owner, button, action, modifier);
+	// }
+
+
+	#ifdef __EMSCRIPTEN__
+	// EM_BOOL touch_callback(int eventType, const EmscriptenTouchEvent *e, void *userData) {
+	// 	for (int i = 0; i < e->numTouches; ++i) 
+	// 	{
+	// 		const auto& t = e->touches[i];
+	// 		if (t.isChanged) 
+	// 		{
+	// 			printf("Touch: %f %f\n", t.canvasX, t.canvasY);
+	// 			WindowGL* owner = reinterpret_cast<WindowGL*>(glfwGetWindowUserPointer(window));
+			
+	// 			owner->mousePositionEvent(owner, t.canvasX, t.canvasY);
+	// 		}
+	// 	}
+	// 	return EM_TRUE;
+	// }
+
+	// emscripten_set_touchstart_callback("#canvas", m_window, true, [](int eventType, const EmscriptenTouchEvent *e, void *userData)
+	// {
+
+	// });
+	emscripten_set_touchmove_callback("#canvas", (void*)m_window, true, [](int eventType, const EmscriptenTouchEvent *e, void *userData)
+	{
+		for (int i = 0; i < e->numTouches; ++i) 
+		{
+			const auto& t = e->touches[i];
+			if (t.isChanged) 
+			{
+				printf("Touch: %f %f\n", t.canvasX, t.canvasY);
+				WindowGL* owner = reinterpret_cast<WindowGL*>(glfwGetWindowUserPointer((GLFWwindow*)userData));
+			
+				owner->mousePositionEvent(owner, t.canvasX, t.canvasY);
+			}
+		}
+		return EM_TRUE;
+	});
+	// emscripten_set_touchend_callback("#canvas", nullptr, true, touch_callback);
+	#endif
 
 	return true;
 }

@@ -42,7 +42,7 @@ constexpr bool hasFlag(InteractionFlags value, InteractionFlags flag)
     return (static_cast<T>(value) & static_cast<T>(flag)) != 0;
 }
 
-class PlaneCameraController : public ICameraController
+class PlaneCameraController : public ICameraNavigator
 {
     public:
         PlaneCameraController()
@@ -89,6 +89,11 @@ class PlaneCameraController : public ICameraController
         double fov() { return m_fovDeg; }
 
         
+        void panTo(const Point& target) override final
+        {
+            panBy(target - m_targetCenter);
+        }
+
         void panBy(const Point& delta) 
         { 
             m_targetCenter += delta;
@@ -100,6 +105,8 @@ class PlaneCameraController : public ICameraController
             }
             if (m_flags == InteractionFlags::ControllerIdle) m_justStarted = true;
             m_flags = m_flags | ControllerPanning;
+
+            setFastResponseTime();
         }
         void zoomBy(double zoomFactor) 
         { 
@@ -107,6 +114,8 @@ class PlaneCameraController : public ICameraController
             m_targetZoom = Utils::clampValue(m_targetZoom, 0.0, m_maxZoom);
             if (m_flags == InteractionFlags::ControllerIdle) m_justStarted = true;
             m_flags = m_flags | ControllerZooming;
+
+            setFastResponseTime();
         }
 
         void rotateBy(double deltaRot)
@@ -114,6 +123,8 @@ class PlaneCameraController : public ICameraController
             m_targetRotation += deltaRot;
             if (m_flags == InteractionFlags::ControllerIdle) m_justStarted = true;
             m_flags = m_flags | ControllerRotating;
+
+            setFastResponseTime();
         }
 
         void tiltBy(double deltaTilt)
@@ -123,6 +134,8 @@ class PlaneCameraController : public ICameraController
             m_targetTilt = Utils::clampValue(m_targetTilt, m_targetFovDeg/2.0-90.0 + 0.0001, 90.0-m_targetFovDeg/2.0 - 0.0001); // Such that the camera does not look "beyond" the plane
             if (m_flags == InteractionFlags::ControllerIdle) m_justStarted = true;
             m_flags = m_flags | ControllerTilting;
+
+            setFastResponseTime();
         }
 
         void zoomOn(const Point& point, double zoomFactor)
@@ -134,9 +147,11 @@ class PlaneCameraController : public ICameraController
 
             panBy(newCenter - m_targetCenter);
             zoomBy(zoomFactor);
+
+            setFastResponseTime();
         }
 
-        void zoomTo(const Rectangle& rect)
+        void zoomTo(const Rectangle& rect) override final
         {
             // Pan
             panBy(rect.center() - m_targetCenter);
@@ -158,6 +173,8 @@ class PlaneCameraController : public ICameraController
             // Rotate/Tilt
             rotateBy(-m_targetRotation);
             tiltBy(-m_targetTilt);
+
+            setSlowResponseTime();
         }
 
         void changeFovBy(double deltaDegrees)
@@ -215,6 +232,24 @@ class PlaneCameraController : public ICameraController
             m_camera = nullptr;
         };
 
+        void onCrsChanged(const CrsPtr& crs) override final
+        {
+            if (!m_camera) return;
+            stateFromCamera(m_camera, crs);
+        }
+
+        void onSurfaceModelChanged(const SurfaceModelPtr& surfaceModel) override final
+        {
+            if (!m_camera) return;
+            stateFromCamera(m_camera, m_crs);
+        }
+
+        void onViewportSizeChanged(int width, int height) override final
+        {
+            if (!m_camera) return;
+            stateFromCamera(m_camera, m_crs);
+        }
+
         ControllerStatus updateCamera(const CameraPtr& camera, int64_t deltaMs) override final
         {
             if (m_flags == InteractionFlags::ControllerIdle)
@@ -228,7 +263,7 @@ class PlaneCameraController : public ICameraController
             constexpr bool animate = true;
 
             // m_elapsedMs += deltaMs;
-            double alpha = deltaMs / 100.0;
+            double alpha = deltaMs / m_responseTimeMs;
             alpha = std::min(alpha, 1.0);
             
             // Center
@@ -374,6 +409,19 @@ class PlaneCameraController : public ICameraController
         }
 
     private:
+        void setFastResponseTime()
+        {
+            m_responseTimeMs = 150.0;
+        }
+        void setMediumResponseTime()
+        {
+            m_responseTimeMs = 300.0;
+        }
+        void setSlowResponseTime()
+        {
+            m_responseTimeMs = 500.0;
+        }
+
         void stateFromCamera(const CameraPtr& camera, const CrsPtr& crs)
         {
             if (m_currentWorldBounds.isUndefined())
@@ -438,6 +486,8 @@ class PlaneCameraController : public ICameraController
         bool    m_justStarted;
         InteractionFlags m_flags;
         int64_t  m_elapsedMs;
+
+        double m_responseTimeMs;
 };
 
 }

@@ -15,6 +15,10 @@
 #include "Keys.h"
 #include "BlueMarbleMaps/Core/Camera/PlaneCameraController.h"
 
+#include <fstream>
+#include <regex>
+#include <sstream>
+
 namespace BlueMarble
 {
 
@@ -303,13 +307,24 @@ namespace BlueMarble
                 auto poly = std::make_shared<PolygonGeometry>(line);
                 auto linePtr = std::make_shared<LineGeometry>(line);
                 linePtr->isClosed(true);
-                brush.setColors(Color::colorRamp(Color::red(0.1), Color::green(0.5), line.size()));
+                brush.setColors(Color::colorRamp(Color::blue(0.1), Color::red(0.5), line.size()));
                 drawable->drawPolygon(poly, pen, brush);
                 drawable->drawLine(linePtr, pen);
             }
 
             void OnCustomDraw(BlueMarble::Map& /*map*/)
             {
+                // Pen pen;
+                // pen.setColor(Color::red());
+                // pen.setThickness(5.0);
+                // pen.setAntiAlias(true);
+                // auto lineGeom = std::make_shared<LineGeometry>(std::vector<Point>{Point(0, 0), Point(512, 512)});
+                // auto polygonGeom = std::make_shared<PolygonGeometry>(std::vector<Point>{Point(0, 0), Point(512, 0), Point(512, 512), Point(0, 512)});
+                // Brush brush;
+                // brush.setColor(Color::blue());
+                // m_map->drawable()->drawLine(lineGeom, pen);
+                // m_map->drawable()->drawPolygon(polygonGeom, pen, brush);
+
                 if (!m_rectangle.isUndefined())
                 {
                     drawRect(m_rectangle);
@@ -815,8 +830,9 @@ namespace BlueMarble
     class KeyActionTool : public Tool
     {
         public:
-            KeyActionTool()
+            KeyActionTool(LayerSetPtr layerToDrop)
                 : m_map(nullptr)
+                , m_tileLayerToDrop(layerToDrop)
             {}
 
             bool isActive() { return false; }
@@ -824,8 +840,6 @@ namespace BlueMarble
             void onConnected(const MapControlPtr& control, const MapPtr& map) override final
             {
                 m_map = map;
-                // m_tileLayerToDrop = std::make_shared<TileLayer>();
-                // m_map->layers().insert(m_map->layers().begin(), m_tileLayerToDrop);
             }
 
             void onDisconnected() override final
@@ -924,8 +938,6 @@ namespace BlueMarble
                     addedDataSets.clear();
                 }
 
-                m_tileLayerToDrop->flushCache();
-                m_tileLayerToDrop->layers().clear();
 
                 for (const auto& file : event.paths)
                 {
@@ -939,13 +951,43 @@ namespace BlueMarble
                         std::cerr << e.what() << '\n';
                         continue;
                     }
+
+                    static StandardLayerPtr backgroundLayer;
                     
-                    auto backgroundLayer = std::make_shared<StandardLayer>(false);
+                    m_tileLayerToDrop->flushCache();
+                    //m_tileLayerToDrop->layers().clear();
+                    if (backgroundLayer)
+                    {
+                        m_tileLayerToDrop->removeLayer(backgroundLayer);
+                    }
+
+                    backgroundLayer = std::make_shared<StandardLayer>(false);
+                    backgroundLayer->name("DropLayer");
                     backgroundLayer->addDataSet(backgroundImageDataSet);
                     auto rasterVis = std::make_shared<RasterVisualizer>();
+                    rasterVis->alpha(DirectDoubleAttributeVariable(1.0));
                     backgroundLayer->visualizers().push_back(rasterVis);
 
-                    m_tileLayerToDrop->addLayer(backgroundLayer);
+                    m_tileLayerToDrop->layers().insert(
+                        m_tileLayerToDrop->layers().begin(),
+                        backgroundLayer
+                    );
+                    
+                    auto features = backgroundImageDataSet->getFeatures(FeatureQuery());
+
+                    // Calculate bounds of the features and set the map view accordingly
+                    std::vector<Rectangle> boundsList;
+                    while (features->moveNext())
+                    {
+                        auto feature = features->current();
+                        boundsList.push_back(feature->bounds());
+                    }
+
+                    m_map->zoomTo(backgroundImageDataSet->crs()->projectTo(
+                        m_map->crs(), 
+                        Rectangle::mergeBounds(boundsList)));
+
+                    break;
                 }
 
                 m_map->update();
@@ -953,9 +995,192 @@ namespace BlueMarble
 
         private:
             MapPtr m_map;
-            TileLayerPtr m_tileLayerToDrop;
+            LayerSetPtr m_tileLayerToDrop;
     };
     typedef std::shared_ptr<KeyActionTool> KeyActionToolPtr;
+
+    class GpxVisualizerTool : public Tool
+    {
+        public:
+            GpxVisualizerTool()
+                : m_map(nullptr)
+            {}
+
+            bool isActive() { return false; }
+
+            void onConnected(const MapControlPtr& control, const MapPtr& map) override final
+            {
+                m_map = map;
+
+                m_midnattsloppetDataSet = std::make_shared<BlueMarble::MemoryDataSet>();
+                m_midnattsloppetDataSet->name("Midnattsloppet");
+                m_midnattsloppetDataSet->initialize(DataSetInitializationType::RightHereRightNow);
+
+                auto midnattsloppetLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer());
+                midnattsloppetLayer->addDataSet(m_midnattsloppetDataSet);
+                midnattsloppetLayer->selectable(false);
+                // midnattsloppetLayer->minScale(1.0/100000.0);
+
+                auto trackVis = std::make_shared<LineVisualizer>();
+                trackVis->color([](const FeaturePtr& f, Attributes& updateAttributes)
+                {
+                    std::string type = f->attributes().get<std::string>("type");
+                    double alpha = f->attributes().get<double>("alpha", 1.0);
+                    return Color(255*(1-alpha), 0, 255*alpha);
+                    
+                });
+                trackVis->width(DirectDoubleAttributeVariable(3));
+                midnattsloppetLayer->visualizers().push_back(trackVis);
+
+                // Add simple circle symbol visualizer for the track points
+                auto symbolVis = std::make_shared<SymbolVisualizer>();
+                symbolVis->condition([](const FeaturePtr& f, Attributes& updateAttributes)
+                {
+                    std::string type = f->attributes().get<std::string>("type");
+                    return type == "ground";
+                });
+                symbolVis->symbol(SymbolVisualizer::Symbol(BuiltInSymbol::Circle));
+                symbolVis->size(DirectDoubleAttributeVariable(5));
+                symbolVis->color([](const FeaturePtr& f, Attributes& updateAttributes)
+                {
+                    std::string type = f->attributes().get<std::string>("type");
+                    if (type == "ground")
+                        return Color(255, 0, 0);
+                    else if (type == "elevation")
+                        return Color(0, 0, 255);
+                    else
+                        return Color(0, 255, 0);
+                });
+                midnattsloppetLayer->visualizers().push_back(symbolVis);
+
+                map->addLayer(midnattsloppetLayer);
+            }
+
+            void onDisconnected() override final
+            {
+                m_map = nullptr;
+            }
+
+            bool onDrop(const DropEvent& event) override final
+            {
+                for (const auto& gpxPath : event.paths)
+                {
+                    std::ifstream gpxFile(gpxPath);
+                    if (!gpxFile.is_open())
+                    {
+                        std::cout << "Could not open: " << gpxPath << std::endl;
+                        continue;
+                    }
+                    else
+                    {
+                        // Check if it has gpx extension
+                        if (gpxPath.substr(gpxPath.find_last_of(".") + 1) != "gpx")
+                        {
+                            std::cout << "Not a GPX file: " << gpxPath << std::endl;
+                            continue;
+                        }
+                        m_midnattsloppetDataSet->clear();
+
+                        std::ostringstream ss;
+                        ss << gpxFile.rdbuf();
+                        const std::string gpxContent = ss.str();
+
+                        // Match each <wpt lat="..." lon="...">...</wpt> block
+                        // Match each <trkpt lat="..." lon="..."><ele>...</ele></trkpt>
+                        std::regex trkptRe(R"re(<trkpt\s[^>]*lat="([^"]+)"[^>]*lon="([^"]+)"[^>]*>([\s\S]*?)</trkpt>)re",
+                                        std::regex::ECMAScript);
+                        std::regex eleRe(R"re(<ele>([^<]+)</ele>)re");
+
+                        std::vector<Point> trackPoints;
+                        std::vector<Point> trackPointsWithElevation;
+                        
+                        auto begin = std::sregex_iterator(gpxContent.begin(), gpxContent.end(), trkptRe);
+                        auto end   = std::sregex_iterator();
+                        for (auto it = begin; it != end; ++it)
+                        {
+                            double lat = std::stod((*it)[1].str());
+                            double lon = std::stod((*it)[2].str());
+                            double ele = 0.0;
+                            std::smatch eleMatch;
+                            const std::string body = (*it)[3].str();
+                            if (std::regex_search(body, eleMatch, eleRe))
+                                ele = std::stod(eleMatch[1].str());
+
+                            trackPoints.emplace_back(lon, lat, 0.0);
+                            trackPointsWithElevation.emplace_back(lon, lat, ele*5.5); // Scale elevation for better visibility
+                        }
+                        std::cout << "Loaded " << trackPoints.size() << " GPX track points from " << gpxPath << "\n";
+
+                        // Curtain polygon: forward along ground (z=0), backward along elevated track.
+                        // The start and end points coincide in lat/lon, closing the ring naturally.
+                        double maxElevation = 0.0;
+                        std::vector<Point> curtainPoints;
+                        curtainPoints.reserve(trackPoints.size() * 2);
+                        for (const auto& p : trackPoints)
+                            curtainPoints.push_back(p);
+                        for (auto it = trackPointsWithElevation.rbegin(); it != trackPointsWithElevation.rend(); ++it)
+                        {
+                            curtainPoints.push_back(*it);
+                            if (it->z() > maxElevation)
+                                maxElevation = it->z();
+                        }
+
+                        auto curtainOutlineFeature = m_midnattsloppetDataSet->createFeature(
+                            std::make_shared<PolygonGeometry>(curtainPoints));
+                        curtainOutlineFeature->attributes().set("type", std::string("curtain"));
+                        m_midnattsloppetDataSet->addFeature(curtainOutlineFeature);
+
+                        // Create scaled polygons curtains with less and less alpha to create a fading effect
+                        int nCurtainLayers = 20;
+                        for (int i = 0; i < nCurtainLayers; ++i)
+                        {
+                            double scale = maxElevation > 0.0 ? 1.0 - (double)i / (double)nCurtainLayers : 1.0;
+                            std::vector<Point> scaledCurtainPoints;
+                            scaledCurtainPoints.reserve(curtainPoints.size());
+                            for (const auto& p : curtainPoints)
+                            {
+                                Point scaledP = Point(p.x(), p.y(), p.z() * scale);
+                                scaledCurtainPoints.push_back(scaledP);
+                            }
+                            auto curtainFeature = m_midnattsloppetDataSet->createFeature(
+                                std::make_shared<PolygonGeometry>(scaledCurtainPoints));
+                            curtainFeature->attributes().set("type", std::string("curtain"));
+                            curtainFeature->attributes().set("alpha", 0.4 * (1.0 - (double)i / (double)nCurtainLayers));
+                            m_midnattsloppetDataSet->addFeature(curtainFeature);
+                        }   
+                        // auto trackFeature = m_midnattsloppetDataSet->createFeature(
+                        //     std::make_shared<LineGeometry>(trackPoints));
+                        // trackFeature->attributes().set("type", std::string("ground"));
+                        // m_midnattsloppetDataSet->addFeature(trackFeature);
+                        // auto trackFeatureWithElevation = m_midnattsloppetDataSet->createFeature(
+                        //     std::make_shared<LineGeometry>(trackPointsWithElevation));
+                        // trackFeatureWithElevation->attributes().set("type", std::string("elevation"));
+                        // m_midnattsloppetDataSet->addFeature(trackFeatureWithElevation);
+
+                        
+
+                        // Curtain polygon visualizer
+                        // auto curtainVis = std::make_shared<PolygonVisualizer>();
+                        // curtainVis->color(DirectColorAttributeVariable(Color(255, 80, 0, 0.4)));
+                        // m_midnattsloppetLayer->visualizers().push_back(curtainVis);
+
+                        //auto bounds = curtainOutlineFeature->bounds();
+                        auto bounds = m_midnattsloppetDataSet->crs()->projectTo(
+                            m_map->crs(),
+                            curtainOutlineFeature->bounds());
+                        m_map->zoomTo(bounds.scaled(1.2));
+
+                        break;
+                    }
+                }
+
+                m_map->update();
+            }
+
+        private:
+            MapPtr m_map;
+            MemoryDataSetPtr m_midnattsloppetDataSet;
+    };
 
 
     class DebugEventHandler : public Tool

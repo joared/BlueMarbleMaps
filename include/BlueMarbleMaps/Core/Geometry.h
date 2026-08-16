@@ -244,6 +244,7 @@ namespace BlueMarble
             bool isStrictlyInside(const Rectangle& bounds) const override final
             { 
                 //TODO
+                return false;
             }
             void forEachPoint(const std::function<void(Point&)>& func) override final { throw std::runtime_error("MultiLineGeometry::forEachPoint() Not implemented"); }
             std::vector<LineGeometry>& lines() { return m_lines; }

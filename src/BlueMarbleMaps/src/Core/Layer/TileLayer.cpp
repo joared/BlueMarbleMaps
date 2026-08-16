@@ -7,7 +7,7 @@ using namespace BlueMarble;
 
 #define TILELAYER_TILE_SIZE 512
 #define TILELAYER_NUM_WORKERS std::thread::hardware_concurrency()
-#define TILELAYER_QUEUE_SIZE 4
+#define TILELAYER_QUEUE_SIZE 8
 #define TILELAYER_QUEUE_POLICY System::ThreadPool::QueuePolicy::ReplaceOldestWhenFull
 
 TileManager::TileManager(const Rectangle& fullExtent)
@@ -130,7 +130,26 @@ TileLayer::TileLayer()
     , m_tileManager(nullptr)
     , m_readAsync(true)
     , m_tileSize(TILELAYER_TILE_SIZE)
+    , m_cacheAsBitmaps(true)
+    , m_tileVisualizer(std::make_shared<RasterVisualizer>())
 {
+    m_tileVisualizer->alpha([](FeaturePtr feature, Attributes& updateAttributes)
+    {
+        constexpr int alphaFadeTimeMs = 1000; // TODO: make configurable
+        int timeSinceLoadMs = updateAttributes.get<int>(UpdateAttributeKeys::UpdateTimeMs) - feature->attributes().get<int>(FeatureAttributeKeys::TileLoadTimeMs, -std::numeric_limits<int>::max());
+        double alpha = 1.0;
+        if (timeSinceLoadMs > 0 && timeSinceLoadMs < alphaFadeTimeMs)
+        {
+            alpha = (double)timeSinceLoadMs / (double)alphaFadeTimeMs;
+            updateAttributes.set<bool>(UpdateAttributeKeys::UpdateRequired, true);
+        } 
+
+        return alpha;
+    });
+
+    #ifdef __EMSCRIPTEN__
+    m_readAsync = false; // Async reading seems to cause issues in emscripten, possibly due to the tile cache being accessed from multiple threads at the same time. Needs further investigation.
+    #endif
     if (m_readAsync)
     {
         // TODO: make these parameters configurable
@@ -176,16 +195,14 @@ FeatureEnumeratorPtr TileLayer::prepare(const CrsPtr &crs, const FeatureQuery &f
         return LayerSet::prepare(crs, featureQuery);
     }
     
+
+    // BMM_DEBUG() << "TileLayer::prepare() Units per pixel: " << unitsPerPixel << ", Zoom level: " << zoom << "\n";
     int tileSize = m_tileSize;
     double zoom0Resolution = crs->bounds().width() / (double)tileSize;
     double unitsPerPixel = Drawable::pixelSize() / crs->globalMetersPerUnit() / featureQuery.scale();
     int zoom = static_cast<int>(std::floor(std::log2(zoom0Resolution/unitsPerPixel)));
     zoom = std::clamp(zoom, 0, 20); // TODO: make these parameters configurable
     unitsPerPixel = zoom0Resolution / std::pow(2.0, zoom); // clamp unitsperpix
-    
-    double clampedScale = Drawable::pixelSize() / crs->globalMetersPerUnit() / (zoom0Resolution / std::pow(2.0, zoom));
-
-    // BMM_DEBUG() << "TileLayer::prepare() Units per pixel: " << unitsPerPixel << ", Zoom level: " << zoom << "\n";
 
     std::vector<Tile> tiles;
     {
@@ -201,6 +218,7 @@ FeatureEnumeratorPtr TileLayer::prepare(const CrsPtr &crs, const FeatureQuery &f
 
     std::unordered_map<Id, bool, Id::IdHash> featuresAdded; // Used to avoid adding the same feature multiple times if it appears in multiple tiles
     
+    // std::lock_guard lock(m_mutex);
     std::lock_guard lock(m_mutex);
     for (Tile& tile : tiles)
     {
@@ -208,6 +226,9 @@ FeatureEnumeratorPtr TileLayer::prepare(const CrsPtr &crs, const FeatureQuery &f
         {
             // If the tile is not in the cache, we need to load it asynchronously
             auto tileQuery = featureQuery;
+            
+            double clampedScale = Drawable::pixelSize() / crs->globalMetersPerUnit() / (zoom0Resolution / std::pow(2.0, zoom));
+
             tileQuery.area(m_tileManager->tileBounds(tile.x, tile.y, tile.zoom));
             tileQuery.scale(clampedScale);
 
@@ -221,19 +242,20 @@ FeatureEnumeratorPtr TileLayer::prepare(const CrsPtr &crs, const FeatureQuery &f
             scheduleTileLoad(tile, crs, tileQuery);
         }
 
+
         if (!m_tileManager->hasLoadedTile(tile))
         {
             // Almost working
-            Tile parent = tile;
-            while (m_tileManager->parentOf(parent, parent))
-            {
-                if (m_tileManager->hasLoadedTile(parent))
-                {
-                    // BMM_DEBUG() << "Found PARENT of " << tile.toString() << ": " << parent.toString() << "\n";
-                    tile = parent;
-                    break;
-                }
-            }
+            // Tile parent = tile;
+            // while (m_tileManager->parentOf(parent, parent))
+            // {
+            //     if (m_tileManager->hasLoadedTile(parent))
+            //     {
+            //         // BMM_DEBUG() << "Found PARENT of " << tile.toString() << ": " << parent.toString() << "\n";
+            //         tile = parent;
+            //         break;
+            //     }
+            // }
         }
 
         if (m_tileManager->hasLoadedTile(tile))
@@ -241,33 +263,44 @@ FeatureEnumeratorPtr TileLayer::prepare(const CrsPtr &crs, const FeatureQuery &f
             // If the tile is in the cache, we can add its features to the enumerator
             
             auto cachedTile = m_tileManager->getCachedTile(tile);
+
             if (cachedTile.features)
             {   
                 // BMM_DEBUG() << "Preparing tile: " << tile.toString() << "\n";
                 cachedTile.features->reset();
 
-                // TODO optimize
-                int n = cachedTile.features->subEnumerators().size();
-                for (int i(0); i<n; ++i)
+                if (m_cacheAsBitmaps)
                 {
-                    while (cachedTile.features->subEnumerators()[i]->moveNext())
+                    if (cachedTile.cachedBitmapFeature)
                     {
-                        const auto& f = cachedTile.features->subEnumerators()[i]->current();
-                        if (featuresAdded.find(f->id()) == featuresAdded.end())
+                        enumerator->add(cachedTile.cachedBitmapFeature);
+                    }
+                }
+                else
+                {
+                    // TODO optimize
+                    int n = cachedTile.features->subEnumerators().size();
+                    for (int i(0); i<n; ++i)
+                    {
+                        while (cachedTile.features->subEnumerators()[i]->moveNext())
                         {
-                            enumerator->subEnumerators()[i]->add(f);
-                            
-                            // featuresAdded[f->id()] = true;
-                            if (f->geometryType() != GeometryType::Raster)
+                            const auto& f = cachedTile.features->subEnumerators()[i]->current();
+                            if (featuresAdded.find(f->id()) == featuresAdded.end())
                             {
-                                featuresAdded[f->id()] = true;
+                                enumerator->subEnumerators()[i]->add(f);
+                                
+                                // featuresAdded[f->id()] = true;
+                                if (f->geometryType() != GeometryType::Raster)
+                                {
+                                    featuresAdded[f->id()] = true;
+                                }
                             }
                         }
+                        cachedTile.features->subEnumerators()[i]->reset();
                     }
-                    cachedTile.features->subEnumerators()[i]->reset();
-                }
 
-                cachedTile.features->reset();
+                    cachedTile.features->reset();
+                }
             }
         }
     }
@@ -277,8 +310,44 @@ FeatureEnumeratorPtr TileLayer::prepare(const CrsPtr &crs, const FeatureQuery &f
 
 void TileLayer::update(const MapPtr& map, const FeatureEnumeratorPtr& features, const FeatureQuery& featureQuery)
 {
-    // // For now, delegate to LayerSet's update with the prepared features
-    LayerSet::update(map, features, featureQuery);
+    // int tileSize = m_tileSize;
+    // double zoom0Resolution = map->crs()->bounds().width() / (double)tileSize;
+    // double unitsPerPixel = Drawable::pixelSize() / map->crs()->globalMetersPerUnit() / featureQuery.scale();
+    // int zoom = static_cast<int>(std::floor(std::log2(zoom0Resolution/unitsPerPixel)));
+    // zoom = std::clamp(zoom, 0, 20); // TODO: make these parameters configurable
+    // unitsPerPixel = zoom0Resolution / std::pow(2.0, zoom); // clamp unitsperpix
+
+    if (!m_currentMainMap)
+    {
+        // BMM_DEBUG() << "Creating offscreen drawable for tile layer debug rendering\n";
+        // m_offscreenDrawable = map->drawable()->createCompatibleOffscreenDrawable(m_tileSize, m_tileSize);
+        
+        // 1. 
+        m_currentMainMap = map;
+        // 2.
+        // m_mapTempRemove = std::make_shared<Map>();
+        // m_mapTempRemove->drawable(m_offscreenDrawable);
+
+        // map->drawable()->makeCurrent();
+    }
+
+    if (!m_cacheAsBitmaps)
+    {
+        LayerSet::update(map, features, featureQuery);
+    }
+    else
+    {
+        map->drawable()->beginBatches();
+        while (features->moveNext())
+        {
+            m_tileVisualizer->renderFeature(
+                *map->drawable(), 
+                features->current(),
+                map->updateAttributes(),
+                featureQuery.area());
+        }
+        map->drawable()->endBatches();
+    }
 
     bool drawDebugTiles = false; // TODO: make this configurable
     if (drawDebugTiles)
@@ -289,11 +358,19 @@ void TileLayer::update(const MapPtr& map, const FeatureEnumeratorPtr& features, 
 
 void TileLayer::flushCache()
 {
+    m_threadPool.stop(true);
     {
         std::lock_guard lock(m_mutex);
         m_tileManager = nullptr;
     }
-    m_threadPool.stop(true);
+
+    if (m_currentMainMap)
+    {
+        // m_offscreenDrawable->makeCurrent();
+        // m_offscreenDrawable->flushCache();
+        // m_offscreenDrawable = nullptr;
+        m_currentMainMap = nullptr;
+    }
     
     LayerSet::flushCache();
 
@@ -341,37 +418,215 @@ void TileLayer::verifyValidSubLayers()
 void TileLayer::scheduleTileLoad(const Tile& tile, const CrsPtr& crs, const FeatureQuery& tileQuery)
 {
     // NOTE: this method assumes that the guard has been taken
-    
+    if (m_tileManager->hasTile(tile))
+    {
+        throw std::runtime_error("Tile " + tile.toString() + " already existed for some reason");
+    }
     // Mark tile as loading to prevent duplicate loading of the same tile
-    m_tileManager->setTile(Tile{tile.x, tile.y, tile.zoom, nullptr});
+    m_tileManager->setTile(Tile{tile.x, tile.y, tile.zoom, nullptr, 0});
     m_threadPool.enqueue(
         System::ThreadPool::Task{
             .task = [this, tile, crs, tileQuery]()
             {
-                //std::this_thread::sleep_for(std::chrono::milliseconds(200)); // Simulate loading time
+                // BMM_DEBUG() << "LOADING TILE: " << tile.toString() << "\n";
+                //std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // Simulate loading time
                 // FIXME: if datasets have not been initialized, the enumerator will not include all features
                 auto enumerator = LayerSet::getFeatures(crs, tileQuery, true);
                 
                 if (enumerator->isComplete())
                 {
                     double unitPerPix = tileQuery.resolution();
+                    int64_t timestamp = getTimeStampMs();
+
                     enumerator->reset();
                     enumerator = thinFeatures(enumerator, unitPerPix, tileQuery.area());
+                    markFeaturesAsLoaded(enumerator, timestamp);
                     enumerator->reset();
 
+                    auto tileCopy = tile;
+                    tileCopy.features = enumerator;
+                    if (m_cacheAsBitmaps)
+                    {
+                        renderTile(tileCopy, crs, tileQuery);
+                    }
+
                     std::lock_guard lock(m_mutex);
-                    m_tileManager->setTile(Tile{tile.x, tile.y, tile.zoom, enumerator});
+                    if (m_tileManager->getCachedTile(tile).isLoaded())
+                    {
+                        throw std::runtime_error("Tile " + tile.toString() + " was already loaded for some reason");
+                    }
+                    m_tileManager->setTile(Tile{tile.x, tile.y, tile.zoom, enumerator, timestamp, tileCopy.cachedBitmapFeature});
                 }
-                else
+                else 
                 {
                     std::lock_guard lock(m_mutex);
                     m_tileManager->removeTile(tile);
                 }
             },
             // NOTE: we dont acquire the lock here! This should always be called on the main thread
-            .onDropped = [this, tile]() { m_tileManager->removeTile(tile); }
+            .onDropped = [this, tile]() 
+            { 
+                if (m_tileManager->hasTile(tile))
+                {
+                    // BMM_DEBUG() << "DROPPED TILE: " << tile.toString() << "\n";
+                    m_tileManager->removeTile(tile); 
+                }
+            },
+            .priority = [this, tileQuery] 
+            {
+                if (!m_currentMainMap) return 0.0;
+
+                Point surfacePoint;
+                Point dummyNormalPoint;
+                auto camera = m_currentMainMap->camera();
+                Ray ray = camera->ndcToWorldRay(Point(0,0));
+                if (m_currentMainMap->surfaceModel()->rayIntersection(
+                        ray.origin,
+                        ray.direction,
+                        0,
+                        surfacePoint,
+                        dummyNormalPoint
+                    ))
+                {
+                    auto dist = tileQuery.area().center() - surfacePoint;
+
+                    return 1.0 / dist.length();
+                }
+                
+                return 0.0;
+            }
         }
     );
+}
+
+void BlueMarble::TileLayer::renderTile(Tile& cachedTile, const CrsPtr& crs, const FeatureQuery& tileQuery)
+{
+    // if (!m_offscreenDrawable) return;
+    /////////////////////////////////////////////////////////
+    // Render on a bitma
+    /////////////////////////////////////////////////////////
+
+    int tileSize = m_tileSize;
+    double zoom0Resolution = crs->bounds().width() / (double)tileSize;
+    int zoom = cachedTile.zoom;
+    double unitsPerPixel = zoom0Resolution / std::pow(2.0, zoom); // clamp unitsperpix
+
+    // double clampedScale = Drawable::pixelSize() / crs->globalMetersPerUnit() / (zoom0Resolution / std::pow(2.0, zoom));
+
+
+    // If the tile is not in the cache, we need to load it asynchronously
+    // auto tileQuery = featureQuery;
+    
+    // tileQuery.area(m_tileManager->tileBounds(cachedTile.x, cachedTile.y, cachedTile.zoom));
+    // tileQuery.scale(clampedScale);
+
+    // // TODO: Needs debugging together with ImageDataSet::onGetFeatures()
+    // // Its needed when crs differ, but seems slower if theyre not.
+    // // For datasets that dont have the same crs as requested, its unnecessary to do "clone"
+    // // when reqprojecting since we get a copy anyway.
+    // tileQuery.rasterGeometryMode(FeatureQuery::RasterGeometryMode::Clipped);
+    // tileQuery.resolution(unitsPerPixel);
+
+    const auto& area = tileQuery.area();
+    
+    
+    auto proj = OrthographicCameraProjection(m_tileSize, m_tileSize, -1, 1, unitsPerPixel).projectionMatrix();
+
+    thread_local DrawablePtr offscreenDrawable;
+    thread_local MapPtr tempMap;
+    if (!offscreenDrawable)
+    {
+        if (!m_currentMainMap) return;
+        auto d = m_currentMainMap->drawable();
+        if (!d) return;
+        BMM_DEBUG() << "Creating offscreen drawable for tile layer debug rendering\n";
+        offscreenDrawable = d->createCompatibleOffscreenDrawable(m_tileSize, m_tileSize);
+        tempMap = std::make_shared<Map>();
+        tempMap->drawable(offscreenDrawable);
+    }
+    
+    
+    // 1. 
+    // m_mapTempRemove = map;
+    // 2.
+    
+    offscreenDrawable->makeCurrent();
+    offscreenDrawable->resize(m_tileSize, m_tileSize);
+    offscreenDrawable->clearBuffer();
+    
+    // Temporary: force a fixed, straight-down 2D view for this offscreen render, independent of
+    // whatever the live camera is currently doing (tilt/rotation/orbit). The orthographic projection
+    // above already encodes the tile's scale (unitsPerPixel); an identity view matrix means no
+    // rotation/tilt gets applied on top of it, so panning/tilting the live camera shouldn't change
+    // how this layer's own content looks once composited back in via blitTo.
+    offscreenDrawable->setProjectionMatrix(proj);
+    offscreenDrawable->setViewMatrix(glm::dmat4(1.0));
+    offscreenDrawable->setRenderOrigin(Point(area.center().x(), area.center().y(), 0.0)); // must come after setViewMatrix — it resets renderOrigin to (0,0,0) as a side effect
+
+    // Let sublayers draw on the offscreen drawable
+    LayerSet::update(tempMap, cachedTile.features, tileQuery);
+
+    auto raster = offscreenDrawable->getRaster();
+    auto idString = "_" + std::to_string(cachedTile.x) 
+                    + "_" + std::to_string(cachedTile.y)
+                    + "_" + std::to_string(cachedTile.zoom);
+
+    
+    //raster.save("tilecache/tile_" + idString + ".png");
+
+    auto rasterArea = Rectangle(area.center(), unitsPerPixel*m_tileSize, unitsPerPixel*m_tileSize);
+    auto rasterGeom = std::make_shared<RasterGeometry>(std::move(raster), rasterArea); // FIXME: tilequery area or tile area?
+    auto rasterFeature = std::make_shared<Feature>(Id(0,cachedTile.id()), crs, rasterGeom);
+    rasterFeature->attributes().set(FeatureAttributeKeys::TileLoadTimeMs, (int)getTimeStampMs());
+
+    cachedTile.cachedBitmapFeature = rasterFeature;
+    
+    //std::lock_guard lock(m_mutex); // TODO: add back when rendering on background thread
+    // m_tileManager->removeTile(cachedTile);
+    // m_tileManager->setTile(Tile(cachedTile));
+
+
+    ///////////////////////// Old backup /////////////////
+
+    // auto d = m_mapTempRemove->drawable();
+    // m_offscreenDrawable->makeCurrent();
+    // m_offscreenDrawable->resize(m_tileSize, m_tileSize);
+    // m_offscreenDrawable->clearBuffer();
+    
+    
+    // // Temporary: force a fixed, straight-down 2D view for this offscreen render, independent of
+    // // whatever the live camera is currently doing (tilt/rotation/orbit). The orthographic projection
+    // // above already encodes the tile's scale (unitsPerPixel); an identity view matrix means no
+    // // rotation/tilt gets applied on top of it, so panning/tilting the live camera shouldn't change
+    // // how this layer's own content looks once composited back in via blitTo.
+    // m_offscreenDrawable->setProjectionMatrix(proj);
+    // m_offscreenDrawable->setViewMatrix(glm::dmat4(1.0));
+    // m_offscreenDrawable->setRenderOrigin(Point(area.center().x(), area.center().y(), 0.0)); // must come after setViewMatrix — it resets renderOrigin to (0,0,0) as a side effect
+    // m_mapTempRemove->drawable(m_offscreenDrawable);
+
+    // // Let sublayers draw on the offscreen drawable
+    // LayerSet::update(m_mapTempRemove, cachedTile.features, tileQuery);
+
+    // auto raster = m_offscreenDrawable->getRaster();
+    // auto idString = "_" + std::to_string(cachedTile.x) 
+    //                 + "_" + std::to_string(cachedTile.y)
+    //                 + "_" + std::to_string(cachedTile.zoom);
+
+    
+    // raster.save("tilecache/tile_" + idString + ".png");
+
+    // auto rasterArea = Rectangle(area.center(), unitsPerPixel*m_tileSize, unitsPerPixel*m_tileSize);
+    // auto rasterGeom = std::make_shared<RasterGeometry>(std::move(raster), rasterArea); // FIXME: tilequery area or tile area?
+    // auto rasterFeature = std::make_shared<Feature>(Id(0,cachedTile.id()), crs, rasterGeom);
+    // //rasterFeature->attributes().set(FeatureAttributeKeys::TileLoadTimeMs, (int)getTimeStampMs());
+
+    // cachedTile.cachedBitmapFeature = rasterFeature;
+    
+    // //std::lock_guard lock(m_mutex); // TODO: add back when rendering on background thread
+    // m_tileManager->removeTile(cachedTile);
+    // m_tileManager->setTile(Tile(cachedTile));
+
+    // m_mapTempRemove->drawable(d); // Restore the main drawable context    
 }
 
 FeatureEnumeratorPtr TileLayer::thinFeatures(const FeatureEnumeratorPtr &features, double unitsPerPixel, const Rectangle &tileArea) const
@@ -493,6 +748,19 @@ void TileLayer::thinLine(std::vector<Point>& thinned, const std::vector<Point>& 
         {
             thinned.push_back(curr);
         }
+    }
+}
+
+void BlueMarble::TileLayer::markFeaturesAsLoaded(const FeatureEnumeratorPtr &features, int64_t timestamp) const
+{
+    for (auto& f : *features->features())
+    {
+        f->attributes().set(FeatureAttributeKeys::TileLoadTimeMs, (int)timestamp);
+    }
+
+    for (auto& subEnum : features->subEnumerators())
+    {
+        markFeaturesAsLoaded(subEnum, timestamp);
     }
 }
 

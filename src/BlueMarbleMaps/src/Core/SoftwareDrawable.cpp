@@ -116,11 +116,6 @@ namespace BlueMarble
         m_impl->swapBuffers();
     }
 
-    RendererImplementation SoftwareDrawable::renderer()
-    {
-        return m_impl->renderer();
-    }
-
     Color SoftwareDrawable::readPixel(int x, int y)
     {
         return m_impl->readPixel(x, y);

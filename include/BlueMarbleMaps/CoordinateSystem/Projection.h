@@ -60,7 +60,7 @@ namespace BlueMarble
             double x = R * lon * BMM_PI / 180.0;
             double y = R * log(tan(BMM_PI /4.0 + (lat * BMM_PI / 180.0) / 2.0));
 
-            return Point(x,y);
+            return Point(x,y, lngLat.z());
         };
 
         virtual Point unProject(const Point& point, const EllipsoidPtr& ellipsoid) override final
@@ -74,7 +74,7 @@ namespace BlueMarble
             double lat = 2 * atan(exp(y / R)) - BMM_PI/2;
             lat = lat * 180.0 / BMM_PI;
 
-            return Point(lon, lat);
+            return Point(lon, lat, point.z());
         };
 
         virtual double globalMetersPerUnit(const EllipsoidPtr& ellipsoid) override final

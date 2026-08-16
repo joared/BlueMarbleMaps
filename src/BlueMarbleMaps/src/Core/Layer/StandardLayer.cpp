@@ -55,6 +55,10 @@ void StandardLayer::addDataSet(const DataSetPtr &dataSet)
 
 void StandardLayer::hitTest(const MapPtr& map, const Rectangle& bounds, std::vector<PresentationObject>& presObjects)
 {
+    if (!selectable())
+    {
+        return;
+    }
     FeatureQuery featureQuery;
     featureQuery.area(bounds);
     featureQuery.scale(map->scale());
@@ -435,7 +439,7 @@ void StandardLayer::createDefaultVisualizers()
 
     // Line visualizer
     auto lineVis = std::make_shared<LineVisualizer>();
-    lineVis->color(ColorEvaluation([](FeaturePtr, Attributes&) { return Color(60, 80, 110,0.7); }));
+    lineVis->color(ColorEvaluation([](FeaturePtr, Attributes&) { return Color(60, 80, 110, 1.0); }));
     //lineVis->color(colorEvalSelect);
     lineVis->width([](FeaturePtr, Attributes&) -> double { return 3.0; });
 

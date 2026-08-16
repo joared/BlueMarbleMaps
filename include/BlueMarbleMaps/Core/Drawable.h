@@ -5,7 +5,6 @@
 #include "BlueMarbleMaps/Core/Raster.h"
 #include "BlueMarbleMaps/Core/Core.h"
 #include "BlueMarbleMaps/Core/Color.h"
-#include "BlueMarbleMaps/Core/Renderer.h"
 #include "BlueMarbleMaps/Core/Transform.h"
 #include "BlueMarbleMaps/Core/Geometry.h"
 #include "BlueMarbleMaps/Utility/Utils.h"
@@ -19,6 +18,10 @@
 namespace BlueMarble
 {    
     constexpr double dpi96PixelSize = 1.0/96.0 * 0.0254;
+
+    class Drawable;
+    typedef std::shared_ptr<Drawable> DrawablePtr;
+    
     class Drawable
     {
         public:
@@ -30,13 +33,20 @@ namespace BlueMarble
             virtual const Color& backgroundColor() = 0;
             virtual void backgroundColor(const Color& color) = 0;
             
+            virtual void makeCurrent() {};
+            virtual void blitTo(const DrawablePtr& target) {};
+            virtual DrawablePtr createCompatibleOffscreenDrawable(int width, int height, int colorDepth=4) { return nullptr; };
+
             // Methods
             // TODO: these two methods are now half-baked into the projection matrix
             // virtual void setViewPort(int x, int y, int width, int height) = 0;
             // virtual void setFrustum(double near, double  far) = 0;
             virtual void setProjectionMatrix(const glm::dmat4& proj) = 0;
+            virtual glm::dmat4 getProjectionMatrix() { return glm::dmat4(); };
             virtual void setViewMatrix(const glm::dmat4& viewMatrix) = 0;
+            virtual glm::dmat4 getViewMatrix() { return glm::dmat4(); };
             virtual void setRenderOrigin(const Point& origin) = 0;
+            virtual Point getRenderOrigin() const { return Point(0,0,0); };
             virtual void beginBatches() = 0;
             virtual void endBatches() = 0;
             virtual void resize(int width, int height) = 0;
@@ -54,13 +64,12 @@ namespace BlueMarble
             virtual void clearBuffer() = 0;
             virtual Raster getRaster() = 0;
             virtual void flushCache() = 0;
-            virtual RendererImplementation renderer() = 0;
 
             // Static methods
             /* Returns the pixel size of the display in meters */
             static double pixelSize() { return dpi96PixelSize; } // TODO: read from system
     };
-    typedef std::shared_ptr<Drawable> DrawablePtr;
+    
 
     class BitmapDrawable : public virtual Drawable
     {

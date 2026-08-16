@@ -10,7 +10,12 @@ LayerSet::LayerSet()
 
 void LayerSet::hitTest(const MapPtr& map, const Rectangle& bounds, std::vector<PresentationObject>& presObjects)
 {
-    for (const auto& l : m_subLayers)
+    if (!selectable())
+    {
+        return;
+    }
+
+     for (const auto& l : m_subLayers)
     {
         l->hitTest(map, bounds, presObjects);
     }
@@ -49,6 +54,20 @@ FeatureEnumeratorPtr LayerSet::getFeatures(const CrsPtr &crs, const FeatureQuery
     }
 
     return enumerator;
+}
+
+void LayerSet::removeLayer(const LayerPtr &layer)
+{
+    for (auto it = m_subLayers.begin(); it != m_subLayers.end(); ++it)
+    {
+        if (layer == *it)
+        {
+            m_subLayers.erase(it);
+            return;
+        }
+    }
+
+    throw std::runtime_error("LayerSet::removeLayer() layer not found");
 }
 
 void LayerSet::flushCache()

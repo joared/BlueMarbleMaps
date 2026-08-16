@@ -14,7 +14,11 @@ FeatureCollectionPtr GeoJsonFileDataSet::read(const std::string &filePath)
     // Specification: https://geojson.org/geojson-spec.html
     auto file = File(filePath);
     if (!file.isOpen())
+    {
         BMM_DEBUG() << "GeoJsonFileDataSet::read() Failed to open file...\n";
+        return std::make_shared<FeatureCollection>();
+    }
+        
     auto json = JsonValue::fromString(file.asString());
 
     BMM_DEBUG() << "Reading GeoJson file '" << filePath << "'\n";

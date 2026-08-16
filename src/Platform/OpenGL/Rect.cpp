@@ -22,13 +22,13 @@ Rect::Rect(RectGeometryInfoPtr info, std::vector<Vertice>& vertices, std::vector
 	
 	
 	int stride = sizeof(Vertice);
-	std::cout << "Stride: " << stride << "\n";
+	// std::cout << "Stride: " << stride << "\n";
 	int offsetPos = offsetof(Vertice, position);
 	int offsetColor = offsetof(Vertice, color);
 	int offsetTex = offsetof(Vertice, texCoord);
-	std::cout << "offsetPos: " << offsetPos << "\n";
-	std::cout << "offsetColor: " << offsetColor << "\n";
-	std::cout << "offsetTex: " << offsetTex << "\n";
+	// std::cout << "offsetPos: " << offsetPos << "\n";
+	// std::cout << "offsetColor: " << offsetColor << "\n";
+	// std::cout << "offsetTex: " << offsetTex << "\n";
 	m_rectGeometryInfo->m_vao.link(m_rectGeometryInfo->m_vbo, 0, 3, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, position));
 	m_rectGeometryInfo->m_vao.link(m_rectGeometryInfo->m_vbo, 1, 4, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, color));
 	m_rectGeometryInfo->m_vao.link(m_rectGeometryInfo->m_vbo, 2, 2, GL_FLOAT, sizeof(Vertice), (void*)offsetof(Vertice, texCoord));

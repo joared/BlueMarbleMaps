@@ -163,6 +163,16 @@ public:
             ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
             ImGui::Checkbox("Another Window", &show_another_window);
 
+            ImGui::PlotLines("Frame Times", 
+                            [](void* data, int idx) -> float { return ((float*)data)[idx]; }, 
+                            (void*)&io.Framerate, 
+                            120, 
+                            0, 
+                            nullptr, 
+                            0.0f, 
+                            100.0f, 
+                            ImVec2(0,80));
+
             ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
             if (ImGui::ColorEdit3("clear color", (float*)&clear_color)) // Edit 3 floats representing a color
             {
@@ -427,14 +437,20 @@ public:
     void loop() 
     {
         static bool updateReq = true;
+        static bool guiUpdateReq = true;
         showFPS();
-        if (updateReq)
+        if (updateReq || guiUpdateReq)
         {
             pollWindowEvents();
-            updateView();
-            updateViewInternal();
-            updateReq = gui.update();
-            updateReq |= updateRequired();
+            if (updateReq)
+            {
+                updateView();
+                updateViewInternal();
+                updateReq = updateRequired();
+            }
+            
+            guiUpdateReq = gui.update();
+            
             swapBuffers();
         }
         else
@@ -503,22 +519,25 @@ int main()
     std::cout << "opengl version: " << version << "\n";
 
     auto view = std::make_shared<Map>();
-    
     // view->crs(Crs::wgs84MercatorWeb());
     // Configure some background layers
-    configureMap(view);
-    mapControl->setView(view);
-    view->drawable()->backgroundColor(Color(120,170,255,0));
+    auto backgroundLayer = std::make_shared<TileLayer>();
+    view->addLayer(backgroundLayer);
+    configureMap(mapControl, view, backgroundLayer);
 
     BMM_DEBUG() << "Setting up tools\n";
     //auto tool = std::make_shared<OttoTool>();
     auto toolSet = std::make_shared<ToolSet>();
     toolSet->addSubTool(std::make_shared<EditFeatureTool>());
     toolSet->addSubTool(std::make_shared<PointerTracerTool>());    
-    toolSet->addSubTool(std::make_shared<KeyActionTool>());
+    toolSet->addSubTool(std::make_shared<GpxVisualizerTool>());
+    toolSet->addSubTool(std::make_shared<KeyActionTool>(backgroundLayer));
     toolSet->addSubTool(std::make_shared<DebugEventHandler>());
     toolSet->addSubTool(std::make_shared<CameraControllerTwoHalfD>());
+
+    mapControl->setView(view);
     mapControl->setTool(toolSet);
+    view->drawable()->backgroundColor(Color(120,170,255,0));
 
     BMM_DEBUG() << "Calling update view\n";
     // view->renderingEnabled(false); // TODO remove

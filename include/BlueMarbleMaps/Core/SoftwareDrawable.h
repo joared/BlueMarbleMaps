@@ -38,7 +38,6 @@ namespace BlueMarble
             void clearBuffer() override final;
             void swapBuffers() override final;
             virtual Raster getRaster() override final { throw std::runtime_error("SoftwareDrawable::getRaster() Not implemented"); };
-            RendererImplementation renderer() override final;
             void flushCache() override {}
         protected:
             class Impl;

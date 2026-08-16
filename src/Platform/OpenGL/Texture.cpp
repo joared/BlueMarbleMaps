@@ -4,14 +4,25 @@
 
 Texture::Texture()
 	:m_id(0)
+	,m_owned(true)
+{
+
+}
+Texture::Texture(GLuint externalId)
+	:m_id(externalId)
+	,m_owned(false)
 {
 
 }
 Texture::~Texture()
 {
-	std::cout << "Deleting Texture with id: " << m_id << "\n";
-	glDeleteTextures(1, &m_id);
+	if (m_owned)
+	{
+		std::cout << "Deleting Texture with id: " << m_id << "\n";
+		glDeleteTextures(1, &m_id);
+	}
 }
+
 bool Texture::init(const unsigned char* data, int width, int height, int format, GLenum pixelType, GLuint activeIndex)
 {
 	int maxNrOfTextures;
@@ -35,7 +46,7 @@ bool Texture::init(const unsigned char* data, int width, int height, int format,
 	glGenTextures(1,&m_id);
 
 	glBindTexture(GL_TEXTURE_2D, m_id);
-	// glBindTextureUnit(activeIndex, m_id);
+	glBindTextureUnit(activeIndex, m_id);
 	
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);

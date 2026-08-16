@@ -10,6 +10,7 @@
 #include "BlueMarbleMaps/Core/Pen.h"
 #include "Platform/OpenGL/Batch.h"
 #include "Platform/OpenGL/Primitive.h"
+#include "Platform/OpenGL/Rect.h"
 #include <map>
 
 namespace BlueMarble
@@ -26,11 +27,75 @@ namespace BlueMarble
         const Color& backgroundColor();
         virtual void backgroundColor(const Color& color);
 
+        void makeCurrent() override final
+        {
+            if (m_window)
+            {
+                glfwMakeContextCurrent(m_window);
+            }
+
+            if (m_framebuffer != 0)
+            {
+                glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
+                glBindTexture(GL_TEXTURE_2D, m_fboTexture);
+            }
+            else
+            {
+                glBindFramebuffer(GL_FRAMEBUFFER, 0); // explicit: there's only one context now, framebuffer binding is what actually switches targets
+                glBindTexture(GL_TEXTURE_2D, 0);
+            }
+            
+            glViewport(0, 0, m_width, m_height);
+        };
+        void blitTo(const DrawablePtr& target) override final
+        {
+            auto glTarget = std::dynamic_pointer_cast<OpenGLDrawable>(target);
+            if (!glTarget) return; // nothing sensible to do if the target isn't GL-backed
+
+            if (!m_compositeQuad)
+            {
+                // Same shape as drawRaster's primitive-creation block: a textured quad, built once and cached.
+                // Unlike drawRaster, the texture sampled here (m_fboTexture) is owned by this OpenGLDrawable
+                // itself, not by the Texture wrapper, so it's attached non-owning — the quad's Texture won't
+                // delete it when the quad (or its cache entry) is destroyed.
+                std::vector<Vertice> vertices = {
+                    Vertice{ glm::vec3(-1.0f,-1.0f, 0.0f), glm::vec4(1,1,1,1), glm::vec2(0.0f, 0.0f) },
+                    Vertice{ glm::vec3( 1.0f,-1.0f, 0.0f), glm::vec4(1,1,1,1), glm::vec2(1.0f, 0.0f) },
+                    Vertice{ glm::vec3( 1.0f, 1.0f, 0.0f), glm::vec4(1,1,1,1), glm::vec2(1.0f, 1.0f) },
+                    Vertice{ glm::vec3(-1.0f, 1.0f, 0.0f), glm::vec4(1,1,1,1), glm::vec2(0.0f, 1.0f) },
+                };
+                std::vector<GLuint> indices = { 0, 1, 2, 0, 2, 3 };
+
+                auto info = std::make_shared<RectGeometryInfo>();
+                info->m_hasFill = true;
+                info->m_shader = m_basicShader;
+                info->m_texture = std::make_shared<Texture>(m_fboTexture); // non-owning wrapper around our own FBO color attachment
+
+                m_compositeQuad = std::make_shared<Rect>(info, vertices, indices);
+            }
+
+            glBindFramebuffer(GL_FRAMEBUFFER, glTarget->m_framebuffer);
+            glViewport(0, 0, glTarget->m_width, glTarget->m_height);
+
+            GLint texIndex = 0;
+            m_basicShader->useProgram();
+            m_basicShader->setInt("texture0", texIndex);
+            glm::mat4 identity(1.0f);
+            m_basicShader->setMat4("viewMatrix", identity); // quad is already in NDC — no projection needed, covers the target regardless of its size
+
+            m_compositeQuad->drawIndex(6); // binds m_fboTexture (via the non-owning wrapper) and draws — same call drawRaster uses
+
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        };
+        DrawablePtr createCompatibleOffscreenDrawable(int width, int height, int colorDepth=4) override final;
         
         // New stuff
         void setProjectionMatrix(const glm::dmat4& proj);
         void setViewMatrix(const glm::dmat4& viewMatrix);
         void setRenderOrigin(const Point& origin);
+        glm::dmat4 getProjectionMatrix() { return m_projectionMatrix; };
+        glm::dmat4 getViewMatrix() { return m_viewMatrix; };
+        Point getRenderOrigin() const { return m_renderOrigin; };
 
         // Methods
         const Transform& getTransform();
@@ -51,7 +116,6 @@ namespace BlueMarble
         void clearBuffer() override final;
         void swapBuffers();
         Raster getRaster() override final;
-        RendererImplementation renderer();
         void flushCache() override final;
     protected:
         #ifndef __EMSCRIPTEN__
@@ -74,8 +138,11 @@ namespace BlueMarble
         glm::dmat4 m_projectionMatrix;
         Point       m_renderOrigin;
         Color m_color;
-        BatchPtr lineBatch;
-        BatchPtr polyBatch;
+        BatchPtr lineBatch = nullptr;
+        BatchPtr polyBatch = nullptr;
+        GLuint m_framebuffer = 0;
+        GLuint m_fboTexture = 0;
+        RectPtr m_compositeQuad;
     };
     typedef std::shared_ptr<OpenGLDrawable> OpenGLDrawablePtr;
 

@@ -194,14 +194,16 @@ SymbolVisualizer::SymbolVisualizer()
 
 void SymbolVisualizer::renderPoints(Drawable& drawable, const std::vector<Point> &points, const FeaturePtr& feature, const FeaturePtr& source, Attributes& updateAttributes)
 {
-    double radius = m_sizeEval(feature, updateAttributes) / updateAttributes.get<double>(UpdateAttributeKeys::UpdateViewScale);
+    double size = m_sizeEval(feature, updateAttributes);
+    // TODO: add enum to determine if size is in pixels or meters
+    /// updateAttributes.get<double>(UpdateAttributeKeys::UpdateViewScale);
     Color color = m_colorEval(feature, updateAttributes);
     
     double rotation = m_rotationEval(feature, updateAttributes);
     for (auto& point : points)
     {
         //drawable.drawCircle(point.x(), point.y(), radius-3, color);
-        m_symbol.render(drawable, point, radius, color, rotation);
+        m_symbol.render(drawable, point, size, color, rotation);
     }
 }
 
@@ -447,6 +449,7 @@ void RasterVisualizer::renderFeature(Drawable& drawable, const FeaturePtr& featu
 
     auto geometry = feature->geometryAsRaster();
     double alpha = m_alphaEval(feature, updateAttributes);
+
     auto c = Color::white(alpha);
     drawable.drawRaster(geometry, Brush(std::vector<Color>{c, c, c, c}), updateArea);
 }

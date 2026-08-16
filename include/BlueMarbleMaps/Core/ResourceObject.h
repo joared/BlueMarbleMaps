@@ -1,5 +1,5 @@
-#ifndef BLUEMARBLE_RESOURCEOBJECT
-#define BLUEMARBLE_RESOURCEOBJECT
+#ifndef RESOURCEOBJECT
+#define RESOURCEOBJECT
 
 #include "BlueMarbleMaps/Core/EngineObject.h"
 
@@ -63,4 +63,4 @@ namespace BlueMarble
 
 }
 
-#endif /* BLUEMARBLE_RESOURCEOBJECT */
+#endif /* RESOURCEOBJECT */

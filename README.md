@@ -14,7 +14,7 @@ export EM_NODE_JS=$(which node)
 cd ../../
 mkdir build_web
 cd build_web
-emcmake cmake ..
+emcmake cmake -DCMAKE_BUILD_TYPE=Release ..
 cmake --build .
 
 copy ExampleImgui.html to bin folder (cant compile it, old version) 

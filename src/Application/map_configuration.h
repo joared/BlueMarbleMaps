@@ -3,9 +3,14 @@
 
 #include "BlueMarbleMaps/Core/Map.h"
 #include "BlueMarbleMaps/Core/Layer/StandardLayer.h"
+#include "BlueMarbleMaps/Core/Layer/WmsLayer.h"
 #include "BlueMarbleMaps/Core/Layer/TileLayer.h"
 #include "BlueMarbleMaps/Core/DataSets/DataSets.h"
 #include "BlueMarbleMaps/Core/Serialization/Json/JsonValue.h"
+
+#include <fstream>
+#include <regex>
+#include <sstream>
 
 using namespace BlueMarble;
 
@@ -232,50 +237,72 @@ void saveLayout(const MapPtr& mapView, const std::string& path)
     // for ()
 }
 
-void configureMap(const MapPtr& mapView)
+
+
+void configureMap(const MapControlPtr& mapControl,const MapPtr& mapView, const TileLayerPtr& backgroundLayer)
 {
-    const std::string commonIndexPath = "../../../bluemarble_index"; // Relative to the build/bin/<debug/release>/ folder
-    const DataSetInitializationType dataSetInitialization = DataSetInitializationType::BackgroundThread;
     const bool backgroundLayersSelectable = true;
-
-    const bool includeBackgroundRaster = true;
-    const bool includeContinents = false;
-    const bool includeCountries = false;
-    const bool includeRoadsEurope = false;
-    const bool includeSwedenRoads = false;
-    const bool includeMemoryDataSet = false;
-    bool asyncBackgroundReading = false; //NOTE: Will be set to false if using tilelayer below
-
+    const bool includeMemoryDataSet = true;
+    const bool includeBackgroundRaster = false;
+    const bool includeContinents = true;
+    const bool includeCountries = true;
+    const bool includeWms = true;
     const double minScaleCountries = 1.0/60000000.0;
+
+    bool includeRoadsEurope = true;
+    bool includeSwedenRoads = true;
+    bool asyncBackgroundReading = false; //NOTE: Will be set to false if using tilelayer below
+    DataSetInitializationType dataSetInitialization = DataSetInitializationType::BackgroundThread;
     
+    #ifdef __EMSCRIPTEN__
+    #define COMMON_INDEX_PATH "bluemarble_index" // Relative to the .html file, which is in build/bin/emscripten/
     #define USE_TILELAYER false
+    asyncBackgroundReading = false; // Threads not supported in emscripten, so async reading is not possible
+    includeRoadsEurope = false; // Not included in web build
+    includeSwedenRoads = false; // Not included in web build
+    dataSetInitialization = DataSetInitializationType::RightHereRightNow; // Async initialization not possible in emscripten
+    #else
+    #define USE_TILELAYER true
+    #define COMMON_INDEX_PATH "../../../bluemarble_index" // Relative to the build/bin/<debug/release>/ folder
+    #endif
+
 
     #if USE_TILELAYER
     asyncBackgroundReading = false;
-    auto map = std::make_shared<TileLayer>();
+    auto map = backgroundLayer;
     map->selectable(true);
     map->asyncRead(true);
-    mapView->addLayer(map);
     #else
-    auto map = mapView;
+    auto map = mapView; // Adding layers directly to the mapView instead of using a tile layer
     #endif
     
 
     addDataSetInitializationObserver(mapView);
 
+    if (includeWms)
+    {
+        auto wmsLayer = std::make_shared<WmsLayer>();
+        wmsLayer->url("https://geoserveis.icgc.cat/servei/catalunya/mapa-base/wms");
+        wmsLayer->layers("topografic");
+
+        map->addLayer(wmsLayer);
+    }
+
     if (includeBackgroundRaster)
     {
         #ifdef WIN32
         #define PATH_TO_FANNY_FILE "../../../bluemarble_index/backgroundmap.png"
-        #define PATH_TO_FANNY_FILE2 "../../../bluemarble_index/backgroundmap.png"
         #else 
+        #ifdef __EMSCRIPTEN__
+        #define PATH_TO_FANNY_FILE std::string(COMMON_INDEX_PATH) + "/ablue_marble_256.jpg"
+        #else
         #define PATH_TO_FANNY_FILE "../../../geodata/NE2_HR_LC_SR_W_DR/NE2_HR_LC_SR_W_DR.tif"
-        //#define PATH_TO_FANNY_FILE2 "../../../geodata/SR_HR/SR_HR.tif"
-        #define PATH_TO_FANNY_FILE2 "Shaders/ablue_marble_256.jpg"
+        #endif
         #endif
 
-        std::vector<std::pair<std::string, double>> files = {//{PATH_TO_FANNY_FILE, 1.0},
-                                                             {PATH_TO_FANNY_FILE2, 0.7}};
+        std::vector<std::pair<std::string, double>> files = {
+            {PATH_TO_FANNY_FILE, 0.7},
+        };
         
         for (const auto& [file, alpha] : files)
         {
@@ -300,9 +327,9 @@ void configureMap(const MapPtr& mapView)
         auto northAmerica = std::make_shared<BlueMarble::GeoJsonFileDataSet>("../../../geodata/world_geojson/northamerica_high_fixed.geo.json");
         auto southAmerica = std::make_shared<BlueMarble::GeoJsonFileDataSet>("../../../geodata/world_geojson/southamerica_high.geo.json");
         auto world = std::make_shared<BlueMarble::GeoJsonFileDataSet>("../../../geodata/world_geojson/world_high.geo.json");
-        northAmerica->indexPath(commonIndexPath);
-        southAmerica->indexPath(commonIndexPath);
-        world->indexPath(commonIndexPath);
+        northAmerica->indexPath(COMMON_INDEX_PATH);
+        southAmerica->indexPath(COMMON_INDEX_PATH);
+        world->indexPath(COMMON_INDEX_PATH);
         northAmerica->initialize(dataSetInitialization);
         southAmerica->initialize(dataSetInitialization);
         world->initialize(dataSetInitialization);
@@ -323,7 +350,7 @@ void configureMap(const MapPtr& mapView)
     {
         // Dataset
         auto continents = std::make_shared<BlueMarble::GeoJsonFileDataSet>("../../../geodata/continents/continents.json");
-        continents->indexPath(commonIndexPath);
+        continents->indexPath(COMMON_INDEX_PATH);
         continents->initialize(dataSetInitialization);
         
         // Layer
@@ -341,7 +368,7 @@ void configureMap(const MapPtr& mapView)
         // Dataset
         auto roadsDataSet = std::make_shared<BlueMarble::GeoJsonFileDataSet>("../../../geodata/roads_geojson/europe-road.geojson"); 
         roadsDataSet->name("Roads Europe");
-        roadsDataSet->indexPath(commonIndexPath);
+        roadsDataSet->indexPath(COMMON_INDEX_PATH);
         roadsDataSet->initialize(dataSetInitialization);
 
         // Layer
@@ -359,7 +386,7 @@ void configureMap(const MapPtr& mapView)
         // Dataset
         auto sverigeRoadsDataSet = std::make_shared<BlueMarble::GeoJsonFileDataSet>("../../../geodata/svenska_vagar/hotosm_swe_roads_lines_geojson.geojson"); 
         sverigeRoadsDataSet->name("Roads Sweden");
-        sverigeRoadsDataSet->indexPath(commonIndexPath);
+        sverigeRoadsDataSet->indexPath(COMMON_INDEX_PATH);
         sverigeRoadsDataSet->initialize(dataSetInitialization); // Takes very long to initialize (1.4 GB large)
 
         // Layer

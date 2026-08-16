@@ -290,12 +290,29 @@ namespace BlueMarble
                 m_yMax += offsetY;
             }
 
+            inline Rectangle extended(double offsetX, double offsetY) const
+            {
+                return Rectangle(m_xMin-offsetX, m_yMin-offsetY, m_xMax+offsetX, m_yMax+offsetY);
+            }
+
             inline void extend(double x, double y)
             {
                 m_xMin -= x;
                 m_xMax += x;
                 m_yMin -= y;
                 m_yMax += y;
+            }
+
+            inline Rectangle scaled(double scale) const
+            {
+                auto c = center();
+                double newWidth = width()*scale;
+                double newHeight = height()*scale;
+                
+                return Rectangle(c.x() - newWidth*0.5, 
+                                 c.y() - newHeight*0.5, 
+                                 c.x() + newWidth*0.5, 
+                                 c.y() + newHeight*0.5);
             }
 
             inline void scale(double scale)

@@ -22,6 +22,7 @@ namespace BlueMarble
         virtual FeatureEnumeratorPtr getFeatures(const CrsPtr& crs, const FeatureQuery& featureQuery, bool activeLayersOnly) override final;
 
         void addLayer(const LayerPtr& layer) { m_subLayers.push_back(layer); }
+        void removeLayer(const LayerPtr& layer);
         const std::vector<LayerPtr>& layers() const { return m_subLayers; }
         std::vector<LayerPtr>& layers() { return m_subLayers; }
 
