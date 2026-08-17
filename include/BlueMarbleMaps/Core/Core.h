@@ -423,6 +423,7 @@ namespace BlueMarble
 
     inline int64_t getTimeStampMs()
     {
+        static int64_t firstTimeStamp = -1;
         auto now = std::chrono::high_resolution_clock::now();
 
         // Convert the time point to a duration in milliseconds
@@ -432,7 +433,12 @@ namespace BlueMarble
         auto epoch = now_ms.time_since_epoch();
         int64_t milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(epoch).count();
 
-        return milliseconds;
+        if (firstTimeStamp == -1)
+        {
+            firstTimeStamp = milliseconds;
+        }
+
+        return milliseconds-firstTimeStamp;
     }
 } // namespace BlueMarble
 

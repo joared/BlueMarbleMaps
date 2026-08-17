@@ -282,10 +282,39 @@ void configureMap(const MapControlPtr& mapControl,const MapPtr& mapView, const T
     if (includeWms)
     {
         auto wmsLayer = std::make_shared<WmsLayer>();
-        wmsLayer->url("https://geoserveis.icgc.cat/servei/catalunya/mapa-base/wms");
-        wmsLayer->layers("topografic");
+        // wmsLayer->url("https://geoserveis.icgc.cat/servei/catalunya/mapa-base/wms");
+        // wmsLayer->layers("topografic");
+        // wmsLayer->layers("orto");
 
-        map->addLayer(wmsLayer);
+        // wmsLayer->url("https://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms?");
+        // wmsLayer->layers("ortofoto_color_2025");
+
+        // GetMap example: https://tiles.maps.eox.at/map?FSERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=s2cloudless-2024_3857&STYLES=&CRS=EPSG:3857&BBOX=1200000,7000000,2200000,8000000&WIDTH=1024&HEIGHT=1024&FORMAT=image/jpeg&TRANSPARENT=TRUE
+        // Capabilities: https://tiles.maps.eox.at/map?FSERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabilities
+        wmsLayer->url("https://tiles.maps.eox.at/map?");
+        // bluemarble
+        // coastline
+        // streets_3857
+        // blackmarble_3857
+        // hydrography_3857
+        // terrain-light_3857
+        // overlay_base
+        // s2cloudless-2025_3857
+
+        wmsLayer->layers("s2cloudless-2025_3857,overlay_3857,streets_3857");
+
+        // More efficient to put in separate tilelayer since the background 
+        // workers dont need to render prerendered rasters
+        auto tileLayer = std::make_shared<TileLayer>();
+        int nWorkers = 4;
+        tileLayer->setNumWorkers(nWorkers);
+        tileLayer->setQueueSize(1); //(int)(nWorkers / 2.0));
+        tileLayer->addLayer(wmsLayer);
+
+        mapView->layers().insert(
+            mapView->layers().begin(),
+            tileLayer
+        );
     }
 
     if (includeBackgroundRaster)

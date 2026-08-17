@@ -488,6 +488,9 @@ namespace BlueMarble
 
             bool onMouseMove(const BlueMarble::MouseMoveEvent& event) override final
             {
+                const bool hotTrackingEnabled = false;
+                if (!hotTrackingEnabled) return false;
+
                 auto pObjs = m_map->hitTest(event.pos.x, event.pos.y, 10.0);
                 BlueMarble::FeaturePtr hoverFeature(nullptr);
                 if (pObjs.size() > 0)

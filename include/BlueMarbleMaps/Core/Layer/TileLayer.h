@@ -53,6 +53,24 @@ namespace BlueMarble
         }
     };
 
+    inline bool operator<(const Tile& a, const Tile& b)
+    {
+        return a.id() < b.id();
+    }
+
+    // struct TileCompare
+    // {
+    //     bool operator()(const Tile& a, const Tile& b) const
+    //     {
+    //         auto prioA = a.task.priority();
+    //         auto prioB = b.task.priority();
+    //         if (prioA != prioB)
+    //             return prioA > prioB; // highest first
+
+    //         return a.sequence < b.sequence; // oldest first for equal priority
+    //     }
+    // };
+
     // struct TileHash
     // {
     //     std::size_t operator()(const Tile& t) const
@@ -208,8 +226,13 @@ namespace BlueMarble
         virtual FeatureEnumeratorPtr prepare(const CrsPtr &crs, const FeatureQuery& featureQuery) override final;
         virtual void update(const MapPtr& map, const FeatureEnumeratorPtr& features, const FeatureQuery& featureQuery) override final;
         virtual void flushCache() override final;
+
+        void setNumWorkers(int nWorkers);
+        void setTileSize(int tileSize);
+        void setQueueSize(int queueSize);
     private:
         void verifyValidSubLayers();
+        FeatureQuery createTileQuery(const Tile& tile, const CrsPtr& crs, const FeatureQuery& currQuery) const;
         void scheduleTileLoad(const Tile& tile, const CrsPtr& crs, const FeatureQuery& tileQuery);
         void renderTile(Tile& cachedTile, const CrsPtr& crs, const FeatureQuery& featureQuery);
         FeatureEnumeratorPtr thinFeatures(const FeatureEnumeratorPtr& features, double unitsPerPixel, const Rectangle& tileArea) const;
@@ -220,6 +243,8 @@ namespace BlueMarble
         void cleanCache();
 
         System::ThreadPool              m_threadPool;
+        int                             m_numWorkers;
+        int                             m_queueSize;
         std::unique_ptr<TileManager>    m_tileManager;
         bool                            m_readAsync;
         mutable std::mutex              m_mutex; // Mutex for synchronizing access to the tile cache

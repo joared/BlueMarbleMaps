@@ -6,8 +6,8 @@
 using namespace BlueMarble;
 
 #define TILELAYER_TILE_SIZE 512
-#define TILELAYER_NUM_WORKERS std::thread::hardware_concurrency()
-#define TILELAYER_QUEUE_SIZE 8
+#define TILELAYER_NUM_WORKERS 2//std::thread::hardware_concurrency()
+#define TILELAYER_QUEUE_SIZE 2
 #define TILELAYER_QUEUE_POLICY System::ThreadPool::QueuePolicy::ReplaceOldestWhenFull
 
 TileManager::TileManager(const Rectangle& fullExtent)
@@ -124,9 +124,16 @@ void TileManager::removeTile(const Tile &tile)
     m_tileCache.erase(tile.id());
 }
 
+namespace 
+{
+    constexpr int AlphaFadeTimeMs = 1000; // TODO: make configurable
+}
+
 TileLayer::TileLayer()
     : LayerSet()
     , m_threadPool()
+    , m_numWorkers(TILELAYER_NUM_WORKERS)
+    , m_queueSize(TILELAYER_QUEUE_SIZE)
     , m_tileManager(nullptr)
     , m_readAsync(true)
     , m_tileSize(TILELAYER_TILE_SIZE)
@@ -135,12 +142,12 @@ TileLayer::TileLayer()
 {
     m_tileVisualizer->alpha([](FeaturePtr feature, Attributes& updateAttributes)
     {
-        constexpr int alphaFadeTimeMs = 1000; // TODO: make configurable
+        
         int timeSinceLoadMs = updateAttributes.get<int>(UpdateAttributeKeys::UpdateTimeMs) - feature->attributes().get<int>(FeatureAttributeKeys::TileLoadTimeMs, -std::numeric_limits<int>::max());
         double alpha = 1.0;
-        if (timeSinceLoadMs > 0 && timeSinceLoadMs < alphaFadeTimeMs)
+        if (timeSinceLoadMs > 0 && timeSinceLoadMs < AlphaFadeTimeMs)
         {
-            alpha = (double)timeSinceLoadMs / (double)alphaFadeTimeMs;
+            alpha = (double)timeSinceLoadMs / (double)AlphaFadeTimeMs;
             updateAttributes.set<bool>(UpdateAttributeKeys::UpdateRequired, true);
         } 
 
@@ -153,7 +160,7 @@ TileLayer::TileLayer()
     if (m_readAsync)
     {
         // TODO: make these parameters configurable
-        m_threadPool.start(TILELAYER_NUM_WORKERS, TILELAYER_QUEUE_SIZE, TILELAYER_QUEUE_POLICY);
+        m_threadPool.start(m_numWorkers, m_queueSize, TILELAYER_QUEUE_POLICY);
         
         // TODO: add pruning of cache to prevent memory explosion
         // m_threadPool.enqueue([this]{
@@ -171,7 +178,7 @@ void TileLayer::asyncRead(bool async)
     }
     else if (!m_readAsync && async)
     {
-        m_threadPool.start(TILELAYER_NUM_WORKERS, TILELAYER_QUEUE_SIZE, TILELAYER_QUEUE_POLICY);
+        m_threadPool.start(m_numWorkers, m_queueSize, TILELAYER_QUEUE_POLICY);
     }
 
     m_readAsync = async;
@@ -216,9 +223,12 @@ FeatureEnumeratorPtr TileLayer::prepare(const CrsPtr &crs, const FeatureQuery &f
         enumerator->addEnumerator(std::make_shared<FeatureEnumerator>());   
     }
 
+    std::set<Tile> parentTiles;
+
     std::unordered_map<Id, bool, Id::IdHash> featuresAdded; // Used to avoid adding the same feature multiple times if it appears in multiple tiles
     
     // std::lock_guard lock(m_mutex);
+    int64_t currTimeStamp = featureQuery.updateAttributes()->get<int>(UpdateAttributeKeys::UpdateTimeMs);
     std::lock_guard lock(m_mutex);
     for (Tile& tile : tiles)
     {
@@ -240,22 +250,64 @@ FeatureEnumeratorPtr TileLayer::prepare(const CrsPtr &crs, const FeatureQuery &f
             tileQuery.resolution(unitsPerPixel);
 
             scheduleTileLoad(tile, crs, tileQuery);
+
+            const bool preLoadParent = true;
+            if (preLoadParent)
+            {
+                Tile parent = tile;
+                while (m_tileManager->parentOf(parent, parent))
+                {
+                    if (!m_tileManager->hasTile(parent))
+                    {
+                        auto parentQuery = std::move(createTileQuery(parent, crs, featureQuery));
+                        scheduleTileLoad(parent, crs, parentQuery);
+                    }
+
+                    break;
+                }
+            }
         }
 
+        
+        bool addParent = m_cacheAsBitmaps
+                         && !m_tileManager->hasLoadedTile(tile);
 
-        if (!m_tileManager->hasLoadedTile(tile))
+        bool isTileShowingUp = false;
+        if (m_tileManager->hasLoadedTile(tile))
         {
-            // Almost working
-            // Tile parent = tile;
-            // while (m_tileManager->parentOf(parent, parent))
-            // {
-            //     if (m_tileManager->hasLoadedTile(parent))
-            //     {
-            //         // BMM_DEBUG() << "Found PARENT of " << tile.toString() << ": " << parent.toString() << "\n";
-            //         tile = parent;
-            //         break;
-            //     }
-            // }
+            const auto& cachedTile = m_tileManager->getCachedTile(tile);
+            isTileShowingUp = (currTimeStamp - cachedTile.timestamp < AlphaFadeTimeMs);
+        }
+
+        if (addParent || isTileShowingUp)
+        {
+            if (isTileShowingUp)
+            {
+                const auto& cachedTile = m_tileManager->getCachedTile(tile);
+                int64_t timeSinceLoad = currTimeStamp - cachedTile.timestamp;
+                BMM_DEBUG() << "Curr time stamp: " << currTimeStamp << "\n";
+                BMM_DEBUG() << "Tile load time stamp: " << cachedTile.timestamp << "\n";
+                BMM_DEBUG() << "Tile showing up: " << isTileShowingUp << " (" << timeSinceLoad << ")\n";
+            }
+            
+            // Walk up the hierarchy to find the nearest fully-opaque loaded parent
+            Tile parent = tile;
+            while (m_tileManager->parentOf(parent, parent))
+            {
+                if (!m_tileManager->hasLoadedTile(parent))
+                    continue;
+
+                const auto& cachedParent = m_tileManager->getCachedTile(parent);
+                bool isParentShowingUp = (currTimeStamp - cachedParent.timestamp < AlphaFadeTimeMs);
+                
+                parentTiles.emplace(cachedParent);
+                
+                if (!isParentShowingUp)
+                {
+                    break;
+                }
+                // Parent is also fading in — try grandparent
+            }
         }
 
         if (m_tileManager->hasLoadedTile(tile))
@@ -305,6 +357,18 @@ FeatureEnumeratorPtr TileLayer::prepare(const CrsPtr &crs, const FeatureQuery &f
         }
     }
 
+    if (m_cacheAsBitmaps)
+    {
+        FeatureEnumeratorPtr parentEnumerator = std::make_shared<FeatureEnumerator>();
+        parentEnumerator->addEnumerator(enumerator);
+        
+        for (auto t : parentTiles)
+        {
+            parentEnumerator->add(t.cachedBitmapFeature);
+        }
+
+        return parentEnumerator;
+    }
     return enumerator;
 }
 
@@ -374,7 +438,25 @@ void TileLayer::flushCache()
     
     LayerSet::flushCache();
 
-    m_threadPool.start(TILELAYER_NUM_WORKERS, TILELAYER_QUEUE_SIZE, TILELAYER_QUEUE_POLICY);
+    m_threadPool.start(m_numWorkers, m_queueSize, TILELAYER_QUEUE_POLICY);
+}
+
+void TileLayer::setNumWorkers(int nWorkers)
+{
+    m_numWorkers = nWorkers;
+    flushCache();
+}
+
+void TileLayer::setTileSize(int tileSize)
+{
+    m_tileSize = tileSize;
+    flushCache();
+}
+
+void TileLayer::setQueueSize(int queueSize)
+{
+    m_queueSize = queueSize;
+    flushCache();
 }
 
 void TileLayer::verifyValidSubLayers()
@@ -415,7 +497,31 @@ void TileLayer::verifyValidSubLayers()
     }
 }
 
-void TileLayer::scheduleTileLoad(const Tile& tile, const CrsPtr& crs, const FeatureQuery& tileQuery)
+FeatureQuery TileLayer::createTileQuery(const Tile& tile, const CrsPtr& crs, const FeatureQuery& currQuery) const
+{
+    int tileSize = m_tileSize;
+    int zoom = tile.zoom;
+    double zoom0Resolution = crs->bounds().width() / (double)tileSize;
+    double unitsPerPixel = zoom0Resolution / std::pow(2.0, zoom); // clamp unitsperpix
+
+    auto tileQuery = currQuery;
+            
+    double clampedScale = Drawable::pixelSize() / crs->globalMetersPerUnit() / (zoom0Resolution / std::pow(2.0, zoom));
+
+    tileQuery.area(m_tileManager->tileBounds(tile.x, tile.y, tile.zoom));
+    tileQuery.scale(clampedScale);
+
+    // TODO: Needs debugging together with ImageDataSet::onGetFeatures()
+    // Its needed when crs differ, but seems slower if theyre not.
+    // For datasets that dont have the same crs as requested, its unnecessary to do "clone"
+    // when reqprojecting since we get a copy anyway.
+    tileQuery.rasterGeometryMode(FeatureQuery::RasterGeometryMode::Clipped);
+    tileQuery.resolution(unitsPerPixel);
+
+    return tileQuery;
+}
+
+void TileLayer::scheduleTileLoad(const Tile &tile, const CrsPtr &crs, const FeatureQuery &tileQuery)
 {
     // NOTE: this method assumes that the guard has been taken
     if (m_tileManager->hasTile(tile))
@@ -429,7 +535,7 @@ void TileLayer::scheduleTileLoad(const Tile& tile, const CrsPtr& crs, const Feat
             .task = [this, tile, crs, tileQuery]()
             {
                 // BMM_DEBUG() << "LOADING TILE: " << tile.toString() << "\n";
-                //std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // Simulate loading time
+                // std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // Simulate loading time
                 // FIXME: if datasets have not been initialized, the enumerator will not include all features
                 auto enumerator = LayerSet::getFeatures(crs, tileQuery, true);
                 
@@ -505,6 +611,23 @@ void BlueMarble::TileLayer::renderTile(Tile& cachedTile, const CrsPtr& crs, cons
     /////////////////////////////////////////////////////////
     // Render on a bitma
     /////////////////////////////////////////////////////////
+    auto enumerator = cachedTile.features;
+    if (enumerator->size() == 1)
+    {
+        enumerator->moveNext();
+        auto rasterFeature = enumerator->current();
+        if (rasterFeature->geometryType() == GeometryType::Raster)
+        {
+            BMM_DEBUG() << "Already a raster feature, no need to render\n";
+            cachedTile.cachedBitmapFeature = rasterFeature;
+            return;
+        }
+        else
+        {
+            enumerator->reset();
+        }
+    }
+
 
     int tileSize = m_tileSize;
     double zoom0Resolution = crs->bounds().width() / (double)tileSize;

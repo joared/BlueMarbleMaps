@@ -522,6 +522,8 @@ int main()
     // view->crs(Crs::wgs84MercatorWeb());
     // Configure some background layers
     auto backgroundLayer = std::make_shared<TileLayer>();
+    backgroundLayer->setNumWorkers(1);
+    backgroundLayer->setQueueSize(1);
     view->addLayer(backgroundLayer);
     configureMap(mapControl, view, backgroundLayer);
 
