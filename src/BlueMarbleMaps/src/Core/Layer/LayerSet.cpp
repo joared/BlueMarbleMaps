@@ -1,4 +1,5 @@
 #include "BlueMarbleMaps/Core/Layer/LayerSet.h"
+#include "BlueMarbleMaps/Core/Map.h"
 
 
 using namespace BlueMarble;
@@ -10,13 +11,19 @@ LayerSet::LayerSet()
 
 void LayerSet::hitTest(const MapPtr& map, const Rectangle& bounds, std::vector<PresentationObject>& presObjects)
 {
-    if (!selectable())
-    {
-        return;
-    }
+    FeatureQuery featureQuery;
+    featureQuery.area(bounds);
+    featureQuery.scale(map->scale());
+    featureQuery.updateAttributes(&map->updateAttributes());
 
-     for (const auto& l : m_subLayers)
+    for (const auto& l : m_subLayers)
     {
+        if (!l->selectable() ||
+            !l->isActiveForQuery(featureQuery))
+        {
+            continue;;
+        }
+        
         l->hitTest(map, bounds, presObjects);
     }
 }
@@ -24,6 +31,11 @@ void LayerSet::hitTest(const MapPtr& map, const Rectangle& bounds, std::vector<P
 FeatureEnumeratorPtr LayerSet::prepare(const CrsPtr &crs, const FeatureQuery &featureQuery)
 {
     auto e = std::make_shared<FeatureEnumerator>();
+
+    if (!isActiveForQuery(featureQuery))
+    {
+        return e;
+    }
 
     for (const auto& l : m_subLayers)
     {
@@ -48,6 +60,13 @@ void LayerSet::update(const MapPtr& map, const FeatureEnumeratorPtr& features, c
 FeatureEnumeratorPtr LayerSet::getFeatures(const CrsPtr &crs, const FeatureQuery& featureQuery, bool activeLayersOnly)
 {
     auto enumerator = std::make_shared<FeatureEnumerator>();
+
+    if (activeLayersOnly &&
+        !isActiveForQuery(featureQuery))
+    {
+        return enumerator;
+    }
+
     for (const auto& l : m_subLayers)
     {
         enumerator->addEnumerator(l->getFeatures(crs, featureQuery, activeLayersOnly));

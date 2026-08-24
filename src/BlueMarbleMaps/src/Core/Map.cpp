@@ -6,6 +6,9 @@
 #include "BlueMarbleMaps/Core/SoftwareDrawable.h"
 #include "BlueMarbleMaps/Logging/Logging.h"
 
+#include "BlueMarbleMaps/Core/OpenGLDrawable.h"
+#include "Platform/OpenGL/Mesh.h"
+
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -144,12 +147,20 @@ void Map::renderLayers()
 
     FeatureQuery featureQuery = std::move(produceUpdateQuery());
 
+    // Switch drawable to offscreen for layers
+    auto originalDrawable = m_drawable;
+    // m_drawable = m_offscreenDrawable; // // TODO: add back
+
     for (const auto& l : m_layers)
     {
         // TODO add "ViewInfo" as parameter to Layer::update()?
         //l->update(shared_from_this(), getCrs(), featureQuery);
         renderLayer(l, featureQuery);
     }
+    
+    m_drawable = originalDrawable;
+
+    // drawTestElevationMesh(); // TODO: add back
 
     m_drawable->makeCurrent();
     // Debug draw update area
@@ -712,7 +723,7 @@ DrawablePtr Map::drawable()
     return m_drawable;
 }
 
-void Map::drawable(const DrawablePtr &drawable)
+void Map::drawable(const DrawablePtr& drawable)
 {
     bool sizeChanged = false;
     if (m_drawable)
@@ -724,6 +735,7 @@ void Map::drawable(const DrawablePtr &drawable)
     }
 
     m_drawable = drawable;
+    m_offscreenDrawable = drawable->createCompatibleOffscreenDrawable(m_drawable->width(), m_drawable->height());
     drawable->makeCurrent();
 
     if (sizeChanged)
@@ -732,6 +744,13 @@ void Map::drawable(const DrawablePtr &drawable)
 
 void Map::resize(int width, int height)
 {
+    if (m_offscreenDrawable)
+    {
+        m_offscreenDrawable->makeCurrent();
+        m_offscreenDrawable->resize(width, height);
+    }
+    
+    m_drawable->makeCurrent();
     m_drawable->resize(width, height);
     m_camera->setViewPortSize(width, height);
     if (m_cameraController)
@@ -742,6 +761,12 @@ void Map::resize(int width, int height)
 
 void Map::flushCache()
 {
+    if (m_offscreenDrawable)
+    {
+        m_offscreenDrawable->makeCurrent();
+        m_offscreenDrawable->flushCache();
+    }
+    
     m_drawable->makeCurrent();
     m_drawable->flushCache();
     for (const auto& l : m_layers)
@@ -849,12 +874,111 @@ void Map::beforeRender()
 
     m_drawable->makeCurrent();
     m_drawable->clearBuffer();
+
+    if (m_offscreenDrawable)
+    {
+        m_offscreenDrawable->makeCurrent();
+        m_offscreenDrawable->clearBuffer();
+        m_offscreenDrawable->resize(m_drawable->width(), m_drawable->height());
+    }
+
     setDrawableFromCamera(m_camera);
+
+    // Give the offscreen drawable a flat, straight-down orthographic camera instead of the live
+    // (possibly tilted/rotated) m_camera -- same pattern TileLayer::renderTile() uses for its
+    // per-tile offscreen renders. Otherwise the offscreen texture already bakes the live camera's
+    // tilt/rotation into its pixels once, and then drawing the elevation mesh through that same
+    // tilted camera again applies the tilt a second time -- that's the "offset and rotated" bug.
+    if (m_offscreenDrawable)
+    {
+        double unitsPerPixel = Drawable::pixelSize() / crs()->globalMetersPerUnit() / scale();
+
+        auto orthoProj = OrthographicCameraProjection((int)w, (int)h, -1.0, 1.0, unitsPerPixel);
+        m_offscreenDrawable->setProjectionMatrix(orthoProj.projectionMatrix());
+        m_offscreenDrawable->setViewMatrix(glm::dmat4(1.0));
+        m_offscreenDrawable->setRenderOrigin(Point(crs()->bounds().center().x(), crs()->bounds().center().y(), 0.0));
+    }
+    
+    // // Temporary: force a fixed, straight-down 2D view for this offscreen render, independent of
+    // // whatever the live camera is currently doing (tilt/rotation/orbit). The orthographic projection
+    // // above already encodes the tile's scale (unitsPerPixel); an identity view matrix means no
+    // // rotation/tilt gets applied on top of it, so panning/tilting the live camera shouldn't change
+    // // how this layer's own content looks once composited back in via blitTo.
+    // offscreenDrawable->setProjectionMatrix(proj);
+    // offscreenDrawable->setViewMatrix(glm::dmat4(1.0));
+    // offscreenDrawable->setRenderOrigin(Point(area.center().x(), area.center().y(), 0.0)); // must come after setViewMatrix — it resets renderOrigin to (0,0,0) as a side effect
+
 }
 
 void Map::afterRender()
 {
     // m_drawable->swapBuffers();
+}
+
+void Map::drawTestElevationMesh()
+{
+    auto offd = std::dynamic_pointer_cast<OpenGLDrawable>(m_offscreenDrawable);
+    if (!offd) return;
+
+    static MeshPtr m_testMesh;
+    if (true)
+    {
+        int gridSize = 64;
+        
+        auto heights = Mesh::generateProceduralHeights(gridSize, gridSize, 500000.0 / crs()->globalMetersPerUnit());
+        Rectangle bounds = crs()->bounds();
+        m_testMesh = std::make_shared<Mesh>(gridSize, gridSize, bounds.xMin(), bounds.yMin(), bounds.width(), bounds.height(), heights, offd->getFboTexture());
+    }
+    m_testMesh->setTexture(offd->getFboTexture());
+    
+    auto d = m_drawable;
+    auto c = camera();
+
+    // setDrawableFromCamera(camera());
+    d->setProjectionMatrix(c->projectionMatrix());
+    d->setViewMatrix(c->viewMatrix());
+
+    d->makeCurrent();
+    glm::mat4 viewProj = glm::mat4(d->getProjectionMatrix() * d->getViewMatrix());
+    m_testMesh->draw(viewProj);
+
+    //     auto offd = std::dynamic_pointer_cast<OpenGLDrawable>(m_offscreenDrawable);
+    // if (!offd) return;
+
+    // auto c = camera();
+    // auto renderOrigin = c->translation(); // same render origin OpenGLDrawable::createPoint() subtracts for every layer
+
+    // static MeshPtr m_testMesh;
+    // if (true)
+    // {
+    //     int gridSize = 64;
+
+    //     auto heights = Mesh::generateProceduralHeights(gridSize, gridSize, 500000.0 / crs()->globalMetersPerUnit());
+    //     Rectangle bounds = crs()->bounds();
+    //     // Build vertices relative to the current render origin instead of raw absolute world
+    //     // coordinates: Web Mercator coordinates run into the tens of millions of meters, and
+    //     // stuffing that directly into float32 vertices/matrices (as this used to do, combined
+    //     // with the full translation-inclusive c->viewMatrix() below) loses enough precision to
+    //     // visibly jitter/shear as the camera moves -- looks like the texture "rotates" relative
+    //     // to the mesh when panning/zooming. Every other draw path in this codebase avoids this
+    //     // by subtracting the render origin in double precision on the CPU first; do the same here.
+    //     double originX = bounds.xMin() - renderOrigin.x();
+    //     double originY = bounds.yMin() - renderOrigin.y();
+    //     m_testMesh = std::make_shared<Mesh>(gridSize, gridSize, originX, originY, bounds.width(), bounds.height(), heights, offd->getFboTexture());
+    // }
+    // m_testMesh->setTexture(offd->getFboTexture());
+
+    // auto d = m_drawable;
+
+    // // Rotation-only, matching setDrawableFromCamera()/createPoint()'s convention -- translation
+    // // is already baked into the mesh's vertices above via renderOrigin, so applying it again here
+    // // (as the old c->viewMatrix() did) would double-count it.
+    // d->setProjectionMatrix(c->projectionMatrix());
+    // d->setViewMatrix(glm::transpose(c->rotationMatrix()));
+
+    // d->makeCurrent();
+    // glm::mat4 viewProj = glm::mat4(d->getProjectionMatrix() * d->getViewMatrix());
+    // m_testMesh->draw(viewProj);
 }
 
 void Map::drawDebugInfo(int elapsedMs)

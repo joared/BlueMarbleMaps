@@ -35,6 +35,13 @@ Raster::Raster(const std::string& filePath)
 {
 }
 
+Raster Raster::decode(const unsigned char* data, size_t size)
+{
+    Raster raster;
+    raster.m_impl = std::make_unique<Impl>(data, size);
+    return raster;
+}
+
 // Needed for unique pointer to m_impl to work
 Raster::~Raster() = default;
  

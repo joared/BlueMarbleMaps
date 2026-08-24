@@ -37,7 +37,11 @@ using namespace BlueMarble;
 class Gui
 {
 private:
-    MapControl* m_mapControl;
+    MapControl*     m_mapControl;
+
+public: // Events
+    Signal<Point>   onGoToClicked;
+    Signal<>        onReloadClicked;
 public:
     Gui()
     : m_mapControl(nullptr)
@@ -156,6 +160,8 @@ public:
         {
             static float f = 0.0f;
             static int counter = 0;
+            static double lat = 0;
+            static double lng = 0;
 
             ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
 
@@ -186,6 +192,18 @@ public:
             ImGui::Text("counter = %d", counter);
 
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+            ImGui::InputDouble("Lat", &lat);
+            ImGui::InputDouble("Long", &lng);
+            if (ImGui::Button("Go to"))
+            {
+                onGoToClicked.notify(Point(lng, lat));
+            }
+
+            if (ImGui::Button("Reload config"))
+            {
+                onReloadClicked.notify();
+            }
+
             ImGui::End();
         }
 
@@ -243,6 +261,21 @@ public:
     void init2()
     {
         gui.init((GLFWwindow*)getWindow(), this);
+        gui.onGoToClicked += [this](Point lngLat)
+        {
+            BMM_DEBUG() << "MapControl: onGoToClicked\n";
+            auto view = getView();
+            if (!view) return;
+            auto point = Crs::wgs84LngLat()->projectTo(view->crs(), lngLat);
+            view->panTo(point);
+            view->update();
+        };
+        gui.onReloadClicked += [this]()
+        {
+            BMM_DEBUG() << "MapControl: onReloadClicked\n";
+            loadConfig();
+            updateView();
+        };
     }
 
     int64_t setTimer(int64_t interval) override final
@@ -434,7 +467,103 @@ public:
         return (void*)getGLFWWindowHandle();
     }
 
-    void loop() 
+    void loadConfig()
+    {
+        constexpr auto confPath = "bmm_config.json";
+
+        auto createWmsTileLayer = [](std::string name)
+        {
+            const bool cacheWmsTileLayerOnDisk = false;
+            // More efficient to put in separate tilelayer since the background 
+            // workers dont need to render prerendered rasters
+            auto tileLayer = std::make_shared<TileLayer>();
+            
+
+            tileLayer->setCachePath(cacheWmsTileLayerOnDisk ? std::string(COMMON_INDEX_PATH) + "/tilecache" : "");
+            tileLayer->name(name);
+            int nWorkers = cacheWmsTileLayerOnDisk ? 4 : std::thread::hardware_concurrency(); // Disk read/write seems to slow the computer down more
+            tileLayer->setNumWorkers(nWorkers);
+            tileLayer->setQueueSize(nWorkers); //(int)(nWorkers / 2.0));
+            //tileLayer->setTileSize(256);
+
+            return tileLayer;
+        };
+
+        static auto backgroundLayer = std::make_shared<TileLayer>();
+        static auto wmsTileLayer = createWmsTileLayer("background_wms");
+
+        if (!getView())
+        {
+            auto view = std::make_shared<Map>();
+            setView(view);
+            view->drawable()->backgroundColor(Color(120,170,255,0));
+
+            auto backgroundLayer = std::make_shared<TileLayer>();
+            backgroundLayer->name("background");
+            backgroundLayer->setNumWorkers(1);
+            backgroundLayer->setQueueSize(1);
+            view->addLayer(backgroundLayer);
+
+            view->addLayer(wmsTileLayer);
+
+            configureMap(shared_from_this(), view, backgroundLayer, wmsTileLayer);
+            backgroundLayer->enabled(!backgroundLayer->layers().empty());
+
+            BMM_DEBUG() << "Setting up tools\n";
+            //auto tool = std::make_shared<OttoTool>();
+            auto toolSet = std::make_shared<ToolSet>();
+            toolSet->addSubTool(std::make_shared<EditFeatureTool>());
+            toolSet->addSubTool(std::make_shared<PointerTracerTool>());    
+            toolSet->addSubTool(std::make_shared<GpxVisualizerTool>());
+            toolSet->addSubTool(std::make_shared<KeyActionTool>(backgroundLayer));
+            toolSet->addSubTool(std::make_shared<DebugEventHandler>());
+            toolSet->addSubTool(std::make_shared<CameraControllerTwoHalfD>());
+
+            setTool(toolSet);
+        }
+
+        {
+            // Load WMS config from json configuration file
+            auto json = JsonValue::fromString(File::readAsString(confPath));
+            if (!json.hasValue())
+            {
+                BMM_DEBUG() << "MapControl loadConfig failed...\n";
+                return;
+            }
+
+            wmsTileLayer->flushCache();
+            wmsTileLayer->layers().clear();
+
+            auto& jsonObj = json.asObject();
+            auto it = jsonObj.find("wms_layers");
+            if (it != jsonObj.end())
+            {
+                for (auto layer : it->second.asArray())
+                {
+                    if (!layer.isObject()) continue;
+                    auto& layerObj = layer.asObject();
+
+                    auto url = layerObj.at("url").asString();
+                    auto wmsLayers = layerObj.at("layers").asString();
+                    double minScale = (bool)layerObj.count("minScale") ? layerObj.at("minScale").asDouble() : 0.0;
+                    double maxScale = (bool)layerObj.count("maxScale") ? layerObj.at("maxScale").asDouble() : std::numeric_limits<double>::infinity();
+
+                    auto wms = std::make_shared<WmsLayer>();
+                    // wms->minScale(minScaleSwedenRoads); // TODO
+                    wms->url(url);
+                    wms->layers(wmsLayers);
+                    wms->transparent(true);
+                    wms->minScale(minScale);
+                    wms->maxScale(maxScale);
+                    wmsTileLayer->addLayer(wms);
+                }
+            }
+        }
+        
+
+    }
+
+    void loop()
     {
         static bool updateReq = true;
         static bool guiUpdateReq = true;
@@ -442,15 +571,15 @@ public:
         if (updateReq || guiUpdateReq)
         {
             pollWindowEvents();
-            if (updateReq)
+            if (updateReq || updateRequired())
             {
                 updateView();
                 updateViewInternal();
                 updateReq = updateRequired();
             }
-            
+
             guiUpdateReq = gui.update();
-            
+
             swapBuffers();
         }
         else
@@ -471,7 +600,7 @@ public:
         bool m_mouseDown;
         bool m_wireFrameMode;
         Gui gui;
-    
+
 };
 typedef std::shared_ptr<GLFWMapControl> GLFWMapControlPtr;
 
@@ -518,28 +647,10 @@ int main()
     const unsigned char* version = glGetString(GL_VERSION);
     std::cout << "opengl version: " << version << "\n";
 
-    auto view = std::make_shared<Map>();
+    
     // view->crs(Crs::wgs84MercatorWeb());
     // Configure some background layers
-    auto backgroundLayer = std::make_shared<TileLayer>();
-    backgroundLayer->setNumWorkers(1);
-    backgroundLayer->setQueueSize(1);
-    view->addLayer(backgroundLayer);
-    configureMap(mapControl, view, backgroundLayer);
-
-    BMM_DEBUG() << "Setting up tools\n";
-    //auto tool = std::make_shared<OttoTool>();
-    auto toolSet = std::make_shared<ToolSet>();
-    toolSet->addSubTool(std::make_shared<EditFeatureTool>());
-    toolSet->addSubTool(std::make_shared<PointerTracerTool>());    
-    toolSet->addSubTool(std::make_shared<GpxVisualizerTool>());
-    toolSet->addSubTool(std::make_shared<KeyActionTool>(backgroundLayer));
-    toolSet->addSubTool(std::make_shared<DebugEventHandler>());
-    toolSet->addSubTool(std::make_shared<CameraControllerTwoHalfD>());
-
-    mapControl->setView(view);
-    mapControl->setTool(toolSet);
-    view->drawable()->backgroundColor(Color(120,170,255,0));
+    mapControl->loadConfig();
 
     BMM_DEBUG() << "Calling update view\n";
     // view->renderingEnabled(false); // TODO remove

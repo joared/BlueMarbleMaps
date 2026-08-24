@@ -36,6 +36,8 @@ namespace BlueMarble
             Raster(int width, int height, int channels, int fill=0);
             Raster(unsigned char* data, int width, int height, int channels);
             Raster(const std::string& filePath);
+            // Decodes an in-memory encoded image buffer (e.g. PNG/JPEG bytes downloaded over HTTP)
+            static Raster decode(const unsigned char* data, size_t size);
             ~Raster();
             int width() const;
             int height() const;

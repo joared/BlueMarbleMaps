@@ -86,6 +86,8 @@ void ThreadPool::start(size_t numThreads, size_t maxQueueSize, QueuePolicy queue
             }
         });
     }
+
+    BMM_DEBUG() << "Thread pool started " << m_workers.size() << " workers\n";
 }
 
 void ThreadPool::stop(bool dropQueuedTasks)

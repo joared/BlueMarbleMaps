@@ -20,6 +20,7 @@ class Raster::Impl
         Impl(int width, int height, int channels, int fill);
         Impl(unsigned char* data, int width, int height, int channels);
         Impl(const std::string& filePath);
+        Impl(const unsigned char* data, size_t size);
         ~Impl();
         int width() const;
         int height() const;

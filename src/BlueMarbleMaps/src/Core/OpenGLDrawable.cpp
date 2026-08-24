@@ -148,14 +148,20 @@ void BlueMarble::OpenGLDrawable::backgroundColor(const Color& color)
 
 DrawablePtr OpenGLDrawable::createCompatibleOffscreenDrawable(int width, int height, int colorDepth)
 {
-    // Create new context
-    //glDebugMessageCallback(MessageCallback, 0);
-    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-	auto window = glfwCreateWindow(width, height, "Off-screen window", nullptr, nullptr);
-    glfwMakeContextCurrent(window);
+    GLFWwindow* window = nullptr;
+    if (!glfwGetCurrentContext())
+    {
+        // No context current on this thread (e.g. a fresh worker thread) — create one to render into.
+        // If a context IS already current (e.g. the main thread), skip this entirely and create the
+        // FBO directly in that context below, so the offscreen drawable ends up in the same GL object
+        // namespace as the calling drawable instead of an unshared one — that's what blitTo() needs.
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+        window = glfwCreateWindow(width, height, "Off-screen window", nullptr, nullptr);
+        glfwMakeContextCurrent(window);
+    }
 
     auto offscreenDrawable = std::make_shared<OpenGLDrawable>(width, height, colorDepth); // same context — no glfwCreateWindow, no glfwMakeContextCurrent
-    offscreenDrawable->m_window = window;
+    offscreenDrawable->m_window = window; // null when we reused the calling thread's context; makeCurrent() then leaves the context alone and just rebinds the FBO
 
     glGenFramebuffers(1, &offscreenDrawable->m_framebuffer);
     glBindFramebuffer(GL_FRAMEBUFFER, offscreenDrawable->m_framebuffer);

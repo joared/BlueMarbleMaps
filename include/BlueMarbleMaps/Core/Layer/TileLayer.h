@@ -100,8 +100,8 @@ namespace BlueMarble
 
             double xMin = m_fullExtent.xMin() + x * tileWidth;
             double yMin = m_fullExtent.yMin() + y * tileHeight;
-            double xMax = xMin + tileWidth;
-            double yMax = yMin + tileHeight;
+            double xMax = m_fullExtent.xMin() + (x+1) * tileWidth; //xMin + tileWidth;
+            double yMax = m_fullExtent.yMin() + (y+1) * tileHeight; //yMin + tileHeight;
 
             return Rectangle(xMin, yMin, xMax, yMax);
         }
@@ -136,6 +136,26 @@ namespace BlueMarble
         double tileHeight(int zoom) const
         {
             return m_fullExtent.height() / tilesPerAxis(zoom);
+        }
+
+        int toTileX(double x, int zoom) const
+            {
+                return (x - m_fullExtent.xMin()) / tileWidth(zoom);
+            };
+
+        int toTileY(double y, int zoom) const
+        {
+            return (y - m_fullExtent.yMin()) / tileHeight(zoom);
+        };
+
+        Tile toTile(const Point& point, int zoom)
+        {
+            return Tile
+            {
+                .x =toTileX(point.x(), zoom),
+                .y =toTileY(point.y(), zoom),
+                .zoom = zoom
+            };
         }
 
         double unitsPerPixel(int tileSize, int zoom) const
@@ -195,7 +215,10 @@ namespace BlueMarble
     {
     public:
         TileManager(const Rectangle& fullExtent);
+        
+        // Some helpers, no need to lock
         Rectangle tileBounds(int x, int y, int zoom) const;
+        int tileManhattanDistance(const Tile& tile, const Point& point) const;
 
         std::vector<Tile> getTilesForArea(const Rectangle& area, int zoom) const;
 
@@ -227,12 +250,14 @@ namespace BlueMarble
         virtual void update(const MapPtr& map, const FeatureEnumeratorPtr& features, const FeatureQuery& featureQuery) override final;
         virtual void flushCache() override final;
 
+        void setCachePath(const std::string& path);
         void setNumWorkers(int nWorkers);
         void setTileSize(int tileSize);
         void setQueueSize(int queueSize);
     private:
         void verifyValidSubLayers();
         FeatureQuery createTileQuery(const Tile& tile, const CrsPtr& crs, const FeatureQuery& currQuery) const;
+        FeaturePtr createTileFeature(const Tile& tile, const CrsPtr& crs, Raster&& raster) const;
         void scheduleTileLoad(const Tile& tile, const CrsPtr& crs, const FeatureQuery& tileQuery);
         void renderTile(Tile& cachedTile, const CrsPtr& crs, const FeatureQuery& featureQuery);
         FeatureEnumeratorPtr thinFeatures(const FeatureEnumeratorPtr& features, double unitsPerPixel, const Rectangle& tileArea) const;
@@ -246,6 +271,7 @@ namespace BlueMarble
         int                             m_numWorkers;
         int                             m_queueSize;
         std::unique_ptr<TileManager>    m_tileManager;
+        std::string                     m_cachePath;
         bool                            m_readAsync;
         mutable std::mutex              m_mutex; // Mutex for synchronizing access to the tile cache
         int                             m_tileSize;

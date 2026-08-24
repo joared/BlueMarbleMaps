@@ -27,6 +27,11 @@ namespace BlueMarble
         const Color& backgroundColor();
         virtual void backgroundColor(const Color& color);
 
+        TexturePtr getFboTexture() const
+        {
+            return std::make_shared<Texture>(m_fboTexture);
+        }
+
         void makeCurrent() override final
         {
             if (m_window)

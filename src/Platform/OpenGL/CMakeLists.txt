@@ -14,7 +14,7 @@ file(GLOB_RECURSE RENDERER_SOURCES
     "${CMAKE_SOURCE_DIR}/include/Application/WindowGL.h"
     "${CMAKE_SOURCE_DIR}/include/Platform/OpenGL/*.h"
 )
-file(GLOB_RECURSE RENDERER_SOURCES2 
+file(GLOB_RECURSE RENDERER_SOURCES2
     "Shader.cpp"
     "Rect.cpp"
     "Primitive.cpp"
@@ -24,6 +24,7 @@ file(GLOB_RECURSE RENDERER_SOURCES2
     "IBO.cpp"
     "Batch.cpp"
     "Algorithms.cpp"
+    "Mesh.cpp"
     "${CMAKE_SOURCE_DIR}/include/Platform/OpenGL/*.h"
 )
 file(GLOB SHADER_SOURCES

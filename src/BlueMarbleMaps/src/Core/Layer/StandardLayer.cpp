@@ -257,7 +257,9 @@ FeatureEnumeratorPtr StandardLayer::getFeatures(const CrsPtr& crs, const Feature
     auto features = std::make_shared<FeatureCollection>();
     auto enumerator = std::make_shared<FeatureEnumerator>();
     enumerator->setFeatures(features);
-    if (activeLayersOnly && !isActiveForQuery(featureQuery))
+
+    if (activeLayersOnly 
+        && !isActiveForQuery(featureQuery))
     {
         return enumerator;
     }

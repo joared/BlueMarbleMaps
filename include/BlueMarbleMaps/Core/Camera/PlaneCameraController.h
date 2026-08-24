@@ -92,6 +92,8 @@ class PlaneCameraController : public ICameraNavigator
         void panTo(const Point& target) override final
         {
             panBy(target - m_targetCenter);
+
+            setSlowResponseTime();
         }
 
         void panBy(const Point& delta) 
@@ -103,27 +105,24 @@ class PlaneCameraController : public ICameraNavigator
                 double newY = Utils::clampValue(m_targetCenter.y(), m_currentWorldBounds.yMin(), m_currentWorldBounds.yMax());
                 m_targetCenter = Point(newX, newY);
             }
-            if (m_flags == InteractionFlags::ControllerIdle) m_justStarted = true;
-            m_flags = m_flags | ControllerPanning;
 
+            applyInteraction(ControllerPanning);
             setFastResponseTime();
         }
         void zoomBy(double zoomFactor) 
         { 
             m_targetZoom *= zoomFactor;
             m_targetZoom = Utils::clampValue(m_targetZoom, 0.0, m_maxZoom);
-            if (m_flags == InteractionFlags::ControllerIdle) m_justStarted = true;
-            m_flags = m_flags | ControllerZooming;
 
+            applyInteraction(ControllerZooming);
             setFastResponseTime();
         }
 
         void rotateBy(double deltaRot)
         {
             m_targetRotation += deltaRot;
-            if (m_flags == InteractionFlags::ControllerIdle) m_justStarted = true;
-            m_flags = m_flags | ControllerRotating;
 
+            applyInteraction(ControllerRotating);
             setFastResponseTime();
         }
 
@@ -132,10 +131,19 @@ class PlaneCameraController : public ICameraNavigator
             m_targetTilt += deltaTilt;
             m_targetTilt = Utils::clampValue(m_targetTilt, m_minTilt, m_maxTilt);
             m_targetTilt = Utils::clampValue(m_targetTilt, m_targetFovDeg/2.0-90.0 + 0.0001, 90.0-m_targetFovDeg/2.0 - 0.0001); // Such that the camera does not look "beyond" the plane
-            if (m_flags == InteractionFlags::ControllerIdle) m_justStarted = true;
-            m_flags = m_flags | ControllerTilting;
 
+            applyInteraction(ControllerTilting);
             setFastResponseTime();
+        }
+
+        void applyInteraction(InteractionFlags flags)
+        {
+            if (m_flags == InteractionFlags::ControllerIdle) 
+            {
+                m_justStarted = true;
+            }
+            m_elapsedMs = 0;
+            m_flags = m_flags | flags;
         }
 
         void zoomOn(const Point& point, double zoomFactor)
@@ -181,8 +189,8 @@ class PlaneCameraController : public ICameraNavigator
         {
             m_targetFovDeg += deltaDegrees;
             m_targetFovDeg = Utils::clampValue(m_targetFovDeg, 1.0, 179.0);
-            if (m_flags == InteractionFlags::ControllerIdle) m_justStarted = true;
-            m_flags = m_flags | ControllerChangingFov;
+            
+            applyInteraction(ControllerChangingFov);
 
             // When changing fov, wee need to take care of tilt such that 
             // the camera does not look "beyond" the horizon
@@ -252,82 +260,200 @@ class PlaneCameraController : public ICameraNavigator
 
         ControllerStatus updateCamera(const CameraPtr& camera, int64_t deltaMs) override final
         {
+            constexpr bool animate = true;
+
             if (m_flags == InteractionFlags::ControllerIdle)
                 return ControllerStatus::Idle;
 
-            if (m_justStarted)
+            if (animate)
             {
-                deltaMs = 10; // TODO: need to fix time context
-                m_justStarted = false;
+                if (m_justStarted)
+                {
+                    deltaMs = 10; // TODO: need to fix time context
+                    m_elapsedMs = 0;
+                    m_justStarted = false;
+                }
+                m_elapsedMs += deltaMs;
+
+                double alpha = calculateAlpha(deltaMs);
+                
+                updateCenter(alpha);
+                updateZoom(alpha);
+                updateRotation(alpha);
+                updateTilt(alpha);
+                updateFov(camera->projection().get(), alpha);
+
+                updateCameraPose(camera);
+
+                if (alpha >= 1.0) 
+                    stop();
             }
-            constexpr bool animate = true;
+            else
+            {
+                m_center = m_targetCenter;
+                m_zoom = m_targetZoom;
+                m_rotation = m_targetRotation;
+                m_tilt = m_targetTilt;
+                m_fovDeg = m_targetFovDeg;
 
-            // m_elapsedMs += deltaMs;
-            double alpha = deltaMs / m_responseTimeMs;
+                m_flags = InteractionFlags::ControllerIdle;
+            }
+
+            if (m_flags == InteractionFlags::ControllerIdle)
+            {
+                BMM_DEBUG() << "IDLE!\n";
+            }
+
+            return m_flags == InteractionFlags::ControllerIdle ? ControllerStatus::Idle : ControllerStatus::NeedsUpdate;
+        };
+
+        void stop()
+        {
+            m_justStarted = false;
+            m_elapsedMs = 0;
+            m_targetCenter = m_center;
+            m_targetZoom = m_zoom;
+            m_targetRotation = m_rotation;
+            m_targetTilt = m_tilt;
+
+            m_flags = InteractionFlags::ControllerIdle;
+        }
+
+    private:
+
+        double calculateAlpha(int64_t deltaMs)
+        {
+            double alpha = (double)deltaMs/m_responseTimeMs;
+
+            // The per-frame ease above asymptotically approaches the target but
+            // never algebraically reaches it, so callers rely on an absolute
+            // distance epsilon to detect convergence. That breaks down for
+            // large-magnitude coordinates (e.g. Web Mercator meters), where the
+            // remaining delta can shrink below the double's ULP at that
+            // magnitude before it shrinks below the epsilon, freezing the
+            // animation forever. Force a hard, time-bound convergence instead:
+            // once several response-time constants worth of time has elapsed,
+            // the exponential ease is visually indistinguishable from done, so
+            // snap alpha to 1.0 regardless of the remaining distance.
+            constexpr double convergenceFactor = 8.0; // (1 - 1/e)^8 leaves < 0.04% remaining
+            if (m_elapsedMs >= convergenceFactor * m_responseTimeMs)
+                alpha = 1.0;
+
             alpha = std::min(alpha, 1.0);
-            
-            // Center
-            m_center = m_center + (m_targetCenter-m_center)*alpha;
-            auto c = m_center;
 
-            // Zoom
+            return alpha;
+        }
+
+        void updateCenter(double alpha)
+        {
+            m_center = m_center + (m_targetCenter-m_center)*alpha;
+
+            if (m_flags & InteractionFlags::ControllerPanning &&
+                (m_center - m_targetCenter).length() < 1e-9)
+            {
+                m_center = m_targetCenter;
+                m_flags = m_flags & ~InteractionFlags::ControllerPanning;
+                // BMM_DEBUG() << "Stopped Panning\n";
+                // logFlags();
+            }
+        }
+
+        void updateZoom(double alpha)
+        {
             double invFrom = 1.0 / m_zoom;
             double invTo = 1.0 / m_targetZoom;
             double invNew = invFrom + (invTo-invFrom)*alpha;
             double scaleFactor = 1.0 / invNew;
             m_zoom = scaleFactor;
-            
-            // Rotation
-            m_rotation = m_rotation + Utils::minAngleDiff(m_targetRotation, m_rotation, 0.0, 360.0)*alpha;
-            double rot = m_rotation;
 
-            // Tilt
-            m_tilt = m_tilt + Utils::minAngleDiff(m_targetTilt, m_tilt, -180.0, 180.0)*alpha;
-            double tilt = m_tilt;
-
-            if (!animate)
+            if (m_flags & InteractionFlags::ControllerZooming &&
+                std::abs(m_targetZoom - m_zoom) < 1e-10)
             {
-                c = m_targetCenter;
-                scaleFactor = m_targetZoom;
-                rot = m_targetRotation;
-                tilt = m_targetTilt;
+                m_zoom = m_targetZoom;
+                m_flags = m_flags & ~InteractionFlags::ControllerZooming;
+                // BMM_DEBUG() << "Stopped Zooming\n";
+                // logFlags();
             }
-                
+        }
 
-            auto perspective = dynamic_cast<PerspectiveCameraProjection*>(camera->projection().get());
-            auto orthographic = dynamic_cast<OrthographicCameraProjection*>(camera->projection().get());
+        void updateRotation(double alpha)
+        {
+            m_rotation = m_rotation + Utils::minAngleDiff(m_targetRotation, m_rotation, 0.0, 360.0)*alpha;
 
-            double z = 1.0;
+            if (m_flags & InteractionFlags::ControllerRotating &&
+                std::abs(Utils::minAngleDiff(m_targetRotation, m_rotation, 0.0, 360.0)) < 1e-6)
+            {
+                m_rotation = m_targetRotation;
+                m_flags = m_flags & ~InteractionFlags::ControllerRotating;
+                // BMM_DEBUG() << "Stopped Rotating\n";
+                // logFlags();
+            }
+        }
+
+        void updateTilt(double alpha)
+        {
+            m_tilt = m_tilt + Utils::minAngleDiff(m_targetTilt, m_tilt, -180.0, 180.0)*alpha;
+
+            if (m_flags & InteractionFlags::ControllerTilting &&
+                std::abs(Utils::minAngleDiff(m_targetTilt, m_tilt, 0.0, 360.0)) < 1e-6)
+            {
+                m_tilt = m_targetTilt;
+                m_flags = m_flags & ~InteractionFlags::ControllerTilting;
+                // BMM_DEBUG() << "Stopped Tilting\n";
+                // logFlags();
+            }
+        }
+
+        double calculateDistanceToCenter(CameraProjection* projection)
+        {
+            auto perspective = dynamic_cast<PerspectiveCameraProjection*>(projection);
+            auto orthographic = dynamic_cast<OrthographicCameraProjection*>(projection);
+
             if (perspective)
             {
                 constexpr bool zoomUsingFov = false;
 
-                m_fovDeg += (m_targetFovDeg-m_fovDeg)*alpha;
                 perspective->setFov(m_fovDeg);
                 double fov = m_fovDeg;
                 double focalLength = perspective->focalLengthPixelsY();
-                z = double(focalLength / scaleFactor);
+                return focalLength / m_zoom;
 
                 if (zoomUsingFov)
                 {
-                    z = 100.0; // Fixed z
-                    double H = camera->projection()->height();
-                    fov = 2* std::atan(H / (scaleFactor*2*z));
-                    perspective->setFov(RAD_TO_DEG*fov);
+                    return 100.0; // Fixed z
                 }
             }
             else if (orthographic)
             {
-                orthographic->setUnitsPerPixel(1.0/scaleFactor);
-                double H = camera->projection()->height();
-                double zWorld = H/scaleFactor;
-                z = zWorld / std::cos(glm::radians(m_tilt));
+                double zWorld = projection->height()/m_zoom;
+                return zWorld / std::cos(glm::radians(m_tilt));
             }
-            
-            glm::dvec3 center = glm::dvec3(c.x(), c.y(), 0.0); // the pivot/world point camera looks at
-            double rotRad  = glm::radians(rot);  // yaw
-            double tiltRad = glm::radians(tilt); // pitch
-            double distance = z;                  // camera distance from center along forward axis
+
+            return 1.0;
+        }
+
+        double updateFov(CameraProjection* projection, double alpha)
+        {
+            m_fovDeg += (m_targetFovDeg-m_fovDeg)*alpha;
+
+            if (m_flags & InteractionFlags::ControllerChangingFov &&
+                std::abs(m_targetFovDeg - m_fovDeg) < 1e-6)
+            {
+                m_fovDeg = m_targetFovDeg;
+                m_flags = m_flags & ~InteractionFlags::ControllerChangingFov;
+                // BMM_DEBUG() << "Stopped Changing fov\n";
+                // logFlags();
+            }
+        }
+
+        void updateCameraPose(const CameraPtr camera)
+        {
+            constexpr bool ZoomUsingFov = false;
+
+            glm::dvec3 center = glm::dvec3(m_center.x(), m_center.y(), 0.0); // the pivot/world point camera looks at
+            double rotRad  = glm::radians(m_rotation);  // yaw
+            double tiltRad = glm::radians(m_tilt); // pitch
+            double distance = calculateDistanceToCenter(camera->projection().get()); // camera distance from center along forward axis
 
             // Build orientation quaternion (yaw then pitch)
             glm::dquat qYaw   = glm::angleAxis(rotRad,  glm::dvec3(0.0, 0.0, 1.0));
@@ -343,72 +469,26 @@ class PlaneCameraController : public ICameraNavigator
             camera->setOrientation(orientation);
             camera->setTranslation(Point(translation.x, translation.y, translation.z));
 
-            auto status = ControllerStatus::Updated;
+            auto perspective = dynamic_cast<PerspectiveCameraProjection*>(camera->projection().get());
+            auto orthographic = dynamic_cast<OrthographicCameraProjection*>(camera->projection().get());
 
-            if (m_flags & InteractionFlags::ControllerPanning &&
-                (m_center - m_targetCenter).length() < 1e-10)
+            if (perspective)
             {
-                m_center = m_targetCenter;
-                m_flags = m_flags & ~InteractionFlags::ControllerPanning;
-                // BMM_DEBUG() << "Stopped Panning\n";
-                // logFlags();
+                perspective->setFov(m_fovDeg);
+                if (ZoomUsingFov)
+                {
+                    constexpr double fixedDistance = 100.0; // I dont remember why
+                    double H = perspective->height();
+                    double fov = 2* std::atan(H / (m_zoom*2*fixedDistance));
+                    perspective->setFov(RAD_TO_DEG*fov);
+                }
             }
-            
-            if (m_flags & InteractionFlags::ControllerZooming &&
-                std::abs(m_targetZoom - m_zoom) < 1e-10)
+            else if (orthographic)
             {
-                m_zoom = m_targetZoom;
-                m_flags = m_flags & ~InteractionFlags::ControllerZooming;
-                // BMM_DEBUG() << "Stopped Zooming\n";
-                // logFlags();
+                orthographic->setUnitsPerPixel(1.0/m_zoom);
             }
-
-            if (m_flags & InteractionFlags::ControllerRotating &&
-                std::abs(Utils::minAngleDiff(m_targetRotation, m_rotation, 0.0, 360.0)) < 1e-6)
-            {
-                m_rotation = m_targetRotation;
-                m_flags = m_flags & ~InteractionFlags::ControllerRotating;
-                // BMM_DEBUG() << "Stopped Rotating\n";
-                // logFlags();
-            }
-
-            if (m_flags & InteractionFlags::ControllerTilting &&
-                std::abs(Utils::minAngleDiff(m_targetTilt, m_tilt, 0.0, 360.0)) < 1e-6)
-            {
-                m_tilt = m_targetTilt;
-                m_flags = m_flags & ~InteractionFlags::ControllerTilting;
-                // BMM_DEBUG() << "Stopped Tilting\n";
-                // logFlags();
-            }
-
-            if (m_flags & InteractionFlags::ControllerChangingFov &&
-                std::abs(m_targetFovDeg - m_fovDeg) < 1e-6)
-            {
-                m_fovDeg = m_targetFovDeg;
-                m_flags = m_flags & ~InteractionFlags::ControllerChangingFov;
-                // BMM_DEBUG() << "Stopped Changing fov\n";
-                // logFlags();
-            }
-
-            if (m_flags == InteractionFlags::ControllerIdle)
-            {
-                // BMM_DEBUG() << "IDLE!\n";
-            }
-
-            return m_flags == InteractionFlags::ControllerIdle ? ControllerStatus::Idle : ControllerStatus::NeedsUpdate;
-        };
-
-        void stop()
-        {
-            m_targetCenter = m_center;
-            m_targetZoom = m_zoom;
-            m_targetRotation = m_rotation;
-            m_targetTilt = m_tilt;
-
-            m_flags = InteractionFlags::ControllerIdle;
         }
 
-    private:
         void setFastResponseTime()
         {
             m_responseTimeMs = 150.0;

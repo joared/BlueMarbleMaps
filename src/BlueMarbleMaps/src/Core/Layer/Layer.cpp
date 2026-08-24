@@ -40,16 +40,16 @@ bool Layer::selectable()
 
 bool Layer::isActiveForQuery(const FeatureQuery& featureQuery)
 {
+    if (!enabled())
+    {
+        return false;
+    }
     if (featureQuery.scale() > maxScale())
         return false;
     if (featureQuery.scale() < minScale())
         return false;
     // if (featureQuery.quickUpdateEnabled() && !enabledDuringQuickUpdates())
     //     return features;
-    if (!enabled())
-    {
-        return false;
-    }
 
     return true;
 }

@@ -146,13 +146,13 @@ public:
 
     // void operator=(JsonValue&& v) { m_val = std::move(v.m_val); }
 
-    bool hasValue() const { return !std::holds_alternative<std::monostate>(m_val); }
-    bool isBool() const { return std::holds_alternative<bool>(m_val); }
-    bool isInteger() const { return std::holds_alternative<int64_t>(m_val); }
-    bool isDouble() const { return std::holds_alternative<double>(m_val); }
-    bool isString() const { return std::holds_alternative<std::string>(m_val); }
-    bool isArray() const { return std::holds_alternative<Array>(m_val); }
-    bool isObject() const { return std::holds_alternative<Object>(m_val); }
+    bool hasValue() const { return !isType<std::monostate>(); }
+    bool isBool() const { return isType<bool>(); }
+    bool isInteger() const { return isType<int64_t>(); }
+    bool isDouble() const { return isType<double>(); }
+    bool isString() const { return isType<std::string>(); }
+    bool isArray() const { return isType<Array>(); }
+    bool isObject() const { return isType<Object>(); }
 
     bool asBool() const { return std::get<bool>(m_val); }
     int64_t asInteger() const { return std::get<int64_t>(m_val); }
@@ -184,6 +184,27 @@ public:
 
     template<typename T>
     T& get() { return std::get<T>(m_val); }
+
+
+    template<typename T>
+    const T& getValue(const T& defaultValue) const
+    {
+        if (!hasValue() || !isType<T>())
+        {
+            return defaultValue;
+        }
+        return get<T>();
+    }
+
+    template<typename T>
+    const T& getValue(T& val, const T& defaultValue=T()) const
+    {
+        if (!hasValue() || !isType<T>())
+        {
+            return defaultValue;
+        }
+        return get<T>();
+    }
 
     static JsonValue fromStream(std::istream& ss);
     static JsonValue fromString(const std::string& str);

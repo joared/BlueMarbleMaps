@@ -132,7 +132,7 @@ void addDataSetInitializationObserver(const MapPtr& map)
 
         // Line
         auto l1 = std::make_shared<LineGeometry>(points);
-        auto colors = Color::colorRamp(Color::red(0.2), Color::red(), points.size());
+        auto colors = Color::colorRamp(Color::red(0.2), Color::blue(), points.size());
         l1->isClosed(true);
         l1->move(Point(x, y));
         Pen p;
@@ -239,15 +239,22 @@ void saveLayout(const MapPtr& mapView, const std::string& path)
 
 
 
-void configureMap(const MapControlPtr& mapControl,const MapPtr& mapView, const TileLayerPtr& backgroundLayer)
+void configureMap(const MapControlPtr& mapControl,
+                  const MapPtr& mapView, 
+                  const TileLayerPtr& backgroundLayer,
+                  const TileLayerPtr& backgroundLayerWms)
 {
     const bool backgroundLayersSelectable = true;
     const bool includeMemoryDataSet = true;
     const bool includeBackgroundRaster = false;
-    const bool includeContinents = true;
-    const bool includeCountries = true;
-    const bool includeWms = true;
+    const bool includeContinents = false;
+    const bool includeCountries = false;
+    const bool includeWms = false;
     const double minScaleCountries = 1.0/60000000.0;
+    const double minScaleWmsLayerChange = 1.0/60000000.0;
+    const double minScaleSwedenRoads = 1.0/10000.0;
+    
+    const std::string wmsTileLayerCachePath = "tilecache"; // Only used if above is true
 
     bool includeRoadsEurope = true;
     bool includeSwedenRoads = true;
@@ -281,7 +288,7 @@ void configureMap(const MapControlPtr& mapControl,const MapPtr& mapView, const T
 
     if (includeWms)
     {
-        auto wmsLayer = std::make_shared<WmsLayer>();
+        
         // wmsLayer->url("https://geoserveis.icgc.cat/servei/catalunya/mapa-base/wms");
         // wmsLayer->layers("topografic");
         // wmsLayer->layers("orto");
@@ -289,9 +296,10 @@ void configureMap(const MapControlPtr& mapControl,const MapPtr& mapView, const T
         // wmsLayer->url("https://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms?");
         // wmsLayer->layers("ortofoto_color_2025");
 
-        // GetMap example: https://tiles.maps.eox.at/map?FSERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=s2cloudless-2024_3857&STYLES=&CRS=EPSG:3857&BBOX=1200000,7000000,2200000,8000000&WIDTH=1024&HEIGHT=1024&FORMAT=image/jpeg&TRANSPARENT=TRUE
-        // Capabilities: https://tiles.maps.eox.at/map?FSERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabilities
-        wmsLayer->url("https://tiles.maps.eox.at/map?");
+        // https://mundiwebservices.com
+
+        // GetMap example: https://tiles.maps.eox.at/map?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=s2cloudless-2024_3857&STYLES=&CRS=EPSG:3857&BBOX=1200000,7000000,2200000,8000000&WIDTH=1024&HEIGHT=1024&FORMAT=image/jpeg&TRANSPARENT=TRUE
+        // Capabilities: https://tiles.maps.eox.at/map?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabilities
         // bluemarble
         // coastline
         // streets_3857
@@ -300,21 +308,73 @@ void configureMap(const MapControlPtr& mapControl,const MapPtr& mapView, const T
         // terrain-light_3857
         // overlay_base
         // s2cloudless-2025_3857
+        constexpr auto eoxUrl = "https://tiles.maps.eox.at/map?";
+        
+        auto wmsLayerWorld = std::make_shared<WmsLayer>();
+        wmsLayerWorld->url(eoxUrl);
+        wmsLayerWorld->layers("bluemarble_3857");
+        wmsLayerWorld->maxScale(minScaleWmsLayerChange);
 
-        wmsLayer->layers("s2cloudless-2025_3857,overlay_3857,streets_3857");
+        auto wmsLayer = std::make_shared<WmsLayer>();
+        wmsLayer->minScale(minScaleWmsLayerChange);
+        // wmsLayer->maxScale(minScaleCountries);
+        wmsLayer->url(eoxUrl);
+        wmsLayer->layers("s2cloudless-2025_3857,streets_3857,overlay_bright_3857");
 
-        // More efficient to put in separate tilelayer since the background 
-        // workers dont need to render prerendered rasters
-        auto tileLayer = std::make_shared<TileLayer>();
-        int nWorkers = 4;
-        tileLayer->setNumWorkers(nWorkers);
-        tileLayer->setQueueSize(1); //(int)(nWorkers / 2.0));
-        tileLayer->addLayer(wmsLayer);
+        auto wmsOsmLayer = std::make_shared<WmsLayer>();
+        wmsOsmLayer->minScale(minScaleSwedenRoads);
+        wmsOsmLayer->url(eoxUrl);
+        wmsOsmLayer->layers("osm_3857");
 
-        mapView->layers().insert(
-            mapView->layers().begin(),
-            tileLayer
-        );
+        // Copernicus
+         auto copernicusWms = std::make_shared<WmsLayer>();
+        std::string instanceId = "78ec23bb-e69a-4fbc-86a5-9d1d86d22de3";
+        std::string copernicusUrl = "https://sh.dataspace.copernicus.eu/ogc/wms/" + instanceId + "?";
+        copernicusWms->minScale(minScaleCountries);
+        copernicusWms->url(copernicusUrl);
+        copernicusWms->layers("TRUE_COLOR");
+        // copernicusWms->setVendorParameters(
+        //     "&LAYERS=TRUE_COLOR&TIME=2025-06-01/2025-09-01&MAXCC=5&PRIORITY=leastCC"
+        // );
+        
+        // USGSNAIPPlus
+        auto usa = std::make_shared<WmsLayer>();
+        usa->url("https://imagery.nationalmap.gov/arcgis/services/USGSNAIPPlus/ImageServer/WMSServer?");
+        usa->layers("USGSNAIPPlus:NaturalColor");
+        usa->minScale(minScaleSwedenRoads);
+        usa->transparent(true);
+        usa->format("image/png");
+
+        // auto wmsTileLayer = createWmsTileLayer("my_wms");
+        // wmsTileLayer->addLayer(test);
+        backgroundLayerWms->addLayer(wmsLayerWorld);
+        backgroundLayerWms->addLayer(wmsLayer);
+        backgroundLayerWms->addLayer(usa);
+        // wmsTileLayer->addLayer(copernicusWms);
+
+        /// Elevation / Hillshades
+        // Endpoint: https://services.arcgisonline.com/arcgis/rest/services/Elevation/World_Hillshade/MapServer?
+        // Capabilities: https://services.arcgisonline.com/arcgis/rest/services/Elevation/World_Hillshade/MapServer?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabilities
+        // World_Hillshade
+
+        // https://gis.ngdc.noaa.gov/arcgis/services/DEM_mosaics/DEM_global_mosaic_hillshade/ImageServer/WMSServer?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabilities
+        // DEM_global_mosaic_hillshade
+
+        // https://elevation.nationalmap.gov/arcgis/services/3DEPElevation/ImageServer/WMSServer?SERVICE=WMS&REQUEST=GetCapabilities
+        // 3DEPElevation:Hillshade Multidirectional
+
+        // auto hillshadeWms = std::make_shared<WmsLayer>();
+        // hillshadeWms->url("https://services.arcgisonline.com/arcgis/rest/services/Elevation/World_Hillshade/MapServer/WMSServer?");
+        // hillshadeWms->layers("World_Hillshade");
+        // hillshadeWms->setAlpha(0.3);
+        // auto tl = createWmsTileLayer("helluy");
+        // tl->addLayer(hillshadeWms);
+        // // FIXME: need to do something about parent rendering in tilelayer if we wanna use alpha
+        // // When parents are rendered behind some childs the alpha is not really respected
+        // mapView->layers().insert(
+        //     (mapView->layers().begin()),
+        //     tl
+        // );
     }
 
     if (includeBackgroundRaster)
@@ -420,7 +480,7 @@ void configureMap(const MapControlPtr& mapControl,const MapPtr& mapView, const T
 
         // Layer
         auto swedenroadsGeoJsonLayer = BlueMarble::StandardLayerPtr(new BlueMarble::StandardLayer());
-        swedenroadsGeoJsonLayer->minScale(1.0/100000.0);
+        swedenroadsGeoJsonLayer->minScale(minScaleSwedenRoads);
         swedenroadsGeoJsonLayer->addDataSet(sverigeRoadsDataSet);
         swedenroadsGeoJsonLayer->asyncRead(asyncBackgroundReading);
 

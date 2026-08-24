@@ -73,6 +73,22 @@ Raster::Impl::Impl(const std::string& filePath)
     }
 }
 
+Raster::Impl::Impl(const unsigned char* data, size_t size)
+    : m_width(0)
+    , m_height(0)
+    , m_channels(0)
+    , m_data(nullptr)
+{
+    m_data = stbi_load_from_memory(data, static_cast<int>(size), &m_width, &m_height, &m_channels, 0);
+
+    if (m_data == NULL)
+    {
+        std::string reason = stbi_failure_reason() ? stbi_failure_reason() : "unknown error";
+        std::cout << "Couldn't decode image from memory: " << reason << "\n";
+        throw std::runtime_error("Couldn't decode image from memory: " + reason);
+    }
+}
+
 Raster::Impl::~Impl()
 {
     deallocateData(m_data);

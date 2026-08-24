@@ -1,5 +1,7 @@
 #include "RasterImpl.h"
 
+#include <stdexcept>
+
 using namespace BlueMarble;
 
 void takeCImgData(cimg_library::CImg<unsigned char>& cimg, unsigned char** data, int& width, int& height, int& channels)
@@ -41,6 +43,14 @@ Raster::Impl::Impl(unsigned char* data, int width, int height, int channels)
 Raster::Impl::Impl(const std::string& filePath)
     : m_img(cimg_library::CImg<unsigned char>(filePath.c_str()))
 {
+}
+
+Raster::Impl::Impl(const unsigned char* data, size_t size)
+    : m_img()
+{
+    // TODO: CImg has no built-in "decode encoded bytes from memory" helper (its PNG/JPEG loaders
+    // take a file path or FILE*), so this backend doesn't support Raster::decode() yet.
+    throw std::runtime_error("Raster::Impl::Impl(data, size) not implemented for the CImg raster backend");
 }
 
 

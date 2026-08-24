@@ -21,6 +21,14 @@ Rectangle TileManager::tileBounds(int x, int y, int zoom) const
     return m_tilingScheme.tileBounds(x, y, zoom);
 }
 
+int BlueMarble::TileManager::tileManhattanDistance(const Tile& tile, const Point& point) const
+{
+    auto tx = m_tilingScheme.toTileX(point.x(), tile.zoom);
+    auto ty = m_tilingScheme.toTileY(point.y(), tile.zoom);
+
+    return std::abs(tx-tile.x) + std::abs(ty-tile.y);
+}
+
 std::vector<Tile> TileManager::getTilesForArea(const Rectangle& area, int zoom) const
 {
     return m_tilingScheme.getTilesForArea(area, zoom);
@@ -142,12 +150,12 @@ TileLayer::TileLayer()
 {
     m_tileVisualizer->alpha([](FeaturePtr feature, Attributes& updateAttributes)
     {
-        
+        double alpha = feature->attributes().get<double>("__TILE_LAYER_RENDER_ALPHA", 1.0);
         int timeSinceLoadMs = updateAttributes.get<int>(UpdateAttributeKeys::UpdateTimeMs) - feature->attributes().get<int>(FeatureAttributeKeys::TileLoadTimeMs, -std::numeric_limits<int>::max());
-        double alpha = 1.0;
+        
         if (timeSinceLoadMs > 0 && timeSinceLoadMs < AlphaFadeTimeMs)
         {
-            alpha = (double)timeSinceLoadMs / (double)AlphaFadeTimeMs;
+            alpha *= (double)timeSinceLoadMs / (double)AlphaFadeTimeMs;
             updateAttributes.set<bool>(UpdateAttributeKeys::UpdateRequired, true);
         } 
 
@@ -212,10 +220,7 @@ FeatureEnumeratorPtr TileLayer::prepare(const CrsPtr &crs, const FeatureQuery &f
     unitsPerPixel = zoom0Resolution / std::pow(2.0, zoom); // clamp unitsperpix
 
     std::vector<Tile> tiles;
-    {
-        std::lock_guard lock(m_mutex);
-        tiles = m_tileManager->getTilesForArea(featureQuery.area(), zoom);
-    }
+    tiles = m_tileManager->getTilesForArea(featureQuery.area(), zoom);
 
     FeatureEnumeratorPtr enumerator = std::make_shared<FeatureEnumerator>();
     for (int i(0); i<layers().size(); ++i)
@@ -225,9 +230,9 @@ FeatureEnumeratorPtr TileLayer::prepare(const CrsPtr &crs, const FeatureQuery &f
 
     std::set<Tile> parentTiles;
 
-    std::unordered_map<Id, bool, Id::IdHash> featuresAdded; // Used to avoid adding the same feature multiple times if it appears in multiple tiles
+    // Used to avoid adding the same feature multiple times if it appears in multiple tiles
+    std::unordered_map<Id, bool, Id::IdHash> featuresAdded;
     
-    // std::lock_guard lock(m_mutex);
     int64_t currTimeStamp = featureQuery.updateAttributes()->get<int>(UpdateAttributeKeys::UpdateTimeMs);
     std::lock_guard lock(m_mutex);
     for (Tile& tile : tiles)
@@ -281,14 +286,14 @@ FeatureEnumeratorPtr TileLayer::prepare(const CrsPtr &crs, const FeatureQuery &f
 
         if (addParent || isTileShowingUp)
         {
-            if (isTileShowingUp)
-            {
-                const auto& cachedTile = m_tileManager->getCachedTile(tile);
-                int64_t timeSinceLoad = currTimeStamp - cachedTile.timestamp;
-                BMM_DEBUG() << "Curr time stamp: " << currTimeStamp << "\n";
-                BMM_DEBUG() << "Tile load time stamp: " << cachedTile.timestamp << "\n";
-                BMM_DEBUG() << "Tile showing up: " << isTileShowingUp << " (" << timeSinceLoad << ")\n";
-            }
+            // if (isTileShowingUp)
+            // {
+            //     const auto& cachedTile = m_tileManager->getCachedTile(tile);
+            //     int64_t timeSinceLoad = currTimeStamp - cachedTile.timestamp;
+            //     BMM_DEBUG() << "Curr time stamp: " << currTimeStamp << "\n";
+            //     BMM_DEBUG() << "Tile load time stamp: " << cachedTile.timestamp << "\n";
+            //     BMM_DEBUG() << "Tile showing up: " << isTileShowingUp << " (" << timeSinceLoad << ")\n";
+            // }
             
             // Walk up the hierarchy to find the nearest fully-opaque loaded parent
             Tile parent = tile;
@@ -301,7 +306,7 @@ FeatureEnumeratorPtr TileLayer::prepare(const CrsPtr &crs, const FeatureQuery &f
                 bool isParentShowingUp = (currTimeStamp - cachedParent.timestamp < AlphaFadeTimeMs);
                 
                 parentTiles.emplace(cachedParent);
-                
+
                 if (!isParentShowingUp)
                 {
                     break;
@@ -316,11 +321,9 @@ FeatureEnumeratorPtr TileLayer::prepare(const CrsPtr &crs, const FeatureQuery &f
             
             auto cachedTile = m_tileManager->getCachedTile(tile);
 
-            if (cachedTile.features)
+            if (cachedTile.isLoaded())
             {   
                 // BMM_DEBUG() << "Preparing tile: " << tile.toString() << "\n";
-                cachedTile.features->reset();
-
                 if (m_cacheAsBitmaps)
                 {
                     if (cachedTile.cachedBitmapFeature)
@@ -330,6 +333,7 @@ FeatureEnumeratorPtr TileLayer::prepare(const CrsPtr &crs, const FeatureQuery &f
                 }
                 else
                 {
+                    cachedTile.features->reset();
                     // TODO optimize
                     int n = cachedTile.features->subEnumerators().size();
                     for (int i(0); i<n; ++i)
@@ -374,25 +378,9 @@ FeatureEnumeratorPtr TileLayer::prepare(const CrsPtr &crs, const FeatureQuery &f
 
 void TileLayer::update(const MapPtr& map, const FeatureEnumeratorPtr& features, const FeatureQuery& featureQuery)
 {
-    // int tileSize = m_tileSize;
-    // double zoom0Resolution = map->crs()->bounds().width() / (double)tileSize;
-    // double unitsPerPixel = Drawable::pixelSize() / map->crs()->globalMetersPerUnit() / featureQuery.scale();
-    // int zoom = static_cast<int>(std::floor(std::log2(zoom0Resolution/unitsPerPixel)));
-    // zoom = std::clamp(zoom, 0, 20); // TODO: make these parameters configurable
-    // unitsPerPixel = zoom0Resolution / std::pow(2.0, zoom); // clamp unitsperpix
-
     if (!m_currentMainMap)
     {
-        // BMM_DEBUG() << "Creating offscreen drawable for tile layer debug rendering\n";
-        // m_offscreenDrawable = map->drawable()->createCompatibleOffscreenDrawable(m_tileSize, m_tileSize);
-        
-        // 1. 
         m_currentMainMap = map;
-        // 2.
-        // m_mapTempRemove = std::make_shared<Map>();
-        // m_mapTempRemove->drawable(m_offscreenDrawable);
-
-        // map->drawable()->makeCurrent();
     }
 
     if (!m_cacheAsBitmaps)
@@ -414,7 +402,7 @@ void TileLayer::update(const MapPtr& map, const FeatureEnumeratorPtr& features, 
     }
 
     bool drawDebugTiles = false; // TODO: make this configurable
-    if (drawDebugTiles)
+    if (drawDebugTiles && !layers().empty())
     {
         drawTiles(map, featureQuery);
     }
@@ -441,7 +429,12 @@ void TileLayer::flushCache()
     m_threadPool.start(m_numWorkers, m_queueSize, TILELAYER_QUEUE_POLICY);
 }
 
-void TileLayer::setNumWorkers(int nWorkers)
+void BlueMarble::TileLayer::setCachePath(const std::string& path)
+{
+    m_cachePath = path;
+}
+
+void TileLayer::setNumWorkers(int nWorkers) 
 {
     m_numWorkers = nWorkers;
     flushCache();
@@ -521,6 +514,22 @@ FeatureQuery TileLayer::createTileQuery(const Tile& tile, const CrsPtr& crs, con
     return tileQuery;
 }
 
+FeaturePtr TileLayer::createTileFeature(const Tile& tile, const CrsPtr& crs, Raster &&raster) const
+{
+    int tileSize = m_tileSize;
+    double zoom0Resolution = crs->bounds().width() / (double)tileSize;
+    int zoom = tile.zoom;
+    double unitsPerPixel = zoom0Resolution / std::pow(2.0, zoom);
+    auto area = m_tileManager->tileBounds(tile.x, tile.y, tile.zoom).extended(1e-3, 1e-3); // TODO: artifaacts when very close, better solution?
+
+    auto rasterArea = Rectangle(area.center(), unitsPerPixel*tileSize, unitsPerPixel*tileSize);
+    auto rasterGeom = std::make_shared<RasterGeometry>(std::move(raster), rasterArea); // FIXME: tilequery area or tile area?
+    auto rasterFeature = std::make_shared<Feature>(Id(0,tile.id()), crs, rasterGeom);
+    rasterFeature->attributes().set(FeatureAttributeKeys::TileLoadTimeMs, (int)getTimeStampMs());
+
+    return rasterFeature;
+}
+
 void TileLayer::scheduleTileLoad(const Tile &tile, const CrsPtr &crs, const FeatureQuery &tileQuery)
 {
     // NOTE: this method assumes that the guard has been taken
@@ -534,18 +543,55 @@ void TileLayer::scheduleTileLoad(const Tile &tile, const CrsPtr &crs, const Feat
         System::ThreadPool::Task{
             .task = [this, tile, crs, tileQuery]()
             {
+                if (m_cacheAsBitmaps 
+                    && !m_cachePath.empty()
+                    && !name().empty())
+                {
+                    
+                    auto tilePath = m_cachePath + "/" + name() + "_" + tile.toString();
+
+                    try
+                    {
+                        Raster raster(tilePath);
+                        auto cachedBitmapFeature = createTileFeature(tile, crs, std::move(raster));
+
+                        BMM_DEBUG() << "TILE LOADED FROM DISK: " << tilePath << "\n";
+
+                        std::lock_guard lock(m_mutex);
+                        m_tileManager->setTile(Tile{tile.x, tile.y, tile.zoom, nullptr, getTimeStampMs(), cachedBitmapFeature});
+                        return;
+                    }
+                    catch(const std::exception& e)
+                    {
+                        std::cerr << e.what() << '\n';
+                    }
+                    //raster.save("tilecache/tile_" + idString + ".png");
+                }
                 // BMM_DEBUG() << "LOADING TILE: " << tile.toString() << "\n";
                 // std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // Simulate loading time
                 // FIXME: if datasets have not been initialized, the enumerator will not include all features
                 auto enumerator = LayerSet::getFeatures(crs, tileQuery, true);
+                int nFeatures = enumerator->size();
                 
+                if (nFeatures == 0)
+                {
+                    // TODO: this might be that the layers are inactive, or a wms layer has failed a request.
+                    // How do we know if we should query this again or not? For now we, remove the tile
+                    // and will try to query again every update.
+                    // BMM_DEBUG() << "No feature to render for " << tile.toString() << ", ignoring\n";
+                    std::lock_guard lock(m_mutex);
+                    m_tileManager->removeTile(tile);
+                    return;
+                }
+
                 if (enumerator->isComplete())
                 {
                     double unitPerPix = tileQuery.resolution();
-                    int64_t timestamp = getTimeStampMs();
 
                     enumerator->reset();
                     enumerator = thinFeatures(enumerator, unitPerPix, tileQuery.area());
+
+                    int64_t timestamp = getTimeStampMs();
                     markFeaturesAsLoaded(enumerator, timestamp);
                     enumerator->reset();
 
@@ -578,7 +624,7 @@ void TileLayer::scheduleTileLoad(const Tile &tile, const CrsPtr &crs, const Feat
                     m_tileManager->removeTile(tile); 
                 }
             },
-            .priority = [this, tileQuery] 
+            .priority = [this, tileQuery, tile] 
             {
                 if (!m_currentMainMap) return 0.0;
 
@@ -594,9 +640,8 @@ void TileLayer::scheduleTileLoad(const Tile &tile, const CrsPtr &crs, const Feat
                         dummyNormalPoint
                     ))
                 {
-                    auto dist = tileQuery.area().center() - surfacePoint;
-
-                    return 1.0 / dist.length();
+                    
+                    return 1.0 / m_tileManager->tileManhattanDistance(tile, surfacePoint);
                 }
                 
                 return 0.0;
@@ -612,7 +657,9 @@ void BlueMarble::TileLayer::renderTile(Tile& cachedTile, const CrsPtr& crs, cons
     // Render on a bitma
     /////////////////////////////////////////////////////////
     auto enumerator = cachedTile.features;
-    if (enumerator->size() == 1)
+    int nFeatures = enumerator->size();
+    
+    if (nFeatures == 1)
     {
         enumerator->moveNext();
         auto rasterFeature = enumerator->current();
@@ -620,6 +667,18 @@ void BlueMarble::TileLayer::renderTile(Tile& cachedTile, const CrsPtr& crs, cons
         {
             BMM_DEBUG() << "Already a raster feature, no need to render\n";
             cachedTile.cachedBitmapFeature = rasterFeature;
+
+            if (m_cacheAsBitmaps 
+                && !m_cachePath.empty()
+                && !name().empty())
+            {
+                            
+                auto tilePath = m_cachePath + "/" + name() + "_" + cachedTile.toString();
+                auto rasterGeom = rasterFeature->geometryAsRaster();
+                rasterGeom->raster().save(tilePath);
+                BMM_DEBUG() << "1STORED TILE: " << tilePath << "\n";
+            }
+
             return;
         }
         else
@@ -690,12 +749,6 @@ void BlueMarble::TileLayer::renderTile(Tile& cachedTile, const CrsPtr& crs, cons
     LayerSet::update(tempMap, cachedTile.features, tileQuery);
 
     auto raster = offscreenDrawable->getRaster();
-    auto idString = "_" + std::to_string(cachedTile.x) 
-                    + "_" + std::to_string(cachedTile.y)
-                    + "_" + std::to_string(cachedTile.zoom);
-
-    
-    //raster.save("tilecache/tile_" + idString + ".png");
 
     auto rasterArea = Rectangle(area.center(), unitsPerPixel*m_tileSize, unitsPerPixel*m_tileSize);
     auto rasterGeom = std::make_shared<RasterGeometry>(std::move(raster), rasterArea); // FIXME: tilequery area or tile area?
@@ -703,7 +756,17 @@ void BlueMarble::TileLayer::renderTile(Tile& cachedTile, const CrsPtr& crs, cons
     rasterFeature->attributes().set(FeatureAttributeKeys::TileLoadTimeMs, (int)getTimeStampMs());
 
     cachedTile.cachedBitmapFeature = rasterFeature;
-    
+
+    if (m_cacheAsBitmaps 
+        && !m_cachePath.empty()
+        && !name().empty())
+    {
+                    
+        auto tilePath = m_cachePath + "/" + name() + "_" + cachedTile.toString();
+        rasterGeom->raster().save(tilePath);
+        BMM_DEBUG() << "2STORED TILE: " << tilePath << "\n";
+    }
+
     //std::lock_guard lock(m_mutex); // TODO: add back when rendering on background thread
     // m_tileManager->removeTile(cachedTile);
     // m_tileManager->setTile(Tile(cachedTile));

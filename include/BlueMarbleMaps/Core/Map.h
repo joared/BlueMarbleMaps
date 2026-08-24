@@ -172,10 +172,13 @@ namespace BlueMarble
             void renderLayer(const LayerPtr& layer, const FeatureQuery& featureQuery);
             void afterRender();
 
+            void drawTestElevationMesh();
+
             void drawDebugInfo(int elapsedMs);
 
             MapControlPtr m_mapControl;
             DrawablePtr m_drawable;
+            DrawablePtr m_offscreenDrawable;
 
             CrsPtr          m_crs;
             SurfaceModelPtr m_surfaceModel;
