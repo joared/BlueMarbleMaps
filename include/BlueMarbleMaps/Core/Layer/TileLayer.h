@@ -123,6 +123,32 @@ namespace BlueMarble
             return true;
         }
 
+        bool childrenOf(const Tile& parent, std::vector<Tile>& children) const
+        {
+            if (parent.zoom == m_maxZoom)
+                return false;
+
+            int zoom = parent.zoom + 1;
+
+            for (int xx = 0; xx<2; ++xx)
+            {
+                for (int yy = 0; yy<2; ++yy)
+                {
+                    int x = (parent.x << 1) + xx;
+                    int y = (parent.y << 1) + yy;
+
+                    Tile child;
+                    child.x = x;
+                    child.y = y;
+                    child.zoom = zoom;
+
+                    children.emplace_back(std::move(child));
+                }
+            }
+            
+            return true;
+        }
+
         int tilesPerAxis(int zoom) const
         {
             return 1 << zoom;
@@ -234,6 +260,10 @@ namespace BlueMarble
         {
             return m_tilingScheme.parentOf(tile, parent);
         }
+        bool childrenOf(const Tile& parent, std::vector<Tile>& children) const
+        {
+            return m_tilingScheme.childrenOf(parent, children);
+        }
 
     private:
         TilingScheme m_tilingScheme;
@@ -254,12 +284,16 @@ namespace BlueMarble
         void setNumWorkers(int nWorkers);
         void setTileSize(int tileSize);
         void setQueueSize(int queueSize);
+        void setPreloadParents(int preLoadParents);
     private:
         void verifyValidSubLayers();
+        std::vector<Tile> findLoadedParentsOf(const Tile& tile, int64_t currTimeStampMs, bool& isParentShowingUp);
+        std::vector<Tile> findLoadedChildrenOf(const Tile& tile, int maxDepth, int64_t currTimeStampMs);
+        
         FeatureQuery createTileQuery(const Tile& tile, const CrsPtr& crs, const FeatureQuery& currQuery) const;
         FeaturePtr createTileFeature(const Tile& tile, const CrsPtr& crs, Raster&& raster) const;
         void scheduleTileLoad(const Tile& tile, const CrsPtr& crs, const FeatureQuery& tileQuery);
-        void renderTile(Tile& cachedTile, const CrsPtr& crs, const FeatureQuery& featureQuery);
+        FeaturePtr renderTile(const Tile& cachedTile, const CrsPtr& crs, const FeatureQuery& featureQuery);
         FeatureEnumeratorPtr thinFeatures(const FeatureEnumeratorPtr& features, double unitsPerPixel, const Rectangle& tileArea) const;
         FeaturePtr thinFeature(const FeaturePtr& feature, double unitsPerPixel, const Rectangle& tileArea) const;
         void thinLine(std::vector<Point>& thinned, const std::vector<Point>& line, bool closed, double unitsPerPixel) const;
@@ -275,6 +309,7 @@ namespace BlueMarble
         bool                            m_readAsync;
         mutable std::mutex              m_mutex; // Mutex for synchronizing access to the tile cache
         int                             m_tileSize;
+        int                             m_preloadParents;
         DrawablePtr                     m_offscreenDrawable; // Offscreen drawable for rendering tiles
         bool                            m_cacheAsBitmaps;
         RasterVisualizerPtr             m_tileVisualizer;

@@ -29,7 +29,7 @@ namespace BlueMarble
             void rasterGeometryMode(RasterGeometryMode mode) { m_rasterMode = mode; }
             // Units per pixel in the crs
             double resolution() const { return m_resolution; }
-            void resolution(double res) { m_resolution = res; }
+            void resolution(double res) { m_resolution = res; } // TODO: why not just call it unitPerPixel?
             Attributes* updateAttributes() const { return m_updateAttributes; }
             void updateAttributes(Attributes* attr) { m_updateAttributes = attr; }
             bool quickUpdate() const { return m_quickUpdate; }

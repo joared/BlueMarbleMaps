@@ -270,6 +270,7 @@ namespace BlueMarble
                 , m_mapControl(nullptr)
                 , m_rectangle(BlueMarble::Rectangle::undefined())
                 , m_orbitPoint(Point::undefined())
+                , m_zoomPoint(Point::undefined())
                 , m_zoomToRect(false)
                 , m_hoverFeature(nullptr)
             {
@@ -350,7 +351,10 @@ namespace BlueMarble
                     return line;
                 };
 
-                if (!m_orbitPoint.isUndefined())
+                bool isOrbiting = !m_orbitPoint.isUndefined();
+                bool isZooming  = !m_zoomPoint.isUndefined();
+
+                if (isOrbiting || isZooming)
                 {
                     static auto radiusProgressEval = AnimationFunctions::AnimationBuilder().bounce().build();
                     static auto rotationProgressEval = AnimationFunctions::AnimationBuilder().sigmoid(12.0).build();
@@ -358,7 +362,7 @@ namespace BlueMarble
                     constexpr int animationTime = 1000; // Adjust this for animation duration (ms)
                     constexpr double symbolScale = 1.5; //1.3; // Adjust this for scaling the whole symbol
                     
-                    const auto& orbitPoint = m_orbitPoint;
+                    const auto& orbitPoint = isOrbiting ? m_orbitPoint : m_zoomPoint;
                     double ratio = m_map->invertedScale() / m_interactionStartScale;
                     double orbitRotation = BMM_PI * std::log2(ratio);
                     auto screen = m_map->mapToScreen(orbitPoint);
@@ -387,7 +391,15 @@ namespace BlueMarble
                     auto d = m_map->drawable();
                     d->endBatches();
                     d->beginBatches();
-                    m_map->setDrawableFromCamera(m_map->camera());
+                    if (isOrbiting)
+                    {
+                        m_map->setDrawableFromCamera(m_map->camera());
+                    }
+                    else // zooming
+                    {
+                        // TODO: make the circle parallell to the image plane, isch
+                        m_map->setDrawableFromCamera(m_map->camera());
+                    }
                     Pen ppp;
                     ppp.setColor(luminance < 0.5 ? Color::white(0.5) : Color::black(0.5));
                     Brush bbb;;
@@ -545,6 +557,7 @@ namespace BlueMarble
                 {
                     m_map->quickUpdateEnabled(false);
                     m_orbitPoint = Point::undefined();
+                    m_zoomPoint = Point::undefined();
                     if (m_zoomToRect)
                     {
                         m_zoomToRect = false;
@@ -621,9 +634,9 @@ namespace BlueMarble
                         
                         auto mapPoint = m_map->screenToMap(m_map->pixelToScreen(Point{(double)dragEvent.startPos.x, 
                                                                                       (double)dragEvent.startPos.y}));
-                        if (m_orbitPoint.isUndefined())
+                        if (m_zoomPoint.isUndefined())
                         {
-                            m_orbitPoint = mapPoint;
+                            m_zoomPoint = mapPoint;
                             m_interactionStartScale = m_map->invertedScale();
                         }
                         
@@ -679,6 +692,7 @@ namespace BlueMarble
             PlaneCameraController m_cameraController;
             BlueMarble::Rectangle m_rectangle;
             Point m_orbitPoint;
+            Point m_zoomPoint;
             double m_interactionStartScale;
             int64_t m_startTsOrbit;
             bool m_zoomToRect;
@@ -1001,6 +1015,62 @@ namespace BlueMarble
             LayerSetPtr m_tileLayerToDrop;
     };
     typedef std::shared_ptr<KeyActionTool> KeyActionToolPtr;
+
+    class NorthArrowTool : public Tool
+    {
+        static constexpr double ArrowLength = 20.0;
+        static constexpr double ArrowWidth = 5.0;
+
+        public:
+            NorthArrowTool()
+                : m_map(nullptr)
+            {}
+
+            bool isActive() { return false; }
+
+            void onConnected(const MapControlPtr& control, const MapPtr& map) override final
+            {
+                m_map = map;
+                m_map->events.onCustomDraw.subscribe(this, &NorthArrowTool::onCustomDraw);
+            }
+
+            void onDisconnected() override final
+            {
+                m_map = nullptr;
+                m_map->events.onCustomDraw.unsubscribe(this);
+            }
+        private:
+
+            void onCustomDraw(Map& map)
+            {
+                drawNorthArrow(map.drawable());
+            }
+
+            void drawNorthArrow(const DrawablePtr& drawable)
+            {
+                int x = drawable->width()*0.5;
+                int y = ArrowLength * 2.0;
+                auto pos = Point(x,y);
+
+                Pen pen;
+                pen.setColor(Color::red());
+
+                auto line = calcArrowGeometry(*m_map, pos);
+                drawable->drawLine(line, pen);
+            }
+
+            LineGeometryPtr calcArrowGeometry(Map& map, const Point& pos) const
+            {
+                auto points = std::vector<Point>();
+
+                points.push_back(pos + Point(0, -ArrowLength));
+                points.push_back(pos + Point(0, ArrowLength));
+
+                return std::make_shared<LineGeometry>(points);
+            }
+
+            MapPtr m_map;
+    };
 
     class GpxVisualizerTool : public Tool
     {

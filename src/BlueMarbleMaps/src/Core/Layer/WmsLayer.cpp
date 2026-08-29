@@ -131,7 +131,7 @@ FeatureEnumeratorPtr WmsLayer::getFeatures(const CrsPtr &crs, const FeatureQuery
     // BMM_DEBUG() << "W resolution: " << area.width() / width * crs->globalMetersPerUnit() << "\n";
     // BMM_DEBUG() << "H resolution: " << area.height() / height * crs->globalMetersPerUnit() << "\n";
 
-    BMM_DEBUG() << "WMS requested size: " << width << " x " << height << "\n";
+    // BMM_DEBUG() << "WMS requested size: " << width << " x " << height << "\n";
 
     std::ostringstream bboxStr; 
     bboxStr << std::fixed 
@@ -202,7 +202,7 @@ FeatureEnumeratorPtr WmsLayer::getFeatures(const CrsPtr &crs, const FeatureQuery
 
     CPLHTTPDestroyResult(result);
 
-    BMM_DEBUG() << "WMS received size: " << raster.width() << " x " << raster.height() << " x " << raster.channels() << "\n";
+    // BMM_DEBUG() << "WMS received size: " << raster.width() << " x " << raster.height() << " x " << raster.channels() << "\n";
 
     if (raster.width() > WmsLayerMaxImageSize || raster.height() > WmsLayerMaxImageSize)
     {

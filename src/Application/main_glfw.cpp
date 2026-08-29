@@ -484,7 +484,8 @@ public:
             int nWorkers = cacheWmsTileLayerOnDisk ? 4 : std::thread::hardware_concurrency(); // Disk read/write seems to slow the computer down more
             tileLayer->setNumWorkers(nWorkers);
             tileLayer->setQueueSize(nWorkers); //(int)(nWorkers / 2.0));
-            //tileLayer->setTileSize(256);
+            tileLayer->setPreloadParents(20); // Pre-load all parents!
+            // tileLayer->setTileSize(256);
 
             return tileLayer;
         };
@@ -512,6 +513,7 @@ public:
             BMM_DEBUG() << "Setting up tools\n";
             //auto tool = std::make_shared<OttoTool>();
             auto toolSet = std::make_shared<ToolSet>();
+            toolSet->addSubTool(std::make_shared<NorthArrowTool>());
             toolSet->addSubTool(std::make_shared<EditFeatureTool>());
             toolSet->addSubTool(std::make_shared<PointerTracerTool>());    
             toolSet->addSubTool(std::make_shared<GpxVisualizerTool>());

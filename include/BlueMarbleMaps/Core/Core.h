@@ -438,7 +438,9 @@ namespace BlueMarble
             firstTimeStamp = milliseconds;
         }
 
-        return milliseconds-firstTimeStamp;
+        constexpr double speedFactor = 1.0; // change to slow/speed everything up!
+
+        return (int64_t)((milliseconds-firstTimeStamp)*speedFactor);
     }
 } // namespace BlueMarble
 
