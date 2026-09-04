@@ -18,6 +18,7 @@ else()
     target_link_libraries(Application BlueMarbleMapsLib)
     target_link_libraries(Application CImgLib)
     target_link_libraries(Application imgui)
+    target_link_libraries(Application gif-h)
     message("WHAT IS THE FICEAE SOURCE: ${CMAKE_SOURCE_DIR}")
 
     if (NOT EMSCRIPTEN)

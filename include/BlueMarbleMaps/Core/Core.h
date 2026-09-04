@@ -326,6 +326,21 @@ namespace BlueMarble
                 m_yMax = c.y() + newHeight*0.5;
             }
 
+            inline Rectangle cropped(const Rectangle& cropRect) const
+            {
+                double xMin = std::max(m_xMin, cropRect.xMin());
+                double yMin = std::max(m_yMin, cropRect.yMin());
+                double xMax = std::min(m_xMax, cropRect.xMax());
+                double yMax = std::min(m_yMax, cropRect.yMax());
+
+                if (xMin >= xMax || yMin >= yMax)
+                {
+                    return undefined();
+                }
+
+                return Rectangle(xMin, yMin, xMax, yMax);
+            }
+
             inline Rectangle rotate(double angle)
             {
                 auto points = corners();

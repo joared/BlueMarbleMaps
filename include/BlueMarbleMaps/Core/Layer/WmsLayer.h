@@ -12,6 +12,8 @@ private:
     std::string m_url;          // Base WMS endpoint, e.g. "https://example.com/geoserver/wms"
     std::string m_layers;       // Value of the WMS LAYERS parameter
     std::string m_format;       // Value of the WMS FORMAT parameter
+    std::string m_username;     // Optional username for HTTP basic auth
+    std::string m_password;     // Optional password for HTTP basic auth
     bool        m_transparent;  // Value of the WMS TRANSPARENT parameter
     std::string m_vendorParams; // Vendor specific parameters, separated by &
     int m_imageWidth;
@@ -37,6 +39,12 @@ public:
 
     const std::string& format() const { return m_format; }
     void format(const std::string& format) { m_format = format; }
+
+    const std::string& username() const { return m_username; }
+    void username(const std::string& username) { m_username = username; }
+
+    const std::string& password() const { return m_password; }
+    void password(const std::string& password) { m_password = password; }
 
     // Requested image size in pixels, used when the query doesn't specify a resolution
     void imageSize(int width, int height) { m_imageWidth = width; m_imageHeight = height; }

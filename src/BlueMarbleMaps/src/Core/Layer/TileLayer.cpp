@@ -10,8 +10,8 @@ using namespace BlueMarble;
 #define TILELAYER_QUEUE_SIZE 2
 #define TILELAYER_QUEUE_POLICY System::ThreadPool::QueuePolicy::ReplaceOldestWhenFull
 
-TileManager::TileManager(const Rectangle& fullExtent)
-    : m_tilingScheme(fullExtent)
+TileManager::TileManager(const Rectangle& fullExtent, int tileSize)
+    : m_tilingScheme(fullExtent, tileSize)
     , m_tileCache()
 {
 }
@@ -21,12 +21,22 @@ Rectangle TileManager::tileBounds(int x, int y, int zoom) const
     return m_tilingScheme.tileBounds(x, y, zoom);
 }
 
-int BlueMarble::TileManager::tileManhattanDistance(const Tile& tile, const Point& point) const
+int TileManager::tileManhattanDistance(const Tile& tile, const Point& point) const
 {
     auto tx = m_tilingScheme.toTileX(point.x(), tile.zoom);
     auto ty = m_tilingScheme.toTileY(point.y(), tile.zoom);
 
     return std::abs(tx-tile.x) + std::abs(ty-tile.y);
+}
+
+double TileManager::zoomToResolution(int zoom) const
+{
+    return m_tilingScheme.zoomToResolution(zoom);
+}
+
+int TileManager::resolutionToZoom(double resolution) const
+{
+    return m_tilingScheme.resolutionToZoom(resolution);
 }
 
 std::vector<Tile> TileManager::getTilesForArea(const Rectangle& area, int zoom) const
@@ -209,7 +219,7 @@ FeatureEnumeratorPtr TileLayer::prepare(const CrsPtr &crs, const FeatureQuery &f
 
     if (!m_tileManager)
     {
-        m_tileManager = std::make_unique<TileManager>(crs->bounds());
+        m_tileManager = std::make_unique<TileManager>(crs->bounds(), m_tileSize);
         verifyValidSubLayers();
     }
 
@@ -230,16 +240,8 @@ FeatureEnumeratorPtr TileLayer::prepare(const CrsPtr &crs, const FeatureQuery &f
         enumerator->addEnumerator(std::make_shared<FeatureEnumerator>());   
     }
 
-    // BMM_DEBUG() << "TileLayer::prepare() Units per pixel: " << unitsPerPixel << ", Zoom level: " << zoom << "\n";
-    // Calculate 
-    double unitsPerPixel = Drawable::pixelSize() / crs->globalMetersPerUnit() / featureQuery.scale();
-    int tileSize = m_tileSize;
-    double zoom0Resolution = crs->bounds().width() / (double)tileSize;
-    int zoom = static_cast<int>(std::floor(std::log2(zoom0Resolution/unitsPerPixel)));
-    zoom = std::clamp(zoom, 0, 20); // TODO: make these parameters configurable
-
-    std::vector<Tile> tiles;
-    tiles = m_tileManager->getTilesForArea(featureQuery.area(), zoom);
+    int zoom = m_tileManager->resolutionToZoom(featureQuery.resolution());
+    std::vector<Tile> tiles = m_tileManager->getTilesForArea(featureQuery.area(), zoom);
 
     std::set<Tile> parentTiles;
     std::set<Tile> childTiles;
@@ -302,7 +304,6 @@ FeatureEnumeratorPtr TileLayer::prepare(const CrsPtr &crs, const FeatureQuery &f
             }
 
         }
-
 
         if (m_tileManager->hasLoadedTile(tile))
         {
@@ -579,14 +580,10 @@ std::vector<Tile> TileLayer::findLoadedChildrenOf(const Tile& parent, int maxDep
 
 FeatureQuery TileLayer::createTileQuery(const Tile& tile, const CrsPtr& crs, const FeatureQuery& currQuery) const
 {
-    int tileSize = m_tileSize;
-    int zoom = tile.zoom;
-    double zoom0Resolution = crs->bounds().width() / (double)tileSize;
-    double unitsPerPixel = zoom0Resolution / std::pow(2.0, zoom); // clamp unitsperpix
+    double unitsPerPixel = m_tileManager->zoomToResolution(tile.zoom);
+    double clampedScale = Drawable::pixelSize() / crs->globalMetersPerUnit() / m_tileManager->zoomToResolution(tile.zoom);
 
     auto tileQuery = currQuery;
-            
-    double clampedScale = Drawable::pixelSize() / crs->globalMetersPerUnit() / (zoom0Resolution / std::pow(2.0, zoom));
 
     tileQuery.area(m_tileManager->tileBounds(tile.x, tile.y, tile.zoom));
     tileQuery.scale(clampedScale);
@@ -603,12 +600,6 @@ FeatureQuery TileLayer::createTileQuery(const Tile& tile, const CrsPtr& crs, con
 
 FeaturePtr TileLayer::createTileFeature(const Tile& tile, const CrsPtr& crs, Raster &&raster) const
 {
-    // int tileSize = m_tileSize;
-    // double zoom0Resolution = crs->bounds().width() / (double)tileSize;
-    // int zoom = tile.zoom;
-    // double unitsPerPixel = zoom0Resolution / std::pow(2.0, zoom);
-    // Rectangle(area.center(), unitsPerPixel*tileSize, unitsPerPixel*tileSize);
-
     // TODO: artifaacts when very close, better solution than extending?
     //.extended(2*unitsPerPixel, 2*unitsPerPixel);
     auto rasterArea = m_tileManager->tileBounds(tile.x, tile.y, tile.zoom);
@@ -783,11 +774,7 @@ FeaturePtr BlueMarble::TileLayer::renderTile(const Tile& cachedTile, const CrsPt
         }
     }
 
-
-    int tileSize = m_tileSize;
-    double zoom0Resolution = crs->bounds().width() / (double)tileSize;
-    int zoom = cachedTile.zoom;
-    double unitsPerPixel = zoom0Resolution / std::pow(2.0, zoom); // clamp unitsperpix
+    double unitsPerPixel = m_tileManager->zoomToResolution(cachedTile.zoom);
 
     const auto& area = tileQuery.area();
     
@@ -994,18 +981,12 @@ void TileLayer::drawTiles(const MapPtr &map, const FeatureQuery &featureQuery) c
 {
     // This method can be used to draw debug information about the tiles, such as their boundaries and loading status
     // For example, we could draw a rectangle for each tile, colored based on whether it's loaded, loading, or not loaded
-    auto crs = map->crs();
-    int tileSize = m_tileSize;
-    double zoom0Resolution = crs->bounds().width() / (double)tileSize;
-    double unitsPerPixel = Drawable::pixelSize() / crs->globalMetersPerUnit() / featureQuery.scale();
-    int zoom = static_cast<int>(std::floor(std::log2(zoom0Resolution/unitsPerPixel)));
-    zoom = std::clamp(zoom, 0, 20); // TODO: make these parameters configurable
-
-    // BMM_DEBUG() << "TileLayer::prepare() Units per pixel: " << unitsPerPixel << ", Zoom level: " << zoom << "\n";
+    int zoom = m_tileManager->resolutionToZoom(featureQuery.resolution());
+    auto tiles = m_tileManager->getTilesForArea(featureQuery.area(), zoom);
 
     map->drawable()->beginBatches();
     std::lock_guard lock(m_mutex); // Lock the whole time to prioritize rendering
-    for (const Tile& tile : m_tileManager->getTilesForArea(featureQuery.area(), zoom))
+    for (const Tile& tile : tiles)
     {
         Color tileColor;
         Color brushColor;

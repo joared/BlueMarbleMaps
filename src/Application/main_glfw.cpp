@@ -484,8 +484,8 @@ public:
             int nWorkers = cacheWmsTileLayerOnDisk ? 4 : std::thread::hardware_concurrency(); // Disk read/write seems to slow the computer down more
             tileLayer->setNumWorkers(nWorkers);
             tileLayer->setQueueSize(nWorkers); //(int)(nWorkers / 2.0));
-            tileLayer->setPreloadParents(20); // Pre-load all parents!
-            // tileLayer->setTileSize(256);
+            tileLayer->setPreloadParents(0); // Pre-load all parents!
+            tileLayer->setTileSize(128);
 
             return tileLayer;
         };
@@ -518,6 +518,7 @@ public:
             toolSet->addSubTool(std::make_shared<PointerTracerTool>());    
             toolSet->addSubTool(std::make_shared<GpxVisualizerTool>());
             toolSet->addSubTool(std::make_shared<KeyActionTool>(backgroundLayer));
+            toolSet->addSubTool(std::make_shared<GifRecorderTool>());
             toolSet->addSubTool(std::make_shared<DebugEventHandler>());
             toolSet->addSubTool(std::make_shared<CameraControllerTwoHalfD>());
 
@@ -550,6 +551,9 @@ public:
                     double minScale = (bool)layerObj.count("minScale") ? layerObj.at("minScale").asDouble() : 0.0;
                     double maxScale = (bool)layerObj.count("maxScale") ? layerObj.at("maxScale").asDouble() : std::numeric_limits<double>::infinity();
 
+                    auto usernameWms = (bool)layerObj.count("username") ? layerObj.at("username").asString() : "";
+                    auto passwordWms = (bool)layerObj.count("password") ? layerObj.at("password").asString() : "";
+
                     auto wms = std::make_shared<WmsLayer>();
                     // wms->minScale(minScaleSwedenRoads); // TODO
                     wms->url(url);
@@ -557,6 +561,8 @@ public:
                     wms->transparent(true);
                     wms->minScale(minScale);
                     wms->maxScale(maxScale);
+                    wms->username(usernameWms);
+                    wms->password(passwordWms);
                     wmsTileLayer->addLayer(wms);
                 }
             }

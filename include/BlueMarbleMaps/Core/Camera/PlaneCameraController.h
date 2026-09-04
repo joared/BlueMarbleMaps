@@ -159,6 +159,12 @@ class PlaneCameraController : public ICameraNavigator
             setFastResponseTime();
         }
 
+        void rotateTo(double rotation) override final
+        {
+            rotateBy(-Utils::minAngleDiff(m_targetRotation, rotation, 0.0, 360));
+            setMediumResponseTime();
+        }
+
         void zoomTo(const Rectangle& rect) override final
         {
             // Pan

@@ -107,8 +107,9 @@ bool ToolSet::onEvent(const Event& event)
         {
             BMM_DEBUG() << "Interaction handler activated!\n";
             m_activeSubTool = s;
-            return true;
         }
+        
+        return true;
     }
 
     // No one handled it, handle it ourselfs.

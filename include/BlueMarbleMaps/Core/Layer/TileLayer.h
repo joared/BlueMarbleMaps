@@ -86,8 +86,9 @@ namespace BlueMarble
     class TilingScheme
     {
     public:
-        TilingScheme(const Rectangle& fullExtent, int minZoom = 0, int maxZoom = 20)
+        TilingScheme(const Rectangle& fullExtent, int tileSize, int minZoom = 0, int maxZoom = 20)
             : m_fullExtent(fullExtent)
+            , m_tileSize(tileSize)
             , m_minZoom(minZoom)
             , m_maxZoom(maxZoom)
         {
@@ -147,6 +148,22 @@ namespace BlueMarble
             }
             
             return true;
+        }
+
+        double zoomToResolution(int zoom) const
+        {
+            double zoom0Resolution = m_fullExtent.width() / (double)m_tileSize;
+            double unitsPerPixel = zoom0Resolution / std::pow(2.0, zoom); // clamp unitsperpix
+
+            return unitsPerPixel;
+        }
+
+        int resolutionToZoom(double unitsPerPixel) const
+        {
+            double zoom0Resolution = m_fullExtent.width() / (double)m_tileSize;
+            int zoom = static_cast<int>(std::floor(std::log2(zoom0Resolution/unitsPerPixel)));
+            
+            return std::clamp(zoom, m_minZoom, m_maxZoom);
         }
 
         int tilesPerAxis(int zoom) const
@@ -232,7 +249,7 @@ namespace BlueMarble
         }
     private:
         Rectangle m_fullExtent; // The full geographic extent covered by the tiling scheme
-        // int m_tileSize; // The size of each tile in pixels
+        int m_tileSize; // The size of each tile in pixels
         int m_minZoom; // The minimum zoom level supported by the tiling scheme
         int m_maxZoom; // The maximum zoom level supported by the tiling scheme
     };
@@ -240,10 +257,12 @@ namespace BlueMarble
     class TileManager
     {
     public:
-        TileManager(const Rectangle& fullExtent);
+        TileManager(const Rectangle& fullExtent, int tileSize);
         
         // Some helpers, no need to lock
         Rectangle tileBounds(int x, int y, int zoom) const;
+        double zoomToResolution(int zoom) const;
+        int resolutionToZoom(double resolution) const;
         int tileManhattanDistance(const Tile& tile, const Point& point) const;
 
         std::vector<Tile> getTilesForArea(const Rectangle& area, int zoom) const;

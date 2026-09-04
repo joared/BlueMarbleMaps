@@ -179,7 +179,7 @@ FeatureQuery Map::produceUpdateQuery()
     int w = m_drawable->width();
     int h = m_drawable->height();
     auto screenArea = Rectangle(0,0,w,h);
-    screenArea.scale(0.9); // TODO: this scaling is for debugging querying, remove
+    screenArea.scale(0.99); // TODO: this scaling is for debugging querying, remove
 
     return produceUpdateQuery(screenArea);
 }
@@ -203,7 +203,8 @@ FeatureQuery BlueMarble::Map::produceUpdateQuery(const Rectangle& screenArea)
     
     FeatureQuery featureQuery;
     featureQuery.scale(queryScale);
-    featureQuery.area(screenToMap(screenArea));
+    featureQuery.resolution(unitsPerPixel);
+    featureQuery.area(screenToMap(screenArea).cropped(crs()->bounds()));
     featureQuery.quickUpdate(quickUpdateEnabled());
     featureQuery.updateAttributes(&updateAttributes());
 
@@ -292,6 +293,14 @@ void Map::panTo(const Point &target)
     if (m_cameraNavigator)
     {
         m_cameraNavigator->panTo(target);
+    }
+}
+
+void Map::rotateTo(double angle)
+{
+    if (m_cameraNavigator)
+    {
+        m_cameraNavigator->rotateTo(angle);
     }
 }
 

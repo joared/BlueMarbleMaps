@@ -14,6 +14,7 @@
 #include "BlueMarbleMaps/Core/DataSets/MemoryDataSet.h"
 #include "Keys.h"
 #include "BlueMarbleMaps/Core/Camera/PlaneCameraController.h"
+#include "gif-h/include/gif.h"
 
 #include <fstream>
 #include <regex>
@@ -89,7 +90,7 @@ namespace BlueMarble
                     m_map->deSelectAll();
                     m_map->update();
 
-                    return true;
+                    return false;
                 }
 
                 auto mode = (event.modificationKey == ModificationKeyCtrl) 
@@ -966,7 +967,7 @@ namespace BlueMarble
                     catch(const std::exception& e)
                     {
                         std::cerr << e.what() << '\n';
-                        continue;
+                        return false;
                     }
 
                     static StandardLayerPtr backgroundLayer;
@@ -1008,6 +1009,8 @@ namespace BlueMarble
                 }
 
                 m_map->update();
+
+                return true;
             }
 
         private:
@@ -1024,6 +1027,8 @@ namespace BlueMarble
         public:
             NorthArrowTool()
                 : m_map(nullptr)
+                , m_isHovered(false)
+                , m_isSelected(false)
             {}
 
             bool isActive() { return false; }
@@ -1041,6 +1046,59 @@ namespace BlueMarble
             }
         private:
 
+            bool onMouseMove(const MouseMoveEvent& event) override final
+            {
+                auto mouse = Point(event.pos.x, event.pos.y);
+                auto pos = northArrowPos(m_map->drawable());
+                
+                m_isHovered = pos.distanceTo(mouse) < ArrowLength;
+                if (!m_isHovered && m_isSelected)
+                {
+                    m_isSelected = false;
+                }
+
+                return false;
+            }
+
+            bool onMouseDown(const MouseDownEvent& event) override final
+            {
+                auto mouse = Point(event.pos.x, event.pos.y);
+                auto pos = northArrowPos(m_map->drawable());
+                
+                m_isSelected = pos.distanceTo(mouse) < ArrowLength;
+
+                if (m_isSelected)
+                {
+                    m_map->rotateTo(0.0);
+                    return true;
+                }
+
+                return false;
+            }
+
+            bool onClick(const ClickEvent& event) override final
+            {
+                auto mouse = Point(event.pos.x, event.pos.y);
+                auto pos = northArrowPos(m_map->drawable());
+                
+                m_isSelected = pos.distanceTo(mouse) < ArrowLength;
+
+                if (m_isSelected)
+                {
+                    m_map->rotateTo(0.0);
+                    return true;
+                }
+
+                return false;
+            }
+
+            bool onMouseUp(const MouseUpEvent& event) override final
+            {
+                m_isSelected = false;
+
+                return false;
+            }
+
             void onCustomDraw(Map& map)
             {
                 drawNorthArrow(map.drawable());
@@ -1048,28 +1106,78 @@ namespace BlueMarble
 
             void drawNorthArrow(const DrawablePtr& drawable)
             {
-                int x = drawable->width()*0.5;
-                int y = ArrowLength * 2.0;
-                auto pos = Point(x,y);
+                auto pos = northArrowPos(drawable);
 
                 Pen pen;
-                pen.setColor(Color::red());
+                pen.setAntiAlias(true);
+                Brush brush;
 
-                auto line = calcArrowGeometry(*m_map, pos);
-                drawable->drawLine(line, pen);
+                if (m_isSelected)
+                {
+                    brush.setColor(Color(50,50,255,0.5));
+                }
+                else if (m_isHovered)
+                {
+                    brush.setColor(Color(50,50,50,0.75));
+                }
+                else
+                {
+                    brush.setColor(Color(50,50,50,0.5));
+                }
+                drawable->drawCircle(pos.x(), pos.y(), ArrowLength, Pen::transparent(), brush);
+
+                // Calculate direction of grid north
+                auto screenCenter = m_map->screenCenter();
+                auto mapCenter = m_map->screenToMap(screenCenter);
+                auto screenOffset = m_map->mapToScreen(mapCenter + Point(0.0, 1.0));
+                auto screenUpDirection = (screenOffset-screenCenter).norm();
+                auto screenRightDirection = Point(-screenUpDirection.y(), screenUpDirection.x());
+
+                auto arrowUp = calcArrowGeometry(pos, screenUpDirection, screenRightDirection);
+                auto arrowDown = calcArrowGeometry(pos, screenUpDirection * (-1.0), screenRightDirection);
+
+
+                brush.setColor(Color(255, 0, 0, 0.9));
+                drawable->drawPolygon(std::make_shared<PolygonGeometry>(arrowUp->points()), pen, brush);
+                brush.setColor(Color::white(0.9));
+                drawable->drawPolygon(std::make_shared<PolygonGeometry>(arrowDown->points()), pen, brush);
+
             }
 
-            LineGeometryPtr calcArrowGeometry(Map& map, const Point& pos) const
+            LineGeometryPtr calcArrowGeometry(const Point& screenPos, const Point& screenUpDirection, const Point& screenRightDirection) const
             {
                 auto points = std::vector<Point>();
 
-                points.push_back(pos + Point(0, -ArrowLength));
-                points.push_back(pos + Point(0, ArrowLength));
+                // Top of north arrow
+                points.push_back(screenPos + (screenRightDirection * -ArrowWidth));
+                points.push_back(screenPos + (screenUpDirection * ArrowLength));
+                points.push_back(screenPos + (screenRightDirection * ArrowWidth));
+                points.push_back(screenPos + (screenUpDirection * ArrowWidth));
+                
+                LineGeometryPtr line = std::make_shared<LineGeometry>(points);
+                line->isClosed(true);
 
-                return std::make_shared<LineGeometry>(points);
+                // points.push_back(screenPos + (screenUpDirection * -ArrowLength));
+                // points.push_back(screenPos + (screenRightDirection * ArrowWidth));
+                // points.push_back(screenPos + (screenUpDirection * ArrowLength));
+                // points.push_back(screenPos + (screenRightDirection * -ArrowWidth));
+
+
+
+                return line;
+            }
+
+            Point northArrowPos(const DrawablePtr& drawable)
+            {
+                int x = drawable->width() - ArrowLength * 2.0;
+                int y = ArrowLength * 2.0;
+
+                return Point(x,y);
             }
 
             MapPtr m_map;
+            bool m_isHovered;
+            bool m_isSelected;
     };
 
     class GpxVisualizerTool : public Tool
@@ -1150,7 +1258,7 @@ namespace BlueMarble
                         if (gpxPath.substr(gpxPath.find_last_of(".") + 1) != "gpx")
                         {
                             std::cout << "Not a GPX file: " << gpxPath << std::endl;
-                            continue;
+                            return false;
                         }
                         m_midnattsloppetDataSet->clear();
 
@@ -1248,6 +1356,7 @@ namespace BlueMarble
                 }
 
                 m_map->update();
+                return true;
             }
 
         private:
@@ -1255,6 +1364,203 @@ namespace BlueMarble
             MemoryDataSetPtr m_midnattsloppetDataSet;
     };
 
+    class GifRecorderTool : public Tool
+    {
+        public:
+            static constexpr int64_t RECORD_INTERVAL_MS = 30; // Record every 30 ms
+            
+            GifRecorderTool()
+                : m_map(nullptr)
+            {}
+
+            bool isActive() { return false; }
+
+            void onConnected(const MapControlPtr& control, const MapPtr& map) override final
+            {
+                m_map = map;
+                m_map->events.onCustomDraw.subscribe(this, &GifRecorderTool::onCustomDraw);
+            }
+
+            void onDisconnected() override final
+            {
+                m_map = nullptr;
+                m_map->events.onCustomDraw.unsubscribe(this);
+            }
+
+            bool onKeyDown(const KeyDownEvent& event) override final
+            {
+                Key keyStroke(event.keyCode);
+            
+                if (keyStroke == Key::G &&
+                    event.modificationKey && ModificationKeyCtrl)
+                {
+                    if (m_recorderState != GifRecorderState::Recording)
+                    {
+                        if (m_recorderState == GifRecorderState::Saving)
+                        {
+                            // Cancel current save
+                            m_recorderState = GifRecorderState::Idle;
+                            m_stopToken = true;
+                            
+                            BMM_DEBUG() << "Interrupting GIF saving...\n";
+                            m_saveThread.join();
+                            m_recordedFrames.clear(); // Clear after saving is interrupted
+                        }
+                        BMM_DEBUG() << "Starting GIF recording...\n";
+                        m_recorderState = GifRecorderState::Recording;
+                        
+                        m_map->events.onUpdated.subscribe(this, &GifRecorderTool::onUpdated);
+                    }
+                    else
+                    {
+                        BMM_DEBUG() << "Stopping GIF recording...\n";
+
+                        m_map->events.onUpdated.unsubscribe(this);
+
+                        // Save the recorded frames to a GIF file on a background thread
+                        m_recorderState = GifRecorderState::Saving;
+                        m_stopToken = false;
+                        m_nRecordedFrames = m_recordedFrames.size(); // Needed for progress bar
+
+                        if (m_saveThread.joinable())
+                        {
+                            m_saveThread.join();
+                        }
+                        m_saveThread = std::thread([this]()
+                        {
+                            saveRecording(m_stopToken, m_recordedFrames, m_recordedFramesMutex);
+                            m_recorderState = GifRecorderState::Idle;
+                        });
+                        BMM_DEBUG() << "Saving GIF in background thread...\n";
+                    }
+                }
+
+                return false;
+            }
+
+            void onCustomDraw(Map& map)
+            {
+                const Point indicatorPos{20.0, 20.0};
+                
+
+                if (m_recorderState == GifRecorderState::Recording)
+                {
+                    static auto radiusProgressEval = AnimationFunctions::AnimationBuilder().subDivide(2).bounce().inverseAt(0.5).build();
+                    // static auto radiusProgressEval = AnimationFunctions::AnimationBuilder().subDivide(2).easeInCubic().inverseAt(0.5).build();
+                    auto drawable = map.drawable();
+                    Brush b;
+                    
+                    
+                    double radius = radiusProgressEval((double)(map.updateAttributes().get<int>(UpdateAttributeKeys::UpdateTimeMs) % 2000) / 2000.0) * 5.0 + 7.0;
+
+                    b.setColor(Color::white());
+                    drawable->drawCircle(indicatorPos.x(), indicatorPos.y(), radius*1.2, Pen::transparent(), b);
+                    b.setColor(Color::red());
+                    drawable->drawCircle(indicatorPos.x(), indicatorPos.y(), radius, Pen::transparent(), b);
+                }
+                if (m_recorderState == GifRecorderState::Saving)
+                {
+                    m_recordedFramesMutex.lock();
+                    int currSize = m_recordedFrames.size();
+                    m_recordedFramesMutex.unlock();
+
+                    double progress = (double)(m_nRecordedFrames - currSize) / (double)m_nRecordedFrames;
+
+                    auto drawable = map.drawable();
+                    LineGeometryPtr outline = std::make_shared<LineGeometry>();
+                    outline->points().push_back(Point(indicatorPos.x() - 15, indicatorPos.y() - 15));
+                    outline->points().push_back(Point(indicatorPos.x() + 15, indicatorPos.y() - 15));
+                    outline->points().push_back(Point(indicatorPos.x() + 15, indicatorPos.y() + 15));
+                    outline->points().push_back(Point(indicatorPos.x() - 15, indicatorPos.y() + 15));
+                    outline->isClosed(true);
+                    Pen p;
+                    p.setColor(Color::black());
+                    drawable->drawLine(outline, p);
+                    Brush b;
+                    b.setColor(Color::green());
+                    Rectangle progressRect(indicatorPos.x() - 15, 
+                                           indicatorPos.y() - 15, 
+                                           indicatorPos.x() - 15 + progress * 30, 
+                                           indicatorPos.y() + 15);
+                    drawable->drawPolygon(std::make_shared<PolygonGeometry>(progressRect), p, b);
+                }
+            }
+
+            void onUpdated(Map& map)
+            {
+                static int64_t lastRecordTimeMs = 0;
+                int64_t updateTimeMs = map.updateAttributes().get<int>(UpdateAttributeKeys::UpdateTimeMs);
+                int64_t elapsedTimeMs = updateTimeMs - lastRecordTimeMs;
+                if (m_recorderState == GifRecorderState::Recording 
+                    && elapsedTimeMs > RECORD_INTERVAL_MS) // Record every 100 ms
+                {
+                    auto drawable = map.drawable();
+                    m_recordedFrames.emplace_back(std::move(drawable->getRaster()));
+                    // int width = drawable->width();
+                    // int height = drawable->height();
+                    // GifWriteFrame(&m_gifWriter, (uint8_t*)drawable->getRaster().data(), width, height, 100);
+                    lastRecordTimeMs = updateTimeMs;
+                }
+            }
+
+        private:
+
+            // On background thread, save the recorded frames to a GIF file
+            static void saveRecording(const std::atomic<bool>& stopToken, 
+                                      std::deque<Raster>& recordedFrames, 
+                                      std::mutex& recordedFramesMutex)
+            {
+                if (recordedFrames.empty())
+                {
+                    BMM_DEBUG() << "No frames to save.\n";
+                    return;
+                }
+
+                auto fileName = "bmm_test.gif";
+                int delay = RECORD_INTERVAL_MS / 10; // Delay in 1/100th of a second
+                int width = recordedFrames[0].width();
+                int height = recordedFrames[0].height();
+
+                GifWriter g;
+                GifBegin(&g, fileName, width, height, delay);
+                
+                while (!stopToken)
+                {
+                    recordedFramesMutex.lock();
+                    if (recordedFrames.empty())
+                    {
+                        recordedFramesMutex.unlock();
+                        break;
+                    }
+                    auto frame = std::move(recordedFrames.front());
+                    recordedFrames.pop_front();
+                    recordedFramesMutex.unlock();
+
+                    GifWriteFrame(&g, (uint8_t*)frame.data(), width, height, delay);
+                }
+
+                BMM_DEBUG() << "Finished writing frames. Storing to " << fileName << "...\n";
+
+                GifEnd(&g);
+
+                BMM_DEBUG() << "Saved GIF to " << fileName << "\n";
+            }
+
+            enum class GifRecorderState
+            {
+                Idle,
+                Recording,
+                Saving
+            };
+
+            MapPtr m_map;
+            std::atomic<GifRecorderState> m_recorderState = {GifRecorderState::Idle};
+            std::thread m_saveThread;
+            std::atomic<bool> m_stopToken{false};
+            std::mutex m_recordedFramesMutex;
+            std::deque<Raster> m_recordedFrames;
+            int m_nRecordedFrames = 0;
+    };
 
     class DebugEventHandler : public Tool
     {

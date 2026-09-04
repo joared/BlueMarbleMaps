@@ -52,6 +52,7 @@ class ICameraNavigator : public ICameraController
         // virtual void setDistance(double distance) = 0;
         // virtual void setOrientation(const glm::dquat& orientation) = 0;
         virtual void panTo(const Point& target) = 0;
+        virtual void rotateTo(double rotation) = 0;
         virtual void zoomTo(const Rectangle& bounds) = 0;
 };
 

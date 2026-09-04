@@ -73,6 +73,7 @@ namespace BlueMarble
             // Forwarded to the internal camera controller, if one is set, and if the
             // controller implements the ICameraNavigator interface.
             void panTo(const Point& target);
+            void rotateTo(double angle);
             void zoomTo(const Rectangle& bounds);
 
             Point pixelToScreen(const Point& pixel) const;

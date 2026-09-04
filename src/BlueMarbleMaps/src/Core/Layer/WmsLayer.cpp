@@ -176,7 +176,11 @@ FeatureEnumeratorPtr WmsLayer::getFeatures(const CrsPtr &crs, const FeatureQuery
     // generic band-interleave copy on every request, which is unnecessary overhead for what's
     // just "GET bytes, decode a PNG/JPEG". Decoding reuses the same stb_image path as the rest
     // of this codebase via Raster::decode().
-    CPLHTTPResult* result = CPLHTTPFetch(requestUrl.str().c_str(), nullptr);
+    CPLStringList options;
+    std::string userPass = m_username + ":" + m_password;
+    options.SetNameValue("USERPWD", userPass.c_str());
+    BMM_DEBUG() << "WmsLayer: Using username: " << m_username << ", password: " << (m_password.empty() ? "<empty>" : "<hidden>") << "\n";
+    CPLHTTPResult* result = CPLHTTPFetch(requestUrl.str().c_str(), options.List());
     if (!result || result->nStatus != 0 || result->nDataLen <= 0)
     {
         BMM_DEBUG() << "WmsLayer: HTTP fetch failed: "

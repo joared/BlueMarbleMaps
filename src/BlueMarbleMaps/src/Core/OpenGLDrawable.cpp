@@ -397,7 +397,9 @@ void BlueMarble::OpenGLDrawable::drawArc(double cx, double cy, double rx, double
         return;
     }
     polyBatch->submit(vertices, indices);
-    lineBatch->submit(vertices, indices);
+    // lineBatch->submit(vertices, indices); // Should this be here? Should probably be done before vertices are triangulated
+
+
     //drawLine(lineGeom, pen);
     // #define ARC_SEGMENTS 32
 
