@@ -485,7 +485,7 @@ public:
             tileLayer->setNumWorkers(nWorkers);
             tileLayer->setQueueSize(nWorkers); //(int)(nWorkers / 2.0));
             tileLayer->setPreloadParents(0); // Pre-load all parents!
-            tileLayer->setTileSize(128);
+            tileLayer->setTileSize(512);
 
             return tileLayer;
         };
