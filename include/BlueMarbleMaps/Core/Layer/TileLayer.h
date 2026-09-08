@@ -18,7 +18,7 @@ namespace BlueMarble
 
         FeatureEnumeratorPtr features{nullptr}; // The features contained in this tile, could be empty if not loaded yet
 
-        int64_t timestamp=0.0;
+        int64_t timestamp=0;
         FeaturePtr cachedBitmapFeature=nullptr;
 
         inline bool isValid() const

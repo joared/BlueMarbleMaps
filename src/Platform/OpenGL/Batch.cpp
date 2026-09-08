@@ -2,7 +2,7 @@
 #include <iostream>
 
 
-#ifdef __EMSCRIPTEN__
+#if defined(__EMSCRIPTEN__) || defined(TEMP_ENABLE)
 #define BATCH_SIZE 600000
 #else
 #define BATCH_SIZE 600000
@@ -47,7 +47,7 @@ Batch::~Batch()
 
 void Batch::begin()
 {
-	#ifdef __EMSCRIPTEN__
+#if defined(__EMSCRIPTEN__) || defined(TEMP_ENABLE)
 	m_cpuVertices.clear();
     m_cpuIndices.clear();
 	#else
@@ -55,13 +55,13 @@ void Batch::begin()
 	m_vertBuffer = (Vertice*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
 	m_ibo.bind();
 	m_indexBuffer = (GLuint*)glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY);
-	#endif
+#endif
 }
 //Issue, on extremely large polygons how should we handle magix_number.
 //the "flush end begin should also be moved to a continuous check every time we draw something"
 void Batch::submit(std::vector<Vertice> &vertices)
 {
-	#ifdef __EMSCRIPTEN__
+	#if defined(__EMSCRIPTEN__) || defined(TEMP_ENABLE)
 
 	if (vertices.size() == 0) return;
 
@@ -120,7 +120,7 @@ void Batch::submit(std::vector<Vertice>& vertices, std::vector<GLuint> &indices)
 {
 	if (vertices.size() == 0 || indices.size() == 0) return;
 
-	#ifdef __EMSCRIPTEN__
+#if defined(__EMSCRIPTEN__) || defined(TEMP_ENABLE)
 
 	if (m_cpuVertices.size()+vertices.size() >= (BATCH_SIZE))
 	{
@@ -192,7 +192,7 @@ void Batch::end()
 
 void Batch::flush()
 {
-	#ifdef __EMSCRIPTEN__
+#if defined(__EMSCRIPTEN__) || defined(TEMP_ENABLE)
 	m_vao.bind();
     m_vbo.bind();
     m_ibo.bind();

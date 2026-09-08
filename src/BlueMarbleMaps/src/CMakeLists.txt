@@ -37,6 +37,13 @@ target_include_directories(BlueMarbleMapsLib
   PUBLIC ${CMAKE_SOURCE_DIR}/external
 )
 
+if (WIN32)
+message("Linking to Winsock2")
+target_link_libraries(BlueMarbleMapsLib PRIVATE
+    Ws2_32
+)
+endif()
+
 message("Linking BlueMarbleMapsLib to glm")
 target_link_libraries(BlueMarbleMapsLib PUBLIC glm::glm)
 
@@ -44,6 +51,11 @@ message("Linking BlueMarbleMapsLib to GDAL")
 #target_link_libraries(BlueMarbleMapsLib PUBLIC GDAL::GDAL)
 target_include_directories(BlueMarbleMapsLib PUBLIC ${GDAL_INCLUDE_DIRS})
 target_link_libraries(BlueMarbleMapsLib PUBLIC ${GDAL_LIBRARIES})
+
+message("Linking BlueMarbleMapsLib to GLFW")
+find_package(GLFW3 REQUIRED)
+target_include_directories(BlueMarbleMapsLib PRIVATE ${GLFW3_INCLUDE_DIR})
+target_link_libraries(BlueMarbleMapsLib PRIVATE ${GLFW3_LIBRARY})
 
 if(LINK_TO_CIMG)
     message("Linking BlueMarbleMapsLib to CImgImplementation")

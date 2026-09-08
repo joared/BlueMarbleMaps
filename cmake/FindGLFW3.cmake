@@ -22,12 +22,15 @@ set( _glfw3_HEADER_SEARCH_DIRS
 "C:/Program Files (x86)/glfw/include"
 "C:/dependencies/includes/GLFW"
 "D:/programmering/dependencies/includes/glfw"
-"$ENV{GLFW3_INCLUDE_DIR}" )
+"$ENV{GLFW3_INCLUDE_DIR}"
+"C:/Users/ils039/OneDrive - AFRY/Documents/C++/ExternalLibraries/glfw-3.5.1.bin.WIN64/include" )
+
 set( _glfw3_LIB_SEARCH_DIRS
 "/usr/lib"
 "/usr/local/lib"
 "${CMAKE_SOURCE_DIR}/lib"
 "C:/Program Files (x86)/glfw/lib-msvc110"
+"C:/Users/ils039/OneDrive - AFRY/Documents/C++/ExternalLibraries/glfw-3.5.1.bin.WIN64/lib-vc2026"
 "C:/dependencies/libs"
 "D:/programmering/dependencies/libs"
 "$ENV{GLFW3_LIB_DIR}" )
@@ -45,8 +48,10 @@ if( GLFW3_ROOT )
 endif()
 
 # Search for the header
-FIND_PATH(GLFW3_INCLUDE_DIR "glfw3.h"
-PATHS ${_glfw3_HEADER_SEARCH_DIRS} )
+find_path(GLFW3_INCLUDE_DIR
+    NAMES GLFW/glfw3.h
+    PATHS ${_glfw3_HEADER_SEARCH_DIRS}
+)
 
 # Search for the library
 FIND_LIBRARY(GLFW3_LIBRARY NAMES glfw3 glfw

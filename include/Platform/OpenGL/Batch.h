@@ -9,6 +9,10 @@
 #include <VBO.h>
 #include <IBO.h>
 
+// Use this to enable Cpu vertices instead of glMapBuffer
+// glMapBuffer can be very slow, especially on emscripten
+#define TEMP_ENABLE
+
 class Batch
 {
 #define MAGIX_NUMBER 0xFFFFFFFF
@@ -31,11 +35,11 @@ private:
 	GLuint m_verticeCounter;
 	bool m_isPolygon;
 
-	#ifdef __EMSCRIPTEN__
+#if defined(__EMSCRIPTEN__) || defined(TEMP_ENABLE)
 	std::vector<Vertice> m_cpuVertices;
 	std::vector<GLuint> m_cpuIndices;
 	std::vector<GLsizei> m_counts;
 	std::vector<const void*> m_offsets;
-	#endif
+#endif
 };
 typedef std::shared_ptr<Batch> BatchPtr;

@@ -19,8 +19,6 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
-#include <unistd.h>             // for usleep()
-
 #ifdef __EMSCRIPTEN__
 #include "libs/emscripten/emscripten_mainloop_stub.h"
 #else
@@ -481,7 +479,7 @@ public:
 
             tileLayer->setCachePath(cacheWmsTileLayerOnDisk ? std::string(COMMON_INDEX_PATH) + "/tilecache" : "");
             tileLayer->name(name);
-            int nWorkers = cacheWmsTileLayerOnDisk ? 4 : std::thread::hardware_concurrency(); // Disk read/write seems to slow the computer down more
+            int nWorkers = cacheWmsTileLayerOnDisk ? 4 : 8; //std::thread::hardware_concurrency(); // Disk read/write seems to slow the computer down more
             tileLayer->setNumWorkers(nWorkers);
             tileLayer->setQueueSize(nWorkers); //(int)(nWorkers / 2.0));
             tileLayer->setPreloadParents(0); // Pre-load all parents!
@@ -567,8 +565,6 @@ public:
                 }
             }
         }
-        
-
     }
 
     void loop()
@@ -652,8 +648,13 @@ int main()
     }
     mapControl->init2();
     //glDebugMessageCallback(MessageCallback, 0);
-    const unsigned char* version = glGetString(GL_VERSION);
-    std::cout << "opengl version: " << version << "\n";
+    const char* version = reinterpret_cast<const char*>(glGetString(GL_VERSION));
+    const char* renderer = reinterpret_cast<const char*>(glGetString(GL_RENDERER));
+    const char* vendor = reinterpret_cast<const char*>(glGetString(GL_VENDOR));
+
+    std::cout << "OpenGL version: " << version << "\n";
+    std::cout << "GPU: " << renderer << '\n';
+    std::cout << "Vendor: " << vendor << '\n';
 
     
     // view->crs(Crs::wgs84MercatorWeb());

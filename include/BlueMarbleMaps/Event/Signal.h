@@ -6,6 +6,7 @@
 #include <cassert>
 #include <vector>
 #include <mutex>
+#include <string>
 
 namespace BlueMarble
 {

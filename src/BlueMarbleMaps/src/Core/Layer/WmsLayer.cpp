@@ -1,7 +1,7 @@
 #include "BlueMarbleMaps/Core/Layer/WmsLayer.h"
 #include "BlueMarbleMaps/Core/Map.h"
 
-#ifndef __EMSCRIPTEN__
+#if !defined(__EMSCRIPTEN__) && defined(GDAL_ENABLED)
 #include <cpl_http.h>
 #endif
 
@@ -99,7 +99,7 @@ FeatureEnumeratorPtr WmsLayer::getFeatures(const CrsPtr &crs, const FeatureQuery
         return enumerator;
     }
 
-#ifndef __EMSCRIPTEN__
+#if !defined(__EMSCRIPTEN__) && defined(GDAL_ENABLED)
     int width = m_imageWidth;
     int height = m_imageHeight;
     if (featureQuery.resolution() > 0.0)

@@ -12,7 +12,13 @@ std::vector<std::string> File::readLines(const std::string& filePath)
 
 std::string File::readAsString(const std::string &filePath)
 {
-    return File(filePath).asString();
+    auto file = File(filePath);
+    if (file.isOpen())
+    {
+        return file.asString();
+    }
+
+    return "";
 }
 
 void File::writeLines(const std::string &filePath, const std::vector<std::string> &lines)

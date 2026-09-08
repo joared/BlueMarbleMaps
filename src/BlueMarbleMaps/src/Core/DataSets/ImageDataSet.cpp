@@ -1,6 +1,6 @@
 #include "BlueMarbleMaps/Core/DataSets/ImageDataSet.h"
 
-#ifndef __EMSCRIPTEN__
+#if !defined(__EMSCRIPTEN__) && defined(GDAL_ENABLED)
 #include <gdal_priv.h>
 #include <cpl_conv.h>
 #endif
@@ -9,7 +9,7 @@ using namespace BlueMarble;
 
 FeaturePtr loadWithGDAL(const std::string& filePath, const Id& id)
 {
-#ifndef __EMSCRIPTEN__
+#if !defined(__EMSCRIPTEN__) && defined(GDAL_ENABLED)
     static bool gdalInitialized = false;
     if (!gdalInitialized)
     {

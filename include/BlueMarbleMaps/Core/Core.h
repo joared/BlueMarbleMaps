@@ -139,7 +139,7 @@ namespace BlueMarble
 
             static Rectangle infinite()
             {
-                double inf = std::numeric_limits<double>::infinity();
+                double constexpr inf = std::numeric_limits<double>::infinity();
                 return Rectangle(-inf, -inf, inf, inf);
             }
 
@@ -148,7 +148,7 @@ namespace BlueMarble
             {
                 assert(points.size() > 1); // FIXME: valid even if only 1 point?
                 
-                auto inf = std::numeric_limits<double>::infinity();
+                constexpr auto inf = std::numeric_limits<double>::infinity();
                 double xMin = inf; 
                 double yMin = inf; 
                 double xMax = -inf; 

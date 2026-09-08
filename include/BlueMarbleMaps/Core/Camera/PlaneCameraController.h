@@ -438,7 +438,7 @@ class PlaneCameraController : public ICameraNavigator
             return 1.0;
         }
 
-        double updateFov(CameraProjection* projection, double alpha)
+        void updateFov(CameraProjection* projection, double alpha)
         {
             m_fovDeg += (m_targetFovDeg-m_fovDeg)*alpha;
 

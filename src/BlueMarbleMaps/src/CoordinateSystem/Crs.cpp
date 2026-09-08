@@ -1,5 +1,5 @@
 #include "BlueMarbleMaps/CoordinateSystem/Crs.h"
-#ifndef __EMSCRIPTEN__
+#if !defined(__EMSCRIPTEN__) && defined(GDAL_ENABLED)
 #include <ogr_spatialref.h>
 #endif
 
@@ -32,7 +32,7 @@ CrsPtr Crs::wgs84MercatorWeb()
 CrsPtr Crs::fromWkt(const std::string &wkt)
 {
     
-    #ifndef __EMSCRIPTEN__
+#if !defined(__EMSCRIPTEN__) && defined(GDAL_ENABLED)
 
     
     OGRSpatialReference srs;

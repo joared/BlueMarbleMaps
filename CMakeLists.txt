@@ -1,7 +1,7 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.10)
 project(BlueMarbleProject)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 # Set the flags for the compiler (probably do this from the IDE instead, otherwise its overriden)
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -O3")
@@ -28,7 +28,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 # Set the build type (default to "Release" if not specified)
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
+  set(CMAKE_BUILD_TYPE RelWithDebInfo)
 endif()
 
 # Build options
@@ -48,20 +48,16 @@ endif()
 
 set(LINK_TO_GL ON)
 
+set(LINK_TO_GDAL OFF)
 
-# Add a library to easy link test cases
-if (NOT EMSCRIPTEN)
-    
+if (LINK_TO_GDAL)
     message("Finding GDAL")
     find_package(GDAL REQUIRED)
-else()
-    message("Using Emscripten compiler")
 endif()
 
-# TODO: currently we only have an example that works with EMSCRIPTEN
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src)
+# Add a library to easy link test cases
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/examples)
-
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 
