@@ -247,8 +247,8 @@ void configureMap(const MapControlPtr& mapControl,
     const bool backgroundLayersSelectable = true;
     const bool includeMemoryDataSet = true;
     const bool includeBackgroundRaster = false;
-    const bool includeContinents = false;
-    const bool includeCountries = false;
+    const bool includeContinents = true;
+    const bool includeCountries = true;
     const bool includeWms = false;
     const double minScaleCountries = 1.0/60000000.0;
     const double minScaleWmsLayerChange = 1.0/60000000.0;

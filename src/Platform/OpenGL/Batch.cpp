@@ -50,7 +50,7 @@ void Batch::begin()
 #if defined(__EMSCRIPTEN__) || defined(TEMP_ENABLE)
 	m_cpuVertices.clear();
     m_cpuIndices.clear();
-	#else
+#else
 	m_vbo.bind();
 	m_vertBuffer = (Vertice*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
 	m_ibo.bind();
@@ -182,12 +182,14 @@ void Batch::submit(std::vector<Vertice>& vertices, std::vector<GLuint> &indices)
 
 void Batch::end()
 {
-	
+#if defined(__EMSCRIPTEN__) || defined(TEMP_ENABLE)
+#else
 	m_vbo.bind();
 	glUnmapBuffer(GL_ARRAY_BUFFER);
 	m_ibo.bind();
 	glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
 	m_ibo.unbind();
+#endif
 }
 
 void Batch::flush()
