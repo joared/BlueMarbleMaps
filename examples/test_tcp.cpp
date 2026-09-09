@@ -103,17 +103,15 @@ void testTcpServer2()
 
 void testTcpClient2(std::string name)
 {
-    auto connection = TcpClient::connect("127.0.0.1", 8080);
+    auto connection = TcpClient::connect("192.168.1.149", 8080);
     if (!connection.isOpen())
     {
         std::cout << "Failed to connect to server\n";
         return;
     }
 
-    std::string conversationCache;
-
     // Receive thread
-    std::thread thread = std::thread([&connection, &conversationCache]
+    std::thread thread = std::thread([&connection]
     {
         for (;;)
         {
@@ -124,24 +122,23 @@ void testTcpClient2(std::string name)
                 std::cout << "Server disconnected\n";
                 break;
             }
-            conversationCache += message + "\n";
 
-            std::cout << "\033[2J\033[H" << std::flush;
-            std::cout << conversationCache << "\n";
+            std::cout << message << "\n";
 
         }
     });
 
     thread.detach();
 
-    std::cout << "\033[2J\033[H" << std::flush;
+    //std::cout << "\033[2J\033[H" << std::flush;
     std::cout << "Connected to server\n";
     
     for (;;)
     {
-        std::cout << "Write a message: ";
+        //std::cout << "Write a message: ";
         std::string message;
         std::getline(std::cin, message);
+        //std::cout << std::flush;
 
         if (message == "q")
         {
