@@ -1,4 +1,4 @@
-#include "BlueMarbleMaps/Networking/socket.h"
+#include "BlueMarbleMaps/Networking/Socket.h"
 #include <iostream>
 
 using namespace BlueMarbleMaps::Networking;

@@ -304,6 +304,8 @@ private:
     Socket& operator=(const Socket&) = delete;
 
     SocketHandle m_sockfd;
+    struct Impl;                     // incomplete here — defined in the .cpp
+    // std::unique_ptr<Impl> m_impl;
 };
 
 class TcpAcceptor;

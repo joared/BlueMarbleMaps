@@ -12,6 +12,7 @@ add_subdirectory(Logging)
 add_subdirectory(System)
 add_subdirectory(Event)
 add_subdirectory(Utility)
+add_subdirectory(Networking)
 
 # The source files needed to compile the project executable
 set(SOURCES  
@@ -21,6 +22,7 @@ set(SOURCES
     ${SYSTEM_SOURCES}
     ${EVENT_SOURCES}
     ${UTILITY_SOURCES}
+    ${NETWORKING_SOURCES}
     ${BBM_SOURCES}
 )
 
@@ -38,10 +40,8 @@ target_include_directories(BlueMarbleMapsLib
 )
 
 if (WIN32)
-message("Linking to Winsock2")
-target_link_libraries(BlueMarbleMapsLib PRIVATE
-    Ws2_32
-)
+    message("Linking to Winsock2")
+    target_link_libraries(BlueMarbleMapsLib PRIVATE Ws2_32)
 endif()
 
 message("Linking BlueMarbleMapsLib to glm")
