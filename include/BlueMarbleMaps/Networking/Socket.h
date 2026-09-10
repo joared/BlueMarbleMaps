@@ -1,14 +1,3 @@
-
-
-#ifdef __linux__
-// Linux
-#include <sys/types.h> 
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#endif
-
 #include <string>
 #include <cstring>
 #include <stdexcept>
@@ -33,7 +22,12 @@ struct EndPoint
     std::string address = "0.0.0.0"; 
     int port = -1;
 
-    bool operator==(const EndPoint&) const = default;
+    bool operator==(const EndPoint& other) const
+    {
+        return address == other.address &&
+               port == other.port;
+    }
+
     std::string toString() const
     {
         return address + " : " + std::to_string(port);

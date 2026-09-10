@@ -20,7 +20,9 @@ void testUdpBroadCast(std::string name)
 
     std::thread rxThread([&rxSocket, &rxEndPoint, &txEndPoint]()
         {
-            rxSocket.setSocketOptions({ .reuseAddressEnabled = true });
+            rxSocket.setSocketOptions({ 
+                        .broadcastEnabled = false,
+                        .reuseAddressEnabled = true });
             if (!rxSocket.bind(rxEndPoint))
             {
                 std::cout << "Filed to bind receive socket\n";

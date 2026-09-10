@@ -1638,7 +1638,7 @@ namespace BlueMarble
             m_map->events.onCameraChanged.subscribe(this, &CameraBroadCastTool::onViewAreaChanged);
             
             constexpr size_t MAX_MESSAGE_SIZE = 1000;
-            auto txEndPoint = Networking::EndPoint{ "255.255.255.255", 8080 }; // Local network
+            auto txEndPoint = Networking::EndPoint{ "192.168.1.255", 8080 }; // Local network
             auto rxEndPoint = Networking::EndPoint{ "0.0.0.0", 8080 };
 
             m_rxSocket = std::make_unique<Networking::Socket>(Networking::Socket::SocketType::Udp);
@@ -1646,7 +1646,9 @@ namespace BlueMarble
 
             m_rxThread = std::thread([this, MAX_MESSAGE_SIZE, txEndPoint, rxEndPoint]
                 {
-                    m_rxSocket->setSocketOptions({ .reuseAddressEnabled = true });
+                    m_rxSocket->setSocketOptions({ 
+                        .broadcastEnabled = false,
+                        .reuseAddressEnabled = true });
                     if (!m_rxSocket->bind(rxEndPoint))
                     {
                         std::cout << "Filed to bind receive socket\n";
@@ -1714,7 +1716,9 @@ namespace BlueMarble
 
             m_txThread = std::thread([this, MAX_MESSAGE_SIZE, txEndPoint]()
                 {
-                    m_txSocket->setSocketOptions({ .broadcastEnabled = true });
+                    m_txSocket->setSocketOptions({ 
+                        .broadcastEnabled = true,
+                        .reuseAddressEnabled = false });
 
                     
                     for (;;)

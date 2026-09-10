@@ -3,10 +3,12 @@
 
 using namespace BlueMarble::Networking;
 
+static std::string hostName = "MyTestServer";
+
 void testTcpServer()
 {
     Socket socket;
-    if (!socket.bind({ "0.0.0.0", 8080 }))
+    if (!socket.bind({ hostName, 8080 }))
     {
         std::cout << "Failed to bind to port 8080\n";
         return;
@@ -40,7 +42,7 @@ void testTcpServer()
 void testTcpClient()
 {
     Socket socket;
-    if (!socket.connect({ "127.0.0.1", 8080 }))
+    if (!socket.connect({ hostName, 8080 }))
     {
         std::cout << "Failed to connect to server\n";
         return;
