@@ -3,7 +3,7 @@
 
 using namespace BlueMarble::Networking;
 
-static std::string hostName = "MyTestServer";
+static std::string hostName = "127.0.0.1";
 
 void testTcpServer()
 {
@@ -105,7 +105,7 @@ void testTcpServer2()
 
 void testTcpClient2(std::string name)
 {
-    auto connection = TcpClient::connect("127.0.0.1", 8080);
+    auto connection = TcpClient::connect(hostName, 8080);
     if (!connection.isOpen())
     {
         std::cout << "Failed to connect to server\n";

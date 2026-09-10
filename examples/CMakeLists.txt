@@ -56,6 +56,14 @@ if (NOT EMSCRIPTEN)
 	add_executable(TestUdpClient test_udp.cpp)
 	target_link_libraries(TestUdpClient PRIVATE BlueMarbleMapsLib)
 	target_compile_definitions(TestUdpClient PRIVATE COMPILE_UDP_SERVER=false)
+	
+	# UDP discovery
+	add_executable(TestDiscoveryServer test_discovery.cpp)
+	target_link_libraries(TestDiscoveryServer PRIVATE BlueMarbleMapsLib)
+	target_compile_definitions(TestDiscoveryServer PRIVATE COMPILE_SERVER=true)
+	add_executable(TestDiscoveryClient test_discovery.cpp)
+	target_link_libraries(TestDiscoveryClient PRIVATE BlueMarbleMapsLib)
+	target_compile_definitions(TestDiscoveryClient PRIVATE COMPILE_SERVER=false)
 
 endif()
 
