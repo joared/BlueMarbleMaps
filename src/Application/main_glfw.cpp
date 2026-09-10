@@ -289,9 +289,8 @@ public:
     }
 
     // TODO: map calls this and can be called on any thread
-    void onUpdateRequest()
+    void onUpdateRequest() override final
     {
-        updateView();
         glfwPostEmptyEvent();
     }
 
@@ -517,6 +516,7 @@ public:
             toolSet->addSubTool(std::make_shared<GpxVisualizerTool>());
             toolSet->addSubTool(std::make_shared<KeyActionTool>(backgroundLayer));
             toolSet->addSubTool(std::make_shared<GifRecorderTool>());
+            toolSet->addSubTool(std::make_shared<CameraBroadCastTool>());
             toolSet->addSubTool(std::make_shared<DebugEventHandler>());
             toolSet->addSubTool(std::make_shared<CameraControllerTwoHalfD>());
 

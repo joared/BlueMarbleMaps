@@ -15,10 +15,13 @@
 #include "Keys.h"
 #include "BlueMarbleMaps/Core/Camera/PlaneCameraController.h"
 #include "gif-h/include/gif.h"
+#include "BlueMarbleMaps/Networking/Socket.h"
+#include "BlueMarbleMaps/Core/Serialization/Json/JsonValue.h"
 
 #include <fstream>
 #include <regex>
 #include <sstream>
+#include <random>
 
 namespace BlueMarble
 {
@@ -1560,6 +1563,336 @@ namespace BlueMarble
             std::mutex m_recordedFramesMutex;
             std::deque<Raster> m_recordedFrames;
             int m_nRecordedFrames = 0;
+    };
+
+    class CameraBroadCastTool : public Tool
+    {
+    public:
+        template <typename T>
+        class Lockable
+        {
+        public:
+            Lockable(T&& resource)
+                : m_resource(resource)
+            {
+
+            }
+
+            T* lock() noexcept
+            {
+                m_mutex.lock();
+
+                return &m_resource;
+            }
+
+            void unlock() const noexcept
+            {
+                m_mutex.unlock();
+            }
+
+            void access(std::function<void(T* resource)> accesFunc)
+            {
+                lock();
+                accessFunc(&m_resource);
+                unlock();
+            }
+
+        private:
+            T m_resource;
+            mutable std::mutex m_mutex;
+        };
+
+        template <typename T>
+        class LockGuard
+        {
+        public:
+            LockGuard(const Lockable<T>& lockabe)
+            {
+                m_lockable.lock();
+            }
+            ~LockGuard()
+            {
+                m_lockable.unlock();
+            }
+        private:
+            const Lockable<T>& m_lockable;
+
+        };
+        
+        struct CameraRepresentation
+        {
+            Point translation;
+            std::vector<Point> projectedFrustum;
+        };
+
+        CameraBroadCastTool()
+            : m_cameras(std::map<std::string, CameraRepresentation>())
+        {
+
+        }
+        void onConnected(const MapControlPtr& control, const MapPtr& map) override
+        {
+            m_map = map;
+            m_mapControl = control;
+            m_map->events.onCustomDraw.subscribe(this, &CameraBroadCastTool::onCustomDraw);
+            m_map->events.onCameraChanged.subscribe(this, &CameraBroadCastTool::onViewAreaChanged);
+            
+            constexpr size_t MAX_MESSAGE_SIZE = 1000;
+            auto txEndPoint = Networking::EndPoint{ "255.255.255.255", 8080 }; // Local network
+            auto rxEndPoint = Networking::EndPoint{ "0.0.0.0", 8080 };
+
+            m_rxSocket = std::make_unique<Networking::Socket>(Networking::Socket::SocketType::Udp);
+            m_txSocket = std::make_unique<Networking::Socket>(Networking::Socket::SocketType::Udp);
+
+            m_rxThread = std::thread([this, MAX_MESSAGE_SIZE, txEndPoint, rxEndPoint]
+                {
+                    m_rxSocket->setSocketOptions({ .reuseAddressEnabled = true });
+                    if (!m_rxSocket->bind(rxEndPoint))
+                    {
+                        std::cout << "Filed to bind receive socket\n";
+                        return;
+                    }
+
+                    std::cout << "Started receiving thread. Listening on " + rxEndPoint.toString() + "\n";
+                    for (;;)
+                    {
+                        Networking::EndPoint sender;
+                        std::string message;
+                        message.resize(MAX_MESSAGE_SIZE);
+                        int nReceived = m_rxSocket->receiveFrom(message.data(),
+                            message.size(),
+                            sender);
+
+                        if (nReceived <= 0)
+                        {
+                            std::cout << "Receive failed or socket closed\n";
+                            return;
+                        }
+
+                        message.resize(nReceived);
+
+                        if (sender == txEndPoint) // FIXME: This doesnt really work, this is not the actual endpoint
+                        {
+                            std::cout << "Got my own message!\n";
+                        }
+                        else
+                        {
+                            std::cout << "Received: " << message << " (from: " << sender.address << " : " << std::to_string(sender.port) << ") \n";
+                        }
+
+                        auto value = JsonValue::fromString(message);
+
+                        if (!value.isObject())
+                        {
+                            std::cout << "Received something that is not an object\n";
+                            continue;
+                        }
+                        auto& json = value.asObject();
+
+                        if (json.find("id") == json.end())
+                        {
+                            std::cout << "got a message without id, ignoring...";
+                            continue;
+                        }
+                        auto senderId = json.at("id").asString();
+                        if (senderId == getId())
+                        {
+                            std::cout << "Message was from me! Ignoring\n";
+                            continue;
+                        }
+
+                        auto cam = jsonToCamera(json);
+
+                        auto cameras = m_cameras.lock();
+                        cameras->insert_or_assign(senderId, cam);
+                        m_cameras.unlock();
+
+                        m_mapControl->updateView();
+                    }
+                }
+            );
+
+            m_txThread = std::thread([this, MAX_MESSAGE_SIZE, txEndPoint]()
+                {
+                    m_txSocket->setSocketOptions({ .broadcastEnabled = true });
+
+                    
+                    for (;;)
+                    {
+                        JsonValue payload;
+                        {
+                            std::unique_lock lock(m_txMutex);
+                            m_txCv.wait(lock, [this]() { return m_txPayLoad.hasValue(); });
+                            payload = std::move(m_txPayLoad);
+                            m_txPayLoad = JsonValue();
+                        }
+                        
+                        std::string message = payload.toString();
+
+                        int nSent = m_txSocket->sendTo(message.data(), message.size(), txEndPoint);
+
+                        if (nSent == 0)
+                        {
+                            std::cout << "Send socket closed\n";
+                            return;
+                        }
+
+                        if (nSent != message.size())
+                        {
+                            throw std::runtime_error("THIS SHOULD NEVER HAPPEN FOR UDP!");
+                        }
+
+                        std::cout << "Sent " << nSent << " bytes\n";
+                    }
+                }
+            );
+
+        }
+        void onDisconnected() override
+        {
+            m_map->events.onCustomDraw.unsubscribe(this);
+            m_map = nullptr;
+            m_mapControl = nullptr;
+        }
+
+        void onViewAreaChanged(Map& map)
+        {
+            // Broad cast the current camera
+            int w = m_map->drawable()->width();
+            int h = m_map->drawable()->height();
+            auto screenArea = Rectangle(0, 0, w, h);
+            //auto area = m_map->screenToMap(screenArea).cropped(m_map->crs()->bounds());
+            auto projectedFrustum = m_map->screenToMap(screenArea.corners());
+            CameraRepresentation cam
+            {
+                m_map->camera()->translation(), 
+                projectedFrustum
+            };
+
+            auto json = cameraToJson(cam);
+            json["id"] = getId();
+            
+            {
+                std::lock_guard lock(m_txMutex);
+                m_txPayLoad = JsonValue(json);
+            }
+            m_txCv.notify_one();
+        }
+
+        void onCustomDraw(Map& map)
+        {
+            auto cameras = m_cameras.lock();;
+
+            m_map->setDrawableFromCamera(m_map->camera());
+            
+            Pen pen;
+            Brush brush;
+
+            for (const auto& it : *cameras)
+            {
+                const auto& cam = it.second;
+                auto polygon = std::make_shared<PolygonGeometry>(cam.projectedFrustum);
+                pen.setColor(Color::yellow(0.9));
+                brush.setColor(Color::red(0.2));
+
+                m_map->drawable()->drawPolygon(polygon, pen, brush);
+
+                for (const auto& p : cam.projectedFrustum)
+                {
+                    auto line = std::make_shared<LineGeometry>
+                    (
+                        std::vector<Point>{cam.translation, p}
+                    );
+                    m_map->drawable()->drawLine(line, pen);
+                }
+
+                pen.setColor(Color::blue());
+                // TODO: draw something on the camera position
+            }
+
+            m_cameras.unlock();
+        }
+
+        bool isActive() override
+        {
+            return false;
+        }
+
+    private:
+
+        static std::string getId()
+        {
+            static std::random_device rd;
+            static uint64_t instanceId = (static_cast<uint64_t>(rd()) << 32) | rd();
+            static std::string idString = std::to_string(instanceId);
+
+            return idString;
+        }
+
+        static CameraRepresentation jsonToCamera(const JsonValue::Object& json)
+        {
+            CameraRepresentation cam;
+
+            auto trans = json.at("translation").asArray();
+            cam.translation = Point(
+                trans[0].asDouble(),
+                trans[1].asDouble(),
+                trans[2].asDouble()
+            );
+
+            for (const auto& coord : json.at("frustum").asArray())
+            {
+                double x = coord.asArray()[0].asDouble();
+                double y = coord.asArray()[1].asDouble();
+                double z = coord.asArray()[2].asDouble();
+                cam.projectedFrustum.push_back(Point(x, y, z));
+            }
+
+            return cam;
+        }
+
+        static JsonValue::Object cameraToJson(const CameraRepresentation& cam)
+        {
+            auto json = JsonValue::Object();
+
+            json["translation"] = {
+                cam.translation.x(),
+                cam.translation.y(),
+                cam.translation.z()
+            };
+
+            auto pointList = JsonValue::Array();
+            for (const auto& p : cam.projectedFrustum)
+            {
+                auto coord = JsonValue
+                {
+                    p.x(),
+                    p.y(),
+                    p.z()
+                };
+                
+                pointList.push_back(coord);
+            }
+
+            json["frustum"] = pointList;
+
+            return json;
+        }
+
+        std::thread m_rxThread;
+        std::thread m_txThread;
+        std::unique_ptr<Networking::Socket> m_rxSocket;
+        std::unique_ptr<Networking::Socket> m_txSocket;
+        std::condition_variable m_txCv;
+        std::mutex m_txMutex;
+        JsonValue m_txPayLoad;
+
+        Lockable<std::map<std::string, CameraRepresentation>> m_cameras;
+
+        MapControlPtr m_mapControl;
+        MapPtr m_map;
+
+
     };
 
     class DebugEventHandler : public Tool

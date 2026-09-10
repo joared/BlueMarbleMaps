@@ -1,11 +1,6 @@
 
 
-#ifdef _WIN32
-// Windows
-#define NOMINMAX
-#include <Winsock2.h>
-#include <ws2tcpip.h>
-#elif defined(__linux__)
+#ifdef __linux__
 // Linux
 #include <sys/types.h> 
 #include <sys/socket.h>
@@ -27,40 +22,48 @@
 #include <memory>
 #include <list>
 
-namespace BlueMarbleMaps {
+namespace BlueMarble {
 namespace Networking {
 
+
+struct EndPoint
+{
+    // TODO: make this integer of sort, and have a "resolver" that can convert host names to actuall end points
+    // This is currently interpreted as "host" and automatically resolves end points technically
+    std::string address = "0.0.0.0"; 
+    int port = -1;
+
+    bool operator==(const EndPoint&) const = default;
+    std::string toString() const
+    {
+        return address + " : " + std::to_string(port);
+    }
+};
+
+/*
+* Support TCP or UDP using explicitly the IPv4 address family
+* Typcal TCP server: bind() -> listen() -> accept()
+* TCP Client: connect() 
+* UDP Server: bind() -> sendTo()/receiveFrom()
+* UDP Client unconnected peer: bind() (optional) -> sendTo()/receiveFrom()
+* UDP Client with connected peer: connect() -> send()/receive()
+*/
 class Socket
 {
 public:
+    
+//#ifdef _WIN32
+//    // Windows
+//    using NativeSocketHandle = SOCKET;
+//#elif defined(__linux__)
+//    using NativeSocketHandle = int;
+//#endif
 
-#ifdef _WIN32
-    // Windows
-    using SocketHandle = SOCKET;
-    #define InvalidSocket INVALID_SOCKET
-
-    static bool initializeWinsock()
+    struct SocketOptions
     {
-        static bool initialized = []()
-        {
-            WSADATA wsaData;
-            int iResult;
-            iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
-            if (iResult != 0) 
-            {
-                std::cout << "WSAStartup failed with error: " << iResult << "\n";
-                return false;
-            }
-
-            return true;
-        }();
-
-        return initialized;
-    }
-#elif defined(__linux__)
-    using SocketHandle = int;
-    #define InvalidSocket -1
-#endif
+        bool broadcastEnabled = false; // Allows socket to Send to a broadcast address
+        bool reuseAddressEnabled = false; // Allows multiple sockets to use the same local port
+    };
 
     enum class SocketType
     {
@@ -68,245 +71,52 @@ public:
         Udp
     };
 
-    Socket(SocketType type = SocketType::Tcp)
-        : m_sockfd(InvalidSocket)
-    {
-#ifdef _WIN32
-        initializeWinsock();
-        
-        // Fixme: Maybe the instantiation should be in bind and connect
-        m_sockfd = ::socket(
-            AF_INET,
-            type == SocketType::Tcp ? SOCK_STREAM : SOCK_DGRAM,
-            type == SocketType::Tcp ? IPPROTO_TCP : IPPROTO_UDP
-        );
+    Socket(SocketType type = SocketType::Tcp);
 
-
-#elif defined(__linux__)
-
-        m_sockfd = socket(
-            AF_INET, 
-            type == SocketType::Tcp ? SOCK_STREAM : SOCK_DGRAM, 
-        0);
-#endif // defined(__linux__)
-    }
-
-    Socket(Socket&& other) noexcept
-        : m_sockfd(other.m_sockfd)
-    {
-        other.m_sockfd = InvalidSocket;
-    }
-
-    Socket& operator=(Socket&& other) noexcept
-    {
-        if (this != &other)
-        {
-            close();
-            m_sockfd = other.m_sockfd;
-            other.m_sockfd = InvalidSocket;
-        }
-        return *this;
-    }
-
-    ~Socket()
-    {
-        close();
-    }
-
-    bool bind(int port)
-    {
-#ifdef _WIN32
-        // Windows
-        
-        struct addrinfo* result = NULL,
-            * ptr = NULL,
-            hints;
-
-        ZeroMemory(&hints, sizeof(hints));
-        hints.ai_family = AF_INET;
-        hints.ai_socktype = SOCK_STREAM;
-        hints.ai_protocol = IPPROTO_TCP;
-        hints.ai_flags = AI_PASSIVE;
-
-        INT iResult = getaddrinfo("127.0.0.1", std::to_string(port).c_str(), &hints, &result);
-        if (iResult != 0)
-        {
-            return false;
-        }
-        iResult = ::bind(m_sockfd, result->ai_addr, (int)result->ai_addrlen);
-
-        freeaddrinfo(result);
-
-        return iResult != SOCKET_ERROR;
-#elif defined(__linux__)
-        // Circumvent "Address already in use" error when restarting the server quickly
-        int reuse = 1;
-        ::setsockopt(m_sockfd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
-
-        sockaddr_in serv_addr;
-        std::memset(&serv_addr, 0, sizeof(serv_addr));
-        serv_addr.sin_family = AF_INET;
-        serv_addr.sin_addr.s_addr = INADDR_ANY;
-        serv_addr.sin_port = htons(port);
-
-        return 0 == ::bind(m_sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
-#endif // defined(__linux__)
-    }
-
-    bool listen(int backlog)
-    {
-#ifdef _WIN32
-        // Windows
-        return SOCKET_ERROR != ::listen(m_sockfd, SOMAXCONN);
-#elif defined(__linux__)
-        return 0 == ::listen(m_sockfd, backlog);
-#endif
-    }
-
-    [[nodiscard]] Socket accept()
-    {
-#ifdef _WIN32
-        // Windows
-        SocketHandle clientSocket = ::accept(m_sockfd, NULL, NULL);
-        return Socket(clientSocket);
-#elif defined(__linux__)
-        sockaddr_in cli_addr;
-        socklen_t clilen = sizeof(cli_addr);
-        int client_fd = ::accept(m_sockfd, (struct sockaddr *) &cli_addr, &clilen);
-        
-        if (client_fd == InvalidSocket)
-        {
-            throw std::runtime_error("Failed to accept");
-        }
-
-        return Socket(client_fd);
-#endif
-    }
-
-    bool connect(const std::string& host, int port)
-    {
-#ifdef _WIN32
-        // Windows
-        
-        struct addrinfo* result = NULL,
-            * ptr = NULL,
-            hints;
-
-        ZeroMemory(&hints, sizeof(hints));
-        hints.ai_family = AF_INET;
-        hints.ai_socktype = SOCK_STREAM;
-        hints.ai_protocol = IPPROTO_TCP;
-        hints.ai_flags = AI_PASSIVE;
-
-        INT iResult = getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &result);
-        if (iResult != 0)
-        {
-            return false;
-        }
-
-        SOCKET connectSocket = InvalidSocket;
-        for (ptr = result; ptr != NULL;ptr = ptr->ai_next) {
-
-            // Create a SOCKET for connecting to server
-            connectSocket = ::socket(ptr->ai_family, 
-                                     ptr->ai_socktype,
-                                     ptr->ai_protocol);
-            if (connectSocket == InvalidSocket) 
-            {
-                printf("socket failed with error: %ld\n", WSAGetLastError());
-                //WSACleanup();
-                return false;
-            }
-
-            // Connect to server.
-            iResult = ::connect(connectSocket, ptr->ai_addr, (int)ptr->ai_addrlen);
-            if (iResult == SOCKET_ERROR) 
-            {
-                closesocket(connectSocket);
-                connectSocket = InvalidSocket;
-                continue;
-            }
-            break;
-        }
-        close(); // TODO: this is uggly. We should move the creation of the socket here (and in bind)
-        m_sockfd = connectSocket;
-
-
-        freeaddrinfo(result);
-
-        return iResult != SOCKET_ERROR;
-
-#elif defined(__linux__)
-        // Create sockaddr initialized set to zero
-        sockaddr_in serv_addr;
-        std::memset(&serv_addr, 0, sizeof(serv_addr));
-        serv_addr.sin_family = AF_INET;
-        serv_addr.sin_port = htons(port);
-        serv_addr.sin_addr.s_addr = inet_addr(host.c_str());
-
-        return 0 == ::connect(m_sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
-#endif
-    }
-    void close()
-    {
-#ifdef _WIN32
-        // Windows
-        if (m_sockfd != InvalidSocket)
-        {
-            ::shutdown(m_sockfd, SD_SEND); // Not sure when to use this
-            ::closesocket(m_sockfd);
-        }
-        m_sockfd = InvalidSocket;
-
-#elif defined(__linux__)
-        if (m_sockfd >= 0)
-        {
-            std::cout << "Socket::close()\n";
-            ::close(m_sockfd);
-            m_sockfd = InvalidSocket;
-        }
-#endif
-    }
-
-    bool isOpen() const
-    {
-        return m_sockfd >= 0;
-    }
-
-    int send(const char* data, size_t size)
-    {
-#ifdef _WIN32
-        // Windows
-        return ::send(m_sockfd, data, size, 0);
-#elif defined(__linux__)
-        return ::send(m_sockfd, data, size, 0);
-#endif
-    }
-
-    int receive(char* buffer, size_t size)
-    {
-#ifdef _WIN32
-        // Windows
-        return ::recv(m_sockfd, buffer, size, 0);
-#elif defined(__linux__)
-        return ::recv(m_sockfd, buffer, size, 0);
-#endif
-    }
-
-private:
-    Socket(SocketHandle sockfd)
-        : m_sockfd(sockfd)
-    {
-    }
+    Socket(Socket&& other) noexcept;
+    Socket& operator=(Socket&& other) noexcept;
 
     // disable copy constructor and assignment operator
     Socket(const Socket&) = delete;
     Socket& operator=(const Socket&) = delete;
 
-    SocketHandle m_sockfd;
+    ~Socket();
+    
+    // Binds a socket 0.0.0.0 and accepts all traffic on any interface
+    bool bind(const EndPoint& endPoint);
+    // Start listening to to a currently bound socket. 
+    // backlog defines the os queue size for connections, -1 a default will be chosen
+    bool listen(int backlog=-1);
+    // Accept incoming connections on the currently bound and listen socket.
+    [[nodiscard]] Socket accept();
+    // Connect to a host
+    // TCP/UDP
+    bool connect(const EndPoint& endPoint);
+    void close();
+
+    // Checks if the socket is valid
+    bool isOpen() const;
+
+    // Sends at maximum number of bytes (size). Returns the actual number of bytes sent
+    // Used for sockets that are connected
+    int send(const char* data, size_t size);
+    // Receives at maximum number of bytes (size). Returns the actual number of bytes read.
+    // Used for sockets that are connected.
+    int receive(char* buffer, size_t size);
+
+    int sendTo(const char* data, size_t size, const EndPoint& endPoint);
+    int receiveFrom(char* buffer, size_t size, EndPoint& senderEndPoint);
+
+    // Options. If socket is not open, this will fail and return false
+    bool setSocketOptions(const SocketOptions& options);
+
+private:
     struct Impl;                     // incomplete here — defined in the .cpp
-    // std::unique_ptr<Impl> m_impl;
+    std::unique_ptr<Impl> m_impl;
+    explicit Socket(std::unique_ptr<Impl> impl);    
 };
+
+
 
 class TcpAcceptor;
 class TcpClient;
@@ -337,7 +147,7 @@ public:
         while (totalSent < bytesToSend) 
         {
             // Vi ber bara om det antal bytes som återstår upp till vår målstorlek
-            size_t received = m_socket.send(data + totalSent, bytesToSend - totalSent);
+            int received = m_socket.send(data + totalSent, bytesToSend - totalSent);
             
             if (received < 0) 
             {
@@ -354,7 +164,7 @@ public:
 
         if (totalSent != bytesToSend)
         {
-            throw std::runtime_error("Total sent != sent");
+            throw std::runtime_error("Total sent != to send (" + std::to_string(totalSent) + " != " + std::to_string(bytesToSend));
         }
 
         return true;
@@ -398,7 +208,7 @@ public:
         while (totalReceived < bytesToRead) 
         {
             // Vi ber bara om det antal bytes som återstår upp till vår målstorlek
-            size_t received = m_socket.receive(buffer + totalReceived, bytesToRead - totalReceived);
+            int received = m_socket.receive(buffer + totalReceived, bytesToRead - totalReceived);
             
             if (received < 0) 
             {
@@ -484,7 +294,7 @@ public:
 
     bool bind(int port)
     {
-        if (!m_socket.bind(port))
+        if (!m_socket.bind({ "0.0.0.0", port}))
         {
             throw std::runtime_error("Failed to bind to port " + std::to_string(port));
         }
@@ -524,7 +334,7 @@ public:
     [[nodiscard]] static TcpConnection connect(const std::string& host, int port)
     {
         Socket socket;
-        if (!socket.connect(host, port))
+        if (!socket.connect({ host, port }))
         {
             throw std::runtime_error("Failed to connect to " + host + ":" + std::to_string(port));
         }
@@ -595,7 +405,7 @@ public:
         }
     }
 
-    int numClients()
+    size_t numClients()
     {
         return m_connections.size();
     }
@@ -649,14 +459,16 @@ private:
 
 };
 
-struct HTTPMessage {
+struct HTTPMessage 
+{
     std::string start_line; // e.g., "GET / HTTP/1.1" or "HTTP/1.1 200 OK"
     std::unordered_map<std::string, std::string> headers;
     std::vector<char> body;
 };
 
 // Helper to read exactly one line (until \r\n) from your socket abstraction
-std::string readLine(TcpConnection& socket) {
+inline std::string readLine(TcpConnection& socket) 
+{
     std::string line;
     char c;
     while (socket.receive(&c, 1) > 0) {

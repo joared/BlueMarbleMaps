@@ -1,7 +1,9 @@
 if(WIN32)
-	set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/Socket_Win32.cpp)
+    message("Using Socket_Win32")
+    set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/Socket_Win32.cpp)
 else()
-	set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/Socket_Posix.cpp)
+    message("Using Socket_Posix")
+    set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/Socket_Posix.cpp)
 endif()
 
 # Push up to parent

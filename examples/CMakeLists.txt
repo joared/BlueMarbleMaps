@@ -41,13 +41,22 @@ if (NOT EMSCRIPTEN)
 	add_executable(TestJson test_json.cpp)
 	target_link_libraries(TestJson PRIVATE BlueMarbleMapsLib)
 
+	# TCP Server/Client
 	add_executable(TestTcpServer test_tcp.cpp)
 	target_link_libraries(TestTcpServer PRIVATE BlueMarbleMapsLib)
 	target_compile_definitions(TestTcpServer PRIVATE COMPILE_TCP_SERVER=true)
-
 	add_executable(TestTcpClient test_tcp.cpp)
 	target_link_libraries(TestTcpClient PRIVATE BlueMarbleMapsLib)
 	target_compile_definitions(TestTcpClient PRIVATE COMPILE_TCP_SERVER=false)
+
+	# UDP Server/Client
+	add_executable(TestUdpServer test_udp.cpp)
+	target_link_libraries(TestUdpServer PRIVATE BlueMarbleMapsLib)
+	target_compile_definitions(TestUdpServer PRIVATE COMPILE_UDP_SERVER=true)
+	add_executable(TestUdpClient test_udp.cpp)
+	target_link_libraries(TestUdpClient PRIVATE BlueMarbleMapsLib)
+	target_compile_definitions(TestUdpClient PRIVATE COMPILE_UDP_SERVER=false)
+
 endif()
 
 # TODO: only imgui example works with EMSCRIPTEN

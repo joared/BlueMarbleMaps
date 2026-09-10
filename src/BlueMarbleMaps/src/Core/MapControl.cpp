@@ -93,6 +93,7 @@ void MapControl::updateView()
 {
     // TODO: scheduling
     m_updateRequired = true;
+    onUpdateRequest();
 }
 
 void MapControl::updateViewInternal()

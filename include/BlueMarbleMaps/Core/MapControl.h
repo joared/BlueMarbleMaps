@@ -32,12 +32,14 @@ namespace BlueMarble
             void updateView();
             bool updateRequired();
             void updateViewInternal(); // TODO: make private
+            
 
             // Override resize of EventManager
             bool resize(int width, int height, int64_t timeStampMs) override final;
             void setMouseCursor(MouseCursor cursor);
 
         protected:
+            virtual void onUpdateRequest() = 0;
             void handleResize(int width, int height);
         private:
             MapPtr  m_mapView;

@@ -73,7 +73,8 @@ bool Map::update(bool forceUpdate)
     if (m_cameraController)
     {
         ICameraController::ControllerStatus status = m_cameraController->updateCamera(m_camera, deltaMs);
-        if (hasFlag(status, ICameraController::ControllerStatus::Updated))
+        if (hasFlag(status, ICameraController::ControllerStatus::Updated)
+            || hasFlag(status, ICameraController::ControllerStatus::NeedsUpdate))
         {
             events.onCameraChanged.notify(*this);
         }
@@ -145,7 +146,7 @@ void Map::renderLayers()
 {
     m_presentationObjects.clear(); // Clear presentation objects, layers will add new
 
-    FeatureQuery featureQuery = std::move(produceUpdateQuery());
+    FeatureQuery featureQuery = produceUpdateQuery();
 
     // Switch drawable to offscreen for layers
     auto originalDrawable = m_drawable;

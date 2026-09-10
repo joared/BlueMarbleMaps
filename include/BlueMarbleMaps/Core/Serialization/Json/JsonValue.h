@@ -146,7 +146,7 @@ public:
 
     // void operator=(JsonValue&& v) { m_val = std::move(v.m_val); }
 
-    bool hasValue() const { return !isType<std::monostate>(); }
+    bool hasValue() const { return !isType<Null>(); }
     bool isBool() const { return isType<bool>(); }
     bool isInteger() const { return isType<int64_t>(); }
     bool isDouble() const { return isType<double>(); }

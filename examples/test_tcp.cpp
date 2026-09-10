@@ -1,12 +1,12 @@
 #include "BlueMarbleMaps/Networking/Socket.h"
 #include <iostream>
 
-using namespace BlueMarbleMaps::Networking;
+using namespace BlueMarble::Networking;
 
 void testTcpServer()
 {
     Socket socket;
-    if (!socket.bind(8080))
+    if (!socket.bind({ "0.0.0.0", 8080 }))
     {
         std::cout << "Failed to bind to port 8080\n";
         return;
@@ -40,7 +40,7 @@ void testTcpServer()
 void testTcpClient()
 {
     Socket socket;
-    if (!socket.connect("127.0.0.1", 8080))
+    if (!socket.connect({ "127.0.0.1", 8080 }))
     {
         std::cout << "Failed to connect to server\n";
         return;
@@ -103,7 +103,7 @@ void testTcpServer2()
 
 void testTcpClient2(std::string name)
 {
-    auto connection = TcpClient::connect("192.168.1.149", 8080);
+    auto connection = TcpClient::connect("127.0.0.1", 8080);
     if (!connection.isOpen())
     {
         std::cout << "Failed to connect to server\n";
