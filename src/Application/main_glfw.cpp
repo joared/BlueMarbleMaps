@@ -40,6 +40,9 @@ private:
 public: // Events
     Signal<Point>   onGoToClicked;
     Signal<>        onReloadClicked;
+    Reflection::IReflectedObject* reflectObject = nullptr;
+    std::unordered_map<const Reflection::OperationDefinition*, std::vector<Reflection::Value>>
+    m_operationParameters;
 public:
     Gui()
     : m_mapControl(nullptr)
@@ -201,8 +204,9 @@ public:
             {
                 onReloadClicked.notify();
             }
-
             ImGui::End();
+
+            drawOperations(reflectObject);
         }
 
         // 3. Show another simple window.
@@ -243,6 +247,146 @@ public:
         ImGui::IsAnyItemFocused();
 
         return imguiBusy;
+    }
+    void drawOperations(Reflection::IReflectedObject* obj)
+    {
+        if (!obj) return;
+        ImGui::Begin("Operations");
+        // std::cout <<"OPAARTIONATNO\n";
+        for (const Reflection::OperationDefinition* op : obj->type().operations())
+        {
+            ImGui::PushID(op);
+
+            ImGui::Text("%s", op->name().c_str());
+
+            auto& params = m_operationParameters[op];
+
+            // Make sure we have one Value for every parameter.
+            const auto& kinds = op->parameterKinds();
+
+            if (params.size() != kinds.size())
+            {
+                params.clear();
+
+                for (Reflection::ValueKind kind : kinds)
+                {
+                    switch (kind)
+                    {
+                    case Reflection::ValueKind::Bool:
+                        params.emplace_back(false);
+                        break;
+
+                    case Reflection::ValueKind::Int:
+                        params.emplace_back(int64_t{0});
+                        break;
+
+                    case Reflection::ValueKind::Double:
+                        params.emplace_back(0.0);
+                        break;
+
+                    case Reflection::ValueKind::String:
+                        params.emplace_back(std::string{});
+                        break;
+
+                    default:
+                        params.emplace_back();
+                        break;
+                    }
+                }
+            }
+
+            // Draw an input for every parameter.
+            for (size_t i = 0; i < params.size(); ++i)
+            {
+                ImGui::PushID(static_cast<int>(i));
+
+                switch (kinds[i])
+                {
+                case Reflection::ValueKind::Bool:
+                {
+                    bool value = params[i].asBool().value_or(false);
+
+                    if (ImGui::Checkbox("##value", &value))
+                        params[i] = Reflection::Value(value);
+
+                    ImGui::SameLine();
+                    ImGui::Text("bool");
+                    break;
+                }
+
+                case Reflection::ValueKind::Int:
+                {
+                    int64_t value = params[i].asInt().value_or(0);
+
+                    if (ImGui::InputScalar(
+                            "##value",
+                            ImGuiDataType_S64,
+                            &value))
+                    {
+                        params[i] = Reflection::Value(value);
+                    }
+
+                    ImGui::SameLine();
+                    ImGui::Text("int");
+                    break;
+                }
+
+                case Reflection::ValueKind::Double:
+                {
+                    double value = params[i].asDouble().value_or(0.0);
+
+                    if (ImGui::InputDouble("##value", &value))
+                        params[i] = Reflection::Value(value);
+
+                    ImGui::SameLine();
+                    ImGui::Text("double");
+                    break;
+                }
+
+                case Reflection::ValueKind::String:
+                {
+                    // Use a persistent string buffer in real code.
+                    // See note below.
+                    ImGui::Text("string");
+                    break;
+                }
+
+                default:
+                    ImGui::Text("unsupported");
+                    break;
+                }
+
+                ImGui::PopID();
+            }
+
+            if (ImGui::Button("Perform"))
+            {
+                try
+                {
+                    Reflection::Value result = op->perform(obj, params);
+
+                    std::cout
+                        << "Operation '" << op->name()
+                        << "' returned "
+                        << Reflection::valueKindToString(result.kind())
+                        << "\n";
+                }
+                catch (const std::exception& e)
+                {
+                    std::cerr
+                        << "Operation '" << op->name()
+                        << "' failed: "
+                        << e.what()
+                        << "\n";
+                }
+            }
+
+            ImGui::Separator();
+
+            ImGui::PopID();
+        }
+
+        ImGui::End();
     }
     
 };
@@ -494,7 +638,8 @@ public:
         {
             auto view = std::make_shared<Map>();
             setView(view);
-            view->drawable()->backgroundColor(Color(120,170,255,0));
+            
+            view->drawable()->backgroundColor(Color(100,110,155,0));
 
             auto backgroundLayer = std::make_shared<TileLayer>();
             backgroundLayer->name("background");
@@ -521,6 +666,7 @@ public:
             toolSet->addSubTool(std::make_shared<CameraControllerTwoHalfD>());
 
             setTool(toolSet);
+            setReflectedObject();
         }
 
         {
@@ -575,11 +721,13 @@ public:
         if (updateReq || guiUpdateReq)
         {
             pollWindowEvents();
+            
             if (updateReq || updateRequired())
             {
                 updateView();
                 updateViewInternal();
                 updateReq = updateRequired();
+                
             }
 
             guiUpdateReq = gui.update();
@@ -595,9 +743,20 @@ public:
             #else
             updateReq=true; // TODO: remove?
             #endif
-            updateReq |= gui.wantCaptureEvents();
-            updateReq |= updateRequired();
+            guiUpdateReq = gui.wantCaptureEvents();
+            updateReq = updateRequired();
         }
+    }
+
+    void setReflectedObject()
+    {
+        gui.m_operationParameters.clear();
+        gui.reflectObject = getView().get();
+
+
+        std::cout << "setReflectedObject:\n";
+        std::cout << "  view:          " << getView().get() << '\n';
+        std::cout << "  reflectObject: " << gui.reflectObject << '\n';
     }
 
     private:

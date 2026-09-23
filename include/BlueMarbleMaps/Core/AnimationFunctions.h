@@ -208,6 +208,48 @@ namespace BlueMarble
 
         };
 
+        template <typename T>
+        class InterruptedTween 
+        {
+        public:
+            // En funktion som specificerar HUR vi interpolerar mellan From och To med ett alpha (0-1)
+            using InterpolatorFunc = std::function<T(const T& from, const T& to, double alpha)>;
+
+            InterruptedTween(T initialValue, double durationMs, InterpolatorFunc func)
+                : m_current(initialValue), m_from(initialValue), m_to(initialValue), 
+                m_duration(durationMs), m_interpolator(func) {}
+
+            void setTarget(T newTarget) {
+                if (m_to == newTarget) return;
+
+                // Om vi byter mål mitt i, blir vårt NUVALANDE värde den nya startpunkten!
+                m_from = m_current;
+                m_to = newTarget;
+                m_elapsedTime = 0.0; // Starta om animationstiden för den nya sträckan
+            }
+
+            void update(double dt) 
+            {
+                if (m_current == m_to) return;
+
+                m_elapsedTime += dt;
+                double alpha = std::min(1.0, m_elapsedTime / m_duration);
+
+                // Använd den skräddarsydda interpoleringslogiken
+                m_current = m_interpolator(m_from, m_to, alpha);
+            }
+
+            T value() const { return m_current; }
+
+        private:
+            T m_current;
+            T m_from;
+            T m_to;
+            double m_duration;
+            double m_elapsedTime = 0.0;
+            InterpolatorFunc m_interpolator;
+        };
+
     }
 }
 

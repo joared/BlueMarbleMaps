@@ -20,7 +20,7 @@ namespace BlueMarble
 
             static CrsPtr fromWkt(const std::string& wkt);
 
-            bool isFunctionallyEquivalent(const CrsPtr& otherCrs);
+            bool isFunctionallyEquivalent(const CrsPtr& otherCrs) const;
             int64_t id() const { return m_id; };
             Rectangle bounds();
             Point projectTo(const CrsPtr& crs, const Point& point) const;

@@ -203,42 +203,36 @@ class PlaneCameraController : public ICameraNavigator
             tiltBy(0.0);
         }
 
-        CameraPtr onActivated(const CameraPtr& currentCamera, const CrsPtr& crs, const SurfaceModelPtr& surfaceModel) override final
+        void onActivated(const CameraUniquePtr& camera, const CrsPtr& crs, const SurfaceModelPtr& surfaceModel) override final
         {
-            constexpr bool usePerspective = true;
-            CameraPtr newCamera;
-
-            if (usePerspective)
+            if (m_usePerspective)
             {
                 // Perspective
-                newCamera = Camera::perspectiveCamera(
-                    currentCamera->projection()->width(),
-                    currentCamera->projection()->height(),
-                    currentCamera->projection()->near(),
-                    currentCamera->projection()->far(),
-                    m_fovDeg
+                camera->setProjection(
+                    std::make_unique<PerspectiveCameraProjection>(
+                    camera->projection()->width(),
+                    camera->projection()->height(),
+                    camera->projection()->near(),
+                    camera->projection()->far(),
+                    m_fovDeg)
                 );
             }
             else
             {
                 // Orthographic
-                newCamera = Camera::orthoGraphicCamera(
-                    currentCamera->projection()->width(),
-                    currentCamera->projection()->height(),
-                    currentCamera->projection()->near(),
-                    currentCamera->projection()->far(),
-                    m_zoom
+                camera->setProjection(
+                    std::make_unique<PerspectiveCameraProjection>(
+                    camera->projection()->width(),
+                    camera->projection()->height(),
+                    camera->projection()->near(),
+                    camera->projection()->far(),
+                    m_zoom)
                 );
             }
 
-            newCamera->setTranslation(currentCamera->translation());
-            newCamera->setOrientation(currentCamera->orientation());
+            stateFromCamera(camera.get(), crs);
 
-            stateFromCamera(newCamera, crs);
-
-            m_camera = newCamera;
-
-            return newCamera;
+            m_camera = camera.get();
         };
 
         void onDeactivated() override final
@@ -264,7 +258,7 @@ class PlaneCameraController : public ICameraNavigator
             stateFromCamera(m_camera, m_crs);
         }
 
-        ControllerStatus updateCamera(const CameraPtr& camera, int64_t deltaMs) override final
+        ControllerStatus updateCamera(const CameraUniquePtr& camera, int64_t deltaMs) override final
         {
             constexpr bool animate = true;
 
@@ -305,6 +299,25 @@ class PlaneCameraController : public ICameraNavigator
                 m_flags = InteractionFlags::ControllerIdle;
             }
 
+            constexpr double fovLimit = 1.00001;
+            
+            if (m_usePerspective && m_fovDeg < fovLimit)
+            {
+                // Switch to orthographic
+                m_usePerspective = false;
+                BMM_DEBUG() << "Switching to orthographic camera\n";
+                onActivated(camera, m_crs, m_surfaceModel);
+                return ControllerStatus::NeedsUpdate;
+            }
+            else if (!m_usePerspective && m_fovDeg > fovLimit)
+            {
+                // Switch to perspective
+                m_usePerspective = true;
+                BMM_DEBUG() << "Switching to perspective camera\n";
+                onActivated(camera, m_crs, m_surfaceModel);
+                return ControllerStatus::NeedsUpdate;
+            }
+            
             if (m_flags == InteractionFlags::ControllerIdle)
             {
                 BMM_DEBUG() << "IDLE!\n";
@@ -452,7 +465,7 @@ class PlaneCameraController : public ICameraNavigator
             }
         }
 
-        void updateCameraPose(const CameraPtr camera)
+        void updateCameraPose(const CameraUniquePtr& camera)
         {
             constexpr bool ZoomUsingFov = false;
 
@@ -508,7 +521,7 @@ class PlaneCameraController : public ICameraNavigator
             m_responseTimeMs = 500.0;
         }
 
-        void stateFromCamera(const CameraPtr& camera, const CrsPtr& crs)
+        void stateFromCamera(Camera* camera, const CrsPtr& crs)
         {
             if (m_currentWorldBounds.isUndefined())
             {
@@ -547,9 +560,26 @@ class PlaneCameraController : public ICameraNavigator
             BMM_DEBUG() << "Flags: " << m_flags << "\n";
         }
 
-        CameraPtr m_camera;
+
+        struct CameraState
+        {
+            Point center;
+            double zoom = 1.0;
+            double rotation = 0.0;
+            double tilt = 0.0;
+
+            // Perspective specific
+            double fov = 0.0;
+        };
+
+        bool      m_usePerspective = true;
+        Camera*   m_camera;
         CrsPtr    m_crs;
+        SurfaceModelPtr m_surfaceModel;
         
+        CameraState m_state;
+        CameraState m_targetState;
+
         Point   m_center;
         Point   m_targetCenter;
         Rectangle m_currentWorldBounds;

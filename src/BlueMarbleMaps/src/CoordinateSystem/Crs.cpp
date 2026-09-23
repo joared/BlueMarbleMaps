@@ -88,7 +88,7 @@ Crs::Crs(const GeodeticDatumPtr &datum, const ProjectionPtr &projection)
 {
 }
 
-bool Crs::isFunctionallyEquivalent(const CrsPtr& otherCrs)
+bool Crs::isFunctionallyEquivalent(const CrsPtr& otherCrs) const
 {
     assert(id() != -1);
     assert(otherCrs->id() != -1);
@@ -108,13 +108,26 @@ Rectangle Crs::bounds()
 
 Point Crs::projectTo(const CrsPtr& crs, const Point& point) const
 {
+    if (isFunctionallyEquivalent(crs))
+        return point;
+
     const auto& ellipsoid = m_datum->ellipsoid();
+
     auto lngLat = m_projection->unProject(point, ellipsoid);
-    return crs->projection()->project(lngLat, ellipsoid);
+    auto projected = crs->projection()->project(lngLat, ellipsoid);
+    
+    // FIXME: we should probably not do this here. We should only operate in 2D
+    double pzMeters = point.z() * m_projection->globalMetersPerUnit(ellipsoid);
+    projected.z(pzMeters / crs->globalMetersPerUnit());
+
+    return projected;
 }
 
 Rectangle Crs::projectTo(const CrsPtr& crs, const Rectangle& rect) const
 {
+    if (isFunctionallyEquivalent(crs))
+        return rect;
+
     std::vector<Point> newCorners;
     for (const auto& p : rect.corners())
     {

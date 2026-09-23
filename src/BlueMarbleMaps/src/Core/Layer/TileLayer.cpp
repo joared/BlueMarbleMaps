@@ -718,7 +718,7 @@ void TileLayer::scheduleTileLoad(const Tile &tile, const CrsPtr &crs, const Feat
 
                 Point surfacePoint;
                 Point dummyNormalPoint;
-                auto camera = m_currentMainMap->camera();
+                auto& camera = m_currentMainMap->camera();
                 Ray ray = camera->ndcToWorldRay(Point(0,0));
                 if (m_currentMainMap->surfaceModel()->rayIntersection(
                         ray.origin,

@@ -24,8 +24,11 @@ namespace BlueMarble
             inline Point(double x=0, double y=0, double z=0) : m_x(x), m_y(y), m_z(z), m_isUndefined(false) {}
             inline bool isUndefined() const { return m_isUndefined; }
             inline double x() const { return m_x; }
+            inline void x(double x) { m_x = x; }
             inline double y() const { return m_y; }
+            inline void y(double y) { m_y = y; }
             inline double z() const { return m_z; }
+            inline void z(double z) { m_z = z; }
 
             inline Point round() const
             {
@@ -83,6 +86,15 @@ namespace BlueMarble
                 return n*n.dotProduct(point);
             }
 
+            // Returns the angle between this and vec in radians
+            inline double angleTo(const Point& vec) const
+            {
+                double l1 = length3D();
+                double l2 = vec.length3D();
+                double dot = this->dotProduct(vec);
+                
+                return std::acos(dot / (l1*l2));
+            }
 
             inline Point operator+(const Point& other) const
             {

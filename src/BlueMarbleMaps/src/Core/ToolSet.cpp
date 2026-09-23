@@ -98,6 +98,7 @@ bool ToolSet::onEvent(const Event& event)
         if (!dispatchEventTo(event, s.get()))
         {
             // A handler is not allowed to say it is active if it didnt handle the event
+            // TODO: or is it?
             assert(!s->isActive());
             continue;
         }

@@ -12,6 +12,7 @@
 #include "BlueMarbleMaps/CoordinateSystem/Crs.h"
 #include "BlueMarbleMaps/Event/Signal.h"
 #include "BlueMarbleMaps/CoordinateSystem/SurfaceModel.h"
+#include "BlueMarbleMaps/Core/Reflection/IReflectedObject.h"
 
 #include <map>
 #include <functional>
@@ -34,8 +35,33 @@ namespace BlueMarble
     class Map 
         : public std::enable_shared_from_this<Map>
         , public ResourceObject
+        , public Reflection::IReflectedObject
     {
+        BMM_REFLECTED(Map, IReflectedObject)
+
+        static void reflect(Reflection::TypeBuilder<Map>& t)
+        {
+            t.property("showDebugInfo", &Map::m_showDebugInfo).displayName("Show debug info");
+            t.property("scale", &Map::scale).displayName("Scale");
+            t.property("invertedScale", &Map::invertedScale).displayName("Inverted scale");
+            t.operation("panTo", [](Map* map) { map->panTo({0,0}); map->update(); });
+            //t.operation<void, double, double, double>("panTo2", [](Map* map, double x, double y, double z) { map->panTo({x,y,z}); });
+            t.operation("rotateTo", &Map::rotateTo);
+            std::function<void(Map*, double, double, double)> test =
+            [](Map* map, double x, double y, double z)
+            {
+                map->panTo({x, y, z});
+            };
+            t.operation("panTo3", test);
+            // t.operation("pixelToScreen", &Map::screenToPixel);
+            //t.operation("toggleDebug", &Map::m_showDebugInfo); // Why does this compile???
+            t.operation("toggleDebug", [](Map* map) { map->showDebugInfo() = !map->showDebugInfo(); });
+
+        }
+
         public:
+            
+
             Map();
             Map(const Map&) = delete;
             Map& operator=(const Map&) = delete;
@@ -45,9 +71,8 @@ namespace BlueMarble
             bool update(bool forceUpdate=false);
  
             // Camera properties
-            CameraPtr camera() { return m_camera; }
-            void setDrawableFromCamera(const CameraPtr& camera);
-            
+            const CameraUniquePtr& camera() const;
+            void setDrawableFromCamera(const CameraUniquePtr& camera);
             double invertedScale() const;
             double scale() const;
             // These could be useful to add back later
@@ -65,10 +90,12 @@ namespace BlueMarble
             const CrsPtr& crs() const { return m_crs; }
             void crs(const CrsPtr& crs);
             SurfaceModelPtr surfaceModel() { return m_surfaceModel; };
-            void setSurfaceModel(const SurfaceModelPtr& model);;
+            void setSurfaceModel(const SurfaceModelPtr& model);
             
             // Camera controller
-            void setCameraController(ICameraController* controller);
+            template <typename T = ICameraController>
+            T* cameraController() const { return dynamic_cast<T*>(m_cameraController.get()); }
+            void setCameraController(ICameraControllerUniquePtr controller);
             // Primitive camera controller options, for simple panning and zooming.
             // Forwarded to the internal camera controller, if one is set, and if the
             // controller implements the ICameraNavigator interface.
@@ -134,6 +161,16 @@ namespace BlueMarble
 
             DrawablePtr drawable();
             void drawable(const DrawablePtr& drawable);
+
+            // For drawing screen-anchored 3D widgets (e.g. a north arrow) from an onCustomDraw handler.
+            // Flushes pending batches and sets the drawable's matrices so that local coordinates are
+            // ordinary screen coordinates (pixels, x right, y DOWN, z into the screen) with the origin
+            // at `screenPos`, rotated as the current camera sees the world, and with the perspective
+            // centred on `screenPos` rather than on the screen centre. With an unrotated camera this
+            // is the plain screen frame: north is (0,-1,0) and up out of the map is (0,0,-1).
+            // The next handler starts again from the plain screen transform.
+            void setScreenWidgetTransform(const Point& screenPos);
+
             void resize(int width, int height);
 
             void flushCache();
@@ -147,9 +184,10 @@ namespace BlueMarble
                 // Update events
                 Signal<Map&> onCameraChanged; // This event needs refinement, dont use
                 Signal<Map&> onUpdating;
+                Signal<Map&> onDrawBackground;
                 Signal<Map&> onCustomDraw;
                 Signal<Map&> onUpdated;
-                Signal<Map&> onIdle;        // This event needs refinement, dont use
+                Signal<Map&> onIdle;          // This event needs refinement, dont use
 
                 // State events
                 Signal<Map&, int, int>                                       onSizeChanged;           // width, height
@@ -167,6 +205,7 @@ namespace BlueMarble
         private:
             void updateUpdateAttributes(int64_t timeStampMs);
             void beforeRender();
+            void calculateAppropriateNearFar(double& near, double& far) const;
             void renderLayers();
             FeatureQuery produceUpdateQuery();
             FeatureQuery produceUpdateQuery(const Rectangle& mapArea);
@@ -188,10 +227,10 @@ namespace BlueMarble
             bool m_updateEnabled;
             bool m_quickUpdateEnabled;
 
-            CameraPtr           m_camera;
-            ICameraController*  m_cameraController;
-            ICameraNavigator*   m_cameraNavigator;
-            int64_t             m_lastUpdateTimeStamp;
+            CameraUniquePtr             m_camera;
+            ICameraControllerUniquePtr  m_cameraController;
+            ICameraNavigator*           m_cameraNavigator;
+            int64_t                     m_lastUpdateTimeStamp;
 
             Attributes m_updateAttributes;
 

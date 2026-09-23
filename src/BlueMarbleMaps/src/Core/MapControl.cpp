@@ -91,7 +91,8 @@ void MapControl::setTool(const ToolPtr &tool)
 
 void MapControl::updateView()
 {
-    // TODO: scheduling
+    //if (m_updateRequired) return;
+    
     m_updateRequired = true;
     onUpdateRequest();
 }

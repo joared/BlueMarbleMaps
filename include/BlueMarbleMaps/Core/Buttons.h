@@ -79,6 +79,10 @@ namespace BlueMarble
         int x, y = 0;
 		bool operator==(const ScreenPos& other) const { return x==other.x && y==other.y; }
 		bool operator!=(const ScreenPos& other) const { return x!=other.x || y!=other.y; }
+		ScreenPos operator+(const ScreenPos& other) const { return {x+other.x, y+other.y}; }
+		void operator+=(const ScreenPos& other) { x+=other.x; y+=other.y; }
+		ScreenPos operator-(const ScreenPos& other) const { return {x-other.x, y-other.y}; }
+		void operator-=(const ScreenPos& other) { x-=other.x; y-=other.y; }
     };
 	
 

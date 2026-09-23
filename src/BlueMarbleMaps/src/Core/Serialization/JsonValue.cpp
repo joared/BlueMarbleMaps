@@ -1,6 +1,7 @@
 #include "BlueMarbleMaps/Core/Serialization/Json/JsonValue.h"
 #include "BlueMarbleMaps/Core/Serialization/Json/JsonDetails.h"
 #include <cassert>
+#include <iomanip>
 
 namespace BlueMarble
 {
@@ -251,7 +252,17 @@ std::string JsonValue::toString(const std::string& currentIndentation, const std
     }
     else if (isDouble())
     {
-        return std::to_string(asDouble());
+        std::ostringstream ss;
+        ss << std::setprecision(17);
+        ss << asDouble();
+
+        // We want at least one decimal if we want this to be properly 
+        // parsed as a double after this call
+        std::string s = ss.str();
+        if (s.find_first_of(".eE") == std::string::npos)
+            s += ".0";
+
+        return s;
     }
     else if (isString())
     {

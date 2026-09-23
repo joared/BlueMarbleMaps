@@ -48,7 +48,7 @@ endif()
 
 set(LINK_TO_GL ON)
 
-set(LINK_TO_GDAL OFF)
+set(LINK_TO_GDAL ON)
 
 if (LINK_TO_GDAL)
     message("Finding GDAL")

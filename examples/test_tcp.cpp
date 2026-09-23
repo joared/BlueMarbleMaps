@@ -1,4 +1,4 @@
-#include "BlueMarbleMaps/Networking/Socket.h"
+#include "BlueMarbleMaps/Networking/TcpServer.h"
 #include <iostream>
 
 using namespace BlueMarble::Networking;
@@ -105,7 +105,7 @@ void testTcpServer2()
 
 void testTcpClient2(std::string name)
 {
-    auto connection = TcpClient::connect(hostName, 8080);
+    auto connection = TcpConnection::connect(hostName, 8080);
     if (!connection.isOpen())
     {
         std::cout << "Failed to connect to server\n";

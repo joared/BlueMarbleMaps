@@ -277,20 +277,31 @@ namespace BlueMarble
                 , m_zoomPoint(Point::undefined())
                 , m_zoomToRect(false)
                 , m_hoverFeature(nullptr)
+                , m_grabEvents(false)
             {
             }
 
             bool isActive() override final
             {
-                return false; // Don't halt any other tools
+                return m_grabEvents;
+            }
+
+            void grabEvents()
+            {
+                m_grabEvents = true;
+            }
+
+            void releaseEvents()
+            {
+                m_grabEvents = false;
             }
 
             void onConnected(const MapControlPtr& control, const MapPtr& map) override final 
             {
                 m_mapControl = control;
                 m_map = map;
-                m_map->events.onCustomDraw.subscribe(this, &CameraControllerTwoHalfD::OnCustomDraw);
-                m_map->setCameraController(&m_cameraController);
+                m_map->events.onCustomDraw.subscribe(this, &CameraControllerTwoHalfD::onCustomDraw);
+                m_map->setCameraController(std::make_unique<PlaneCameraController>());
             }
 
             void onDisconnected() override final 
@@ -317,7 +328,7 @@ namespace BlueMarble
                 drawable->drawLine(linePtr, pen);
             }
 
-            void OnCustomDraw(BlueMarble::Map& /*map*/)
+            void onCustomDraw(BlueMarble::Map& /*map*/)
             {
                 // Pen pen;
                 // pen.setColor(Color::red());
@@ -484,14 +495,15 @@ namespace BlueMarble
 
             bool onKeyDown(const KeyDownEvent& event) override final
             {
-                if (event.keyCode == 86) // +
+                Key keyStroke(event.keyCode);
+                if (keyStroke == Key::NUM_PLUS)
                 {
-                    m_cameraController.changeFovBy(-5.0);
+                    controller()->changeFovBy(5.0);
                     m_map->update();
                 }
-                else if (event.keyCode == 82)  // -
+                else if (keyStroke == Key::NUM_SUBTRACT)
                 {
-                    m_cameraController.changeFovBy(5.0);
+                    controller()->changeFovBy(-5.0);
                     m_map->update();
                 }
                 return true;
@@ -535,12 +547,12 @@ namespace BlueMarble
                 if (event.mouseButton == MouseButton::MouseButtonRight)
                 {
                     // m_map->center({0,0}); // Recenter, there is a bug in this shiet
-                    m_cameraController.center({0,0});
+                    controller()->center({0,0});
                 }
                 else
                 {
                     //m_map->zoomOn(mapPoint, zoomFactor, true);
-                    m_cameraController.zoomOn(mapPoint, 2.0);
+                    controller()->zoomOn(mapPoint, 2.0);
                 }
 
                 m_map->update();
@@ -554,11 +566,13 @@ namespace BlueMarble
                 {
                     m_map->quickUpdateEnabled(true); // TODO: make an interaction handler that manages if this is enabled or not?
                     m_startTsOrbit = m_mapControl->getGinotonicTimeStampMs();
-                    
+                    // grabEvents(); // Will cause pointer tracer tool to not receive events
                     return true;
                 }
-                if (dragEvent.phase == InteractionEvent::Phase::Completed)
+                if (dragEvent.phase == InteractionEvent::Phase::Completed || 
+                    dragEvent.phase == InteractionEvent::Phase::Canceled)
                 {
+                    releaseEvents();
                     m_map->quickUpdateEnabled(false);
                     m_orbitPoint = Point::undefined();
                     m_zoomPoint = Point::undefined();
@@ -568,7 +582,7 @@ namespace BlueMarble
                         auto rect = Rectangle(dragEvent.startPos.x, dragEvent.startPos.y, 
                                               dragEvent.pos.x, dragEvent.pos.y);
                         
-                        m_cameraController.zoomTo(m_map->screenToMap(rect));
+                        controller()->zoomTo(m_map->screenToMap(rect));
                         // m_map->zoomToArea(m_map->screenToMap(rect), false);
                         
                         m_map->update();
@@ -602,9 +616,9 @@ namespace BlueMarble
                         auto screen1 = Point((double)dragEvent.pos.x, (double)dragEvent.pos.y);
                         auto screen2 = Point((double)dragEvent.lastPos.x, (double)dragEvent.lastPos.y);
                         auto offsetWorld = m_map->screenToMap(screen2) - m_map->screenToMap(screen1);
-                        auto to = m_cameraController.center() + offsetWorld;
-                        //m_cameraController.center(to);
-                        m_cameraController.panBy(offsetWorld);
+                        auto to = controller()->center() + offsetWorld;
+                        //controller()->center(to);
+                        controller()->panBy(offsetWorld);
                         m_map->update();
                     }
                     
@@ -628,7 +642,7 @@ namespace BlueMarble
                         double deltaAngle = currAngle-startAngle;
 
                         // m_map->rotation(m_map->rotation() + deltaAngle*RAD_TO_DEG);
-                        m_cameraController.rotateBy(deltaAngle*RAD_TO_DEG);
+                        controller()->rotateBy(deltaAngle*RAD_TO_DEG);
                         m_map->update();
                     }
                     else
@@ -648,7 +662,7 @@ namespace BlueMarble
                         double scale = 1 + abs(deltaY)*ZOOM_SCALE;
                         double zoomFactor = deltaY > 0 ? scale : 1.0/scale;
                         // m_map->zoomOn(mapPoint, zoomFactor);
-                        m_cameraController.zoomOn(mapPoint, zoomFactor);
+                        controller()->zoomOn(mapPoint, zoomFactor);
                         m_map->update();
                     }
                     
@@ -664,9 +678,9 @@ namespace BlueMarble
                     double deltaRot = (dragEvent.lastPos.x - dragEvent.pos.x) * rotateFactor;
                     double deltaTilt = (dragEvent.lastPos.y - dragEvent.pos.y) * tiltFactor;
                     
-                    // m_cameraController.stop();
-                    m_cameraController.rotateBy(deltaRot);
-                    m_cameraController.tiltBy(deltaTilt);
+                    // controller()->stop();
+                    controller()->rotateBy(deltaRot);
+                    controller()->tiltBy(deltaTilt);
 
                     m_map->update();
 
@@ -684,16 +698,20 @@ namespace BlueMarble
                 const double wheelDelta = 5;
                 double scale = 1.0 + abs(wheelEvent.delta)/wheelDelta;
                 double zoomFactor = wheelEvent.delta > 0 ? scale : 1.0/scale;
-                m_cameraController.zoomOn(m_map->screenToMap(m_map->pixelToScreen(Point(wheelEvent.pos.x, wheelEvent.pos.y))), zoomFactor);
+                controller()->zoomOn(m_map->screenToMap(m_map->pixelToScreen(Point(wheelEvent.pos.x, wheelEvent.pos.y))), zoomFactor);
                 m_map->update();
                 return true;
             }
 
         private:
-            
+        
+            PlaneCameraController* controller()
+            {
+                return m_map->cameraController<PlaneCameraController>();
+            }
+
             BlueMarble::MapPtr m_map;
             MapControlPtr m_mapControl;
-            PlaneCameraController m_cameraController;
             BlueMarble::Rectangle m_rectangle;
             Point m_orbitPoint;
             Point m_zoomPoint;
@@ -702,6 +720,7 @@ namespace BlueMarble
             bool m_zoomToRect;
             bool m_selectArea;
             FeaturePtr m_hoverFeature;
+            bool m_grabEvents;
     };
 
     class PointerTracerTool : public Tool
@@ -1025,16 +1044,22 @@ namespace BlueMarble
     class NorthArrowTool : public Tool
     {
         static constexpr double ArrowLength = 20.0;
-        static constexpr double ArrowWidth = 5.0;
+        static constexpr double ArrowWidth = ArrowLength * 0.33;
 
         public:
             NorthArrowTool()
                 : m_map(nullptr)
                 , m_isHovered(false)
                 , m_isSelected(false)
+                , m_grabEvents(false)
+                , m_posOffset{0,0}
+                , m_scale(1.0)
             {}
 
-            bool isActive() { return false; }
+            bool isActive() 
+            { 
+                return m_grabEvents; 
+            }
 
             void onConnected(const MapControlPtr& control, const MapPtr& map) override final
             {
@@ -1048,13 +1073,45 @@ namespace BlueMarble
                 m_map->events.onCustomDraw.unsubscribe(this);
             }
         private:
+            void grabEvents()
+            {
+                m_grabEvents = true;
+            }
+
+            void releaseEvents()
+            {
+                m_grabEvents = false;
+            }
+
+            double northArrowRadius() const
+            {
+                return ArrowLength*m_scale;
+            }
+
+            Point northArrowPos(const DrawablePtr& drawable) const
+            {
+                double radius = northArrowRadius();
+                double x = drawable->width() - radius * 2.0;
+                double y = radius * 2.0;
+
+                x += m_posOffset.x;
+                y += m_posOffset.y;
+
+                return Point(x,y);
+            }
+
+            bool hitTest(const ScreenPos& mouse) const
+            {
+                auto mouseP = Point(mouse.x, mouse.y);
+                auto pos = northArrowPos(m_map->drawable());
+                
+                return pos.distanceTo(mouseP) < northArrowRadius();
+            }
 
             bool onMouseMove(const MouseMoveEvent& event) override final
             {
-                auto mouse = Point(event.pos.x, event.pos.y);
-                auto pos = northArrowPos(m_map->drawable());
-                
-                m_isHovered = pos.distanceTo(mouse) < ArrowLength;
+                bool isHit = hitTest(event.pos);
+                m_isHovered = isHit;
                 if (!m_isHovered && m_isSelected)
                 {
                     m_isSelected = false;
@@ -1065,15 +1122,46 @@ namespace BlueMarble
 
             bool onMouseDown(const MouseDownEvent& event) override final
             {
-                auto mouse = Point(event.pos.x, event.pos.y);
-                auto pos = northArrowPos(m_map->drawable());
-                
-                m_isSelected = pos.distanceTo(mouse) < ArrowLength;
+                m_isSelected = hitTest(event.pos);
 
                 if (m_isSelected)
                 {
-                    m_map->rotateTo(0.0);
+                    grabEvents();
                     return true;
+                }
+
+                return false;
+            }
+
+            bool onDrag(const DragEvent& event) override final
+            {
+                if (event.phase != InteractionEvent::Phase::Started &&
+                    !isActive())
+                {
+                    return false;
+                }
+
+                BMM_DEBUG() << "Drag event: " << std::to_string((int)event.phase) << "\n";
+
+                switch (event.phase)
+                {
+                    case InteractionEvent::Phase::Started:
+                    
+                        if (hitTest(event.pos))
+                        {
+                            BMM_DEBUG() << "Grabbed!\n";
+                            grabEvents();
+                            return true;
+                        }
+                        break;
+                    case InteractionEvent::Phase::Updated:
+                        m_posOffset += event.pos - event.lastPos;
+                        m_map->update();
+                        return true;
+                    case InteractionEvent::Phase::Canceled:
+                    case InteractionEvent::Phase::Completed:
+                        releaseEvents();
+                        return true;
                 }
 
                 return false;
@@ -1081,25 +1169,39 @@ namespace BlueMarble
 
             bool onClick(const ClickEvent& event) override final
             {
-                auto mouse = Point(event.pos.x, event.pos.y);
-                auto pos = northArrowPos(m_map->drawable());
-                
-                m_isSelected = pos.distanceTo(mouse) < ArrowLength;
+                m_isSelected = hitTest(event.pos);
 
                 if (m_isSelected)
                 {
                     m_map->rotateTo(0.0);
-                    return true;
+                    m_map->update();
                 }
 
-                return false;
+                return m_isSelected;
             }
 
             bool onMouseUp(const MouseUpEvent& event) override final
             {
                 m_isSelected = false;
+                releaseEvents();
 
                 return false;
+            }
+
+            bool onMouseWheel(const MouseWheelEvent& event) override final
+            {
+                if (!hitTest(event.pos))
+                {
+                    return false;
+                }
+
+                const double wheelDelta = 5;
+                double scale = 1.0 + abs(event.delta)/wheelDelta;
+                double zoomFactor = event.delta > 0 ? scale : 1.0/scale;
+
+                m_scale *= zoomFactor;
+                
+                return true;
             }
 
             void onCustomDraw(Map& map)
@@ -1109,7 +1211,22 @@ namespace BlueMarble
 
             void drawNorthArrow(const DrawablePtr& drawable)
             {
+                static auto animator = AnimationFunctions::InterruptedTween<double>(
+                    0.0, 
+                    1000.0, 
+                    [](const double& from, const double& to, double alpha) 
+                    { 
+                        alpha = AnimationFunctions::sigmoidEase(alpha, 12.0);
+                        return from + (to-from)*alpha; 
+                    }
+                );
+                static int64_t lastTimeStamp = 0;
+                int64_t updateTimeMs = m_map->updateAttributes().get<int>(UpdateAttributeKeys::UpdateTimeMs);
+                double elapsedTimeMs = updateTimeMs - lastTimeStamp;
+                lastTimeStamp = updateTimeMs;
+
                 auto pos = northArrowPos(drawable);
+                double radius = northArrowRadius();
 
                 Pen pen;
                 pen.setAntiAlias(true);
@@ -1127,60 +1244,158 @@ namespace BlueMarble
                 {
                     brush.setColor(Color(50,50,50,0.5));
                 }
-                drawable->drawCircle(pos.x(), pos.y(), ArrowLength, Pen::transparent(), brush);
+                
 
                 // Calculate direction of grid north
-                auto screenCenter = m_map->screenCenter();
-                auto mapCenter = m_map->screenToMap(screenCenter);
-                auto screenOffset = m_map->mapToScreen(mapCenter + Point(0.0, 1.0));
-                auto screenUpDirection = (screenOffset-screenCenter).norm();
-                auto screenRightDirection = Point(-screenUpDirection.y(), screenUpDirection.x());
+                // auto screenCenter = m_map->screenCenter();
+                // auto mapCenter = m_map->screenToMap(screenCenter);
+                // auto screenOffset = m_map->mapToScreen(mapCenter + Point(0.0, 1.0));
+                // auto screenUpDirection = (screenOffset-screenCenter).norm();
+                // auto screenRightDirection = Point(-screenUpDirection.y(), screenUpDirection.x());
 
-                auto arrowUp = calcArrowGeometry(pos, screenUpDirection, screenRightDirection);
-                auto arrowDown = calcArrowGeometry(pos, screenUpDirection * (-1.0), screenRightDirection);
+                drawable->endBatches();
+                drawable->beginBatches();
+
+                // Flat backdrop, drawn straight in screen space
+                drawable->setViewMatrix(glm::translate(glm::dmat4(1), {pos.x(), pos.y(), 0.0}));
+                drawable->drawCircle(0, 0, radius, Pen::transparent(), brush);
 
 
-                brush.setColor(Color(255, 0, 0, 0.9));
-                drawable->drawPolygon(std::make_shared<PolygonGeometry>(arrowUp->points()), pen, brush);
-                brush.setColor(Color::white(0.9));
-                drawable->drawPolygon(std::make_shared<PolygonGeometry>(arrowDown->points()), pen, brush);
-
-            }
-
-            LineGeometryPtr calcArrowGeometry(const Point& screenPos, const Point& screenUpDirection, const Point& screenRightDirection) const
-            {
-                auto points = std::vector<Point>();
-
-                // Top of north arrow
-                points.push_back(screenPos + (screenRightDirection * -ArrowWidth));
-                points.push_back(screenPos + (screenUpDirection * ArrowLength));
-                points.push_back(screenPos + (screenRightDirection * ArrowWidth));
-                points.push_back(screenPos + (screenUpDirection * ArrowWidth));
+                auto upVec = m_map->camera()->up();
+                double angle = std::atan2(upVec.x(), upVec.y());
+                bool isNorth = std::abs(RAD_TO_DEG*angle) < 0.01;
                 
-                LineGeometryPtr line = std::make_shared<LineGeometry>(points);
-                line->isClosed(true);
+                animator.setTarget(isNorth ? 0.0 : 1.0);
+                animator.update((double)elapsedTimeMs);
 
-                // points.push_back(screenPos + (screenUpDirection * -ArrowLength));
-                // points.push_back(screenPos + (screenRightDirection * ArrowWidth));
-                // points.push_back(screenPos + (screenUpDirection * ArrowLength));
-                // points.push_back(screenPos + (screenRightDirection * -ArrowWidth));
+                auto northArrow = northArrowGeometry(animator.value());
+                auto southArrow = southArrowGeometry();
 
 
+                // Draw shadow
+                // V1
+                // m_map->setScreenWidgetTransform(pos + Point{3.0, ArrowWidth});
+                // brush.setColor(Color::black(0.5));
+                // drawable->drawPolygon(std::make_shared<PolygonGeometry>(arrowUp->points()), pen, brush);
+                // drawable->drawPolygon(std::make_shared<PolygonGeometry>(arrowDown->points()), pen, brush);
+                
+                // V2
+                m_map->setScreenWidgetTransform(pos);
+                auto m = glm::scale(glm::dmat4(1.0), {m_scale,m_scale,m_scale});
+                drawable->setViewMatrix(drawable->getViewMatrix() * m);
+                auto baseViewMat = drawable->getViewMatrix();
 
-                return line;
+                double zDisplacement = ArrowWidth;
+                auto t1 = glm::translate(glm::dmat4(1.0), {0.0,0.0,0.0});
+                drawable->setViewMatrix(baseViewMat * t1);
+
+                brush.setColor(Color::white(0.3));
+                drawable->drawCircle(0, 0, ArrowLength, Pen::transparent(), brush);
+
+                brush.setColor(Color::black(0.5));
+                drawable->drawPolygon(northArrow, pen, brush);
+                if (!isNorth)
+                    drawable->drawPolygon(southArrow, pen, brush);
+
+                drawable->endBatches();
+                drawable->beginBatches();
+                // drawable->setViewMatrix(drawable->getViewMatrix() * glm::inverse(t));
+
+
+                // Draw north arrow
+                auto t2 = glm::translate(glm::dmat4(1.0), {0, 0, -zDisplacement});
+                drawable->setViewMatrix(baseViewMat * t2);
+
+                // m_map->setScreenWidgetTransform(pos);
+                
+                brush.setColor(Color(255, 0, 0, 0.9));
+                drawable->drawPolygon(northArrow, pen, brush);
+                brush.setColor(Color::white(0.9));
+                
+                if (!isNorth)
+                    drawable->drawPolygon(southArrow, pen, brush);
+
             }
 
-            Point northArrowPos(const DrawablePtr& drawable)
+            static PolygonGeometryPtr northArrowGeometry(double alpha)
             {
-                int x = drawable->width() - ArrowLength * 2.0;
-                int y = ArrowLength * 2.0;
+                static auto northArrowEnd = []()
+                {
+                    auto points = std::vector<Point>();
 
-                return Point(x,y);
+                    // Top of north arrow
+                    auto right = Point(1.0, 0.);
+                    auto up = Point(0., -1.0);
+                    points.push_back(right * -ArrowWidth);
+                    points.push_back(up    * ArrowLength);
+                    points.push_back(right * ArrowWidth);
+                    points.push_back(up    * ArrowWidth);
+                    
+                    return points;
+                }();
+                static auto northArrowStart = []()
+                {
+                    auto points = std::vector<Point>();
+
+                    // Top of north arrow
+                    auto right = Point(1.0, 0.);
+                    auto up = Point(0., -1.0);
+                    points.push_back(right* -ArrowWidth - up * ArrowLength);
+                    points.push_back(up    * ArrowLength);
+                    points.push_back(right*ArrowWidth - up * ArrowLength);
+                    points.push_back(up    * -ArrowWidth);
+                    
+                    return points;
+                }();
+                
+                return std::make_shared<PolygonGeometry>(interpolatePolygon(northArrowStart, northArrowEnd, alpha));
+            }
+
+            static PolygonGeometryPtr southArrowGeometry()
+            {
+                static auto southArrow = []()
+                {
+                    auto points = std::vector<Point>();
+
+                    auto right = Point(1.0, 0.);
+                    auto down = Point(0., 1.0);
+                    points.push_back(right * -ArrowWidth);
+                    points.push_back(down  * ArrowLength);
+                    points.push_back(right * ArrowWidth);
+                    points.push_back(down  * ArrowWidth);
+                    
+                    return std::make_shared<PolygonGeometry>(points);
+                }();
+                
+                return southArrow;
+            }
+
+            static Point interpolatePoint(const Point& start, const Point& target, double t) {
+                double x = start.x() + (target.x() - start.x()) * t;
+                double y = start.y() + (target.y() - start.y()) * t;
+                return Point(x, y, 0.0);
+            }
+
+            // Interpolerar en hel polygon (sekvens av punkter)
+            static std::vector<Point> interpolatePolygon(const std::vector<Point>& startShape, 
+                                                const std::vector<Point>& targetShape, 
+                                                double t) {
+                std::vector<Point> currentShape;
+                currentShape.reserve(startShape.size());
+                
+                for (size_t i = 0; i < startShape.size(); ++i) 
+                {
+                    currentShape.push_back(interpolatePoint(startShape[i], targetShape[i], t));
+                }
+                return currentShape;
             }
 
             MapPtr m_map;
             bool m_isHovered;
             bool m_isSelected;
+            bool m_grabEvents;
+            ScreenPos m_posOffset;
+            double m_scale;
     };
 
     class GpxVisualizerTool : public Tool
@@ -1621,8 +1836,18 @@ namespace BlueMarble
         
         struct CameraRepresentation
         {
-            Point translation;
+            // Used when transmitting
+            Camera* camera;
+            CrsPtr crs;
+
+            // Used when receiving (render reeady)
+            Point              translation;
+            glm::dquat         orientation;
+            Point              projectedCenter;
             std::vector<Point> projectedFrustum;
+            std::vector<Point> nearPlane;
+            std::vector<Point> farPlane;
+            uint64_t           firstReceivedTimeStamp;
         };
 
         CameraBroadCastTool()
@@ -1638,7 +1863,7 @@ namespace BlueMarble
             m_map->events.onCameraChanged.subscribe(this, &CameraBroadCastTool::onViewAreaChanged);
             
             constexpr size_t MAX_MESSAGE_SIZE = 1000;
-            auto txEndPoint = Networking::EndPoint{ "192.168.1.255", 8080 }; // Local network
+            auto txEndPoint = Networking::EndPoint{ "255.255.255.255", 8080 }; // Local network
             auto rxEndPoint = Networking::EndPoint{ "0.0.0.0", 8080 };
 
             m_rxSocket = std::make_unique<Networking::Socket>(Networking::Socket::SocketType::Udp);
@@ -1673,15 +1898,6 @@ namespace BlueMarble
 
                         message.resize(nReceived);
 
-                        if (sender == txEndPoint) // FIXME: This doesnt really work, this is not the actual endpoint
-                        {
-                            std::cout << "Got my own message!\n";
-                        }
-                        else
-                        {
-                            std::cout << "Received: " << message << " (from: " << sender.address << " : " << std::to_string(sender.port) << ") \n";
-                        }
-
                         auto value = JsonValue::fromString(message);
 
                         if (!value.isObject())
@@ -1699,13 +1915,19 @@ namespace BlueMarble
                         auto senderId = json.at("id").asString();
                         if (senderId == getId())
                         {
-                            std::cout << "Message was from me! Ignoring\n";
+                            //std::cout << "Message was from me! Ignoring\n";
                             continue;
                         }
+
+                        std::cout << "Received: " << message << " (from: " << sender.address << " : " << std::to_string(sender.port) << ") \n";
 
                         auto cam = jsonToCamera(json);
 
                         auto cameras = m_cameras.lock();
+                        if (cameras->find(senderId) == cameras->end())
+                        {
+                            cam.firstReceivedTimeStamp = getTimeStampMs();
+                        }
                         cameras->insert_or_assign(senderId, cam);
                         m_cameras.unlock();
 
@@ -1716,6 +1938,7 @@ namespace BlueMarble
 
             m_txThread = std::thread([this, MAX_MESSAGE_SIZE, txEndPoint]()
                 {
+                    static int sendCount = 0;
                     m_txSocket->setSocketOptions({ 
                         .broadcastEnabled = true,
                         .reuseAddressEnabled = false });
@@ -1746,7 +1969,9 @@ namespace BlueMarble
                             throw std::runtime_error("THIS SHOULD NEVER HAPPEN FOR UDP!");
                         }
 
-                        std::cout << "Sent " << nSent << " bytes\n";
+                        sendCount++;
+                        if (sendCount % 1000 == 0)
+                            std::cout << "(" << sendCount << ") Sent " << nSent << " bytes\n";
                     }
                 }
             );
@@ -1757,20 +1982,26 @@ namespace BlueMarble
             m_map->events.onCustomDraw.unsubscribe(this);
             m_map = nullptr;
             m_mapControl = nullptr;
+            m_txSocket->close();
+            m_rxSocket->close();
+
+            std::cout << "Waiting for tx thread to finish...\n";
+            m_txThread.join();
+            std::cout << "...done!\n";
+            std::cout << "Waiting for rx thread to finish...\n";
+            m_rxThread.join();
+            std::cout << "...done!\n";
         }
 
         void onViewAreaChanged(Map& map)
         {
             // Broad cast the current camera
-            int w = m_map->drawable()->width();
-            int h = m_map->drawable()->height();
-            auto screenArea = Rectangle(0, 0, w, h);
-            //auto area = m_map->screenToMap(screenArea).cropped(m_map->crs()->bounds());
-            auto projectedFrustum = m_map->screenToMap(screenArea.corners());
+            
             CameraRepresentation cam
             {
-                m_map->camera()->translation(), 
-                projectedFrustum
+                m_map->camera().get(),
+                m_map->crs()
+                
             };
 
             auto json = cameraToJson(cam);
@@ -1785,9 +2016,13 @@ namespace BlueMarble
 
         void onCustomDraw(Map& map)
         {
-            auto cameras = m_cameras.lock();;
+            static auto radiusEval = AnimationFunctions::AnimationBuilder().subDivide(2).sigmoid(12.0).inverseAt(0.5).build();
+            constexpr int animDurationMs = 2000;
+
+            auto* cameras = m_cameras.lock();
 
             m_map->setDrawableFromCamera(m_map->camera());
+            uint64_t timeStamp = m_map->updateAttributes().get<int>(UpdateAttributeKeys::UpdateTimeMs);
             
             Pen pen;
             Brush brush;
@@ -1795,23 +2030,89 @@ namespace BlueMarble
             for (const auto& it : *cameras)
             {
                 const auto& cam = it.second;
+                uint64_t elapsed = timeStamp; //-cam.firstReceivedTimeStamp;
+                double progress = (elapsed % animDurationMs) / (double)animDurationMs;
+
+                // Draw near/far plane polygons
+                auto farPol = std::make_shared<PolygonGeometry>(cam.farPlane);
+                auto nearPol = std::make_shared<PolygonGeometry>(cam.nearPlane);
+                brush.setColor(Color::blue(0.1));
+                m_map->drawable()->drawPolygon(farPol, pen, brush);
+                brush.setColor(Color::green(0.1));
+                m_map->drawable()->drawPolygon(nearPol, pen, brush);
+
+                // Draw projected frustum polygon
                 auto polygon = std::make_shared<PolygonGeometry>(cam.projectedFrustum);
                 pen.setColor(Color::yellow(0.9));
-                brush.setColor(Color::red(0.2));
-
+                brush.setColor(Color::red(0.1));
                 m_map->drawable()->drawPolygon(polygon, pen, brush);
 
-                for (const auto& p : cam.projectedFrustum)
+                // Draw the "sides" of the frustum as polygons
+                brush.setColor(Color::red(0.05));
+                size_t n = cam.projectedFrustum.size();
+                for (int i=0; i < n; ++i)
+                {
+                    auto p1 = cam.projectedFrustum[i];
+                    auto p2 = cam.projectedFrustum[(i+1) % n];
+                    auto pol = std::make_shared<PolygonGeometry>
+                    (
+                        std::vector<Point>{cam.translation, p1, p2}
+                    );
+                    m_map->drawable()->drawPolygon(pol, pen, brush);
+                }
+
+                // Draw the lines of the frustum, all the way to the far plane
+                for (size_t i(0); i<4; ++i)
                 {
                     auto line = std::make_shared<LineGeometry>
                     (
-                        std::vector<Point>{cam.translation, p}
+                        std::vector<Point>{cam.nearPlane[i], cam.farPlane[i]}
                     );
                     m_map->drawable()->drawLine(line, pen);
                 }
 
-                pen.setColor(Color::blue());
-                // TODO: draw something on the camera position
+                // Projected center
+                m_map->drawable()->endBatches();
+                m_map->drawable()->beginBatches();
+                m_map->drawable()->setProjectionMatrix(m_map->camera()->projectionMatrix());
+                
+                auto projView = m_map->camera()->worldToView(cam.projectedCenter);
+                double projSize = (7.5 + 5.0*radiusEval(progress)) * m_map->camera()->unitsPerPixelAtDistance(std::abs(projView.z()));
+                
+                auto m1 = glm::identity<glm::dmat4>();
+                m1 = glm::translate(m1, {projView.x(), projView.y(), projView.z()});
+                m1 = m1 * glm::inverse(m_map->camera()->rotationMatrix());
+                m_map->drawable()->setViewMatrix(m1);
+
+                brush.setColor(Color::black(0.4));
+                m_map->drawable()->drawCircle(0, 0, projSize*2.0, pen, brush);
+                brush.setColor(Color::white(0.4));
+                m_map->drawable()->drawCircle(0, 0, projSize*1.2, pen, brush);
+                brush.setColor(Color::blue(0.4));
+                m_map->drawable()->drawCircle(0, 0, projSize*1.0, pen, brush);
+                
+                // Draw a circle on the camera position
+                m_map->drawable()->endBatches();
+                m_map->drawable()->beginBatches();
+                m_map->drawable()->setProjectionMatrix(m_map->camera()->projectionMatrix());
+                auto t = m_map->camera()->worldToView(cam.translation);
+                auto m = glm::identity<glm::dmat4>();
+                m = glm::translate(m, {t.x(), t.y(), t.z()});
+                m = m * glm::inverse(m_map->camera()->rotationMatrix()) * glm::mat4_cast(cam.orientation);
+                m_map->drawable()->setViewMatrix(m);
+
+                constexpr double sizeMeters = 5.0;
+                constexpr double minSizePixels = 10.0;
+                double size = sizeMeters / m_map->crs()->globalMetersPerUnit();
+                
+                double sizePix = size / m_map->camera()->unitsPerPixelAtDistance(std::abs(t.z()));
+                if (sizePix < minSizePixels)
+                {
+                    size = minSizePixels * m_map->camera()->unitsPerPixelAtDistance(std::abs(t.z()));
+                }
+                pen.setColor(Color::yellow());
+                brush.setColor(Color::blue());
+                m_map->drawable()->drawCircle(0, 0, size, pen, brush);
             }
 
             m_cameras.unlock();
@@ -1833,52 +2134,158 @@ namespace BlueMarble
             return idString;
         }
 
-        static CameraRepresentation jsonToCamera(const JsonValue::Object& json)
+        CameraRepresentation jsonToCamera(const JsonValue::Object& json)
         {
             CameraRepresentation cam;
 
             auto trans = json.at("translation").asArray();
-            cam.translation = Point(
+            auto t = Point(
                 trans[0].asDouble(),
                 trans[1].asDouble(),
                 trans[2].asDouble()
             );
 
-            for (const auto& coord : json.at("frustum").asArray())
+            auto ori = json.at("orientation").asArray();
+            auto orientation = glm::dquat(
+                ori[0].asDouble(),
+                ori[1].asDouble(),
+                ori[2].asDouble(),
+                ori[3].asDouble()
+            );
+
+            auto crs = json.at("crs").asString() == "lnglat" ? Crs::wgs84LngLat() : Crs::wgs84MercatorWeb();
+            t = crs->projectTo(m_map->crs(), t); // FIXME: web mercator projection truncates stuff here
+
+            double aspectRatio = json.at("aspect_ratio").asDouble(); // height/width
+
+            // TODO: make camera projection use aspect ratio and ndc instead of width/height
+            double w = aspectRatio;
+            double h = 1.0;
+            w = json.at("width").asDouble();
+            h = json.at("height").asDouble();
+
+            // Perspective
+            double near = json.at("near").asDouble();
+            double far = json.at("far").asDouble();
+            near = near * crs->globalMetersPerUnit() / m_map->crs()->globalMetersPerUnit();
+            far = far * crs->globalMetersPerUnit() / m_map->crs()->globalMetersPerUnit();
+            std::string cameraProjection = json.at("camProj").asString();
+
+            CameraPtr tempCam;
+
+            if (cameraProjection == "perspective")
             {
-                double x = coord.asArray()[0].asDouble();
-                double y = coord.asArray()[1].asDouble();
-                double z = coord.asArray()[2].asDouble();
-                cam.projectedFrustum.push_back(Point(x, y, z));
+                double fov = json.at("fov").asDouble();
+                tempCam = Camera::perspectiveCamera(w, h, near, far, fov);
             }
+            else // orthographic
+            {
+                double unitsPerPixelSender = json.at("unitsPerPixel").asDouble();
+                double metersPerPixel = crs->globalMetersPerUnit()*unitsPerPixelSender;
+                double unitsPerPixel = metersPerPixel / m_map->crs()->globalMetersPerUnit();
+                tempCam = Camera::orthoGraphicCamera(w, h, near, far, unitsPerPixel);
+            }
+
+            tempCam->setTranslation(t);
+            tempCam->setOrientation(orientation);
+
+            // Calculated near/far planes
+            // as well as projected frustum
+            std::vector<Point> ndcCorners = {
+                Point(-1., -1.),
+                Point(-1.,  1.),
+                Point( 1.,  1.),
+                Point( 1., -1.)
+            };
+            for (const auto& ndc : ndcCorners)
+            {
+                // Near/far planes
+                auto worldRay = tempCam->ndcToWorldRay(ndc);
+                cam.nearPlane.push_back(worldRay.origin);
+                
+                Point farPView = tempCam->projection()->ndcToView({ndc.x(), ndc.y(),  1.0});
+                cam.farPlane.push_back(tempCam->viewToWorld(farPView));
+
+                // Projected frustum
+                auto ray = tempCam->ndcToWorldRay(ndc);
+
+                Point intersection;
+                Point normal;
+                if (!m_map->surfaceModel()->rayIntersection(
+                    ray.origin, 
+                    ray.direction,
+                    0.0,
+                    intersection,
+                    normal))
+                {
+                    // No intersection
+                    std::cout << "NO INTERSECTOIN, Not good\n";
+                    return cam;
+                }
+
+                cam.projectedFrustum.push_back(intersection);
+            }
+
+            auto ray = tempCam->ndcToWorldRay(Point(0,0));
+            Point intersection;
+            Point normal;
+            if (m_map->surfaceModel()->rayIntersection(
+                ray.origin, 
+                ray.direction,
+                0.0,
+                intersection,
+                normal))
+            {
+                cam.projectedCenter = intersection;
+            }
+
+            cam.translation = t;
+            cam.orientation = orientation;
 
             return cam;
         }
 
-        static JsonValue::Object cameraToJson(const CameraRepresentation& cam)
+        JsonValue::Object cameraToJson(const CameraRepresentation& cam)
         {
             auto json = JsonValue::Object();
 
+            auto t = cam.camera->translation();
             json["translation"] = {
-                cam.translation.x(),
-                cam.translation.y(),
-                cam.translation.z()
+                t.x(),
+                t.y(),
+                t.z()
             };
 
-            auto pointList = JsonValue::Array();
-            for (const auto& p : cam.projectedFrustum)
+            auto ori = cam.camera->orientation();
+            json["orientation"] = {
+                ori.w,
+                ori.x,
+                ori.y,
+                ori.z
+            };
+
+            // Width and height are not needed, we relly only need aspect ratio
+            json["width"] = cam.camera->projection()->width();
+            json["height"] = cam.camera->projection()->height();
+            json["aspect_ratio"] = cam.camera->projection()->width() / cam.camera->projection()->height();
+            json["near"] = cam.camera->projection()->near();
+            json["far"] = cam.camera->projection()->far();
+
+            // Perspective specific
+            if (auto perspective = dynamic_cast<PerspectiveCameraProjection*>(cam.camera->projection().get()))
             {
-                auto coord = JsonValue
-                {
-                    p.x(),
-                    p.y(),
-                    p.z()
-                };
-                
-                pointList.push_back(coord);
+                json["camProj"] = "perspective";
+                json["fov"] = perspective->fov();
             }
 
-            json["frustum"] = pointList;
+            if (auto ortho = dynamic_cast<OrthographicCameraProjection*>(cam.camera->projection().get()))
+            {
+                json["camProj"] = "ortho";
+                json["unitsPerPixel"] = ortho->unitsPerPixel();
+            }
+
+            std::string crscode = m_map->crs()->isFunctionallyEquivalent(Crs::wgs84LngLat()) ? "lnglat" : "webmerc";
+            json["crs"] = crscode;
 
             return json;
         }

@@ -26,18 +26,20 @@ struct Ray
 class CameraProjection
 {
 public:
-    CameraProjection(int width, int height, double near, double far)
+    CameraProjection(double width, double height, double near, double far)
         : m_w(width)
         , m_h(height)
+        , m_aspectRatio(width/height)
         , m_near(near)
         , m_far(far)
     {}
 
     virtual ~CameraProjection() = default;
 
-    void setViewPortSize(int width, int height) { m_w = width; m_h = height; };
+    void setViewPortSize(int width, int height) { m_w = width; m_h = height; m_aspectRatio = (double)width/height; };
     double width() const { return m_w; }
     double height() const { return m_h; }
+    double aspectRatio() const { return m_aspectRatio; }
     void setFrustum(double near, double far) { m_near = near; m_far = far; };
     double near() const { return m_near; }
     double far() const { return m_far; }
@@ -53,23 +55,59 @@ public:
     virtual double unitsPerPixelAtDistance(double zDistCamera) const = 0;
 
 private:
-    int   m_w,   m_h;
+    double m_w,    m_h, m_aspectRatio;
     double m_near, m_far;
 };
 
 class ScreenCameraProjection : public CameraProjection
 {
     public:
+        // Input frame is in pixels: x right, y down, z into the screen (right-handed). The z=0
+        // plane maps 1:1 to pixels; the vanishing point is the screen centre.
         ScreenCameraProjection(int width, int height)
-            : CameraProjection(width, height, -1.0f, 1.0f)
+            : ScreenCameraProjection(width, height, width*0.5, height*0.5)
         {}
-    
+
+        // Same, but with the vanishing point at pixel (cx, cy). The z=0 plane still maps 1:1 to
+        // pixels; only the depth-dependent perspective is centred somewhere else.
+        ScreenCameraProjection(int width, int height, double cx, double cy)
+            : CameraProjection(width, height, -(double)height, (double)height)
+            , m_cx(cx)
+            , m_cy(cy)
+        {}
+
         glm::dmat4 projectionMatrix() const override final
         {
-            return glm::ortho(0.0, (double)width(), (double)height(), 0.0, near(), far()); 
+            //return glm::ortho(0.0, (double)width(), (double)height(), 0.0, near(), far());
+
+            // V1
+            // double fov = glm::radians(150.0);
+            // double z = height()*0.5 / std::tan(fov*0.5);
+
+            // V2
+
+            double z = height();
+            double fov = 2 * std::atan(0.5);
+
+            auto m = glm::perspectiveFov(fov, aspectRatio(), 1.0, 0.01, z*2);
+            m = glm::translate(m, {-width()*0.5, height()*0.5, -z});
+
+            double a = glm::radians(180.0);
+            m = glm::rotate(m, a, {1.0, 0, 0});
+
+            // Off-axis frustum: moving the vanishing point without moving the z=0 plane is the
+            // centred projection applied to input sheared by depth (x += dx*zi/z). A translate
+            // would shift the whole plane on screen instead.
+            glm::dmat4 shear(1.0);
+            shear[2][0] = (m_cx - width()*0.5) / z;
+            shear[2][1] = (m_cy - height()*0.5) / z;
+
+            return m * shear;
         };
 
         double unitsPerPixelAtDistance(double zDistCamera) const override final { return 1.0; }
+    private:
+        double m_cx, m_cy;
 };
 
 class OrthographicCameraProjection : public CameraProjection
@@ -99,14 +137,14 @@ private:
 class PerspectiveCameraProjection : public CameraProjection
 {
 public:
-    PerspectiveCameraProjection(int width, int height, double near, double far, double fovDegrees)
+    PerspectiveCameraProjection(double width, double height, double near, double far, double fovDegrees)
         : CameraProjection(width, height, near, far)
         , m_fovDeg(fovDegrees)
     {}
 
     glm::dmat4 projectionMatrix() const override final
     {
-        return glm::perspectiveFov(glm::radians(fov()), (double)width(), (double)height(), near(), far());
+        return glm::perspectiveFov(glm::radians(fov()), aspectRatio(), 1.0, near(), far());
     };
 
     double unitsPerPixelAtDistance(double zDistCamera) const override final { return zDistCamera / focalLengthPixelsY(); }
@@ -123,17 +161,18 @@ private:
 // Forward declaration
 class Camera;
 using CameraPtr = std::shared_ptr<Camera>;
+using CameraUniquePtr = std::unique_ptr<Camera>;
 
 class Camera
 {
 public:
-    static CameraPtr orthoGraphicCamera(int width, int height, double near, double far, double unitsPerPixel) 
+    static CameraUniquePtr orthoGraphicCamera(double width, double height, double near, double far, double unitsPerPixel) 
     { 
-        return std::make_shared<Camera>(std::make_unique<OrthographicCameraProjection>(width, height, near, far, unitsPerPixel));
+        return std::make_unique<Camera>(std::make_unique<OrthographicCameraProjection>(width, height, near, far, unitsPerPixel));
     }
-    static CameraPtr perspectiveCamera(int width, int height, double near, double far, double fovDegrees)
+    static CameraUniquePtr perspectiveCamera(double width, double height, double near, double far, double fovDegrees)
     {
-        return std::make_shared<Camera>(std::make_unique<PerspectiveCameraProjection>(width, height, near, far, fovDegrees));
+        return std::make_unique<Camera>(std::make_unique<PerspectiveCameraProjection>(width, height, near, far, fovDegrees));
     }
 
     Camera(std::unique_ptr<CameraProjection> proj)
@@ -150,6 +189,7 @@ public:
 
     // Projection, these methods are needed for the view
     const std::unique_ptr<CameraProjection>& projection() { return m_projection; }
+    void setProjection(std::unique_ptr<CameraProjection> projection) { m_projection = std::move(projection); }
     void setViewPortSize(int width, int height) { m_projection->setViewPortSize(width, height); };
     void setFrustum(double near, double far) { m_projection->setFrustum(near, far); }
     glm::dmat4 projectionMatrix() const { return m_projection->projectionMatrix(); };
@@ -163,8 +203,17 @@ public:
     void setOrientation(glm::dquat q) { m_orientation = std::move(q); }
 
     // Add when needed, possibly setOrientationFromForwardUp(forward, up);
-    // glm::vec3 forward() { return m_orientation * glm::dvec3(0.0, 0.0, -1.0); }
-    // glm::vec3 up() { return m_orientation * glm::dvec3(1.0, 0.0, 1.0); }
+    Point forward() 
+    { 
+        auto f = m_orientation * glm::dvec3(0.0, 0.0, -1.0); 
+        return Point(f.x, f.y, f.z);
+    }
+
+    Point up() 
+    { 
+        auto up =  m_orientation * glm::dvec3(0.0, 1.0, 0.0); 
+        return Point(up.x, up.y, up.z);
+    }
     
     glm::dmat4 transform() const;
     glm::dmat4 rotationMatrix() const;

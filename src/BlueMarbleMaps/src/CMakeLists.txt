@@ -47,11 +47,6 @@ endif()
 message("Linking BlueMarbleMapsLib to glm")
 target_link_libraries(BlueMarbleMapsLib PUBLIC glm::glm)
 
-message("Linking BlueMarbleMapsLib to GDAL")
-#target_link_libraries(BlueMarbleMapsLib PUBLIC GDAL::GDAL)
-target_include_directories(BlueMarbleMapsLib PUBLIC ${GDAL_INCLUDE_DIRS})
-target_link_libraries(BlueMarbleMapsLib PUBLIC ${GDAL_LIBRARIES})
-
 message("Linking BlueMarbleMapsLib to GLFW")
 find_package(GLFW3 REQUIRED)
 target_include_directories(BlueMarbleMapsLib PRIVATE ${GLFW3_INCLUDE_DIR})
@@ -71,4 +66,10 @@ if(LINK_TO_GL)
     target_link_libraries(BlueMarbleMapsLib PRIVATE GraphicsRendererGLLib)
 endif()
 
-
+if(LINK_TO_GDAL)
+    message("Linking BlueMarbleMapsLib to GDAL")
+    #target_link_libraries(BlueMarbleMapsLib PUBLIC GDAL::GDAL)
+    target_compile_definitions(BlueMarbleMapsLib PRIVATE GDAL_ENABLED)
+    target_include_directories(BlueMarbleMapsLib PUBLIC ${GDAL_INCLUDE_DIRS})
+endif()
+target_link_libraries(BlueMarbleMapsLib PUBLIC ${GDAL_LIBRARIES})

@@ -14,7 +14,7 @@ namespace BlueMarble
             virtual void onConnected(const MapControlPtr& control, const MapPtr& map) override final
             {
                 m_map = map;
-                m_map->setCameraController(&m_cameraController);
+                m_map->setCameraController(std::make_unique<OttoCameraController>());
 
             }
             virtual void onDisconnected() override final

@@ -36,11 +36,9 @@ namespace BlueMarble
                 , m_cameraInfo()
             {}
 
-            CameraPtr onActivated(const CameraPtr& currentCamera, const CrsPtr& crs, const SurfaceModelPtr& surfaceModel) override final
+            void onActivated(const CameraUniquePtr& currentCamera, const CrsPtr& crs, const SurfaceModelPtr& surfaceModel) override final
             {
-                m_camera = currentCamera;
 
-                return currentCamera;
             }
 
             void onDeactivated() override final
@@ -164,7 +162,7 @@ namespace BlueMarble
                 return glm::inverse(viewMat);
             }
 
-            virtual ControllerStatus updateCamera(const CameraPtr& camera, int64_t deltaMs) override final
+            virtual ControllerStatus updateCamera(const CameraUniquePtr& camera, int64_t deltaMs) override final
             {
                 auto perspective = dynamic_cast<PerspectiveCameraProjection*>(camera->projection().get());
                 if (perspective)
@@ -177,7 +175,7 @@ namespace BlueMarble
             }
 
         private:
-            CameraPtr m_camera;
+            Camera* m_camera;
 
             PerspectiveCamerInformation m_cameraInfo;
     };

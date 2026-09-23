@@ -74,9 +74,6 @@ Socket& Socket::operator=(Socket&& other) noexcept
 
 bool Socket::bind(const EndPoint& endPoint)
 {
-#ifdef _WIN32
-    // Windows
-
     int port = endPoint.port;
     auto address = endPoint.address;
 
@@ -100,62 +97,27 @@ bool Socket::bind(const EndPoint& endPoint)
     freeaddrinfo(result);
 
     return iResult != SOCKET_ERROR;
-#elif defined(__linux__)
-    // Circumvent "Address already in use" error when restarting the server quickly
-    int reuse = 1;
-    ::setsockopt(m_sockFd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
-
-    sockaddr_in serv_addr;
-    std::memset(&serv_addr, 0, sizeof(serv_addr));
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = INADDR_ANY;
-    serv_addr.sin_port = htons(port);
-
-    return 0 == ::bind(m_sockFd, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
-#endif // defined(__linux__)
 }
 
 bool Socket::listen(int backlog)
 {
-#ifdef _WIN32
-    // Windows
     if (backlog == -1) backlog = SOMAXCONN;
     return SOCKET_ERROR != ::listen(m_impl->m_sockFd, backlog);
-#elif defined(__linux__)
-    if (backlog == -1) backlog = 5; // TODO: what to do?
-    return 0 == ::listen(m_sockFd, backlog);
-#endif
 }
 
 
 [[nodiscard]] Socket Socket::accept()
 {
-#ifdef _WIN32
-    // Windows
     SOCKET clientSocket = ::accept(m_impl->m_sockFd, NULL, NULL);
 
     auto impl = std::make_unique<Impl>(clientSocket, m_impl->m_type);
 
     return Socket(std::move(impl));
-#elif defined(__linux__)
-    sockaddr_in cli_addr;
-    socklen_t clilen = sizeof(cli_addr);
-    int client_fd = ::accept(m_sockFd, (struct sockaddr*)&cli_addr, &clilen);
-
-    if (client_fd == InvalidSocket)
-    {
-        throw std::runtime_error("Failed to accept");
-    }
-
-    return Socket(client_fd);
-#endif
 }
 
 
 bool Socket::connect(const EndPoint& endPoint)
 {
-#ifdef _WIN32
-    // Windows
     // We allow "double connect" by closing the socket if its open
     close();
 
@@ -206,35 +168,10 @@ bool Socket::connect(const EndPoint& endPoint)
     freeaddrinfo(result);
 
     return iResult != SOCKET_ERROR;
-
-#elif defined(__linux__)
-    // Create sockaddr initialized set to zero
-
-    // TODO: make it possible to use host eg "example.com"
-    // #include <netdb.h>
-    /*struct addrinfo hints {};
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_protocol = IPPROTO_TCP;
-
-    addrinfo* result = nullptr;
-
-    int error = getaddrinfo(host.c_str(), std::to_string(port).c_str(),
-        &hints, &result);*/
-
-    sockaddr_in serv_addr;
-    std::memset(&serv_addr, 0, sizeof(serv_addr));
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(port);
-    serv_addr.sin_addr.s_addr = inet_addr(host.c_str());
-
-    return 0 == ::connect(m_sockFd, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
-#endif
 }
 
 void Socket::close()
 {
-#ifdef _WIN32
     if (!m_impl)
     {
         return;
@@ -248,15 +185,6 @@ void Socket::close()
         ::closesocket(m_impl->m_sockFd);
     }
     m_impl->m_sockFd = INVALID_SOCKET;
-
-#elif defined(__linux__)
-    if (m_sockFd >= 0)
-    {
-        std::cout << "Socket::close()\n";
-        ::close(m_sockFd);
-        m_sockFd = InvalidSocket;
-    }
-#endif
 }
 
 
@@ -268,32 +196,22 @@ bool Socket::isOpen() const
 
 int Socket::send(const char* data, size_t size)
 {
-#ifdef _WIN32
-    // Windows
     int res = ::send(m_impl->m_sockFd, data, (int)size, 0);
     if (res == SOCKET_ERROR)
     {
         return -1;
     }
     return res;
-#elif defined(__linux__)
-    return ::send(m_sockFd, data, size, 0);
-#endif
 }
 
 int Socket::receive(char* buffer, size_t size)
 {
-#ifdef _WIN32
-    // Windows
     int res = ::recv(m_impl->m_sockFd, buffer, (int)size, 0);
     if (res == SOCKET_ERROR)
     {
         return -1;
     }
     return res;
-#elif defined(__linux__)
-    return ::recv(m_sockFd, buffer, size, 0);
-#endif
 }
 
 int Socket::sendTo(const char* data, size_t size, const EndPoint& endPoint)
@@ -341,26 +259,26 @@ int Socket::receiveFrom(char* buffer, size_t size, EndPoint& senderEndPoint)
         return -1;
     }
 
-    if (nBytesReceived > 0)
+    if (nBytesReceived == 0)
     {
-        if (addr.sin_family != AF_INET)
-        {
-            throw std::runtime_error("receiveFrom() received data from unssuported address family: " + std::to_string(addr.sin_family) + "\n");
-        }
-
-        sockaddr_in* addripv4 = reinterpret_cast<sockaddr_in*>(&addr);
-
-        char address[INET_ADDRSTRLEN];
-
-        inet_ntop(
-            AF_INET,
-            &addripv4->sin_addr,
-            address,
-            sizeof(address)
-        );
-
-        senderEndPoint = { address, ntohs(addripv4->sin_port) };
+        return 0;
     }
+
+    if (addr.sin_family != AF_INET)
+    {
+        throw std::runtime_error("receiveFrom() received data from unssuported address family: " + std::to_string(addr.sin_family));
+    }
+
+    char address[INET_ADDRSTRLEN];
+
+    inet_ntop(
+        AF_INET,
+        &addr.sin_addr,
+        address,
+        sizeof(address)
+    );
+
+    senderEndPoint = { address, ntohs(addr->sin_port) };
 
     return nBytesReceived;
 }

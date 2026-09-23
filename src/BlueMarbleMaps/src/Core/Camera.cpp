@@ -25,11 +25,16 @@ Point CameraProjection::ndcToView(const Point& ndc) const
     return Point(view.x, view.y, view.z);
 }
 
+/*
+NOTE: the origin of the ray starts on the near plane, NOT the camera position!
+The reason is for orthographic camera projection to work.
+FIXME: Not all callers to this method or ndcToWorldRay takes this inot account.
+*/ 
 Ray CameraProjection::ndcToViewRay(const Point& ndc) const
 {
-    // Ignore the z value and choose the point on the near plane (-1.0)
+    // Ignore the z value and choose the point on arbitrary near and far (-1.0, 1.0)
     Point near = ndcToView({ndc.x(), ndc.y(), -1.0});
-    Point far = ndcToView({ndc.x(), ndc.y(), 1.0});
+    Point far = ndcToView({ndc.x(), ndc.y(),  1.0});
     Ray ray;
     ray.origin = near;
     ray.direction = (far - near).norm3D();
@@ -83,6 +88,11 @@ Point Camera::viewToWorld(const Point& view) const
     return Point(world.x, world.y, world.z);
 }
 
+/*
+NOTE: the origin of the ray starts on the near plane, NOT the camera position!
+The reason is for orthographic camera projection to work.
+FIXME: Not all callers to this method or ndcToWorldRay takes this inot account.
+*/ 
 Ray Camera::ndcToWorldRay(const Point& ndc) const
 {
     auto cameraTransform = transform();
