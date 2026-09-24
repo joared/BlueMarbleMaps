@@ -278,7 +278,7 @@ int Socket::receiveFrom(char* buffer, size_t size, EndPoint& senderEndPoint)
         sizeof(address)
     );
 
-    senderEndPoint = { address, ntohs(addr->sin_port) };
+    senderEndPoint = { address, ntohs(addr.sin_port) };
 
     return nBytesReceived;
 }
